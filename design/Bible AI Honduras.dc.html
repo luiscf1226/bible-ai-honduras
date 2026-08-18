@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#E9E1D5;font-family:'DM Sans',system-ui,sans-serif}
+a{color:#8C6A4C;text-decoration:none}a:hover{color:#B08260}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes soften{from{opacity:0}to{opacity:1}}
+*{-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:0;height:0}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:22px;padding:40px 24px 56px;box-sizing:border-box">
+
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;max-width:520px">
+<div style="font:400 11px/1 'DM Sans',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8E857A">Bible AI · Honduras · v1</div>
+<div style="font:400 27px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">Prototipo navegable</div>
+<div style="font:300 13px/1.6 'DM Sans',sans-serif;color:#8E857A">Toca la pantalla para recorrer los 5 módulos. Las variaciones de home, navegación y avatares están en el panel de ajustes del prototipo.</div>
+</div>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="{{ dw }}" height="{{ dh }}" keyboard="{{ kbd }}" dark="{{ darkFrame }}" hint-size="402px,874px">
+
+<div style="position:relative;height:100%;background:#FBF8F3;display:flex;flex-direction:column;overflow:hidden">
+
+<sc-if value="{{ isSplash }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:linear-gradient(178deg,#FDF7EE,#F1E9DC 70%,#E7DECF)">
+<img src="./logo.png" alt="Bible AI" style="width:96px;height:96px;border-radius:22px;box-shadow:0 22px 46px -24px rgba(107,74,47,.55);animation:soften 1.4s ease" />
+<div style="display:flex;align-items:baseline;gap:9px">
+<span style="font:400 38px/1 'EB Garamond',Georgia,serif;color:#6B4A2F;letter-spacing:.01em">Bible</span>
+<span style="font:400 38px/1 'EB Garamond',Georgia,serif;color:#8B9C86;letter-spacing:.01em">AI</span>
+</div>
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;color:#A79D8F;letter-spacing:.24em;text-transform:uppercase;text-align:center">Tu fe. Tus preguntas. Su palabra.</div>
+<div onClick="{{ goAuth }}" style="font:300 12px/1 'DM Sans',sans-serif;color:#BDB4A6;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:12px">Toca para entrar</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAuth }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 30px 44px;background:linear-gradient(178deg,#FDF7EE,#F4EDE2 70%,#EBE3D6)">
+<div style="font:400 30px/1.28 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">Bienvenido a Bible AI</div>
+<div style="font:300 14.5px/1.8 'DM Sans',sans-serif;color:#7C766E;margin-top:14px;text-wrap:pretty">Creamos una cuenta para guardar tus devocionales y tu progreso. Nada de tu conversación se hace público.</div>
+<div style="display:flex;flex-direction:column;gap:11px;margin-top:34px">
+<div onClick="{{ authNext }}" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:15px;background:#fff;border:1px solid #E4DCCF;cursor:pointer;font:400 14.5px/1 'DM Sans',sans-serif;color:#3B352E" style-hover="background:#FDF9F3">
+<svg width="17" height="17" viewBox="0 0 24 24"><path d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4a4.7 4.7 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"></path><path d="M12 22c2.7 0 4.9-.9 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1a6 6 0 0 1-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34A853"></path><path d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6z" fill="#FBBC05"></path><path d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6A6 6 0 0 1 12 6.1z" fill="#EA4335"></path></svg>
+Continuar con Google</div>
+<div onClick="{{ authNext }}" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:15px;background:#3B352E;cursor:pointer;font:400 14.5px/1 'DM Sans',sans-serif;color:#FBF8F3" style-hover="opacity:.9">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="#FBF8F3"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8-.7 0-1.9-.8-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.2 1.7 2.4 3 2.4 1.2 0 1.6-.8 3.1-.8s1.9.8 3.1.7c1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.7-1-2.7-3.9zM14.3 5.6c.6-.8 1.1-1.9 1-3-1 0-2.2.7-2.9 1.5-.6.7-1.1 1.8-1 2.9 1.1.1 2.2-.6 2.9-1.4z"></path></svg>
+Continuar con Apple</div>
+<div onClick="{{ authNext }}" style="text-align:center;padding:15px;font:300 13.5px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Usar mi correo</div>
+</div>
+<div style="font:300 11px/1.7 'DM Sans',sans-serif;color:#BDB4A6;text-align:center;margin-top:20px;text-wrap:pretty">Al continuar aceptas los términos y el aviso de privacidad.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isNotif }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;padding:56px 30px 40px;box-sizing:border-box;background:linear-gradient(178deg,#FDF7EE,#F3ECE1)">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px">
+<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#B08260" stroke-width="1.2"><path d="M18 15.5V11a6 6 0 0 0-12 0v4.5L4.5 18h15z"></path><path d="M10 21h4"></path></svg>
+<div style="font:400 28px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">¿A qué hora te lo recordamos?</div>
+<div style="font:300 14.5px/1.8 'DM Sans',sans-serif;color:#7C766E;text-wrap:pretty">Un solo aviso al día con el versículo. Sin insistir, sin notificaciones de más.</div>
+<div style="display:flex;gap:9px;margin-top:6px">
+<sc-for list="{{ notifTimes }}" as="t" hint-placeholder-count="3">
+<div onClick="{{ t.pick }}" style="flex:1;text-align:center;padding:16px 8px;border-radius:15px;cursor:pointer;transition:all .4s ease;background:{{ t.bg }};border:1px solid {{ t.border }}">
+<div style="font:400 19px/1 'EB Garamond',Georgia,serif;color:{{ t.fg }}">{{ t.h }}</div>
+<div style="font:300 11px/1 'DM Sans',sans-serif;color:{{ t.sub }};margin-top:6px">{{ t.label }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div onClick="{{ notifDone }}" style="text-align:center;padding:17px;border-radius:16px;background:#3B352E;color:#FBF8F3;font:400 15px/1 'DM Sans',sans-serif;cursor:pointer">Activar el recordatorio</div>
+<div onClick="{{ notifDone }}" style="text-align:center;padding:15px;font:300 13px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Prefiero sin avisos</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;display:flex;flex-direction:column;padding:64px 34px 40px;box-sizing:border-box;background:linear-gradient(178deg,#FDF7EE 0%,#F6EFE4 46%,#EDE7DC 100%)">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;animation:soften .7s ease">
+<img src="./logo.png" alt="Bible AI" style="width:76px;height:76px;border-radius:18px;box-shadow:0 18px 40px -22px rgba(107,74,47,.5)" />
+<div style="font:400 34px/1.22 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">{{ obTitle }}</div>
+<div style="font:300 15.5px/1.75 'DM Sans',sans-serif;color:#7C766E;text-wrap:pretty">{{ obBody }}</div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:26px">
+<sc-for list="{{ obDots }}" as="d" hint-placeholder-count="3">
+<div style="height:4px;border-radius:2px;transition:all .6s ease;width:{{ d.w }};background:{{ d.bg }}"></div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div onClick="{{ obNext }}" style="text-align:center;padding:17px;border-radius:16px;background:#3B352E;color:#FBF8F3;font:400 15px/1 'DM Sans',sans-serif;cursor:pointer;transition:opacity .4s ease" style-hover="opacity:.85">{{ obCta }}</div>
+<div onClick="{{ obSkip }}" style="text-align:center;font:300 13px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Saltar</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:74px 20px 30px;box-sizing:border-box">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px">
+<div style="display:flex;align-items:center;gap:12px">
+<img src="./logo.png" alt="Bible AI" style="width:38px;height:38px;border-radius:11px;flex:none" />
+<div>
+<div style="font:300 11.5px/1 'DM Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#A09789">Domingo 16 de agosto</div>
+<div style="font:400 24px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:5px">Buenas noches, Elena</div>
+</div>
+</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ goSaved }}" style="width:38px;height:38px;border-radius:50%;border:1px solid #E8E1D6;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff" style-hover="background:#FAF5EE">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C766E" stroke-width="1.3"><path d="M6.5 4h11v16.5L12 16.5 6.5 20.5z"></path></svg>
+</div>
+<div onClick="{{ goSettings }}" style="width:38px;height:38px;border-radius:50%;border:1px solid #E8E1D6;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7C766E" stroke-width="1.3"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"></path></svg>
+</div>
+</div>
+</div>
+
+<div onClick="{{ openDevo }}" style="border-radius:22px;background:#fff;border:1px solid #EDE6DA;padding:30px 26px 26px;cursor:pointer;box-shadow:0 22px 44px -34px rgba(59,53,46,.5);transition:transform .5s ease" style-hover="transform:translateY(-2px)">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#B08260;margin-bottom:18px">Versículo del día</div>
+<div style="font:400 25px/1.52 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">“Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo.”</div>
+<div style="font:400 13.5px/1 'DM Sans',sans-serif;color:#8E857A;margin-top:18px">Salmos 23:4 · {{ version }}</div>
+<div style="display:flex;align-items:center;gap:7px;margin-top:22px;padding-top:18px;border-top:1px solid #F1EAE0">
+<span style="font:300 12.5px/1 'DM Sans',sans-serif;color:#A09789">{{ devoHint }}</span>
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B08260" stroke-width="1.5"><path d="M6 9l6 6 6-6"></path></svg>
+</div>
+</div>
+
+<sc-if value="{{ devoInlineOpen }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:16px;animation:fadeUp .8s cubic-bezier(.2,.7,.2,1)">
+<div style="border-radius:22px;overflow:hidden;border:1px solid #EDE6DA;background:#fff">
+<div style="position:relative;height:190px;background:linear-gradient(170deg,#DCE5DE,#C8D3CC 60%,#AFBCAE)">
+<image-slot id="devo-hero" shape="rect" placeholder="Suelta un amanecer / montaña"></image-slot>
+</div>
+<div style="padding:26px 24px 24px">
+<div style="font:400 20px/1.35 'EB Garamond',Georgia,serif;color:#3B352E">Cuando el camino no se ve</div>
+<div style="font:300 15px/1.85 'DM Sans',sans-serif;color:#6E6862;margin-top:14px;text-wrap:pretty">David no dice que el valle desaparece. Dice que camina por él. La promesa no es un atajo, es una compañía: alguien va al lado, al mismo paso, en la parte del camino donde no alcanzas a ver el final.</div>
+<div style="font:300 15px/1.85 'DM Sans',sans-serif;color:#6E6862;margin-top:12px;text-wrap:pretty">Hoy, en lugar de pedir que se aclare todo, prueba algo más pequeño: nombra una sola cosa del día de hoy donde necesitas esa compañía.</div>
+<div onClick="{{ shareDevo }}" style="display:flex;align-items:center;justify-content:center;gap:9px;margin-top:24px;padding:15px;border-radius:14px;border:1px solid #E8E1D6;cursor:pointer;font:400 14px/1 'DM Sans',sans-serif;color:#3B352E" style-hover="background:#FAF5EE">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.4"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>
+Compartir por WhatsApp
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<div onClick="{{ goFeeling }}" style="margin-top:16px;border-radius:20px;padding:24px;background:linear-gradient(140deg,#F3EDE3,#EAE3D6);border:1px solid #EDE6DA;cursor:pointer" style-hover="opacity:.9">
+<div style="font:400 19px/1.4 'EB Garamond',Georgia,serif;color:#3B352E">¿Cómo estás hoy?</div>
+<div style="font:300 13.5px/1.7 'DM Sans',sans-serif;color:#8E857A;margin-top:7px">Cuéntame qué llevas encima y te preparo un devocional para eso.</div>
+</div>
+
+<sc-if value="{{ isHub }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:26px">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#A09789;margin-bottom:14px">Acompañamiento</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div onClick="{{ goQA }}" style="border:1px solid #EDE6DA;background:#fff;border-radius:18px;padding:20px 16px;cursor:pointer" style-hover="background:#FAF5EE">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B08260" stroke-width="1.3"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5A1.5 1.5 0 0 0 20 18.5z"></path></svg>
+<div style="font:400 15px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:14px;font-size:16px">Pregunta al texto</div>
+<div style="font:300 11.5px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px">Elige un pasaje</div>
+</div>
+<div onClick="{{ goVoices }}" style="border:1px solid #EDE6DA;background:#fff;border-radius:18px;padding:20px 16px;cursor:pointer" style-hover="background:#FAF5EE">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.3"><path d="M20 12.5c0 3.9-3.6 7-8 7-1 0-2-.2-2.9-.5L4.5 20.5l1.2-3.4A6.7 6.7 0 0 1 4 12.5c0-3.9 3.6-7 8-7s8 3.1 8 7z"></path></svg>
+<div style="font:400 16px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:14px">Voces</div>
+<div style="font:300 11.5px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px">Habla con Moisés, Ester…</div>
+</div>
+<div onClick="{{ goStories }}" style="border:1px solid #EDE6DA;background:#fff;border-radius:18px;padding:20px 16px;cursor:pointer;grid-column:span 2" style-hover="background:#FAF5EE">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E88A6" stroke-width="1.3"><rect x="3.5" y="5" width="17" height="14" rx="2.5"></rect><path d="M3.5 15.5l4.5-4 4 3.5 3-2.5 5 4.5"></path><circle cx="9" cy="9.5" r="1.3"></circle></svg>
+<div style="font:400 16px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:14px">Historias ilustradas</div>
+<div style="font:300 11.5px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px">Mira una historia bíblica en imágenes</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDevoSheet }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;background:#FBF8F3">
+<div style="position:relative;height:340px;background:linear-gradient(170deg,#E2D6C2,#C9B79B 60%,#A89279)">
+<image-slot id="devo-sheet" shape="rect" placeholder="Suelta una foto de amanecer"></image-slot>
+<div onClick="{{ closeDevo }}" style="position:absolute;top:70px;left:18px;width:38px;height:38px;border-radius:50%;background:rgba(251,248,243,.9);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);z-index:3">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+</div>
+<div style="margin-top:-34px;position:relative;border-radius:26px 26px 0 0;background:#FBF8F3;padding:34px 26px 40px;animation:fadeUp .8s cubic-bezier(.2,.7,.2,1)">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#B08260">Devocional de hoy</div>
+<div style="font:400 27px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:14px">Cuando el camino no se ve</div>
+<div style="font:italic 400 20px/1.6 'EB Garamond',Georgia,serif;color:#5C564F;margin-top:22px;padding-left:16px;border-left:2px solid #E0D5C4;text-wrap:pretty">“Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo.”</div>
+<div style="font:400 13px/1 'DM Sans',sans-serif;color:#A09789;margin-top:12px;padding-left:16px">Salmos 23:4 · {{ version }}</div>
+<div style="font:300 15px/1.9 'DM Sans',sans-serif;color:#6E6862;margin-top:26px;text-wrap:pretty">David no dice que el valle desaparece. Dice que camina por él. La promesa no es un atajo, es una compañía: alguien va al lado, al mismo paso, en la parte del camino donde no alcanzas a ver el final.</div>
+<div style="font:300 15px/1.9 'DM Sans',sans-serif;color:#6E6862;margin-top:14px;text-wrap:pretty">Hoy, en lugar de pedir que se aclare todo, prueba algo más pequeño: nombra una sola cosa del día de hoy donde necesitas esa compañía.</div>
+<div onClick="{{ shareDevo }}" style="display:flex;align-items:center;justify-content:center;gap:9px;margin-top:30px;padding:16px;border-radius:14px;border:1px solid #E8E1D6;cursor:pointer;font:400 14px/1 'DM Sans',sans-serif;color:#3B352E" style-hover="background:#F6F0E7">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.4"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>
+Compartir por WhatsApp
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isQAPick }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:74px 20px 30px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+<div onClick="{{ qaBack }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="font:400 20px/1.3 'EB Garamond',Georgia,serif;color:#3B352E">{{ qaPickTitle }}</div>
+</div>
+<div style="font:300 13px/1.7 'DM Sans',sans-serif;color:#A09789;margin:0 0 22px 46px">{{ qaPickSub }}</div>
+
+<sc-if value="{{ qaOnBooks }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:1px;border-radius:18px;overflow:hidden;border:1px solid #EDE6DA;background:#fff">
+<sc-for list="{{ books }}" as="b" hint-placeholder-count="8">
+<div onClick="{{ b.pick }}" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #F4EEE5;cursor:pointer" style-hover="background:#FAF5EE">
+<span style="font:400 16px/1 'EB Garamond',Georgia,serif;color:#3B352E">{{ b.name }}</span>
+<span style="font:300 11.5px/1 'DM Sans',sans-serif;color:#BDB4A6">{{ b.meta }}</span>
+</div>
+</sc-for>
+</div>
+<div onClick="{{ qaFree }}" style="margin-top:18px;padding:18px;border-radius:16px;border:1px dashed #DED4C4;text-align:center;cursor:pointer;font:300 13.5px/1.5 'DM Sans',sans-serif;color:#8E857A" style-hover="background:#FAF5EE">Prefiero preguntar directo, sin elegir pasaje</div>
+</sc-if>
+
+<sc-if value="{{ qaOnChapters }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px">
+<sc-for list="{{ chapters }}" as="c" hint-placeholder-count="20">
+<div onClick="{{ c.pick }}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:13px;background:#fff;border:1px solid #EDE6DA;font:400 16px/1 'EB Garamond',Georgia,serif;color:#3B352E;cursor:pointer" style-hover="background:#F3EDE3">{{ c.n }}</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ qaOnVerses }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ verses }}" as="v" hint-placeholder-count="6">
+<div onClick="{{ v.pick }}" style="display:flex;gap:12px;padding:14px 14px;border-radius:12px;cursor:pointer;transition:background .4s ease;background:{{ v.bg }}">
+<span style="font:400 11px/1.9 'DM Sans',sans-serif;color:#C0A07C;min-width:14px">{{ v.n }}</span>
+<span style="font:400 17px/1.65 'EB Garamond',Georgia,serif;text-wrap:pretty;color:{{ v.fg }}">{{ v.t }}</span>
+</div>
+</sc-for>
+</div>
+<div onClick="{{ qaAskSelected }}" style="position:sticky;bottom:0;margin-top:20px;padding:17px;border-radius:16px;text-align:center;font:400 14.5px/1 'DM Sans',sans-serif;cursor:pointer;color:{{ askFg }};background:{{ askBg }}">{{ askLabel }}</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isQAChat }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;min-height:0">
+<div style="display:flex;align-items:center;gap:12px;padding:68px 18px 16px;border-bottom:1px solid #F1EAE0;background:#FBF8F3">
+<div onClick="{{ qaBack }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="flex:1">
+<div style="font:400 16px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">{{ qaContext }}</div>
+<div style="font:300 11px/1.4 'DM Sans',sans-serif;color:#A09789;margin-top:2px">{{ qaQuota }}</div>
+</div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:22px 18px 10px">
+<sc-for list="{{ qaMessages }}" as="m" hint-placeholder-count="2">
+<div style="margin-bottom:18px;animation:fadeUp .6s ease;display:flex;justify-content:{{ m.align }}">
+<div style="max-width:86%;padding:{{ m.pad }};border-radius:{{ m.radius }};background:{{ m.bg }};border:1px solid {{ m.border }}">
+<sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+<div style="font:300 14.5px/1.6 'DM Sans',sans-serif;color:#FBF8F3">{{ m.text }}</div>
+</sc-if>
+<sc-if value="{{ m.isAI }}" hint-placeholder-val="{{ true }}">
+<div style="font:400 17.5px/1.7 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">{{ m.text }}</div>
+<sc-if value="{{ m.ref }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#F6F0E6">
+<div style="font:italic 400 16px/1.6 'EB Garamond',Georgia,serif;color:#5C564F;text-wrap:pretty">{{ m.quote }}</div>
+<div style="font:300 11.5px/1 'DM Sans',sans-serif;color:#A0947F;margin-top:9px">{{ m.ref }}</div>
+</div>
+</sc-if>
+<sc-if value="{{ m.isAI }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid #F1EAE0">
+<div onClick="{{ shareQA }}" style="display:flex;align-items:center;gap:6px;cursor:pointer;font:300 12px/1 'DM Sans',sans-serif;color:#8E857A">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.4"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>Compartir</div>
+<div style="font:300 12px/1 'DM Sans',sans-serif;color:#C4BBAC">La IA puede equivocarse</div>
+</div>
+</sc-if>
+</sc-if>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ qaTyping }}" hint-placeholder-val="{{ false }}">
+<div style="font:300 13px/1 'DM Sans',sans-serif;color:#B5AB9C;padding:6px 4px 20px;animation:soften .5s ease">Buscando en el texto…</div>
+</sc-if>
+</div>
+<div style="padding:12px 16px 20px;border-top:1px solid #F1EAE0;background:#FBF8F3">
+<div style="display:flex;gap:9px;overflow-x:auto;padding-bottom:11px">
+<sc-for list="{{ qaSuggest }}" as="s" hint-placeholder-count="3">
+<div onClick="{{ s.pick }}" style="flex:none;padding:9px 14px;border-radius:999px;border:1px solid #E8E1D6;background:#fff;font:300 12.5px/1 'DM Sans',sans-serif;color:#6E6862;cursor:pointer;white-space:nowrap" style-hover="background:#F6F0E7">{{ s.t }}</div>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:999px;background:#fff;border:1px solid #E8E1D6">
+<span style="flex:1;font:300 14px/1 'DM Sans',sans-serif;color:#BDB4A6">Escribe tu pregunta…</span>
+<div onClick="{{ qaSend }}" style="width:30px;height:30px;border-radius:50%;background:#3B352E;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FBF8F3" stroke-width="1.6"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isVoices }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:76px 20px 30px;box-sizing:border-box">
+<div style="font:400 25px/1.3 'EB Garamond',Georgia,serif;color:#3B352E">¿Con quién quieres hablar?</div>
+<div style="font:300 13.5px/1.7 'DM Sans',sans-serif;color:#8E857A;margin-top:8px;text-wrap:pretty">Responden en primera persona, desde lo que la Biblia cuenta de su vida.</div>
+<div style="display:flex;flex-direction:column;gap:11px;margin-top:24px">
+<sc-for list="{{ characters }}" as="p" hint-placeholder-count="6">
+<div onClick="{{ p.open }}" style="display:flex;align-items:center;gap:16px;padding:15px 16px;border-radius:18px;background:#fff;border:1px solid #EDE6DA;cursor:pointer" style-hover="background:#FAF5EE">
+<div style="flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;width:{{ p.avW }};height:{{ p.avH }};border-radius:{{ p.avR }};background:{{ p.avBg }}">
+<span style="font:400 19px/1 'EB Garamond',Georgia,serif;color:{{ p.initFg }}">{{ p.initial }}</span>
+</div>
+<div style="flex:1;min-width:0">
+<div style="font:400 18px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">{{ p.name }}</div>
+<div style="font:300 12.5px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px">{{ p.tag }}</div>
+</div>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D3C9B9" stroke-width="1.5"><path d="M9 5l7 7-7 7"></path></svg>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:22px;padding:16px 18px;border-radius:14px;background:#F4EFE6;font:300 12px/1.7 'DM Sans',sans-serif;color:#9A9084;text-wrap:pretty">Solo personajes humanos. De Dios, Jesús y el Espíritu Santo hablamos en tercera persona, siempre.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isVoiceChat }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;min-height:0;background:linear-gradient(180deg,#FBF8F3,#F7F1E8)">
+<div style="display:flex;align-items:center;gap:13px;padding:68px 18px 15px;border-bottom:1px solid #F1EAE0">
+<div onClick="{{ goVoices }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:{{ charAvR }};background:{{ charAvBg }}">
+<span style="font:400 17px/1 'EB Garamond',Georgia,serif;color:{{ charInitFg }}">{{ charInitial }}</span>
+</div>
+<div style="flex:1">
+<div style="font:400 17px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">{{ charName }}</div>
+<div style="font:300 11px/1.4 'DM Sans',sans-serif;color:#A09789;margin-top:2px">{{ charTag }}</div>
+</div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:22px 18px 8px">
+<sc-for list="{{ charMessages }}" as="m" hint-placeholder-count="2">
+<div style="margin-bottom:18px;animation:fadeUp .6s ease;display:flex;justify-content:{{ m.align }}">
+<div style="max-width:88%;padding:{{ m.pad }};border-radius:{{ m.radius }};background:{{ m.bg }};border:1px solid {{ m.border }}">
+<div style="font-family:{{ m.font }};font-weight:400;font-size:{{ m.size }};line-height:1.7;text-wrap:pretty;color:{{ m.fg }}">{{ m.text }}</div>
+<sc-if value="{{ m.isAI }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ shareVoice }}" style="display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #F1EAE0;cursor:pointer;font:300 12px/1 'DM Sans',sans-serif;color:#8E857A">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.4"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>Compartir esta respuesta</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ charTyping }}" hint-placeholder-val="{{ false }}">
+<div style="font:300 13px/1 'DM Sans',sans-serif;color:#B5AB9C;padding:6px 4px 20px">{{ charName }} está escribiendo…</div>
+</sc-if>
+</div>
+<div style="padding:12px 16px 20px;border-top:1px solid #F1EAE0">
+<div style="display:flex;gap:9px;overflow-x:auto;padding-bottom:11px">
+<sc-for list="{{ charSuggest }}" as="s" hint-placeholder-count="2">
+<div onClick="{{ s.pick }}" style="flex:none;padding:9px 14px;border-radius:999px;border:1px solid #E8E1D6;background:#fff;font:300 12.5px/1 'DM Sans',sans-serif;color:#6E6862;cursor:pointer;white-space:nowrap" style-hover="background:#F6F0E7">{{ s.t }}</div>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:999px;background:#fff;border:1px solid #E8E1D6">
+<span style="flex:1;font:300 14px/1 'DM Sans',sans-serif;color:#BDB4A6">Pregúntale algo…</span>
+<div onClick="{{ charSend }}" style="width:30px;height:30px;border-radius:50%;background:#3B352E;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FBF8F3" stroke-width="1.6"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFeeling }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:76px 20px 30px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+<div onClick="{{ goHome }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="font:300 11px/1 'DM Sans',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A09789">{{ feelQuota }}</div>
+</div>
+<div style="font:400 26px/1.32 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">¿Qué llevas encima hoy?</div>
+<div style="font:300 13.5px/1.7 'DM Sans',sans-serif;color:#8E857A;margin-top:9px;text-wrap:pretty">Escoge lo que más se parezca, o escríbelo con tus palabras. Esto queda solo entre tú y la app.</div>
+<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:24px">
+<sc-for list="{{ feelings }}" as="f" hint-placeholder-count="8">
+<div onClick="{{ f.pick }}" style="padding:11px 16px;border-radius:999px;cursor:pointer;font:300 13.5px/1 'DM Sans',sans-serif;transition:all .4s ease;background:{{ f.bg }};color:{{ f.fg }};border:1px solid {{ f.border }}">{{ f.t }}</div>
+</sc-for>
+</div>
+<div onClick="{{ feelFocus }}" style="margin-top:20px;padding:18px;border-radius:16px;background:#fff;cursor:text;min-height:96px;border:1px solid {{ feelInputBorder }}">
+<div style="font:300 14px/1.7 'DM Sans',sans-serif;color:{{ feelTextFg }};text-wrap:pretty">{{ feelText }}</div>
+<sc-if value="{{ feelTyping }}" hint-placeholder-val="{{ false }}">
+<div style="display:inline-block;width:1.5px;height:16px;background:#B08260;vertical-align:middle;margin-left:2px;animation:soften .9s ease-in-out infinite alternate"></div>
+</sc-if>
+</div>
+<div onClick="{{ feelGenerate }}" style="margin-top:18px;padding:17px;border-radius:16px;text-align:center;cursor:pointer;font:400 14.5px/1 'DM Sans',sans-serif;color:{{ feelBtnFg }};background:{{ feelBtnBg }}">{{ feelBtnLabel }}</div>
+<div style="font:300 11.5px/1.6 'DM Sans',sans-serif;color:#BDB4A6;text-align:center;margin-top:14px;text-wrap:pretty">Acompañamiento, no consejo pastoral ni atención en crisis.</div>
+
+<sc-if value="{{ hasPastDevos }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top:32px">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#A09789;margin-bottom:13px">Los de antes</div>
+<div style="display:flex;flex-direction:column;gap:9px">
+<sc-for list="{{ pastDevos }}" as="d" hint-placeholder-count="3">
+<div onClick="{{ d.open }}" style="display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:15px;background:#fff;border:1px solid #EDE6DA;cursor:pointer" style-hover="background:#FAF5EE">
+<div style="flex:none;width:8px;height:8px;border-radius:50%;background:{{ d.dot }}"></div>
+<div style="flex:1;min-width:0">
+<div style="font:400 15.5px/1.3 'EB Garamond',Georgia,serif;color:#3B352E">{{ d.title }}</div>
+<div style="font:300 11.5px/1.4 'DM Sans',sans-serif;color:#A09789;margin-top:3px">{{ d.meta }}</div>
+</div>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D3C9B9" stroke-width="1.5"><path d="M9 5l7 7-7 7"></path></svg>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFeelGen }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px;background:linear-gradient(178deg,#FDF7EE,#F2EBE0)">
+<img src="./logo.png" alt="" style="width:66px;height:66px;border-radius:16px;animation:soften 1.8s ease-in-out infinite alternate" />
+<div style="font:400 21px/1.45 'EB Garamond',Georgia,serif;color:#3B352E;text-align:center;max-width:250px;text-wrap:pretty">{{ feelGenLine }}</div>
+<div style="font:300 12.5px/1.7 'DM Sans',sans-serif;color:#A09789;text-align:center">Toma un respiro mientras tanto.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFeelResult }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;background:linear-gradient(180deg,#F7F2E9,#FBF8F3 40%)">
+<div style="padding:74px 22px 40px">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ goFeeling }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div onClick="{{ toggleSaveDevo }}" style="display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;cursor:pointer;background:{{ saveBg }};border:1px solid {{ saveBorder }}">
+<svg width="13" height="13" viewBox="0 0 24 24" stroke-width="1.4" fill="{{ saveFill }}" stroke="{{ saveStroke }}"><path d="M6.5 4h11v16.5L12 16.5 6.5 20.5z"></path></svg>
+<span style="font:300 12.5px/1 'DM Sans',sans-serif;color:{{ saveFg }}">{{ saveLabel }}</span>
+</div>
+</div>
+<div style="height:130px;border-radius:20px;margin-top:20px;background:linear-gradient(135deg,#E6DFCF,#CFD9CE 55%,#B7C3BC)"></div>
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#B08260;margin-top:26px">{{ feelResultKicker }}</div>
+<div style="font:400 26px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:12px;text-wrap:pretty">{{ devoTitle }}</div>
+<div style="font:italic 400 19px/1.65 'EB Garamond',Georgia,serif;color:#5C564F;margin-top:22px;padding-left:16px;border-left:2px solid #E0D5C4;text-wrap:pretty">{{ devoQuote }}</div>
+<div style="font:400 12.5px/1 'DM Sans',sans-serif;color:#A09789;margin-top:11px;padding-left:16px">{{ devoRef }} · {{ version }}</div>
+<div style="font:300 15px/1.9 'DM Sans',sans-serif;color:#6E6862;margin-top:24px;text-wrap:pretty">{{ devoBody1 }}</div>
+<div style="font:300 15px/1.9 'DM Sans',sans-serif;color:#6E6862;margin-top:14px;text-wrap:pretty">{{ devoBody2 }}</div>
+
+<div style="margin-top:26px;padding:22px 22px 24px;border-radius:18px;background:#F5EFE4;border:1px solid #EBE1D1">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#B08260">Una oración corta</div>
+<div style="font:italic 400 18px/1.75 'EB Garamond',Georgia,serif;color:#4A443D;margin-top:13px;text-wrap:pretty">{{ devoPrayer }}</div>
+</div>
+
+<div onClick="{{ openSuggested }}" style="margin-top:14px;display:flex;align-items:center;gap:14px;padding:18px;border-radius:18px;background:#fff;border:1px solid #EDE6DA;cursor:pointer" style-hover="background:#FAF5EE">
+<div style="flex:1">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A09789">Para seguir leyendo</div>
+<div style="font:400 17px/1.35 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:8px">{{ devoNextRef }}</div>
+<div style="font:300 12px/1.6 'DM Sans',sans-serif;color:#A09789;margin-top:4px;text-wrap:pretty">{{ devoNextWhy }}</div>
+</div>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D3C9B9" stroke-width="1.5"><path d="M9 5l7 7-7 7"></path></svg>
+</div>
+
+<div onClick="{{ regenDevo }}" style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:9px;padding:16px;border-radius:15px;border:1px solid #E4DCCF;cursor:pointer;font:400 14px/1 'DM Sans',sans-serif;color:#3B352E" style-hover="background:#F6F0E7">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B08260" stroke-width="1.4"><path d="M20 11.5a8 8 0 1 0-2.5 5.8"></path><path d="M20 5.5v6h-6"></path></svg>
+Dame otro enfoque
+</div>
+
+<div style="margin-top:22px;padding:16px 18px;border-radius:14px;background:#F4EFE6;display:flex;align-items:center;gap:10px">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A9084" stroke-width="1.3"><rect x="5" y="10.5" width="14" height="10" rx="2.4"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>
+<span style="font:300 12px/1.6 'DM Sans',sans-serif;color:#9A9084">Este devocional es privado. No se comparte ni se publica.</span>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStories }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:76px 20px 30px;box-sizing:border-box">
+<div style="font:400 25px/1.3 'EB Garamond',Georgia,serif;color:#3B352E">Historias ilustradas</div>
+<div style="font:300 13.5px/1.7 'DM Sans',sans-serif;color:#8E857A;margin-top:8px;text-wrap:pretty">{{ storyQuota }}</div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:24px">
+<sc-for list="{{ stories }}" as="s" hint-placeholder-count="4">
+<div onClick="{{ s.open }}" style="display:flex;gap:14px;padding:12px;border-radius:18px;background:#fff;border:1px solid #EDE6DA;cursor:pointer;align-items:center" style-hover="background:#FAF5EE">
+<div style="flex:none;width:66px;height:66px;border-radius:14px;background:{{ s.grad }}"></div>
+<div style="flex:1;min-width:0">
+<div style="font:400 18px/1.25 'EB Garamond',Georgia,serif;color:#3B352E">{{ s.name }}</div>
+<div style="font:300 12px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px">{{ s.meta }}</div>
+</div>
+<span style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:999px;color:{{ s.badgeFg }};background:{{ s.badgeBg }}">{{ s.badge }}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ isPro }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:32px">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#A09789;margin-bottom:13px">Tus generaciones</div>
+<div style="display:flex;gap:11px;overflow-x:auto;padding-bottom:6px">
+<sc-for list="{{ storyHistory }}" as="g" hint-placeholder-count="3">
+<div onClick="{{ g.open }}" style="flex:none;width:126px;cursor:pointer">
+<div style="height:96px;border-radius:14px;background:{{ g.grad }}"></div>
+<div style="font:400 14px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:9px">{{ g.name }}</div>
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;color:#A09789;margin-top:4px">{{ g.when }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStoryGen }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px">
+<img src="./logo.png" alt="" style="width:70px;height:70px;border-radius:16px;animation:soften 1.6s ease-in-out infinite alternate" />
+<div style="font:400 21px/1.4 'EB Garamond',Georgia,serif;color:#3B352E;text-align:center">Dibujando la historia…</div>
+<div style="font:300 13px/1.7 'DM Sans',sans-serif;color:#A09789;text-align:center;max-width:230px;text-wrap:pretty">Tarda unos segundos. Puedes salir y te avisamos cuando esté.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStoryView }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;background:#F7F2E9">
+<div style="padding:70px 18px 40px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+<div onClick="{{ goStories }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #E8E1D6;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="font:400 19px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">{{ storyName }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<sc-for list="{{ storyPanels }}" as="p" hint-placeholder-count="3">
+<div style="border-radius:18px;overflow:hidden;background:#fff;border:1px solid #EDE6DA;animation:fadeUp .8s ease">
+<div style="position:relative;height:210px;background:{{ p.grad }}">
+<image-slot id="{{ p.slotId }}" shape="rect" placeholder="Ilustración generada"></image-slot>
+</div>
+<div style="padding:18px 20px 20px">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#C0A07C">Escena {{ p.n }}</div>
+<div style="font:400 18px/1.65 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:10px;text-wrap:pretty">{{ p.text }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+<div onClick="{{ shareStory }}" style="display:flex;align-items:center;justify-content:center;gap:9px;margin-top:22px;padding:16px;border-radius:15px;background:#fff;border:1px solid #E8E1D6;cursor:pointer;font:400 14px/1 'DM Sans',sans-serif;color:#3B352E" style-hover="background:#FAF5EE">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.4"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>
+Compartir la historia
+</div>
+<sc-if value="{{ storySampleUsed }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ goPaywall }}" style="margin-top:14px;padding:20px;border-radius:18px;background:#3B352E;cursor:pointer">
+<div style="font:400 18px/1.35 'EB Garamond',Georgia,serif;color:#FBF8F3;text-wrap:pretty">Esta era tu historia de muestra</div>
+<div style="font:300 12.5px/1.7 'DM Sans',sans-serif;color:#BFB6A9;margin-top:7px;text-wrap:pretty">Con Pro puedes ilustrar cualquier historia, las veces que quieras.</div>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLimit }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:36px 30px;background:linear-gradient(180deg,#FBF8F3,#F4EFE6)">
+<div style="width:52px;height:52px;border-radius:50%;border:1px solid #E0D5C4;display:flex;align-items:center;justify-content:center">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#B08260" stroke-width="1.2"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v4.5l3 2"></path></svg>
+</div>
+<div style="font:400 27px/1.32 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:24px;text-wrap:pretty">Por hoy llegaste al límite</div>
+<div style="font:300 14.5px/1.8 'DM Sans',sans-serif;color:#7C766E;margin-top:14px;text-wrap:pretty">{{ limitBody }}</div>
+<div onClick="{{ goPaywall }}" style="margin-top:30px;padding:17px;border-radius:16px;background:#3B352E;color:#FBF8F3;text-align:center;font:400 14.5px/1 'DM Sans',sans-serif;cursor:pointer">Seguir sin límite con Pro</div>
+<div onClick="{{ goHome }}" style="margin-top:12px;padding:16px;text-align:center;font:300 13.5px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Mañana vuelvo</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPaywall }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;background:linear-gradient(178deg,#3B352E,#2E2A25 60%,#252220)">
+<div style="padding:74px 26px 40px">
+<div onClick="{{ closePaywall }}" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(251,248,243,.2);display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EDE6DA" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</div>
+<img src="./logo.png" alt="Bible AI" style="width:78px;height:78px;border-radius:18px;margin-top:34px;box-shadow:0 20px 44px -22px rgba(0,0,0,.6)" />
+<div style="font:400 31px/1.28 'EB Garamond',Georgia,serif;color:#FBF8F3;margin-top:26px;text-wrap:pretty">Todo el tiempo que necesites</div>
+<div style="font:300 14px/1.8 'DM Sans',sans-serif;color:#B7AEA1;margin-top:14px;text-wrap:pretty">Sin contar preguntas, sin esperar a mañana.</div>
+<div style="display:flex;flex-direction:column;gap:1px;margin-top:32px">
+<sc-for list="{{ proFeatures }}" as="f" hint-placeholder-count="4">
+<div style="display:flex;gap:14px;padding:15px 0;border-bottom:1px solid rgba(251,248,243,.09)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C99B5E" stroke-width="1.4" style="flex:none;margin-top:2px"><path d="M4 12.5l5 5L20 6.5"></path></svg>
+<div>
+<div style="font:400 15.5px/1.35 'EB Garamond',Georgia,serif;color:#FBF8F3;font-size:16.5px">{{ f.t }}</div>
+<div style="font:300 12px/1.6 'DM Sans',sans-serif;color:#9C9488;margin-top:3px">{{ f.s }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:30px;padding:20px;border-radius:18px;border:1px solid rgba(201,155,94,.45);background:rgba(201,155,94,.09);display:flex;align-items:baseline;gap:8px">
+<span style="font:400 34px/1 'EB Garamond',Georgia,serif;color:#FBF8F3">$4.99</span>
+<span style="font:300 13px/1 'DM Sans',sans-serif;color:#B7AEA1">al mes · cancela cuando quieras</span>
+</div>
+<div onClick="{{ subscribe }}" style="margin-top:16px;padding:18px;border-radius:16px;background:#F4EDE2;color:#2E2A25;text-align:center;font:400 15px/1 'DM Sans',sans-serif;cursor:pointer" style-hover="background:#fff">Empezar con Pro</div>
+<div onClick="{{ closePaywall }}" style="margin-top:12px;padding:14px;text-align:center;font:300 13px/1 'DM Sans',sans-serif;color:#8B8377;cursor:pointer">Seguir en la versión gratis</div>
+<div style="font:300 11px/1.7 'DM Sans',sans-serif;color:#6E675E;text-align:center;margin-top:18px;text-wrap:pretty">Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:74px 20px 34px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:26px">
+<div onClick="{{ goHome }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="font:400 22px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">Ajustes</div>
+</div>
+
+<div onClick="{{ goPaywall }}" style="padding:20px;border-radius:18px;background:{{ planBg }};cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px">
+<div>
+<div style="font:400 18px/1.3 'EB Garamond',Georgia,serif;color:{{ planFg }}">{{ planTitle }}</div>
+<div style="font:300 12px/1.6 'DM Sans',sans-serif;color:{{ planSubFg }};margin-top:5px">{{ planSub }}</div>
+</div>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B08260" stroke-width="1.5"><path d="M9 5l7 7-7 7"></path></svg>
+</div>
+
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#A09789;margin:28px 0 12px 4px">Lectura</div>
+<div style="border-radius:18px;background:#fff;border:1px solid #EDE6DA;overflow:hidden">
+<div style="padding:16px 18px;border-bottom:1px solid #F4EEE5">
+<div style="font:400 14.5px/1 'DM Sans',sans-serif;color:#3B352E">Versión de la Biblia</div>
+<div style="display:flex;gap:8px;margin-top:13px">
+<sc-for list="{{ versions }}" as="v" hint-placeholder-count="2">
+<div onClick="{{ v.pick }}" style="flex:1;text-align:center;padding:11px;border-radius:11px;cursor:pointer;font:400 13px/1 'DM Sans',sans-serif;transition:all .35s ease;background:{{ v.bg }};color:{{ v.fg }};border:1px solid {{ v.border }}">{{ v.t }}</div>
+</sc-for>
+</div>
+</div>
+<div onClick="{{ toggleDark }}" style="display:flex;align-items:center;justify-content:space-between;padding:17px 18px;cursor:pointer">
+<div>
+<div style="font:400 14.5px/1 'DM Sans',sans-serif;color:#3B352E">Modo noche suave</div>
+<div style="font:300 11.5px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px">Para el devocional antes de dormir</div>
+</div>
+<div style="width:46px;height:28px;border-radius:999px;padding:3px;box-sizing:border-box;transition:background .4s ease;background:{{ darkTrack }}">
+<div style="width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .4s cubic-bezier(.3,.7,.3,1);transform:translateX({{ darkKnob }})"></div>
+</div>
+</div>
+</div>
+
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#A09789;margin:28px 0 12px 4px">Recordatorio</div>
+<div style="border-radius:18px;background:#fff;border:1px solid #EDE6DA;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:17px 18px;border-bottom:1px solid #F4EEE5">
+<div style="font:400 14.5px/1 'DM Sans',sans-serif;color:#3B352E">Aviso del versículo</div>
+<div style="display:flex;gap:7px">
+<sc-for list="{{ notifTimes }}" as="t" hint-placeholder-count="3">
+<div onClick="{{ t.pick }}" style="padding:8px 12px;border-radius:10px;cursor:pointer;font:400 12px/1 'DM Sans',sans-serif;transition:all .35s ease;background:{{ t.bg }};color:{{ t.fg }};border:1px solid {{ t.border }}">{{ t.h }}</div>
+</sc-for>
+</div>
+</div>
+<div onClick="{{ goHistory }}" style="display:flex;align-items:center;justify-content:space-between;padding:17px 18px;cursor:pointer" style-hover="background:#FAF5EE">
+<div style="font:400 14.5px/1 'DM Sans',sans-serif;color:#3B352E">Mis conversaciones</div>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D3C9B9" stroke-width="1.5"><path d="M9 5l7 7-7 7"></path></svg>
+</div>
+</div>
+
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#A09789;margin:28px 0 12px 4px">Privacidad</div>
+<div style="border-radius:18px;background:#fff;border:1px solid #EDE6DA;overflow:hidden">
+<div style="padding:16px 18px;border-bottom:1px solid #F4EEE5;font:300 12.5px/1.7 'DM Sans',sans-serif;color:#7C766E;text-wrap:pretty">Tus conversaciones son privadas y no se usan para entrenar modelos de IA.</div>
+<div onClick="{{ clearHistory }}" style="padding:17px 18px;cursor:pointer;font:400 14.5px/1 'DM Sans',sans-serif;color:{{ clearFg }}" style-hover="background:#FAF5EE">{{ clearLabel }}</div>
+</div>
+
+<div style="font:300 11.5px/1.75 'DM Sans',sans-serif;color:#BDB4A6;margin-top:26px;text-align:center;text-wrap:pretty">Esta app acompaña tu lectura; no sustituye el consejo pastoral. La IA puede cometer errores.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:74px 20px 30px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+<div onClick="{{ goHome }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="font:400 22px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">Guardados</div>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:22px">
+<sc-for list="{{ savedTabs }}" as="t" hint-placeholder-count="3">
+<div onClick="{{ t.pick }}" style="padding:10px 15px;border-radius:999px;cursor:pointer;font:300 12.5px/1 'DM Sans',sans-serif;transition:all .35s ease;background:{{ t.bg }};color:{{ t.fg }};border:1px solid {{ t.border }}">{{ t.t }}</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ savedItems }}" as="i" hint-placeholder-count="3">
+<div style="padding:20px;border-radius:18px;background:#fff;border:1px solid #EDE6DA">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#C0A07C">{{ i.kind }}</div>
+<div style="font:400 18px/1.6 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:11px;text-wrap:pretty">{{ i.text }}</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #F4EEE5">
+<span style="font:300 11.5px/1 'DM Sans',sans-serif;color:#A09789">{{ i.meta }}</span>
+<div onClick="{{ shareDevo }}" style="cursor:pointer;display:flex;align-items:center;gap:6px;font:300 11.5px/1 'DM Sans',sans-serif;color:#7C8F7B">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7C8F7B" stroke-width="1.5"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>Compartir</div>
+</div>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ savedEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="padding:56px 24px;text-align:center">
+<div style="font:400 19px/1.4 'EB Garamond',Georgia,serif;color:#8E857A;text-wrap:pretty">Todavía no guardas nada aquí</div>
+<div style="font:300 13px/1.7 'DM Sans',sans-serif;color:#BDB4A6;margin-top:10px;text-wrap:pretty">Toca el marcador en cualquier devocional o respuesta para volver a leerlo después.</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:74px 20px 30px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+<div onClick="{{ goSettings }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #EDE6DA;display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B352E" stroke-width="1.5"><path d="M15 5l-7 7 7 7"></path></svg>
+</div>
+<div style="font:400 22px/1.2 'EB Garamond',Georgia,serif;color:#3B352E">Mis conversaciones</div>
+</div>
+<div style="font:300 12.5px/1.7 'DM Sans',sans-serif;color:#A09789;margin:0 0 22px 46px">Solo tú las ves. Se guardan en tu cuenta.</div>
+<div style="display:flex;flex-direction:column;gap:1px;border-radius:18px;overflow:hidden;border:1px solid #EDE6DA;background:#fff">
+<sc-for list="{{ historyItems }}" as="h" hint-placeholder-count="4">
+<div onClick="{{ h.open }}" style="display:flex;gap:14px;align-items:center;padding:16px 18px;border-bottom:1px solid #F4EEE5;cursor:pointer" style-hover="background:#FAF5EE">
+<div style="flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{ h.bg }}">
+<span style="font:400 15px/1 'EB Garamond',Georgia,serif;color:{{ h.fg }}">{{ h.initial }}</span>
+</div>
+<div style="flex:1;min-width:0">
+<div style="font:400 15.5px/1.3 'EB Garamond',Georgia,serif;color:#3B352E">{{ h.title }}</div>
+<div style="font:300 11.5px/1.5 'DM Sans',sans-serif;color:#A09789;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.preview }}</div>
+</div>
+<span style="flex:none;font:300 10.5px/1 'DM Sans',sans-serif;color:#C4BBAC">{{ h.when }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProSuccess }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:38px 32px;background:linear-gradient(178deg,#FDF7EE,#F4EDE2 68%,#EFE6D8);text-align:center;align-items:center">
+<img src="./logo.png" alt="Bible AI" style="width:86px;height:86px;border-radius:20px;box-shadow:0 20px 44px -24px rgba(107,74,47,.5);animation:soften 1s ease" />
+<div style="font:400 29px/1.3 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:28px;text-wrap:pretty">Listo, ya eres Pro</div>
+<div style="font:300 14.5px/1.8 'DM Sans',sans-serif;color:#7C766E;margin-top:14px;text-wrap:pretty">Sin límites de preguntas, conversaciones ni devocionales. Tu suscripción renueva el 17 de septiembre.</div>
+<div onClick="{{ goHome }}" style="margin-top:34px;padding:17px 34px;border-radius:16px;background:#3B352E;color:#FBF8F3;font:400 14.5px/1 'DM Sans',sans-serif;cursor:pointer">Volver al inicio</div>
+<div onClick="{{ goSettings }}" style="margin-top:12px;padding:14px;font:300 13px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Ver mi suscripción</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOffline }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:38px 32px;background:#FBF8F3">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#B0603F" stroke-width="1.2"><path d="M4 8.5A12 12 0 0 1 20 8.5"></path><path d="M7.5 12.5a7.5 7.5 0 0 1 9 0"></path><circle cx="12" cy="17.5" r="1.2" fill="#B0603F" stroke="none"></circle><path d="M3 3l18 18" stroke="#B0603F"></path></svg>
+<div style="font:400 25px/1.32 'EB Garamond',Georgia,serif;color:#3B352E;margin-top:24px;text-wrap:pretty">Sin conexión ahora mismo</div>
+<div style="font:300 14.5px/1.8 'DM Sans',sans-serif;color:#7C766E;margin-top:13px;text-wrap:pretty">El versículo y el devocional de hoy ya están descargados, así que puedes leerlos. Las preguntas necesitan internet.</div>
+<div onClick="{{ goHome }}" style="margin-top:28px;padding:17px;border-radius:16px;background:#3B352E;color:#FBF8F3;text-align:center;font:400 14.5px/1 'DM Sans',sans-serif;cursor:pointer">Leer el devocional guardado</div>
+<div onClick="{{ retry }}" style="margin-top:12px;padding:15px;text-align:center;font:300 13.5px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Intentar de nuevo</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHomeDark }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:74px 20px 30px;box-sizing:border-box;background:#211F1D">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px">
+<div style="display:flex;align-items:center;gap:12px">
+<img src="./logo.png" alt="Bible AI" style="width:38px;height:38px;border-radius:11px;flex:none;opacity:.9" />
+<div>
+<div style="font:300 11.5px/1 'DM Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#7A7269">Domingo 16 de agosto</div>
+<div style="font:400 24px/1.3 'EB Garamond',Georgia,serif;color:#EDE6DA;margin-top:5px">Buenas noches, Elena</div>
+</div>
+</div>
+<div onClick="{{ goSettings }}" style="width:38px;height:38px;border-radius:50%;border:1px solid #33302C;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#282522">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B3AA9D" stroke-width="1.3"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"></path></svg>
+</div>
+</div>
+<div onClick="{{ openDevo }}" style="border-radius:22px;background:#292522;border:1px solid #34302B;padding:30px 26px 26px;cursor:pointer">
+<div style="font:300 10.5px/1 'DM Sans',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#C99B5E;margin-bottom:18px">Versículo del día</div>
+<div style="font:400 25px/1.52 'EB Garamond',Georgia,serif;color:#EDE6DA;text-wrap:pretty">“Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo.”</div>
+<div style="font:400 13.5px/1 'DM Sans',sans-serif;color:#8E857A;margin-top:18px">Salmos 23:4 · {{ version }}</div>
+<div style="margin-top:22px;padding-top:18px;border-top:1px solid #34302B;font:300 12.5px/1 'DM Sans',sans-serif;color:#8E857A">{{ devoHint }}</div>
+</div>
+<sc-if value="{{ devoInlineOpen }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:16px;border-radius:22px;background:#292522;border:1px solid #34302B;padding:26px 24px;animation:fadeUp .8s cubic-bezier(.2,.7,.2,1)">
+<div style="font:400 20px/1.35 'EB Garamond',Georgia,serif;color:#EDE6DA">Cuando el camino no se ve</div>
+<div style="font:300 15px/1.85 'DM Sans',sans-serif;color:#A9A096;margin-top:14px;text-wrap:pretty">David no dice que el valle desaparece. Dice que camina por él. La promesa no es un atajo, es una compañía: alguien va al lado, al mismo paso, en la parte del camino donde no alcanzas a ver el final.</div>
+<div onClick="{{ shareDevo }}" style="display:flex;align-items:center;justify-content:center;gap:9px;margin-top:22px;padding:15px;border-radius:14px;border:1px solid #3A362F;cursor:pointer;font:400 14px/1 'DM Sans',sans-serif;color:#EDE6DA">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8FA48D" stroke-width="1.4"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.6-5A8.4 8.4 0 1 1 21 11.5z"></path></svg>
+Compartir por WhatsApp</div>
+</div>
+</sc-if>
+<div onClick="{{ goFeeling }}" style="margin-top:16px;border-radius:20px;padding:24px;background:#252220;border:1px solid #322E2A;cursor:pointer">
+<div style="font:400 19px/1.4 'EB Garamond',Georgia,serif;color:#EDE6DA">¿Cómo estás hoy?</div>
+<div style="font:300 13.5px/1.7 'DM Sans',sans-serif;color:#8E857A;margin-top:7px">Cuéntame qué llevas encima y te preparo un devocional para eso.</div>
+</div>
+<div style="margin-top:26px;text-align:center;font:300 11.5px/1.7 'DM Sans',sans-serif;color:#5F5A53">Modo noche suave activo · desactívalo en ajustes</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabsDark }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;padding:10px 8px 26px;border-top:1px solid #302C28;background:#211F1D">
+<div onClick="{{ goHome }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#EDE6DA">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="13" r="4"></circle><path d="M12 4v2.5M4.5 13H3M21 13h-1.5M6.2 7.2 5.1 6.1M17.8 7.2l1.1-1.1M3 19h18"></path></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif">Hoy</span></div>
+<div onClick="{{ goQA }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#6E675E">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5A1.5 1.5 0 0 0 20 18.5z"></path></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif">Pregunta</span></div>
+<div onClick="{{ goVoices }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#6E675E">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M20 12.5c0 3.9-3.6 7-8 7-1 0-2-.2-2.9-.5L4.5 20.5l1.2-3.4A6.7 6.7 0 0 1 4 12.5c0-3.9 3.6-7 8-7s8 3.1 8 7z"></path></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif">Voces</span></div>
+<div onClick="{{ goStories }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#6E675E">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.5" y="5" width="17" height="14" rx="2.5"></rect><path d="M3.5 15.5l4.5-4 4 3.5 3-2.5 5 4.5"></path><circle cx="9" cy="9.5" r="1.3"></circle></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif">Historias</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;padding:10px 8px 26px;border-top:1px solid #F1EAE0;background:rgba(251,248,243,.94);backdrop-filter:blur(12px)">
+<div onClick="{{ goHome }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:{{ tabHoy }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="13" r="4"></circle><path d="M12 4v2.5M4.5 13H3M21 13h-1.5M6.2 7.2 5.1 6.1M17.8 7.2l1.1-1.1M3 19h18"></path></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif;letter-spacing:.04em">Hoy</span>
+</div>
+<div onClick="{{ goQA }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:{{ tabQA }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5A1.5 1.5 0 0 0 20 18.5z"></path></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif;letter-spacing:.04em">Pregunta</span>
+</div>
+<div onClick="{{ goVoices }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:{{ tabVoices }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M20 12.5c0 3.9-3.6 7-8 7-1 0-2-.2-2.9-.5L4.5 20.5l1.2-3.4A6.7 6.7 0 0 1 4 12.5c0-3.9 3.6-7 8-7s8 3.1 8 7z"></path></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif;letter-spacing:.04em">Voces</span>
+</div>
+<div onClick="{{ goStories }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:{{ tabStories }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.5" y="5" width="17" height="14" rx="2.5"></rect><path d="M3.5 15.5l4.5-4 4 3.5 3-2.5 5 4.5"></path><circle cx="9" cy="9.5" r="1.3"></circle></svg>
+<span style="font:300 10px/1 'DM Sans',sans-serif;letter-spacing:.04em">Historias</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ share }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:20;background:rgba(46,42,37,.42);backdrop-filter:blur(3px);display:flex;flex-direction:column;justify-content:flex-end;animation:soften .4s ease">
+<div onClick="{{ closeShare }}" style="flex:1;cursor:pointer"></div>
+<div style="background:#FBF8F3;border-radius:26px 26px 0 0;padding:24px 22px 30px;animation:fadeUp .5s cubic-bezier(.2,.7,.2,1)">
+<div style="width:38px;height:4px;border-radius:2px;background:#E0D5C4;margin:0 auto 22px"></div>
+<div style="font:400 20px/1.3 'EB Garamond',Georgia,serif;color:#3B352E">Compartir por WhatsApp</div>
+<div style="font:300 12.5px/1.6 'DM Sans',sans-serif;color:#A09789;margin-top:6px">Así se va a ver el mensaje.</div>
+<div style="margin-top:20px;padding:14px;border-radius:18px;background:#E7EDE4">
+<div style="border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 8px 20px -14px rgba(46,42,37,.5)">
+<div style="height:112px;background:{{ shareGrad }}"></div>
+<div style="padding:16px 16px 14px">
+<div style="font:400 17px/1.55 'EB Garamond',Georgia,serif;color:#3B352E;text-wrap:pretty">{{ shareQuote }}</div>
+<div style="font:300 11.5px/1 'DM Sans',sans-serif;color:#A09789;margin-top:10px">{{ shareRef }}</div>
+<div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid #F1EAE0">
+<img src="./logo.png" alt="" style="width:18px;height:18px;border-radius:5px;flex:none" />
+<span style="font:300 11px/1.5 'DM Sans',sans-serif;color:#BDB4A6">bibleai.hn/d/8f2k · Bible AI</span>
+</div>
+</div>
+</div>
+</div>
+<div onClick="{{ closeShare }}" style="margin-top:20px;padding:17px;border-radius:16px;background:#7C8F7B;color:#FBF8F3;text-align:center;font:400 14.5px/1 'DM Sans',sans-serif;cursor:pointer">Enviar por WhatsApp</div>
+<div onClick="{{ closeShare }}" style="margin-top:10px;padding:15px;text-align:center;font:300 13px/1 'DM Sans',sans-serif;color:#A09789;cursor:pointer">Cancelar</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+
+<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:520px">
+<sc-for list="{{ jumps }}" as="j" hint-placeholder-count="6">
+<div onClick="{{ j.go }}" style="padding:8px 13px;border-radius:999px;background:#F4EFE6;border:1px solid #E0D7C7;font:300 11.5px/1 'DM Sans',sans-serif;color:#6E6862;cursor:pointer" style-hover="background:#fff">{{ j.t }}</div>
+</sc-for>
+</div>
+<div style="font:300 12px/1.7 'DM Sans',sans-serif;color:#8E857A;max-width:480px;text-align:center;text-wrap:pretty">Los recuadros punteados son espacios para tus fotos: arrastra una imagen encima y se queda guardada.</div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;navStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;tabs&quot;,&quot;hub&quot;],&quot;default&quot;:&quot;tabs&quot;,&quot;tsType&quot;:&quot;'tabs'|'hub'&quot;,&quot;section&quot;:&quot;Variaciones&quot;},&quot;homeReveal&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;inline&quot;,&quot;sheet&quot;],&quot;default&quot;:&quot;inline&quot;,&quot;tsType&quot;:&quot;'inline'|'sheet'&quot;,&quot;section&quot;:&quot;Variaciones&quot;},&quot;avatarStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;circle&quot;,&quot;portrait&quot;,&quot;initial&quot;],&quot;default&quot;:&quot;circle&quot;,&quot;tsType&quot;:&quot;'circle'|'portrait'|'initial'&quot;,&quot;section&quot;:&quot;Variaciones&quot;},&quot;proUser&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Estado&quot;}}">
+const CLAY='#B08260', INK='#3B352E', SAGE='#7C8F7B', PAPER='#FBF8F3';
+
+const CHARS=[
+ {id:'moises',name:'Moisés',tag:'Éxodo · el que dudó de sí mismo',bg:'linear-gradient(140deg,#DCCBB4,#B99A75)',
+  first:'Yo tampoco quería ir. Le dije que era torpe al hablar, que buscara a otro. Aun así el camino se abrió mientras caminaba, no antes. ¿Qué es lo que te están pidiendo hacer?',
+  sug:['¿Tuviste miedo en el mar Rojo?','¿Cómo aguantaste al pueblo?'],
+  replies:{'¿Tuviste miedo en el mar Rojo?':'Tenía el mar delante y los carros detrás. La gente me gritaba que los había traído a morir. Levanté la vara porque me lo mandaron, no porque estuviera seguro. El agua se abrió después de eso, no antes.',
+   '¿Cómo aguantaste al pueblo?':'Mal, varias veces. Me quejé de ellos, hasta le pedí que me quitara la vida. Mi suegro me vio juzgando solo de la mañana a la noche y me dijo lo que necesitaba oír: reparte la carga o te acabas.'},
+  fallback:['Aprendí a hablar con él como se habla con un amigo, de frente, hasta discutiendo. Eso me sostuvo más que cualquier señal.',
+   'Cuarenta años en el desierto cuidando ovejas antes de que nada pasara. Si sientes que llevas mucho tiempo esperando, no estás fuera del plan.']},
+ {id:'david',name:'David',tag:'Salmos · pastor, rey, y culpable',bg:'linear-gradient(140deg,#CBD6CE,#9BAF9E)',
+  first:'Escribí canciones desde las dos orillas: cuando me perseguían y cuando yo fui el que hizo el daño. Si vienes con algo que te avergüenza, ya estuve ahí.',
+  sug:['¿Cómo escribiste el Salmo 23?','¿Te perdonaste a ti mismo?'],
+  replies:{'¿Cómo escribiste el Salmo 23?':'Escribí de lo que conocía. Fui pastor antes que rey: sé lo que es buscar pasto en tierra seca y cargar a la oveja que se lastimó. Cuando dije "es mi pastor", estaba diciendo que alguien hacía por mí lo que yo hacía por ellas.',
+   '¿Te perdonaste a ti mismo?':'Tardé. Estuve meses callado después de lo de Betsabé, y por dentro se me secaban los huesos. Lo que me devolvió el aire fue dejar de esconderlo y decirlo tal cual: pequé. Ahí empezó el perdón, no antes.'},
+  fallback:['Escribí más quejas que alabanzas, y las dejé en el libro tal como salieron. No hace falta que llegues con el ánimo arreglado.',
+   'Ser ungido rey no me quitó los años huyendo en cuevas. Lo prometido y lo cumplido casi nunca están el mismo día.']},
+ {id:'ester',name:'Ester',tag:'Ester · valor en el lugar equivocado',bg:'linear-gradient(140deg,#E3CFC6,#C29E96)',
+  first:'Estaba en un palacio que no elegí, con un pueblo que dependía de que yo hablara. Ayuné tres días antes de entrar. El valor no me llegó de golpe; lo esperé.',
+  sug:['¿Tenías miedo del rey?','¿Cómo decidiste hablar?'],
+  replies:{'¿Tenías miedo del rey?':'Entrar sin ser llamada se pagaba con la vida. Lo sabía cuando dije "si pereciera, que perezca". No fue valentía sin miedo; fue decidir con el miedo puesto.',
+   '¿Cómo decidiste hablar?':'Mardoqueo me dijo algo que no pude soltar: quizá estás donde estás precisamente para esto. Pedí que ayunaran conmigo tres días. Después preparé dos banquetes antes de pedir nada. Hablar a tiempo también es parte del valor.'},
+  fallback:['Me criaron para pasar desapercibida en un lugar que no era mío. Si estás en un sitio donde no encajas, eso no significa que estés fuera de lugar.',
+   'No hubo milagro visible en mi historia; ni una vez aparece el nombre de Dios en mi libro. Aun así todo encajó.']},
+ {id:'pablo',name:'Pablo',tag:'Cartas · cambió de bando',bg:'linear-gradient(140deg,#D3CDBE,#A89E88)',
+  first:'Perseguí a los que hoy llamo hermanos. Si crees que hiciste algo demasiado grande para volver, escúchame con calma.',
+  sug:['¿Qué pasó en el camino a Damasco?','¿Qué era tu aguijón?'],
+  replies:{'¿Qué pasó en el camino a Damasco?':'Iba con cartas para arrestar creyentes. Una luz me tiró al suelo y oí mi nombre dos veces. Quedé ciego tres días, y el que vino a orar por mí tenía razones de sobra para no venir. Así empezó.',
+   '¿Qué era tu aguijón?':'No lo dije nunca, y creo que fue mejor así. Pedí tres veces que me lo quitara. La respuesta fue que su fuerza se muestra mejor en mi debilidad. Dejé de pedir que se fuera y aprendí a trabajar con él encima.'},
+  fallback:['Escribí la mayoría de mis cartas preso. La celda no detuvo el trabajo, solo cambió la forma.',
+   'Aprendí a estar contento con mucho y con poco. Se aprende, no se nace sabiendo.']},
+ {id:'rut',name:'Rut',tag:'Rut · extranjera que se quedó',bg:'linear-gradient(140deg,#DFD3BC,#BCA983)',
+  first:'Me fui de mi tierra con una suegra viuda y sin promesa de nada. Trabajé recogiendo lo que otros dejaban. Empezar de nuevo lejos de casa se siente así.',
+  sug:['¿Por qué no volviste a Moab?','¿Cómo era espigar?'],
+  replies:{'¿Por qué no volviste a Moab?':'Noemí me dio permiso de irme; era lo razonable. Pero había perdido a mi esposo y ella a todo, y volver cada una a lo suyo era quedarnos las dos solas. Escogí quedarme con ella y con su Dios.',
+   '¿Cómo era espigar?':'Ibas detrás de los segadores recogiendo lo que se les caía, bajo el sol, desde la mañana. No era limosna, era la ley del rebusco. Comí de eso hasta que alguien decidió dejar caer más grano del necesario.'},
+  fallback:['Fui extranjera todo el tiempo, y así me llamaban. Nunca dejé de serlo; igual encontré casa.',
+   'Nada de mi historia pasó rápido. Fue una cosecha entera de trabajo antes de que cambiara algo.']},
+ {id:'elias',name:'Elías',tag:'1 Reyes · agotado después del triunfo',bg:'linear-gradient(140deg,#C9CFD8,#98A3B0)',
+  first:'Gané en el monte Carmelo y al día siguiente quería morirme debajo de un arbusto. Dios no me regañó: me dio comida y me dejó dormir. ¿Cuánto has dormido tú?',
+  sug:['¿Qué era el silbo apacible?','¿Cómo saliste de eso?'],
+  replies:{'¿Qué era el silbo apacible?':'Pasó un viento que partía las rocas, un terremoto y un fuego. En ninguno estaba él. Después vino un silencio delgado, casi nada, y ahí sí. Yo esperaba lo grande y lo encontré en lo callado.',
+   '¿Cómo saliste de eso?':'No con un sermón. Un ángel me dio pan y agua y me dejó dormir; luego otra vez comida y otra vez dormir. Después vino la conversación. Primero el cuerpo, después el alma.'},
+  fallback:['Creía que era el único que quedaba fiel. Me dijo que había siete mil más. Uno se siente más solo de lo que está.',
+   'Le dije que ya no quería vivir y no me lo reprochó. Puedes decirle eso también.']}];
+
+const STORIES=[
+ {id:'arca',name:'El arca de Noé',meta:'6 escenas · Génesis 6-9',grad:'linear-gradient(140deg,#CFDAD3,#A6B8AE)'},
+ {id:'daniel',name:'Daniel en el foso de los leones',meta:'5 escenas · Daniel 6',grad:'linear-gradient(140deg,#E0CDB4,#B79878)'},
+ {id:'mar',name:'El mar que se abrió',meta:'6 escenas · Éxodo 14',grad:'linear-gradient(140deg,#C6D3DE,#94A7BA)'},
+ {id:'ester',name:'Ester ante el rey',meta:'5 escenas · Ester 4-7',grad:'linear-gradient(140deg,#E3CFC6,#C0998F)'},
+ {id:'goliat',name:'David y Goliat',meta:'5 escenas · 1 Samuel 17',grad:'linear-gradient(140deg,#D8D2C0,#ADA286)'}];
+
+const PANELS={
+ arca:[{t:'Noé llevaba años oyendo lo mismo de sus vecinos: nadie construye un barco lejos del agua.'},
+  {t:'Los animales llegaron solos, en pares, como si alguien más los hubiera llamado.'},
+  {t:'Cuarenta días de lluvia. Adentro, el olor a madera húmeda y el sonido del agua contra el casco.'},
+  {t:'La paloma volvió con una hoja verde. La tierra estaba ahí, todavía debajo de todo.'}],
+ def:[{t:'La historia empieza con alguien esperando en el mismo lugar de siempre.'},
+  {t:'Algo cambia, y no hay manera de volver a como era antes.'},
+  {t:'En medio del miedo, una decisión pequeña abre el camino.'},
+  {t:'Al final queda la señal: no estaba solo.'}]};
+
+const VERSES=[
+ {n:1,t:'Jehová es mi pastor; nada me faltará.'},
+ {n:2,t:'En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará.'},
+ {n:3,t:'Confortará mi alma; me guiará por sendas de justicia por amor de su nombre.'},
+ {n:4,t:'Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo; tu vara y tu cayado me infundirán aliento.'},
+ {n:5,t:'Aderezas mesa delante de mí en presencia de mis angustiadores.'},
+ {n:6,t:'Ciertamente el bien y la misericordia me seguirán todos los días de mi vida.'}];
+
+const OB=[
+ {t:'Un lugar tranquilo para leer',b:'Cada mañana, un versículo. Si tienes tiempo, se abre en un devocional completo. Si no, con el versículo basta.',cta:'Continuar'},
+ {t:'Pregunta lo que no te atreves a preguntar',b:'Elige un pasaje y pregunta sobre él. Las respuestas citan siempre el texto bíblico, no opiniones sueltas.',cta:'Continuar'},
+ {t:'Nadie te va a ver aquí',b:'Tus conversaciones son privadas y no se usan para entrenar modelos de IA. Puedes borrarlas cuando quieras.',cta:'Empezar'}];
+
+const FEELINGS=['Ansiedad','Duelo','Gratitud','Decisión difícil','Cansancio','Miedo','Soledad','Necesito perdonar','Deudas','Enojo','Mi familia','Enfermedad','Sin trabajo','Lejos de casa'];
+
+const DEVOS=[
+ {title:'Descansar sin tener la respuesta',
+  quote:'“Echad toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros.”', ref:'1 Pedro 5:7',
+  b1:'La ansiedad casi siempre pide una respuesta antes de poder descansar. Pedro invierte el orden: primero suelta el peso, aunque la decisión siga sin resolverse.',
+  b2:'Esta noche, antes de dormir, escribe la decisión que te tiene despierta en una sola frase. Déjala escrita. Mañana la retomas con luz.',
+  prayer:'Señor, no tengo la respuesta todavía y estoy cansada de buscarla sola. Te dejo esto esta noche. Ayúdame a dormir.',
+  next:'Mateo 6:25-34', why:'Jesús habla del afán por el día de mañana.'},
+ {title:'Lo que sí puedes decidir hoy',
+  quote:'“Encomienda a Jehová tu camino, y confía en él; y él hará.”', ref:'Salmos 37:5',
+  b1:'Decidir bien no siempre es ver el final del camino. A veces es dar el paso que sí está claro y dejar de exigirte certeza sobre el resto.',
+  b2:'Escribe las dos opciones en una hoja. Marca cuál de las dos puedes probar esta semana sin cerrar la otra puerta. Empieza por ahí.',
+  prayer:'Padre, encomiendo esta decisión. Si me equivoco, sostenme igual. Dame paz para dar un solo paso hoy.',
+  next:'Proverbios 3:5-6', why:'Sobre confiar cuando falta información.'},
+ {title:'No tienes que rendir cuentas de tu cansancio',
+  quote:'“Venid a mí todos los que estáis trabajados y cargados, y yo os haré descansar.”', ref:'Mateo 11:28',
+  b1:'La invitación no pide que llegues resuelta ni con buena actitud. Pide que llegues cargada, tal como estás.',
+  b2:'Hoy quita una sola cosa de tu lista. No la que más importa: la que más pesa y menos aporta.',
+  prayer:'Jesús, vengo cansada y sin ganas de explicar por qué. Recíbeme así. Enséñame a descansar sin culpa.',
+  next:'Marcos 6:30-32', why:'Jesús manda a los suyos a descansar.'}];
+
+const CHAPTERS={'Génesis':50,'Éxodo':40,'Salmos':150,'Proverbios':31,'Isaías':66,'Mateo':28,'Marcos':16,'Juan':21,'Romanos':16,'Filipenses':4,'Santiago':5};
+
+const PASSAGES={
+ 'Mateo 6':[{n:25,t:'Por tanto os digo: No os afanéis por vuestra vida, qué habéis de comer o qué habéis de beber; ni por vuestro cuerpo, qué habéis de vestir.'},
+  {n:26,t:'Mirad las aves del cielo, que no siembran, ni siegan, ni recogen en graneros; y vuestro Padre celestial las alimenta.'},
+  {n:27,t:'¿Y quién de vosotros podrá, por mucho que se afane, añadir a su estatura un codo?'},
+  {n:33,t:'Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas.'},
+  {n:34,t:'Así que, no os afanéis por el día de mañana, porque el día de mañana traerá su afán.'}],
+ 'Proverbios 3':[{n:5,t:'Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia.'},
+  {n:6,t:'Reconócelo en todos tus caminos, y él enderezará tus veredas.'},
+  {n:7,t:'No seas sabio en tu propia opinión; teme a Jehová, y apártate del mal.'}],
+ 'Marcos 6':[{n:30,t:'Entonces los apóstoles se juntaron con Jesús, y le contaron todo lo que habían hecho.'},
+  {n:31,t:'Él les dijo: Venid vosotros aparte a un lugar desierto, y descansad un poco.'},
+  {n:32,t:'Y se fueron solos en una barca a un lugar desierto.'}]};
+
+const GENERIC=[
+ {n:1,t:'Así comienza el capítulo, con el escritor situando a quién le habla y por qué.'},
+ {n:2,t:'La idea central aparece pronto, antes de cualquier explicación larga.'},
+ {n:3,t:'Aquí el texto da la razón de lo anterior, con una imagen tomada de la vida diaria.'},
+ {n:4,t:'Sigue una advertencia, dicha con más cuidado del que suele recordarse.'},
+ {n:5,t:'Y cierra volviendo a lo mismo del principio, ahora como promesa.'}];
+
+class Component extends DCLogic {
+  versesFor(){ const s=this.state;
+    if((s.book==='Salmos'&&s.chapter===23)||!s.book) return VERSES;
+    return PASSAGES[s.book+' '+s.chapter] || GENERIC; }
+
+  state={screen:'splash',hour:'6:00',savedTab:'Versículos',limitKind:'preguntas',ob:0,proOverride:null,devoOpen:false,
+    qaStep:'books',book:null,chapter:null,sel:[],qaMsgs:[],qaUsed:0,qaTyping:false,
+    charId:null,charMsgs:[],charTyping:false,charUsed:0,
+    feelSel:[],feelUsed:0,feelTyping:false,feelTyped:'',devoIdx:0,devoSaved:false,storyId:null,storyUsed:0,
+    version:'RVR1960',dark:false,cleared:false,share:null};
+
+  componentWillUnmount(){ clearInterval(this._t); }
+  get pro(){ return this.state.proOverride !== null ? this.state.proOverride : (this.props.proUser ?? false); }
+  get nav(){ return this.props.navStyle ?? 'tabs'; }
+  get reveal(){ return this.props.homeReveal ?? 'inline'; }
+  get av(){ return this.props.avatarStyle ?? 'circle'; }
+  go(screen,extra){ this.setState(Object.assign({screen},extra||{})); }
+
+  avatarFor(bg){
+    const st=this.av;
+    if(st==='portrait') return {avW:'52px',avH:'64px',avR:'10px',avBg:bg,initFg:'rgba(255,255,255,.9)'};
+    if(st==='initial') return {avW:'44px',avH:'44px',avR:'50%',avBg:'#F4EFE6',initFg:CLAY};
+    return {avW:'48px',avH:'48px',avR:'50%',avBg:bg,initFg:'rgba(255,255,255,.9)'};
+  }
+
+  ask(text,answer,quote,ref){
+    if(!this.pro && this.state.qaUsed>=3){ this.go('limit',{limitKind:'preguntas'}); return; }
+    const msgs=this.state.qaMsgs.concat([{role:'user',text}]);
+    this.setState({qaMsgs:msgs,qaTyping:true,qaUsed:this.state.qaUsed+1,screen:'qachat'});
+    setTimeout(()=>this.setState({qaTyping:false,qaMsgs:this.state.qaMsgs.concat([{role:'ai',text:answer,quote,ref}])}),1400);
+  }
+
+  charSay(text){
+    const c=CHARS.find(c=>c.id===this.state.charId)||CHARS[0];
+    if(!this.pro && this.state.charUsed>=3){ this.go('limit',{limitKind:'conversaciones'}); return; }
+    const replies=(c.replies||{})[text] || (c.fallback||[])[this.state.charMsgs.filter(m=>m.role==='ai').length % Math.max((c.fallback||['']).length,1)] || '';
+    this.setState({charMsgs:this.state.charMsgs.concat([{role:'user',text}]),charTyping:true,charUsed:this.state.charUsed+1});
+    setTimeout(()=>this.setState({charTyping:false,charMsgs:this.state.charMsgs.concat([{role:'ai',text:replies}])}),1500);
+  }
+
+  openStory(id){
+    if(!this.pro && this.state.storyUsed>=1){ this.go('paywall'); return; }
+    this.setState({screen:'storygen',storyId:id,storyUsed:this.state.storyUsed+1});
+    setTimeout(()=>this.setState({screen:'storyview'}),2200);
+  }
+
+  bubble(m){
+    const user=m.role==='user';
+    return Object.assign({},m,{isUser:user,isAI:!user,align:user?'flex-end':'flex-start',
+      pad:user?'13px 17px':'18px 20px',radius:user?'18px 18px 5px 18px':'5px 18px 18px 18px',
+      bg:user?INK:'#fff',border:user?INK:'#EDE6DA',
+      font:user?"'DM Sans',sans-serif":"'EB Garamond',Georgia,serif",
+      size:user?'14.5px':'17.5px',fg:user?PAPER:INK});
+  }
+
+  renderVals(){
+    const s=this.state, scr=s.screen, pro=this.pro, hub=this.nav==='hub';
+    const c=CHARS.find(x=>x.id===s.charId)||CHARS[0];
+    const tab=(on)=>on?INK:'#BDB4A6';
+    const story=STORIES.find(x=>x.id===s.storyId)||STORIES[0];
+    const panels=(PANELS[s.storyId]||PANELS.def).map((p,i)=>({n:i+1,text:p.t,slotId:'story-'+(s.storyId||'x')+'-'+i,
+      grad:['linear-gradient(150deg,#D9E0D8,#AEBDB2)','linear-gradient(150deg,#E4D5BC,#BFA582)','linear-gradient(150deg,#CFD8E1,#9DAEBE)','linear-gradient(150deg,#E0D6C6,#B5A78F)'][i%4]}));
+    const sel=s.sel.slice().sort((a,b)=>a-b);
+    const ref=(s.book||'Salmos')+' '+(s.chapter||23);
+    const selLabel=sel.length?ref+':'+(sel.length>1?sel[0]+'-'+sel[sel.length-1]:sel[0]):ref;
+    const isPs23=(s.book==='Salmos'&&s.chapter===23)||!s.book;
+
+    return {
+      dw:402, dh:874, version:s.version,
+      isSplash:scr==='splash', isAuth:scr==='auth', isNotif:scr==='notif',
+      isSaved:scr==='saved', isHistory:scr==='history', isProSuccess:scr==='prosuccess', isOffline:scr==='offline',
+      isOnboarding:scr==='onboarding', isHome:scr==='home'&&!s.dark, isHomeDark:scr==='home'&&s.dark, isDevoSheet:scr==='devo',
+      showTabsDark:!hub && s.dark && scr==='home',
+      goAuth:()=>this.go('auth'), authNext:()=>this.go('onboarding',{ob:0}),
+      goSaved:()=>this.go('saved'), goHistory:()=>this.go('history'), retry:()=>this.go('home'),
+      notifDone:()=>this.go('home'),
+      notifTimes:[{h:'6:00',label:'Al despertar'},{h:'12:00',label:'Al mediodía'},{h:'21:00',label:'Antes de dormir'}].map(t=>{
+        const on=s.hour===t.h; return {h:t.h,label:t.label,bg:on?'#F4EFE6':'#fff',border:on?'#D9C9AF':'#EDE6DA',
+          fg:on?INK:'#A09789',sub:on?'#A0947F':'#BDB4A6',pick:()=>this.setState({hour:t.h})};}),
+      limitBody:'Usaste tus '+({conversaciones:'3 conversaciones',devocionales:'2 devocionales'}[s.limitKind]||'3 preguntas')+' gratis de hoy. Vuelven mañana a las 6:00 a.m., y el devocional del día sigue abierto para ti.',
+      savedTabs:['Versículos','Devocionales','Respuestas'].map(t=>{const on=s.savedTab===t;
+        return {t,bg:on?INK:'#fff',fg:on?PAPER:'#7C766E',border:on?INK:'#E8E1D6',pick:()=>this.setState({savedTab:t})};}),
+      savedItems:({'Versículos':[
+        {kind:'Versículo',text:'“Jehová es mi pastor; nada me faltará.”',meta:'Salmos 23:1 · guardado ayer'},
+        {kind:'Versículo',text:'“Echad toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros.”',meta:'1 Pedro 5:7 · hace 3 días'}],
+        'Devocionales':[
+        {kind:'Devocional',text:'Descansar sin tener la respuesta',meta:'Para la ansiedad · hace 2 días'},
+        {kind:'Devocional',text:'Cuando el camino no se ve',meta:'Salmos 23:4 · hoy'}],
+        'Respuestas':[
+        {kind:'Respuesta',text:'“Valle de sombra de muerte” describe un desfiladero oscuro, el paso más peligroso de la ruta de un pastor.',meta:'Sobre Salmos 23:4 · hoy'}]})[s.savedTab]||[],
+      savedEmpty:false,
+      historyItems:[
+        {title:'Moisés',preview:'El camino se abrió mientras caminaba, no antes.',when:'Hoy',initial:'M',bg:'linear-gradient(140deg,#DCCBB4,#B99A75)',fg:'rgba(255,255,255,.9)',open:()=>this.setState({screen:'voicechat',charId:'moises',charMsgs:[{role:'ai',text:CHARS[0].first}]})},
+        {title:'Salmos 23:4',preview:'¿Qué significa “valle de sombra de muerte”?',when:'Hoy',initial:'S',bg:'#F4EFE6',fg:CLAY,open:()=>this.go('qapick',{qaStep:'books'})},
+        {title:'Ester',preview:'El valor no me llegó de golpe; lo esperé.',when:'Ayer',initial:'E',bg:'linear-gradient(140deg,#E3CFC6,#C29E96)',fg:'rgba(255,255,255,.9)',open:()=>this.setState({screen:'voicechat',charId:'ester',charMsgs:[{role:'ai',text:CHARS[2].first}]})},
+        {title:'Pregunta libre',preview:'¿Cómo sé si estoy perdonando de verdad?',when:'12 ago',initial:'?',bg:'#F4EFE6',fg:CLAY,open:()=>this.go('qapick',{qaStep:'books'})}],
+      jumps:[{t:'Splash',k:'splash'},{t:'Cuenta',k:'auth'},{t:'Onboarding',k:'onboarding'},{t:'Recordatorio',k:'notif'},
+        {t:'Guardados',k:'saved'},{t:'Historial',k:'history'},{t:'Límite gratis',k:'limit'},{t:'Paywall',k:'paywall'},
+        {t:'Pro activado',k:'prosuccess'},{t:'Sin conexión',k:'offline'},{t:'Ajustes',k:'settings'}].map(j=>({t:j.t,go:()=>this.go(j.k)}),this)
+        .concat([{t:s.dark?'Home de día':'Home noche',go:()=>this.setState({screen:'home',dark:!s.dark})}]),
+      isQAPick:scr==='qapick', isQAChat:scr==='qachat', isVoices:scr==='voices', isVoiceChat:scr==='voicechat',
+      isFeeling:scr==='feeling', isFeelResult:scr==='feelresult', isStories:scr==='stories',
+      isStoryGen:scr==='storygen', isStoryView:scr==='storyview', isLimit:scr==='limit',
+      isPaywall:scr==='paywall', isSettings:scr==='settings', isHub:hub,
+      showTabs:!hub && ['home','qapick','voices','stories'].indexOf(scr)>=0 && !(s.dark && scr==='home'),
+
+      obTitle:OB[s.ob].t, obBody:OB[s.ob].b, obCta:OB[s.ob].cta,
+      obDots:OB.map((_,i)=>({w:i===s.ob?'22px':'6px',bg:i===s.ob?CLAY:'#DED4C4'})),
+      obNext:()=>s.ob<2?this.setState({ob:s.ob+1}):this.go('notif'),
+      obSkip:()=>this.go('home'),
+
+      devoHint:s.devoOpen?'Cerrar el devocional':'Leer el devocional de hoy',
+      devoInlineOpen:this.reveal==='inline'&&s.devoOpen,
+      openDevo:()=>this.reveal==='inline'?this.setState({devoOpen:!s.devoOpen}):this.go('devo'),
+      closeDevo:()=>this.go('home'),
+      goHome:()=>this.go('home'), goSettings:()=>this.go('settings'),
+      goVoices:()=>this.go('voices'), goStories:()=>this.go('stories'),
+      goFeeling:()=>this.go('feeling'), goPaywall:()=>this.go('paywall'),
+      goQA:()=>this.go('qapick',{qaStep:'books'}),
+
+      qaOnBooks:s.qaStep==='books', qaOnChapters:s.qaStep==='chapters', qaOnVerses:s.qaStep==='verses',
+      qaPickTitle:s.qaStep==='books'?'¿Sobre qué pasaje?':s.qaStep==='chapters'?s.book:(s.book+' '+s.chapter),
+      qaPickSub:s.qaStep==='books'?'Elige un libro, o pregunta directo sin pasaje.':s.qaStep==='chapters'?'Elige el capítulo.':'Toca los versículos sobre los que quieres preguntar.',
+      books:Object.keys(CHAPTERS).map(n=>({name:n,meta:CHAPTERS[n]+' capítulos',
+        pick:()=>this.setState({qaStep:'chapters',book:n})})),
+      chapters:Array.from({length:CHAPTERS[s.book]||50},(_,i)=>({n:i+1,pick:()=>this.setState({qaStep:'verses',chapter:i+1,sel:[]})})),
+      verses:this.versesFor().map(v=>{const on=s.sel.indexOf(v.n)>=0;return {n:v.n,t:v.t,bg:on?'#F4EFE6':'transparent',fg:on?INK:'#5C564F',
+        pick:()=>this.setState({sel:on?s.sel.filter(x=>x!==v.n):s.sel.concat([v.n])})};}),
+      askLabel:sel.length?'Preguntar sobre '+selLabel:'Selecciona al menos un versículo',
+      askBg:sel.length?INK:'#EFE9DE', askFg:sel.length?PAPER:'#BDB4A6',
+      qaAskSelected:()=>{ if(!sel.length) return;
+        this.setState({qaMsgs:[]});
+        const vs=this.versesFor().filter(v=>sel.indexOf(v.n)>=0);
+        if(isPs23 && sel.indexOf(4)>=0){
+          this.ask('¿Qué significa "valle de sombra de muerte" aquí? ¿Habla de morir?',
+            'En el hebreo la frase describe un desfiladero oscuro, el paso más peligroso de la ruta de un pastor. David no está hablando solo de la muerte: habla de cualquier tramo donde no ves salida. Y fíjate en el detalle del versículo: es el único momento del salmo donde deja de hablar de Dios en tercera persona y le habla de frente.',
+            '“Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo.”','Salmos 23:4 · '+s.version);
+        } else {
+          this.ask('¿Qué está diciendo este pasaje y a quién le hablaba?',
+            'El pasaje se dirige primero a sus lectores originales, y por eso conviene leerlo junto a lo que viene antes y después. Empecemos por el texto mismo, y de ahí vemos qué pide de ti hoy.',
+            '“'+(vs[0]?vs[0].t:'')+'”', selLabel+' · '+s.version);
+        } },
+      qaFree:()=>{ this.setState({qaMsgs:[]});
+        this.ask('¿Cómo sé si estoy perdonando de verdad o solo aguantando?',
+          'La Biblia distingue entre soltar la deuda y sentir que ya no duele. Lo primero es una decisión, lo segundo suele tardar. Pablo lo pone como algo que se practica, no como un sentimiento que llega de golpe.',
+          '“Soportándoos unos a otros y perdonándoos unos a otros... como Cristo os perdonó, así también hacedlo vosotros.”','Colosenses 3:13 · '+s.version); },
+      qaBack:()=>{ if(scr==='qachat') this.go('qapick');
+        else if(s.qaStep==='verses') this.setState({qaStep:'chapters'});
+        else if(s.qaStep==='chapters') this.setState({qaStep:'books'});
+        else this.go('home'); },
+      qaContext:sel.length?selLabel:'Pregunta libre',
+      qaQuota:pro?'Pro · sin límite':(3-Math.min(s.qaUsed,3))+' de 3 preguntas gratis hoy',
+      qaMessages:s.qaMsgs.map(m=>this.bubble(m)), qaTyping:s.qaTyping,
+      qaSuggest:[{t:'¿Quién lo escribió?'},{t:'¿Cómo lo aplico hoy?'},{t:'Explícalo más simple'}].map(x=>Object.assign(x,{
+        pick:()=>isPs23
+          ? this.ask(x.t,'El salmo se atribuye a David, y la imagen del pastor viene de su propio oficio antes de ser rey: sabía lo que costaba cuidar ovejas en terreno seco.','“Salmo de David.”','Salmos 23, encabezado · '+s.version)
+          : this.ask(x.t,'Vale la pena empezar por quién escribe y a quiénes. Ese dato cambia bastante cómo suena el pasaje al leerlo hoy.','“'+(this.versesFor()[0].t)+'”',ref+':1 · '+s.version)})),
+      qaSend:()=>isPs23
+        ? this.ask('¿Y si el valle no se termina?','El salmo no promete que el valle sea corto, promete compañía dentro de él. Esa distinción es la que sostiene a mucha gente que ha orado por años sin ver el cambio.','“Tu vara y tu cayado me infundirán aliento.”','Salmos 23:4 · '+s.version)
+        : this.ask('¿Cómo aplico esto esta semana?','Antes de aplicarlo conviene dejar que el texto diga lo suyo. Léelo completo una vez más y quédate con la frase que te incomode: casi siempre por ahí empieza lo práctico.','“'+(this.versesFor()[1].t)+'”',ref+':2 · '+s.version),
+
+      characters:CHARS.map(x=>Object.assign({name:x.name,tag:x.tag,initial:x.name[0],
+        open:()=>this.setState({screen:'voicechat',charId:x.id,charMsgs:[{role:'ai',text:x.first}]})},this.avatarFor(x.bg))),
+      charName:c.name, charTag:c.tag, charInitial:c.name[0],
+      charAvR:this.av==='portrait'?'10px':'50%',
+      charAvBg:this.av==='initial'?'#F4EFE6':c.bg,
+      charInitFg:this.av==='initial'?CLAY:'rgba(255,255,255,.9)',
+      charMessages:s.charMsgs.map(m=>this.bubble(m)), charTyping:s.charTyping,
+      charSuggest:c.sug.map(t=>({t,pick:()=>this.charSay(t)})),
+      charSend:()=>this.charSay('¿Qué le dirías a alguien que está por rendirse?'),
+
+      kbd:s.feelTyping,
+      darkFrame:scr==='paywall' || (s.dark && scr==='home'),
+      isFeelGen:scr==='feelgen',
+      feelings:FEELINGS.map(t=>{const on=s.feelSel.indexOf(t)>=0;return {t,bg:on?INK:'#fff',fg:on?PAPER:'#5C564F',border:on?INK:'#E8E1D6',
+        pick:()=>this.setState({feelSel:on?s.feelSel.filter(x=>x!==t):s.feelSel.concat([t])})};}),
+      feelText:s.feelTyped||(s.feelTyping?'':'Cuéntame en una o dos líneas cómo estuvo tu día. Opcional.'),
+      feelTextFg:s.feelTyped?'#3B352E':'#BDB4A6',
+      feelInputBorder:s.feelTyping?'#D9C9AF':'#EDE6DA',
+      feelTyping:s.feelTyping,
+      feelFocus:()=>{ if(s.feelTyping){ this.setState({feelTyping:false}); return; }
+        this.setState({feelTyping:true,feelTyped:''});
+        const full='Tengo que decidir si acepto un trabajo en otra ciudad y no logro dormir pensando en mis hijos.';
+        let i=0; clearInterval(this._t);
+        this._t=setInterval(()=>{ i+=2; this.setState({feelTyped:full.slice(0,i)});
+          if(i>=full.length) clearInterval(this._t); },42); },
+      feelQuota:pro?'Pro · sin límite':(2-Math.min(s.feelUsed,2))+' de 2 devocionales gratis hoy',
+      feelBtnLabel:(s.feelSel.length||s.feelTyped)?'Prepárame un devocional':'Elige o escribe cómo estás',
+      feelBtnBg:(s.feelSel.length||s.feelTyped)?INK:'#EFE9DE', feelBtnFg:(s.feelSel.length||s.feelTyped)?PAPER:'#BDB4A6',
+      feelGenLine:['Leyendo lo que escribiste…','Buscando un pasaje que hable de eso…','Preparando tu devocional…'][s.devoIdx%3],
+      feelGenerate:()=>{ if(!s.feelSel.length && !s.feelTyped) return;
+        if(!pro && s.feelUsed>=2){ this.go('limit',{limitKind:'devocionales'}); return; }
+        clearInterval(this._t);
+        this.setState({feelUsed:s.feelUsed+1,screen:'feelgen',feelTyping:false,devoSaved:false});
+        setTimeout(()=>this.setState({screen:'feelresult'}),2100); },
+      feelResultKicker:s.feelSel.length?('Para '+s.feelSel.slice(0,2).join(' y ').toLowerCase()):'Para lo que sientes hoy',
+      devoTitle:DEVOS[s.devoIdx%3].title, devoQuote:DEVOS[s.devoIdx%3].quote, devoRef:DEVOS[s.devoIdx%3].ref,
+      devoBody1:DEVOS[s.devoIdx%3].b1, devoBody2:DEVOS[s.devoIdx%3].b2, devoPrayer:DEVOS[s.devoIdx%3].prayer,
+      devoNextRef:DEVOS[s.devoIdx%3].next, devoNextWhy:DEVOS[s.devoIdx%3].why,
+      openSuggested:()=>{ const n=DEVOS[s.devoIdx%3].next.split(' ');
+        const ch=parseInt((n.pop()||'1').split(':')[0],10)||1;
+        this.setState({screen:'qapick',qaStep:'verses',book:n.join(' '),chapter:ch,sel:[]}); },
+      regenDevo:()=>{ this.setState({screen:'feelgen',devoIdx:s.devoIdx+1,devoSaved:false});
+        setTimeout(()=>this.setState({screen:'feelresult'}),1800); },
+      saveLabel:s.devoSaved?'Guardado':'Guardar',
+      saveBg:s.devoSaved?'#F4EFE6':'#fff', saveBorder:s.devoSaved?'#D9C9AF':'#E8E1D6',
+      saveFg:s.devoSaved?INK:'#7C766E', saveFill:s.devoSaved?CLAY:'none', saveStroke:s.devoSaved?CLAY:'#9A9084',
+      toggleSaveDevo:()=>this.setState({devoSaved:!s.devoSaved}),
+      hasPastDevos:true,
+      pastDevos:[{title:'No tienes que rendir cuentas de tu cansancio',meta:'Cansancio · ayer',dot:'#B7C3BC',idx:2},
+        {title:'Lo que sí puedes decidir hoy',meta:'Decisión difícil · 14 ago',dot:'#C9B79B',idx:1},
+        {title:'Descansar sin tener la respuesta',meta:'Ansiedad · 11 ago',dot:'#A6B8AE',idx:0}].map(d=>({title:d.title,meta:d.meta,dot:d.dot,
+        open:()=>this.setState({screen:'feelresult',devoIdx:d.idx,devoSaved:true})})),
+
+      storyQuota:pro?'Pro · ilimitadas':(s.storyUsed>=1?'Ya usaste tu historia de muestra. Con Pro puedes ilustrar todas.':'Tienes una historia de muestra gratis. Elige con cuál empezar.'),
+      stories:STORIES.map(x=>{const locked=!pro&&s.storyUsed>=1;return {name:x.name,meta:x.meta,grad:x.grad,
+        badge:pro?'Pro':(locked?'Pro':'Muestra'),badgeFg:locked&&!pro?'#A09789':'#7C8F7B',badgeBg:locked&&!pro?'#F1EAE0':'#E7EDE4',
+        open:()=>this.openStory(x.id)};}),
+      storyName:story.name, storyPanels:panels, storySampleUsed:!pro, isPro:pro,
+      storyHistory:[STORIES[1],STORIES[2],STORIES[0]].map((x,i)=>({name:x.name,grad:x.grad,when:['Hoy','Ayer','13 ago'][i],
+        open:()=>this.setState({screen:'storyview',storyId:x.id})})),
+
+      proFeatures:[{t:'Preguntas sin contar',s:'Q&A guiado y pregunta libre, todo el día'},
+        {t:'Conversaciones largas con los personajes',s:'Sin cortes a media conversación'},
+        {t:'Devocionales para lo que estés viviendo',s:'Cada vez que lo necesites, no dos al día'},
+        {t:'Historias ilustradas ilimitadas',s:'Cualquier pasaje, en imágenes'}],
+      subscribe:()=>this.setState({proOverride:true,screen:'prosuccess'}),
+      closePaywall:()=>this.go('home'),
+
+      versions:['RVR1960','NVI'].map(t=>{const on=s.version===t;return {t,bg:on?'#F4EFE6':'#fff',fg:on?INK:'#A09789',border:on?'#E0D5C4':'#EDE6DA',
+        pick:()=>this.setState({version:t})};}),
+      planTitle:pro?'Pro activo':'Plan gratis',
+      planSub:pro?'Renueva el 16 de septiembre · $4.99/mes':'3 preguntas y 2 devocionales al día',
+      planBg:pro?'#F4EFE6':INK, planFg:pro?INK:PAPER, planSubFg:pro?'#A09789':'#BFB6A9',
+      darkTrack:s.dark?SAGE:'#E4DDD1', darkKnob:s.dark?'18px':'0px',
+      toggleDark:()=>this.setState({dark:!s.dark}),
+      clearLabel:s.cleared?'Historial borrado':'Borrar mi historial',
+      clearFg:s.cleared?'#A09789':'#B0603F',
+      clearHistory:()=>this.setState({cleared:true,qaMsgs:[],charMsgs:[]}),
+
+      tabHoy:tab(scr==='home'), tabQA:tab(scr==='qapick'||scr==='qachat'),
+      tabVoices:tab(scr==='voices'||scr==='voicechat'), tabStories:tab(scr==='stories'||scr==='storyview'),
+
+      share:s.share, closeShare:()=>this.setState({share:null}),
+      shareQuote:s.share?s.share.q:'', shareRef:s.share?s.share.r:'', shareGrad:s.share?s.share.g:'',
+      shareDevo:()=>this.setState({share:{q:'“Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo.”',r:'Salmos 23:4 · Devocional de hoy',g:'linear-gradient(150deg,#DCE5DE,#AFBCAE)'}}),
+      shareQA:()=>this.setState({share:{q:'“Es el único momento del salmo donde David deja de hablar de Dios y le habla de frente.”',r:'Sobre Salmos 23:4 · pregunta en Bible AI',g:'linear-gradient(150deg,#E4D5BC,#BFA582)'}}),
+      shareVoice:()=>this.setState({share:{q:'Moisés te responde: “El camino se abrió mientras caminaba, no antes.”',r:'Conversación con Moisés',g:'linear-gradient(150deg,#DCCBB4,#B99A75)'}}),
+      shareStory:()=>this.setState({share:{q:story.name+' — en 6 escenas ilustradas.',r:'Historia ilustrada · Bible AI',g:story.grad}})
+    };
+  }
+}
+</script>
+</body>
+</html>
