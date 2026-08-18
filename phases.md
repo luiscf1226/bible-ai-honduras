@@ -1,6 +1,6 @@
 # Fases de implementación — Bible AI Honduras
 
-**Fuente:** `PRD.md` (producto) + prototipo de Claude Design `Bible AI Honduras.dc.html` (UI de referencia).
+**Fuente:** `PRD.md` (producto) + prototipo de Claude Design `design/Bible AI Honduras.dc.html` (UI de referencia).
 **Builder:** una persona, con agentes de IA. **Plazo objetivo:** 8-10 semanas.
 **Fuera de alcance v1:** comunidad completa (grupos/feed) — ver PRD sección 9c, es v1.1.
 
