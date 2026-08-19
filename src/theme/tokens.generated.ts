@@ -1,0 +1,141 @@
+// Este archivo se genera con `npm run tokens:build`. No lo edites a mano.
+// Fuente: design/tokens.json
+
+export const designTokens = {
+  "_source": "design/Bible AI Honduras.dc.html (Claude Design). Medido sobre el prototipo, no inventado.",
+  "_note": "Fuente de verdad del sistema nativo. Genera src/theme/tokens.generated.ts con npm run tokens:build.",
+  "color": {
+    "ink": "#3B352E",
+    "inkMuted": "#8E857A",
+    "inkSoft": "#A09789",
+    "inkFaint": "#BDB4A6",
+    "bg": "#E9E1D5",
+    "surface": "#FBF8F3",
+    "surfaceAlt": "#FAF5EE",
+    "surfaceSunk": "#F4EFE6",
+    "border": "#EDE6DA",
+    "borderStrong": "#E8E1D6",
+    "accent": "#B08260",
+    "accentDeep": "#8C6A4C",
+    "sage": "#7C8F7B"
+  },
+  "font": {
+    "serif": "EB Garamond",
+    "sans": "DM Sans",
+    "weight": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500
+    }
+  },
+  "type": {
+    "display": {
+      "family": "serif",
+      "size": 38,
+      "lineHeight": 1
+    },
+    "title": {
+      "family": "serif",
+      "size": 25,
+      "lineHeight": 1.3
+    },
+    "verse": {
+      "family": "serif",
+      "size": 22,
+      "lineHeight": 1.2
+    },
+    "subtitle": {
+      "family": "serif",
+      "size": 19,
+      "lineHeight": 1.4
+    },
+    "body": {
+      "family": "sans",
+      "size": 14.5,
+      "lineHeight": 1.8,
+      "weight": 300
+    },
+    "bodySm": {
+      "family": "sans",
+      "size": 13.5,
+      "lineHeight": 1.7,
+      "weight": 300
+    },
+    "label": {
+      "family": "sans",
+      "size": 14.5,
+      "lineHeight": 1,
+      "weight": 400
+    },
+    "caption": {
+      "family": "sans",
+      "size": 11.5,
+      "lineHeight": 1.5,
+      "weight": 300
+    },
+    "overline": {
+      "family": "sans",
+      "size": 10.5,
+      "lineHeight": 1,
+      "weight": 300,
+      "letterSpacing": 0.16,
+      "textTransform": "uppercase"
+    }
+  },
+  "radius": {
+    "sm": 11,
+    "md": 14,
+    "lg": 16,
+    "xl": 18,
+    "xxl": 22,
+    "pill": 999
+  },
+  "space": {
+    "xs": 6,
+    "sm": 9,
+    "md": 12,
+    "lg": 14,
+    "xl": 20,
+    "xxl": 22
+  },
+  "cardPadding": {
+    "vertical": 16,
+    "horizontal": 18
+  },
+  "screenPadding": {
+    "horizontal": 20
+  },
+  "size": {
+    "logoLarge": 96,
+    "logoMedium": 76,
+    "logoSmall": 38,
+    "dot": 6,
+    "dotActive": 22
+  },
+  "component": {
+    "button": {
+      "paddingVertical": 16,
+      "paddingHorizontal": 20,
+      "quietPaddingVertical": 15,
+      "radius": 16,
+      "borderWidth": 1,
+      "pressedOpacity": 0.85
+    },
+    "card": {
+      "radius": 18,
+      "paddingVertical": 20,
+      "paddingHorizontal": 16,
+      "borderWidth": 1,
+      "pressedOpacity": 0.9
+    },
+    "chip": {
+      "paddingVertical": 9,
+      "paddingHorizontal": 14,
+      "radius": 999,
+      "borderWidth": 1,
+      "pressedOpacity": 0.85
+    }
+  }
+} as const;
+
+export type DesignTokens = typeof designTokens;

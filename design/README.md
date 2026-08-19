@@ -26,7 +26,7 @@ y `ios-frame.jsx` por fetch relativo.
 | `ios-frame.jsx` | Marco de dispositivo iOS del prototipo |
 | `logo.png` | Logo |
 
-## Tokens a extraer en #2
+## Sistema de tokens nativo
 
 Paleta dominante medida sobre el prototipo:
 
@@ -45,12 +45,20 @@ Paleta dominante medida sobre el prototipo:
 
 Tipografía: **EB Garamond** (serif, títulos y versículos) + **DM Sans** (300/400/500, UI).
 
-> La lista completa de hex está en el HTML. La tabla de arriba es el punto de partida
-> de #2, no el resultado final — Dev B la consolida en el sistema de tokens.
+La fuente de verdad es `design/tokens.json`. Incluye color, tipografía, escala, radios,
+espaciados y contratos medidos para card, botón y chip. El archivo nativo generado es
+`src/theme/tokens.generated.ts`; las pantallas y componentes deben importar `tokens` o
+`typography` desde `src/theme`.
+
+```bash
+npm run tokens:build  # actualiza el archivo generado
+npm run tokens:check  # falla si el generado está desincronizado
+```
 
 ## Reglas para agentes y devs de frontend
 
-- Tokens machine-readable: **`design/tokens.json`** — importalo, no copies hex a mano.
+- Tokens machine-readable: **`design/tokens.json`**; en React Native usá **`src/theme`**,
+  no copies hex a mano.
 - Regla dura del proyecto: **`CLAUDE.md` § Regla dura #1**.
 - Skill que aplica el procedimiento completo (incluye cómo re-exportar desde Claude
   Design cuando el diseño cambia): **`.claude/skills/frontend-claude-design/SKILL.md`**.

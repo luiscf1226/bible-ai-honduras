@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { AppButton } from "../src/components/AppButton";
+import { Button } from "../src/components/Button";
 import { AppScreen } from "../src/components/AppScreen";
 import { Brand } from "../src/components/Brand";
-import { tokens } from "../src/theme/tokens";
+import { tokens } from "../src/theme";
 
 export default function SplashScreen() {
   return (
@@ -13,9 +13,9 @@ export default function SplashScreen() {
         <Brand size="large" withWordmark />
         <Text style={styles.tagline}>TU FE. TUS PREGUNTAS. SU PALABRA.</Text>
       </View>
-      <AppButton onPress={() => router.push("/login")} testID="entrar">
+      <Button onPress={() => router.push("/login")} testID="entrar">
         Toca para entrar
-      </AppButton>
+      </Button>
     </AppScreen>
   );
 }

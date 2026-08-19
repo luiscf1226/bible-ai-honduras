@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { AppButton } from "../../src/components/AppButton";
+import { Button } from "../../src/components/Button";
 import { AppScreen } from "../../src/components/AppScreen";
-import { tokens } from "../../src/theme/tokens";
+import { tokens } from "../../src/theme";
 
 export default function LoginScreen() {
   const continueToOnboarding = () => router.replace("/onboarding");
@@ -17,9 +17,9 @@ export default function LoginScreen() {
         </Text>
       </View>
       <View style={styles.actions}>
-        <AppButton onPress={continueToOnboarding} variant="secondary">Continuar con Google</AppButton>
-        <AppButton onPress={continueToOnboarding}>Continuar con Apple</AppButton>
-        <AppButton onPress={continueToOnboarding} variant="quiet">Usar mi correo</AppButton>
+        <Button onPress={continueToOnboarding} variant="secondary">Continuar con Google</Button>
+        <Button onPress={continueToOnboarding}>Continuar con Apple</Button>
+        <Button onPress={continueToOnboarding} variant="quiet">Usar mi correo</Button>
         <Text style={styles.legal}>Al continuar aceptas los términos y el aviso de privacidad.</Text>
       </View>
     </AppScreen>

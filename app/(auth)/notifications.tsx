@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { AppButton } from "../../src/components/AppButton";
+import { Button } from "../../src/components/Button";
 import { AppScreen } from "../../src/components/AppScreen";
-import { tokens } from "../../src/theme/tokens";
+import { tokens } from "../../src/theme";
 
 const times = [
   { label: "Al despertar", value: "6:00" },
@@ -35,8 +35,8 @@ export default function NotificationsScreen() {
         </View>
       </View>
       <View style={styles.actions}>
-        <AppButton onPress={finish}>Activar el recordatorio</AppButton>
-        <AppButton onPress={finish} variant="quiet">Prefiero sin avisos</AppButton>
+        <Button onPress={finish}>Activar el recordatorio</Button>
+        <Button onPress={finish} variant="quiet">Prefiero sin avisos</Button>
       </View>
     </AppScreen>
   );
