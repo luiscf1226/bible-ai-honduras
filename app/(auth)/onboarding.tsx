@@ -2,10 +2,10 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { AppButton } from "../../src/components/AppButton";
+import { Button } from "../../src/components/Button";
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
-import { tokens } from "../../src/theme/tokens";
+import { tokens } from "../../src/theme";
 
 const steps = [
   { body: "Cada mañana, un versículo. Si tienes tiempo, se abre en un devocional completo. Si no, con el versículo basta.", cta: "Continuar", title: "Un lugar tranquilo para leer" },
@@ -30,8 +30,8 @@ export default function OnboardingScreen() {
           {steps.map((item, index) => <View key={item.title} style={[styles.dot, index === step && styles.dotActive]} />)}
         </View>
         <View style={styles.actions}>
-          <AppButton onPress={next}>{current.cta}</AppButton>
-          <AppButton onPress={() => router.replace("/home")} variant="quiet">Saltar</AppButton>
+          <Button onPress={next}>{current.cta}</Button>
+          <Button onPress={() => router.replace("/home")} variant="quiet">Saltar</Button>
         </View>
       </View>
     </AppScreen>

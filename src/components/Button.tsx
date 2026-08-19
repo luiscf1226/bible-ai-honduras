@@ -1,16 +1,16 @@
 import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from "react-native";
 
-import { tokens } from "../theme/tokens";
+import { tokens } from "../theme";
 
-type AppButtonProps = PropsWithChildren<{
+type ButtonProps = PropsWithChildren<{
   onPress: () => void;
   variant?: "primary" | "secondary" | "quiet";
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }>;
 
-export function AppButton({ children, onPress, style, testID, variant = "primary" }: AppButtonProps) {
+export function Button({ children, onPress, style, testID, variant = "primary" }: ButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -28,16 +28,27 @@ export function AppButton({ children, onPress, style, testID, variant = "primary
 const styles = StyleSheet.create({
   base: {
     alignItems: "center",
-    borderRadius: tokens.radius.lg,
+    borderRadius: tokens.component.button.radius,
     justifyContent: "center",
-    paddingHorizontal: tokens.space.xl,
-    paddingVertical: tokens.space.lg
+    paddingHorizontal: tokens.component.button.paddingHorizontal,
+    paddingVertical: tokens.component.button.paddingVertical
   },
   primary: { backgroundColor: tokens.color.ink },
-  secondary: { backgroundColor: tokens.color.surface, borderColor: tokens.color.borderStrong, borderWidth: 1 },
-  quiet: { backgroundColor: "transparent", paddingVertical: tokens.space.md },
-  pressed: { opacity: tokens.type.bodySm.size / tokens.type.label.size },
-  label: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
+  secondary: {
+    backgroundColor: tokens.color.surface,
+    borderColor: tokens.color.borderStrong,
+    borderWidth: tokens.component.button.borderWidth
+  },
+  quiet: {
+    backgroundColor: "transparent",
+    paddingVertical: tokens.component.button.quietPaddingVertical
+  },
+  pressed: { opacity: tokens.component.button.pressedOpacity },
+  label: {
+    fontFamily: tokens.type.label.fontFamily,
+    fontSize: tokens.type.label.size,
+    lineHeight: tokens.type.label.lineHeight
+  },
   labelPrimary: { color: tokens.color.surface },
   labelSecondary: { color: tokens.color.ink }
 });

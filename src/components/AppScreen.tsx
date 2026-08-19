@@ -2,7 +2,7 @@ import type { PropsWithChildren } from "react";
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { tokens } from "../theme/tokens";
+import { tokens } from "../theme";
 
 type AppScreenProps = PropsWithChildren<{
   scroll?: boolean;

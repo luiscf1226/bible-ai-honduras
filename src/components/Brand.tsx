@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, View } from "react-native";
 
-import { tokens } from "../theme/tokens";
+import { tokens } from "../theme";
 
 type BrandProps = { size?: "large" | "medium" | "small"; withWordmark?: boolean };
 

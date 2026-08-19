@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { AppButton } from "./AppButton";
+import { Button } from "./Button";
 import { AppScreen } from "./AppScreen";
-import { tokens } from "../theme/tokens";
+import { tokens } from "../theme";
 
 type ModulePlaceholderProps = { description: string; title: string };
 
@@ -15,7 +15,7 @@ export function ModulePlaceholder({ description, title }: ModulePlaceholderProps
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
       </View>
-      <AppButton onPress={() => router.replace("/home")} variant="secondary">Volver al inicio</AppButton>
+      <Button onPress={() => router.replace("/home")} variant="secondary">Volver al inicio</Button>
     </AppScreen>
   );
 }

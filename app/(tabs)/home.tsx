@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
-import { tokens } from "../../src/theme/tokens";
+import { Card } from "../../src/components/Card";
+import { tokens } from "../../src/theme";
 
 const modules = [
   { description: "Elige un pasaje", href: "/preguntar", title: "Pregunta al texto" },
@@ -25,20 +26,20 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={styles.verseCard}>
+      <Card style={styles.verseCard}>
         <Text style={styles.overline}>VERSÍCULO DEL DÍA</Text>
         <Text style={styles.verse}>“Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo.”</Text>
         <Text style={styles.reference}>Salmos 23:4 · RVR1960</Text>
         <Text style={styles.hint}>Leer el devocional de hoy</Text>
-      </View>
+      </Card>
 
       <Text style={styles.sectionTitle}>Acompañamiento</Text>
       <View style={styles.moduleGrid}>
         {modules.map((module) => (
-          <Pressable accessibilityRole="button" key={module.href} onPress={() => router.push(module.href)} style={styles.moduleCard}>
+          <Card key={module.href} onPress={() => router.push(module.href)} padding="module" style={styles.moduleCard}>
             <Text style={styles.moduleTitle}>{module.title}</Text>
             <Text style={styles.moduleDescription}>{module.description}</Text>
-          </Pressable>
+          </Card>
         ))}
       </View>
     </AppScreen>
@@ -52,14 +53,14 @@ const styles = StyleSheet.create({
   identity: { alignItems: "center", flexDirection: "row", gap: tokens.space.md },
   date: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
   greeting: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xs },
-  verseCard: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xxl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
+  verseCard: {},
   overline: { color: tokens.color.accent, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
   verse: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xl },
   reference: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl },
   hint: { borderTopColor: tokens.color.border, borderTopWidth: 1, color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl, paddingTop: tokens.space.lg },
   sectionTitle: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.md },
-  moduleCard: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xl, borderWidth: 1, flexGrow: 1, flexShrink: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.xl, width: "45%" },
+  moduleCard: { flexGrow: 1, flexShrink: 1, width: "45%" },
   moduleTitle: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   moduleDescription: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs }
 });
