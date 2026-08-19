@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "export": "expo export --platform all"
+    "export": "expo export --platform all",
+    "spike:images": "node scripts/benchmark-image-providers.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
