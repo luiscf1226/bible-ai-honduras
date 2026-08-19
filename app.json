@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Bible AI Honduras",
+    "slug": "bible-ai-honduras",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "bibleai",
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.bibleaihonduras.app"
+    }
+  }
+}
