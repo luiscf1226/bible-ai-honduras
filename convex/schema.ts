@@ -11,4 +11,16 @@ export default defineSchema({
     reminderHour: v.optional(v.number()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
+
+  // Contenido editorial curado. La fecha usa el calendario de Honduras
+  // (YYYY-MM-DD), no la zona horaria del dispositivo.
+  dailyDevotionals: defineTable({
+    date: v.string(),
+    catalogId: v.string(),
+    verseRef: v.string(),
+    reflection: v.string(),
+    imageUrl: v.string(),
+    imageAlt: v.string(),
+    imageAttributionUrl: v.string(),
+  }).index("by_date", ["date"]),
 });
