@@ -1,6 +1,8 @@
 # RevenueCat sandbox — Pro $4.99/month
 
-**Decision:** start with RevenueCat **Test Store** now. It proves the app's purchase, entitlement, restore, and paywall logic without an Apple or Google developer account. Before store submission, repeat the same checks with Apple's and Google's real sandboxes. Test Store is not a production substitute.
+**Status: deferred — no action required now.** This repository does not yet contain an Expo app, so creating store products or a RevenueCat project would not unblock development. Resume this task once the Expo app has final iOS bundle ID and Android application ID, before beta testing.
+
+**Decision when resumed:** start with RevenueCat **Test Store**. It proves the app's purchase, entitlement, restore, and paywall logic without an Apple or Google developer account. Before store submission, repeat the same checks with Apple's and Google's real sandboxes. Test Store is not a production substitute.
 
 ## Product contract (keep these names stable)
 
