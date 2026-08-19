@@ -12,7 +12,8 @@
     "export": "expo export --platform all",
     "test": "vitest run",
     "convex:dev": "convex dev",
-    "convex:once": "convex dev --once"
+    "convex:once": "convex dev --once",
+    "spike:images": "node scripts/benchmark-image-providers.mjs"
   },
   "dependencies": {
     "@clerk/expo": "^4.5.0",
