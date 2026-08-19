@@ -1,6 +1,6 @@
 # Spike #22 — proveedor de generación de imágenes
 
-**Estado:** listo para ejecutar con credenciales de backend.  
+**Estado:** listo para ejecutar con credenciales de backend.
 **Fecha de precios consultados:** 2026-08-19. Los precios y modelos cambian; volver a comprobar las fuentes antes de producción.
 
 ## Decisión propuesta
