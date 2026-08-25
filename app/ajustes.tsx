@@ -6,7 +6,6 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
-import { measured } from "../src/theme/measured";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -181,7 +180,7 @@ export default function AjustesScreen() {
           style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-borrar-historial"
         >
-          <Text style={[styles.rowLabel, { color: cleared ? color.inkSoft : measured.danger }]}>
+          <Text style={[styles.rowLabel, { color: cleared ? color.inkSoft : color.danger }]}>
             {cleared ? "Historial borrado" : "Borrar mi historial"}
           </Text>
         </Pressable>
