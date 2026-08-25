@@ -12,6 +12,12 @@ const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./users.ts": () => import("./users"),
   "./feelings.ts": () => import("./feelings"),
+  "./history.ts": () => import("./history"),
+  "./quotas.ts": () => import("./quotas"),
+  "./entitlements.ts": () => import("./entitlements"),
+  "./devotional.ts": () => import("./devotional"),
+  "./devotionalCatalog.ts": () => import("./devotionalCatalog"),
+  "./voicesCatalog.ts": () => import("./voicesCatalog"),
   "./rag/answer.ts": () => import("./rag/answer"),
   "./rag/embed.ts": () => import("./rag/embed"),
   "./rag/llm.ts": () => import("./rag/llm"),
@@ -23,12 +29,17 @@ const modules = {
 const generateFeeling = makeFunctionReference<
   "action",
   { feelings: string[]; note?: string },
-  {
-    citation: { book: string; chapter: number; verse: number; version: string; text: string };
-    prayer: string;
-    reflection: string;
-    title: string;
-  }
+  | {
+      allowed: true;
+      conversationId: string;
+      devotional: {
+        citation: { book: string; chapter: number; verse: number; version: string; text: string };
+        prayer: string;
+        reflection: string;
+        title: string;
+      };
+    }
+  | { allowed: false; reason: "limit_reached"; module: "feelings" }
 >("feelings:generate");
 
 function asUser(t: ReturnType<typeof convexTest>, clerkId: string) {
@@ -77,11 +88,18 @@ describe("feelings.generate", () => {
     });
 
     expect(result).toMatchObject({
-      citation: { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" },
-      reflection: "Dios cuida a su pueblo aun cuando el camino pesa.",
-      title: "Para ansiedad",
+      allowed: true,
+      devotional: {
+        citation: { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" },
+        reflection: "Dios cuida a su pueblo aun cuando el camino pesa.",
+        title: "Para ansiedad",
+      },
     });
-    expect(result.prayer).toContain("Amén.");
+    if (!result.allowed) throw new Error("La cuota debería permitir la primera generación.");
+    expect(result.devotional.prayer).toContain("Amén.");
+    const history = await user.query(api.history.list, {});
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({ module: "feelings", preview: result.devotional.reflection });
     expect(fetchMock.mock.calls.some(([url]) => url === ANTHROPIC_MESSAGES_URL)).toBe(true);
   });
 
@@ -100,6 +118,24 @@ describe("feelings.generate", () => {
 
     await expect(user.action(generateFeeling, { feelings: ["Miedo"] })).rejects.toThrow("No encontramos un pasaje");
     expect(fetchMock.mock.calls.some(([url]) => url === ANTHROPIC_MESSAGES_URL)).toBe(false);
+  });
+
+  it("detiene el RAG cuando el límite compartido ya se agotó", async () => {
+    const t = convexTest(schema, modules);
+    const user = asUser(t, "feeling_limited");
+    await user.mutation(api.users.upsert, {});
+    for (let index = 0; index < 3; index += 1) {
+      await user.mutation(api.quotas.checkAndConsume, { module: "feelings" });
+    }
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(user.action(generateFeeling, { feelings: ["Miedo"] })).resolves.toEqual({
+      allowed: false,
+      reason: "limit_reached",
+      module: "feelings",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

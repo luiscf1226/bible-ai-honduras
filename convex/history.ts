@@ -1,4 +1,4 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
@@ -80,6 +80,25 @@ export const list = query({
     );
 
     return items.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Detalle de una conversación propia. El historial de Sentimiento guarda su
+// estructura de devocional en el último mensaje asistente, sin crear otra
+// colección ni otra ruta de privacidad.
+export const getById = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      return null;
+    }
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", conversation._id))
+      .collect();
+    return { ...conversation, messages };
   },
 });
 

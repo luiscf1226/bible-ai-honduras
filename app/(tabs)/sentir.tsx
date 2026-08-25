@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { api } from "../../convex/_generated/api";
 import { tokens } from "../../src/theme/tokens";
 
 const feelings = [
@@ -36,16 +37,36 @@ type FeelingDevotional = {
 const generateFeelingDevotional = makeFunctionReference<
   "action",
   { feelings: string[]; note?: string },
-  FeelingDevotional
+  | { allowed: true; conversationId: string; devotional: FeelingDevotional }
+  | { allowed: false; reason: "limit_reached"; module: "feelings" }
 >("feelings:generate");
+
+const getHistoryConversation = makeFunctionReference<
+  "query",
+  { conversationId: string },
+  | {
+      module: "qa" | "voices" | "feelings";
+      messages: Array<{ role: "user" | "assistant"; text: string; devotional?: FeelingDevotional }>;
+    }
+  | null
+>("history:getById");
 
 export default function SentirScreen() {
   const generate = useAction(generateFeelingDevotional);
+  const pastDevotionals = useQuery(api.history.list, {})?.filter((item) => item.module === "feelings") ?? [];
+  const quota = useQuery(api.quotas.remaining, { module: "feelings" });
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [freeText, setFreeText] = useState("");
   const [devotional, setDevotional] = useState<FeelingDevotional | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const historicalConversation = useQuery(
+    getHistoryConversation,
+    selectedHistoryId ? { conversationId: selectedHistoryId } : "skip",
+  );
+  const historicalDevotional = historicalConversation?.messages.find((message) => message.devotional)?.devotional ?? null;
+  const activeDevotional = devotional ?? historicalDevotional;
 
   const toggleFeeling = (feeling: string) => {
     setSelectedFeelings((current) =>
@@ -61,7 +82,11 @@ export default function SentirScreen() {
     setIsGenerating(true);
     try {
       const result = await generate({ feelings: selectedFeelings, note: freeText });
-      setDevotional(result);
+      if (!result.allowed) {
+        setError("Ya usaste tus devocionales gratis de hoy. Con Pro podés seguir sin límite.");
+        return;
+      }
+      setDevotional(result.devotional);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No pudimos preparar tu devocional. Intentá de nuevo.");
     } finally {
@@ -80,27 +105,38 @@ export default function SentirScreen() {
     );
   }
 
-  if (devotional) {
-    const reference = `${devotional.citation.book} ${devotional.citation.chapter}:${devotional.citation.verse} · ${devotional.citation.version}`;
+  if (selectedHistoryId && historicalConversation === undefined) {
+    return (
+      <AppScreen contentStyle={styles.generatingContent} style={styles.generatingScreen}>
+        <Text style={styles.generatingTitle}>Abriendo tu devocional…</Text>
+      </AppScreen>
+    );
+  }
+
+  if (activeDevotional) {
+    const reference = `${activeDevotional.citation.book} ${activeDevotional.citation.chapter}:${activeDevotional.citation.verse} · ${activeDevotional.citation.version}`;
     return (
       <AppScreen scroll contentStyle={styles.resultContent} style={styles.resultScreen}>
         <Pressable
           accessibilityLabel="Volver a sentimiento"
           accessibilityRole="button"
-          onPress={() => setDevotional(null)}
+          onPress={() => {
+            setDevotional(null);
+            setSelectedHistoryId(null);
+          }}
           style={styles.backButton}
         >
           <Text style={styles.backIcon}>‹</Text>
         </Pressable>
         <LinearGradient colors={[tokens.color.surfaceSunk, tokens.color.sage]} style={styles.resultImage} />
-        <Text style={styles.resultKicker}>{devotional.title}</Text>
+        <Text style={styles.resultKicker}>{activeDevotional.title}</Text>
         <Text style={styles.resultTitle}>Un momento con Dios</Text>
-        <Text style={styles.quote}>“{devotional.citation.text}”</Text>
+        <Text style={styles.quote}>“{activeDevotional.citation.text}”</Text>
         <Text style={styles.reference}>{reference}</Text>
-        <Text style={styles.reflection}>{devotional.reflection}</Text>
+        <Text style={styles.reflection}>{activeDevotional.reflection}</Text>
         <View style={styles.prayerCard}>
           <Text style={styles.prayerKicker}>UNA ORACIÓN CORTA</Text>
-          <Text style={styles.prayer}>{devotional.prayer}</Text>
+          <Text style={styles.prayer}>{activeDevotional.prayer}</Text>
         </View>
         <AppButton onPress={() => void generateDevotional()} variant="secondary">
           Dame otro enfoque
@@ -122,6 +158,9 @@ export default function SentirScreen() {
       </Pressable>
 
       <View>
+        <Text style={styles.quota}>
+          {quota?.isPro ? "Pro · sin límite" : `${quota?.remaining ?? "…"} de ${quota?.limit ?? "…"} devocionales gratis hoy`}
+        </Text>
         <Text style={styles.title}>¿Qué llevas encima hoy?</Text>
         <Text style={styles.description}>
           Escoge lo que más se parezca, o escríbelo con tus palabras. Esto queda solo entre tú y la app.
@@ -162,6 +201,28 @@ export default function SentirScreen() {
         Prepárame un devocional
       </AppButton>
       <Text style={styles.disclaimer}>Acompañamiento, no consejo pastoral ni atención en crisis.</Text>
+
+      {pastDevotionals.length > 0 ? (
+        <View style={styles.historySection}>
+          <Text style={styles.historyKicker}>LOS DE ANTES</Text>
+          {pastDevotionals.map((item) => (
+            <Pressable
+              accessibilityHint="Abre este devocional anterior."
+              accessibilityRole="button"
+              key={item.id}
+              onPress={() => setSelectedHistoryId(item.id)}
+              style={styles.historyItem}
+            >
+              <View style={styles.historyDot} />
+              <View style={styles.historyCopy}>
+                <Text numberOfLines={1} style={styles.historyTitle}>{item.preview}</Text>
+                <Text style={styles.historyMeta}>{item.title}</Text>
+              </View>
+              <Text style={styles.historyArrow}>›</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </AppScreen>
   );
 }
@@ -196,6 +257,15 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.bodySm.size,
     lineHeight: tokens.type.bodySm.lineHeight,
     marginTop: tokens.space.sm
+  },
+  quota: {
+    color: tokens.color.inkSoft,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+    marginBottom: tokens.space.md,
+    textTransform: "uppercase"
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
   chip: {
@@ -327,5 +397,45 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.caption.size,
     lineHeight: tokens.type.caption.lineHeight,
     textAlign: "center"
+  },
+  historySection: { gap: tokens.space.sm, marginTop: tokens.space.xl },
+  historyKicker: {
+    color: tokens.color.inkSoft,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight
+  },
+  historyItem: {
+    alignItems: "center",
+    backgroundColor: tokens.color.surface,
+    borderColor: tokens.color.border,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.md,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.lg
+  },
+  historyDot: { backgroundColor: tokens.color.sage, borderRadius: tokens.radius.pill, height: tokens.space.sm, width: tokens.space.sm },
+  historyCopy: { flex: 1 },
+  historyTitle: {
+    color: tokens.color.ink,
+    fontFamily: tokens.font.serif,
+    fontSize: tokens.type.body.size,
+    lineHeight: tokens.type.body.lineHeight
+  },
+  historyMeta: {
+    color: tokens.color.inkSoft,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.caption.size,
+    lineHeight: tokens.type.caption.lineHeight,
+    marginTop: tokens.space.xs
+  },
+  historyArrow: {
+    color: tokens.color.borderStrong,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.subtitle.size,
+    lineHeight: tokens.type.subtitle.lineHeight
   }
 });
