@@ -24,6 +24,8 @@ const modules = {
   "./rag/verses.ts": () => import("./rag/verses"),
   "./rag/retrieve.ts": () => import("./rag/retrieve"),
   "./rag/llm.ts": () => import("./rag/llm"),
+  "./rag/answer.ts": () => import("./rag/answer"),
+  "./rag/prompts/qa.ts": () => import("./rag/prompts/qa"),
 };
 
 const DIVINE_NAMES = ["Jesús", "Dios", "Espíritu Santo", "Cristo", "Jehová", "Yahvé"];
@@ -40,15 +42,22 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-function stubExternalApis(options: { queryEmbedding?: number[]; answerText?: string } = {}) {
+const DEFAULT_CITATION = { book: "Éxodo", chapter: 3, verse: 14, version: "RVR1960" };
+
+function stubExternalApis(
+  options: { queryEmbedding?: number[]; answerText?: string; citations?: Array<Record<string, unknown>> } = {},
+) {
   const queryEmbedding = options.queryEmbedding ?? zeroEmbedding();
   const answerText = options.answerText ?? "Yo no quería ir. El camino se abrió mientras caminaba.";
+  const citations = options.citations ?? [DEFAULT_CITATION];
   const fetchMock = vi.fn().mockImplementation((url: string) => {
     if (url === VOYAGE_EMBEDDINGS_URL) {
       return Promise.resolve(jsonResponse({ data: [{ embedding: queryEmbedding }] }));
     }
     if (url === ANTHROPIC_MESSAGES_URL) {
-      return Promise.resolve(jsonResponse({ content: [{ type: "text", text: answerText }] }));
+      return Promise.resolve(
+        jsonResponse({ content: [{ type: "text", text: JSON.stringify({ answer: answerText, citations }) }] }),
+      );
     }
     throw new Error(`fetch no esperado a ${url}`);
   });
@@ -153,6 +162,38 @@ describe("voices.sendMessage", () => {
     });
 
     expect(result.answer).toContain(DIVINE_REFUSAL);
+  });
+
+  it("si el modelo cita algo fuera del contexto recuperado, usa el fallback anclado al versículo real", async () => {
+    // Salmos 23:1 a propósito (no Éxodo 3:14): no dispara el guardrail de
+    // 1ra persona divina, así se puede aislar la verificación de cita.
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_voice_ungrounded");
+    await authed.mutation(api.users.upsert, {});
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      book: "Salmos",
+      chapter: 23,
+      verse: 1,
+      version: "RVR1960",
+      text: "Jehová es mi pastor; nada me faltará.",
+      embedding: unitVector(2),
+    });
+    stubExternalApis({
+      queryEmbedding: unitVector(2),
+      answerText: "Esto viene de Romanos 8:28, no del contexto que me diste.",
+      citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RVR1960" }],
+    });
+
+    const result = await authed.action(api.voices.sendMessage, {
+      slug: "moises",
+      text: "¿Qué te dijo en la zarza?",
+    });
+
+    expect(result.answer).not.toContain("Romanos 8:28");
+    expect(result.answer).toContain("Jehová es mi pastor");
+    expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
   });
 
   it("un jailbreak no consume cuota", async () => {
