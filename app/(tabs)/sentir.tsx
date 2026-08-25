@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { LimitReached } from "../../src/components/LimitReached";
 import { api } from "../../convex/_generated/api";
 import { tokens } from "../../src/theme/tokens";
 
@@ -60,6 +61,7 @@ export default function SentirScreen() {
   const [devotional, setDevotional] = useState<FeelingDevotional | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const historicalConversation = useQuery(
     getHistoryConversation,
@@ -83,7 +85,7 @@ export default function SentirScreen() {
     try {
       const result = await generate({ feelings: selectedFeelings, note: freeText });
       if (!result.allowed) {
-        setError("Ya usaste tus devocionales gratis de hoy. Con Pro podés seguir sin límite.");
+        setLimitReached(true);
         return;
       }
       setDevotional(result.devotional);
@@ -93,6 +95,11 @@ export default function SentirScreen() {
       setIsGenerating(false);
     }
   };
+
+  const atLimit = limitReached || (quota !== undefined && !quota.isPro && quota.remaining === 0);
+  if (atLimit && !activeDevotional) {
+    return <LimitReached module="feelings" testID="feelings-limit" />;
+  }
 
   if (isGenerating) {
     return (

@@ -16,36 +16,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
-import { QUOTA_LIMITS } from "../../../convex/quotas";
+import { LimitReached } from "../../../src/components/LimitReached";
 import { shareVoiceReply } from "../../../src/features/voices/shareVoice";
 import { tokens } from "../../../src/theme/tokens";
 
 const AVATAR_INITIAL_COLOR = "rgba(255,255,255,0.9)";
-
-const VOICES_LIMIT_BODY = `Usaste tus ${QUOTA_LIMITS.voices} conversaciones gratis de hoy. Vuelven mañana a las 6:00 a.m., y el devocional del día sigue abierto para ti.`;
-
-function VoicesLimitScreen() {
-  return (
-    <LinearGradient colors={[tokens.color.surface, tokens.color.surfaceSunk]} style={styles.limit}>
-      <View style={styles.limitIcon}>
-        <Text style={styles.limitIconMark}>◷</Text>
-      </View>
-      <Text style={styles.limitTitle}>Por hoy llegaste al límite</Text>
-      <Text style={styles.limitBody}>{VOICES_LIMIT_BODY}</Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push("/paywall")}
-        style={styles.limitCta}
-        testID="voices-limit-paywall"
-      >
-        <Text style={styles.limitCtaLabel}>Seguir sin límite con Pro</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={() => router.replace("/home")} testID="voices-limit-home">
-        <Text style={styles.limitSkip}>Mañana vuelvo</Text>
-      </Pressable>
-    </LinearGradient>
-  );
-}
 
 export default function VocesChatScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -111,11 +86,7 @@ export default function VocesChatScreen() {
 
   const atLimit = limitReached || (quota !== undefined && !quota.isPro && quota.remaining === 0);
   if (atLimit) {
-    return (
-      <SafeAreaView style={styles.safe} testID="voices-limit">
-        <VoicesLimitScreen />
-      </SafeAreaView>
-    );
+    return <LimitReached module="voices" testID="voices-limit" />;
   }
 
   return (
@@ -328,53 +299,4 @@ const styles = StyleSheet.create({
     width: tokens.size.logoSmall - tokens.space.sm,
   },
   sendIcon: { color: tokens.color.surface, fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
-  limit: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: tokens.space.xxl + tokens.space.sm,
-    paddingVertical: tokens.space.xxl + tokens.space.lg,
-  },
-  limitIcon: {
-    alignItems: "center",
-    borderColor: tokens.color.borderStrong,
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    height: tokens.size.avatar,
-    justifyContent: "center",
-    width: tokens.size.avatar,
-  },
-  limitIconMark: { color: tokens.color.accent, fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
-  limitTitle: {
-    color: tokens.color.ink,
-    fontFamily: tokens.font.serif,
-    fontSize: tokens.type.title.size,
-    lineHeight: tokens.type.title.lineHeight,
-    marginTop: tokens.space.xxl,
-  },
-  limitBody: {
-    color: tokens.color.inkMuted,
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.body.size,
-    lineHeight: tokens.type.body.lineHeight,
-    marginTop: tokens.space.lg,
-  },
-  limitCta: {
-    backgroundColor: tokens.color.ink,
-    borderRadius: tokens.radius.lg,
-    marginTop: tokens.space.xxl + tokens.space.sm,
-    paddingVertical: tokens.cardPadding.vertical,
-  },
-  limitCtaLabel: {
-    color: tokens.color.surface,
-    fontFamily: tokens.font.sans,
-    fontSize: tokens.type.label.size,
-    textAlign: "center",
-  },
-  limitSkip: {
-    color: tokens.color.inkSoft,
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.bodySm.size,
-    marginTop: tokens.space.md,
-    textAlign: "center",
-  },
 });
