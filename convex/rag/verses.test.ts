@@ -155,6 +155,23 @@ describe("verses.citedForUser", () => {
 });
 
 
+describe("verses.listByChapter", () => {
+  it("devuelve los versículos indexados de un capítulo, ordenados", async () => {
+    const t = convexTest(schema, modules);
+    const genesis = sampleByRef("Génesis", 1, 1);
+    await t.mutation(internal.rag.verses.upsertVerse, { ...genesis, version: "RVR1960", embedding: zeroEmbedding() });
+
+    const rows = await t.query(api.rag.verses.listByChapter, { version: "RVR1960", book: "Génesis", chapter: 1 });
+    expect(rows).toEqual([{ book: "Génesis", chapter: 1, verse: 1, version: "RVR1960", text: genesis.text }]);
+  });
+
+  it("devuelve [] si el capítulo todavía no está ingerido", async () => {
+    const t = convexTest(schema, modules);
+    const rows = await t.query(api.rag.verses.listByChapter, { version: "RVR1960", book: "Apocalipsis", chapter: 22 });
+    expect(rows).toEqual([]);
+  });
+});
+
 describe("verses.upsertVerse", () => {
   it("es idempotente: la misma referencia no duplica la fila", async () => {
     const t = convexTest(schema, modules);
