@@ -24,4 +24,25 @@ export default defineSchema({
     imageAlt: v.string(),
     imageAttributionUrl: v.string(),
   }).index("by_date", ["date"]),
+
+  // ── Transversales (#4 / quotas) ─────────────────────────
+  usage: defineTable({
+    userId: v.id("users"),
+    module: v.union(
+      v.literal("qa"),
+      v.literal("voices"),
+      v.literal("feelings"),
+      v.literal("stories"),
+    ),
+    day: v.string(), // "2026-08-18"; use "lifetime" for stories
+    count: v.number(),
+  }).index("by_user_module_day", ["userId", "module", "day"]),
+
+  entitlements: defineTable({
+    userId: v.id("users"),
+    isPro: v.boolean(),
+    expiresAt: v.optional(v.number()),
+    source: v.string(), // "revenuecat_webhook"
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });
