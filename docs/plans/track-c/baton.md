@@ -27,7 +27,8 @@ poll manual del estado de GitHub. Archivos de #7: `convex/rag/retrieve.ts`, `con
       Ajustes y onboarding (para que #10 la consuma); Home cita la versión y abre `/ajustes`.
       `npm test` 75/75.
 - [x] Sub-plan #18 — Chat 1ra persona (listo, bloqueado por #7 de Track B)
-- [x] Sub-plan #19 — Guardrail duro (listo, bloqueado por #18)
+- [x] Sub-plan #19 — Guardrail duro: `convex/voicesGuardrail.ts` + suite adversarial
+      (directos e indirectos). Tests escritos antes del prompt de #18. No toca `convex/rag/`.
 - [x] Sub-plan #20 — Cuota Voces (listo, bloqueado por #18)
 - [x] Sub-plan #21 — Compartir cita (listo, bloqueado por #18 y #36)
 - [x] #35 — Borrar historial: tablas `conversations`/`messages` (append-only), `history.deleteAll` hace hard delete (0 filas, no `deleted: true`), UI de Privacidad en Ajustes + `app/historial.tsx`. Tests cubren que Bob no pierde su historial.
