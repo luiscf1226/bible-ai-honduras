@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useConvex } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
+import { buildDevotionalShareText } from "../../src/features/home/shareDevotional";
+import { shareContent } from "../../src/lib/share";
 import { api } from "../../convex/_generated/api";
+import { parseVerseRef } from "../../src/lib/parseVerseRef";
+import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
 const modules = [
@@ -58,11 +62,17 @@ function hondurasDate() {
 }
 
 export default function HomeScreen() {
+  const { color, dark } = useTheme();
   const { retry, state } = useTodayDevotional();
+  const currentUser = useQuery(api.users.current);
   const [isDevotionalOpen, setIsDevotionalOpen] = useState(false);
 
   const isReady = state.status === "ready";
   const devotional = isReady ? state.devotional : null;
+  const parsed = parseVerseRef(devotional?.verseRef ?? "");
+  const cited = useQuery(api.rag.verses.citedForUser, parsed ?? "skip");
+  const bibleVersion = cited?.version ?? "RVR1960";
+  const verseText = cited?.verse?.text;
 
   const onDevotionalPress = () => {
     if (state.status === "error") {
@@ -73,16 +83,34 @@ export default function HomeScreen() {
     if (isReady) setIsDevotionalOpen((isOpen) => !isOpen);
   };
 
+  const onShareDevotional = () => {
+    if (!devotional || !currentUser?.referralCode) return;
+
+    void shareContent({
+      referralCode: currentUser.referralCode,
+      text: buildDevotionalShareText(devotional)
+    });
+  };
+
   return (
-    <AppScreen scroll contentStyle={styles.content} style={styles.screen}>
+    <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: dark ? color.bg : color.surface }}>
       <View style={styles.header}>
         <View style={styles.identity}>
           <Brand size="small" />
           <View>
-            <Text style={styles.date}>{hondurasDate()}</Text>
-            <Text style={styles.greeting}>Devocional de hoy</Text>
+            <Text style={[styles.date, { color: color.inkSoft }]}>{hondurasDate()}</Text>
+            <Text style={[styles.greeting, { color: color.ink }]}>Devocional de hoy</Text>
           </View>
         </View>
+        <Pressable
+          accessibilityLabel="Ajustes"
+          accessibilityRole="button"
+          onPress={() => router.push("/ajustes")}
+          style={[styles.settingsButton, { backgroundColor: color.surface, borderColor: color.borderStrong }]}
+          testID="home-settings"
+        >
+          <Text style={[styles.settingsIcon, { color: color.inkMuted }]}>⚙</Text>
+        </Pressable>
       </View>
 
       <Pressable
@@ -91,33 +119,54 @@ export default function HomeScreen() {
         accessibilityState={{ disabled: state.status === "loading", expanded: isDevotionalOpen }}
         disabled={state.status === "loading"}
         onPress={onDevotionalPress}
-        style={({ pressed }) => [styles.verseCard, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.verseCard,
+          { backgroundColor: color.surface, borderColor: color.border },
+          pressed && styles.pressed,
+        ]}
         testID="home-devotional-toggle"
       >
-        <Text style={styles.overline}>VERSÍCULO DEL DÍA</Text>
-        <Text style={styles.verse}>
+        <Text style={[styles.overline, { color: color.accent }]}>VERSÍCULO DEL DÍA</Text>
+        <Text style={[styles.verse, { color: color.ink }]}>
           {state.status === "loading"
             ? "Preparando la lectura de hoy…"
             : state.status === "error"
               ? "No pudimos preparar tu lectura. Tocá para intentarlo de nuevo."
-              : devotional?.verseRef}
+              : verseText
+                ? `“${verseText}”`
+                : devotional?.verseRef}
         </Text>
-        {devotional ? <Text style={styles.reference}>RVR1960</Text> : null}
-        <Text style={styles.hint}>
+        {devotional ? (
+          <Text style={[styles.reference, { color: color.inkMuted }]}>
+            {verseText ? `${devotional.verseRef} · ${bibleVersion}` : bibleVersion}
+          </Text>
+        ) : null}
+        <Text style={[styles.hint, { borderTopColor: color.border, color: color.inkSoft }]}>
           {isDevotionalOpen ? "Cerrar el devocional" : "Leer el devocional de hoy"}
         </Text>
       </Pressable>
 
       {isDevotionalOpen && devotional ? (
-        <View style={styles.devotionalCard} testID="home-devotional-expanded">
+        <View style={[styles.devotionalCard, { backgroundColor: color.surface, borderColor: color.border }]} testID="home-devotional-expanded">
           <Image
             accessibilityLabel={devotional.imageAlt}
             source={{ uri: devotional.imageUrl }}
             style={styles.devotionalImage}
           />
           <View style={styles.devotionalBody}>
-            <Text style={styles.devotionalTitle}>Una pausa para hoy</Text>
-            <Text style={styles.reflection}>{devotional.reflection}</Text>
+            <Text style={[styles.devotionalTitle, { color: color.ink }]}>Una pausa para hoy</Text>
+            <Text style={[styles.reflection, { color: color.inkMuted }]}>{devotional.reflection}</Text>
+            <Pressable
+              accessibilityHint={currentUser?.referralCode ? "Abre las opciones para compartir este devocional." : "Esperá mientras cargamos tu perfil."}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !currentUser?.referralCode }}
+              disabled={!currentUser?.referralCode}
+              onPress={onShareDevotional}
+              style={({ pressed }) => [styles.shareButton, { borderColor: color.borderStrong }, pressed && styles.pressed]}
+              testID="home-share-devotional"
+            >
+              <Text style={[styles.shareButtonLabel, { color: color.ink }]}>Compartir por WhatsApp</Text>
+            </Pressable>
           </View>
         </View>
       ) : null}
@@ -125,49 +174,68 @@ export default function HomeScreen() {
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push("/sentir")}
-        style={({ pressed }) => [styles.feelingCard, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.feelingCard,
+          { backgroundColor: dark ? color.surfaceSunk : color.surfaceAlt, borderColor: color.border },
+          pressed && styles.pressed,
+        ]}
       >
-        <Text style={styles.feelingTitle}>¿Cómo estás hoy?</Text>
-        <Text style={styles.feelingDescription}>Contame qué llevás encima y te preparo un devocional para eso.</Text>
+        <Text style={[styles.feelingTitle, { color: color.ink }]}>¿Cómo estás hoy?</Text>
+        <Text style={[styles.feelingDescription, { color: color.inkMuted }]}>Contame qué llevás encima y te preparo un devocional para eso.</Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Acompañamiento</Text>
-      <View style={styles.moduleGrid}>
-        {modules.map((module) => (
-          <Pressable accessibilityRole="button" key={module.href} onPress={() => router.push(module.href)} style={styles.moduleCard}>
-            <Text style={styles.moduleTitle}>{module.title}</Text>
-            <Text style={styles.moduleDescription}>{module.description}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {dark ? (
+        <Text style={[styles.nightHint, { color: color.inkFaint }]}>Modo noche suave activo · desactívalo en ajustes</Text>
+      ) : (
+        <>
+          <Text style={[styles.sectionTitle, { color: color.inkSoft }]}>Acompañamiento</Text>
+          <View style={styles.moduleGrid}>
+            {modules.map((module) => (
+              <Pressable
+                accessibilityRole="button"
+                key={module.href}
+                onPress={() => router.push(module.href)}
+                style={[styles.moduleCard, { backgroundColor: color.surface, borderColor: color.border }]}
+              >
+                <Text style={[styles.moduleTitle, { color: color.ink }]}>{module.title}</Text>
+                <Text style={[styles.moduleDescription, { color: color.inkSoft }]}>{module.description}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      )}
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: tokens.color.surface },
   content: { gap: tokens.space.xxl },
-  header: { marginTop: tokens.space.sm },
-  identity: { alignItems: "center", flexDirection: "row", gap: tokens.space.md },
-  date: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
-  greeting: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xs },
-  verseCard: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xxl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
+  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: tokens.space.sm },
+  identity: { alignItems: "center", flexDirection: "row", flex: 1, gap: tokens.space.md },
+  settingsButton: { alignItems: "center", borderRadius: tokens.radius.pill, borderWidth: 1, height: tokens.size.logoSmall, justifyContent: "center", width: tokens.size.logoSmall },
+  settingsIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
+  date: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
+  greeting: { fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xs },
+  verseCard: { borderRadius: tokens.radius.xxl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   pressed: { opacity: tokens.opacity.pressed },
-  overline: { color: tokens.color.accent, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
-  verse: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xl },
-  reference: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl },
-  hint: { borderTopColor: tokens.color.border, borderTopWidth: 1, color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl, paddingTop: tokens.space.lg },
-  devotionalCard: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xxl, borderWidth: 1, overflow: "hidden" },
+  overline: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
+  verse: { fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xl },
+  reference: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl },
+  hint: { borderTopWidth: 1, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl, paddingTop: tokens.space.lg },
+  devotionalCard: { borderRadius: tokens.radius.xxl, borderWidth: 1, overflow: "hidden" },
   devotionalImage: { aspectRatio: 16 / 9, width: "100%" },
   devotionalBody: { paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
-  devotionalTitle: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
-  reflection: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight, marginTop: tokens.space.lg },
-  feelingCard: { backgroundColor: tokens.color.surfaceAlt, borderColor: tokens.color.border, borderRadius: tokens.radius.xl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
-  feelingTitle: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
-  feelingDescription: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
-  sectionTitle: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
+  devotionalTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
+  reflection: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight, marginTop: tokens.space.lg },
+  shareButton: { alignItems: "center", borderRadius: tokens.radius.md, borderWidth: 1, justifyContent: "center", marginTop: tokens.space.xl, paddingVertical: tokens.space.lg },
+  shareButtonLabel: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
+  feelingCard: { borderRadius: tokens.radius.xl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
+  feelingTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
+  feelingDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
+  sectionTitle: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
+  nightHint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, textAlign: "center" },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.md },
-  moduleCard: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xl, borderWidth: 1, flexGrow: 1, flexShrink: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.xl, width: "45%" },
-  moduleTitle: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
-  moduleDescription: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs }
+  moduleCard: { borderRadius: tokens.radius.xl, borderWidth: 1, flexGrow: 1, flexShrink: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.xl, width: "45%" },
+  moduleTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
+  moduleDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs }
 });
