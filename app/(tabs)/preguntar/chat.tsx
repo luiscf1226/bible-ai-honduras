@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import { QUOTA_LIMITS } from "../../../convex/quotas";
+import { shareQaAnswer } from "../../../src/features/qa/shareAnswer";
 import { tokens } from "../../../src/theme/tokens";
 
 const QA_LIMIT_BODY = `Usaste tus ${QUOTA_LIMITS.qa} preguntas gratis de hoy. Vuelven mañana a las 6:00 a.m.`;
@@ -47,11 +48,12 @@ export default function PreguntarChatScreen() {
 
   const messages = useMemo(
     () =>
-      (thread ?? []).map((message) => ({
+      (thread ?? []).map((message, index) => ({
         key: message._id,
         role: message.role,
         text: message.text,
         citation: message.citations?.[0] ?? null,
+        question: message.role === "assistant" ? (thread ?? [])[index - 1]?.text ?? null : null,
       })),
     [thread],
   );
@@ -112,6 +114,33 @@ export default function PreguntarChatScreen() {
                           {message.citation.book} {message.citation.chapter}:{message.citation.verse} ({message.citation.version})
                         </Text>
                       </View>
+                    ) : null}
+                    {message.role === "assistant" && message.citation && message.question ? (
+                      <Pressable
+                        accessibilityHint={
+                          currentUser?.referralCode
+                            ? "Abre las opciones para compartir esta respuesta."
+                            : "Esperá mientras cargamos tu perfil."
+                        }
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: !currentUser?.referralCode }}
+                        disabled={!currentUser?.referralCode}
+                        onPress={() => {
+                          if (!currentUser?.referralCode || !message.citation || !message.question) {
+                            return;
+                          }
+                          void shareQaAnswer({
+                            question: message.question,
+                            citation: message.citation,
+                            referralCode: currentUser.referralCode,
+                          });
+                        }}
+                        style={styles.share}
+                        testID="qa-share-answer"
+                      >
+                        <Text style={styles.shareIcon}>↗</Text>
+                        <Text style={styles.shareLabel}>Compartir esta respuesta</Text>
+                      </Pressable>
                     ) : null}
                   </View>
                 </View>
@@ -180,6 +209,17 @@ const styles = StyleSheet.create({
   citation: { backgroundColor: tokens.color.surfaceSunk, borderRadius: tokens.radius.md, marginTop: tokens.space.lg, padding: tokens.space.lg },
   citationQuote: { color: tokens.color.inkMuted, fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, fontStyle: "italic", lineHeight: tokens.type.body.lineHeight },
   citationRef: { color: tokens.color.inkFaint, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, marginTop: tokens.space.sm },
+  share: {
+    alignItems: "center",
+    borderTopColor: tokens.color.border,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.xs,
+    marginTop: tokens.space.lg,
+    paddingTop: tokens.space.md
+  },
+  shareIcon: { color: tokens.color.sage, fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
+  shareLabel: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size },
   typing: { color: tokens.color.inkFaint, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size },
   composer: { borderTopColor: tokens.color.border, borderTopWidth: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.md },
   inputRow: {
