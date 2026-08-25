@@ -102,7 +102,7 @@ export default function HomeScreen() {
               ? "No pudimos preparar tu lectura. Tocá para intentarlo de nuevo."
               : devotional?.verseRef}
         </Text>
-        {devotional ? <Text style={styles.reference}>{devotional.verseRef} · RVR1960</Text> : null}
+        {devotional ? <Text style={styles.reference}>RVR1960</Text> : null}
         <Text style={styles.hint}>
           {isDevotionalOpen ? "Cerrar el devocional" : "Leer el devocional de hoy"}
         </Text>
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   date: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
   greeting: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xs },
   verseCard: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xxl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
-  pressed: { opacity: tokens.type.bodySm.size / tokens.type.label.size },
+  pressed: { opacity: tokens.opacity.pressed },
   overline: { color: tokens.color.accent, fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
   verse: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight, marginTop: tokens.space.xl },
   reference: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xl },
