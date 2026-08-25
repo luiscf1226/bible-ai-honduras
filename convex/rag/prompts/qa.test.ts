@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildQaUserPrompt, formatCitation, NO_RELEVANT_CONTENT_ANSWER, QA_SYSTEM_PROMPT } from "./qa";
+import { buildQaUserPrompt, formatCitation, NO_RELEVANT_CONTENT_ANSWER, QA_RESPONSE_SCHEMA, QA_SYSTEM_PROMPT } from "./qa";
 
 const VERSE = { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "Jehová es mi pastor; nada me faltará." };
 
@@ -33,5 +33,23 @@ describe("QA_SYSTEM_PROMPT / NO_RELEVANT_CONTENT_ANSWER", () => {
 
   it("la respuesta de fallback no inventa una cita", () => {
     expect(NO_RELEVANT_CONTENT_ANSWER).not.toMatch(/\d+:\d+/);
+  });
+});
+
+describe("QA_RESPONSE_SCHEMA", () => {
+  it("acepta answer + citations[] bien formadas", () => {
+    const result = QA_RESPONSE_SCHEMA.safeParse({
+      answer: "Dios cuida de vos.",
+      citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza una cita con campos faltantes", () => {
+    const result = QA_RESPONSE_SCHEMA.safeParse({
+      answer: "Dios cuida de vos.",
+      citations: [{ book: "Salmos" }],
+    });
+    expect(result.success).toBe(false);
   });
 });
