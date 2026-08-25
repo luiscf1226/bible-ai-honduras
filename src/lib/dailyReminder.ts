@@ -4,6 +4,8 @@ import * as Notifications from "expo-notifications";
 const DAILY_REMINDER_CHANNEL = "daily-devotional";
 const DAILY_REMINDER_KIND = "daily-devotional";
 
+export type ScheduledDevotional = { date: string; verseRef: string };
+
 type DailyReminderResult = "scheduled" | "permission-denied" | "unsupported";
 
 function isDailyReminder(notification: Notifications.NotificationRequest) {
@@ -30,21 +32,16 @@ async function requestNotificationPermission() {
   return requested.granted;
 }
 
-function dailyTrigger(hour: number): Notifications.SchedulableNotificationTriggerInput {
-  if (Platform.OS === "ios") {
-    return {
-      hour,
-      minute: 0,
-      repeats: true,
-      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-    };
-  }
+function dateAtReminderHour(date: string, hour: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day, hour);
+}
 
+function devotionalTrigger(date: string, hour: number): Notifications.SchedulableNotificationTriggerInput {
   return {
     channelId: DAILY_REMINDER_CHANNEL,
-    hour,
-    minute: 0,
-    type: Notifications.SchedulableTriggerInputTypes.DAILY,
+    date: dateAtReminderHour(date, hour),
+    type: Notifications.SchedulableTriggerInputTypes.DATE,
   };
 }
 
@@ -72,10 +69,16 @@ export async function cancelDailyDevotionalReminder() {
   );
 }
 
-export async function scheduleDailyDevotionalReminder(hour: number): Promise<DailyReminderResult> {
+export async function scheduleDailyDevotionalReminders(
+  hour: number,
+  devotionals: readonly ScheduledDevotional[],
+): Promise<DailyReminderResult> {
   if (Platform.OS === "web") return "unsupported";
   if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
     throw new Error("La hora del recordatorio debe estar entre 0 y 23.");
+  }
+  if (devotionals.length === 0) {
+    throw new Error("Se necesita al menos un devocional para programar el recordatorio.");
   }
 
   await ensureAndroidChannel();
@@ -83,14 +86,16 @@ export async function scheduleDailyDevotionalReminder(hour: number): Promise<Dai
   if (!hasPermission) return "permission-denied";
 
   await cancelDailyDevotionalReminder();
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      body: "Tu lectura bíblica diaria está lista para acompañarte.",
-      data: { kind: DAILY_REMINDER_KIND, pathname: "/home" },
-      title: "Devocional de hoy",
-    },
-    trigger: dailyTrigger(hour),
-  });
+  for (const devotional of devotionals) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        body: `Lectura de hoy: ${devotional.verseRef}.`,
+        data: { date: devotional.date, kind: DAILY_REMINDER_KIND, pathname: "/home" },
+        title: "Devocional de hoy",
+      },
+      trigger: devotionalTrigger(devotional.date, hour),
+    });
+  }
 
   return "scheduled";
 }

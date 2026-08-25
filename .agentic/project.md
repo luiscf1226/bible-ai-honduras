@@ -28,7 +28,7 @@
 - La UI usa `tokens` de `src/theme/tokens.ts`; no se agregan valores visuales literales.
 - Los títulos y versículos usan EB Garamond; la UI usa DM Sans.
 - `convex/devotional.today` da el contenido editorial del día y hace fallback de catálogo cuando aún no existe una fila persistida.
-- Los recordatorios son notificaciones locales. En Android se programa un trigger diario con canal propio; en iOS se usa un trigger de calendario repetido. Un recordatorio no incluye el contenido fijo del día para no repetir información editorial vencida.
+- Los recordatorios son notificaciones locales fechadas, con canal propio en Android. Se programan 28 días del ciclo editorial para que cada aviso lleve la referencia bíblica correcta, en vez de repetir contenido vencido después de medianoche.
 
 ## Riesgos de coordinación
 
