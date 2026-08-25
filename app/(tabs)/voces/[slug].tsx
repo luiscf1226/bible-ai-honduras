@@ -18,11 +18,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../../../convex/_generated/api";
 import { LimitReached } from "../../../src/components/LimitReached";
 import { shareVoiceReply } from "../../../src/features/voices/shareVoice";
+import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
-const AVATAR_INITIAL_COLOR = "rgba(255,255,255,0.9)";
-
 export default function VocesChatScreen() {
+  const { color } = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const characters = useQuery(api.voices.list);
   const character = characters?.find((item) => item.slug === slug);
@@ -50,10 +50,10 @@ export default function VocesChatScreen() {
 
   if (characters && !character) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <Text style={styles.missing}>Ese personaje no está en Voces.</Text>
+      <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]}>
+        <Text style={[styles.missing, { color: color.ink }]}>Ese personaje no está en Voces.</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.backLabel}>Volver</Text>
+          <Text style={[styles.backLabel, { color: color.accent }]}>Volver</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -61,8 +61,8 @@ export default function VocesChatScreen() {
 
   if (!character) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <ActivityIndicator color={tokens.color.accent} />
+      <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]}>
+        <ActivityIndicator color={color.accent} />
       </SafeAreaView>
     );
   }
@@ -90,18 +90,22 @@ export default function VocesChatScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
-        <View style={styles.header}>
-          <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
-            <Text style={styles.backIcon}>‹</Text>
+        <View style={[styles.header, { borderBottomColor: color.border }]}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.back()}
+            style={[styles.back, { borderColor: color.border }]}
+          >
+            <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
           </Pressable>
           <LinearGradient colors={[character.gradientFrom, character.gradientTo]} style={styles.avatar}>
-            <Text style={styles.avatarInitial}>{character.name[0]}</Text>
+            <Text style={[styles.avatarInitial, { color: color.avatarInitial }]}>{character.name[0]}</Text>
           </LinearGradient>
           <View style={styles.headerText}>
-            <Text style={styles.name}>{character.name}</Text>
-            <Text style={styles.tag}>{character.tag}</Text>
+            <Text style={[styles.name, { color: color.ink }]}>{character.name}</Text>
+            <Text style={[styles.tag, { color: color.inkSoft }]}>{character.tag}</Text>
           </View>
         </View>
 
@@ -111,8 +115,22 @@ export default function VocesChatScreen() {
               key={message.key}
               style={[styles.bubbleWrap, message.role === "user" ? styles.bubbleWrapUser : styles.bubbleWrapAi]}
             >
-              <View style={[styles.bubble, message.role === "user" ? styles.bubbleUser : styles.bubbleAi]}>
-                <Text style={[styles.bubbleText, message.role === "user" ? styles.bubbleTextUser : styles.bubbleTextAi]}>
+              <View
+                style={[
+                  styles.bubble,
+                  message.role === "user"
+                    ? { backgroundColor: color.ink, borderColor: color.ink }
+                    : { backgroundColor: color.surface, borderColor: color.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    message.role === "user"
+                      ? { color: color.surface, fontFamily: tokens.font.sans }
+                      : { color: color.ink, fontFamily: tokens.font.serif },
+                  ]}
+                >
                   {message.text}
                 </Text>
                 {message.role === "assistant" ? (
@@ -135,48 +153,48 @@ export default function VocesChatScreen() {
                         reply: message.text,
                       });
                     }}
-                    style={styles.share}
+                    style={[styles.share, { borderTopColor: color.border }]}
                     testID="voices-share-reply"
                   >
-                    <Text style={styles.shareIcon}>↗</Text>
-                    <Text style={styles.shareLabel}>Compartir esta respuesta</Text>
+                    <Text style={[styles.shareIcon, { color: color.sage }]}>↗</Text>
+                    <Text style={[styles.shareLabel, { color: color.inkMuted }]}>Compartir esta respuesta</Text>
                   </Pressable>
                 ) : null}
               </View>
             </View>
           ))}
-          {busy ? <Text style={styles.typing}>{character.name} está escribiendo…</Text> : null}
+          {busy ? <Text style={[styles.typing, { color: color.inkFaint }]}>{character.name} está escribiendo…</Text> : null}
         </ScrollView>
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, { borderTopColor: color.border }]}>
           <ScrollView horizontal contentContainerStyle={styles.suggestions} showsHorizontalScrollIndicator={false}>
             {character.suggestions.map((suggestion) => (
               <Pressable
                 accessibilityRole="button"
                 key={suggestion}
                 onPress={() => void onSend(suggestion)}
-                style={styles.suggestion}
+                style={[styles.suggestion, { backgroundColor: color.surface, borderColor: color.borderStrong }]}
               >
-                <Text style={styles.suggestionLabel}>{suggestion}</Text>
+                <Text style={[styles.suggestionLabel, { color: color.inkMuted }]}>{suggestion}</Text>
               </Pressable>
             ))}
           </ScrollView>
-          <View style={styles.inputRow}>
+          <View style={[styles.inputRow, { backgroundColor: color.surface, borderColor: color.borderStrong }]}>
             <TextInput
               onChangeText={setDraft}
               onSubmitEditing={() => void onSend(draft)}
               placeholder="Pregúntale algo…"
-              placeholderTextColor={tokens.color.inkFaint}
-              style={styles.input}
+              placeholderTextColor={color.inkFaint}
+              style={[styles.input, { color: color.ink }]}
               value={draft}
             />
             <Pressable
               accessibilityRole="button"
               disabled={busy}
               onPress={() => void onSend(draft)}
-              style={styles.send}
+              style={[styles.send, { backgroundColor: color.ink }]}
             >
-              <Text style={styles.sendIcon}>↑</Text>
+              <Text style={[styles.sendIcon, { color: color.surface }]}>↑</Text>
             </Pressable>
           </View>
         </View>
@@ -186,18 +204,16 @@ export default function VocesChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: tokens.color.surface, flex: 1 },
+  safe: { flex: 1 },
   flex: { flex: 1 },
   missing: {
-    color: tokens.color.ink,
     fontFamily: tokens.font.serif,
     fontSize: tokens.type.title.size,
     margin: tokens.space.xl,
   },
-  backLabel: { color: tokens.color.accent, fontFamily: tokens.font.sans, marginHorizontal: tokens.space.xl },
+  backLabel: { fontFamily: tokens.font.sans, marginHorizontal: tokens.space.xl },
   header: {
     alignItems: "center",
-    borderBottomColor: tokens.color.border,
     borderBottomWidth: 1,
     flexDirection: "row",
     gap: tokens.space.md,
@@ -206,14 +222,13 @@ const styles = StyleSheet.create({
   },
   back: {
     alignItems: "center",
-    borderColor: tokens.color.border,
     borderRadius: tokens.radius.pill,
     borderWidth: 1,
-    height: tokens.size.dotActive + tokens.space.md,
+    height: tokens.size.backButton,
     justifyContent: "center",
-    width: tokens.size.dotActive + tokens.space.md,
+    width: tokens.size.backButton,
   },
-  backIcon: { color: tokens.color.ink, fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
+  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
   avatar: {
     alignItems: "center",
     borderRadius: tokens.radius.pill,
@@ -221,11 +236,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: tokens.size.logoSmall,
   },
-  avatarInitial: { color: AVATAR_INITIAL_COLOR, fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
+  avatarInitial: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
   headerText: { flex: 1 },
-  name: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
+  name: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
   tag: {
-    color: tokens.color.inkSoft,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.caption.size,
     marginTop: tokens.space.xs,
@@ -235,52 +249,40 @@ const styles = StyleSheet.create({
   bubbleWrapUser: { justifyContent: "flex-end" },
   bubbleWrapAi: { justifyContent: "flex-start" },
   bubble: { borderRadius: tokens.radius.xl, borderWidth: 1, maxWidth: "88%", padding: tokens.space.lg },
-  bubbleUser: { backgroundColor: tokens.color.ink, borderColor: tokens.color.ink },
-  bubbleAi: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border },
   bubbleText: { fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
-  bubbleTextUser: { color: tokens.color.surface, fontFamily: tokens.font.sans },
-  bubbleTextAi: { color: tokens.color.ink, fontFamily: tokens.font.serif },
   share: {
     alignItems: "center",
-    borderTopColor: tokens.color.border,
     borderTopWidth: 1,
     flexDirection: "row",
     gap: tokens.space.xs,
     marginTop: tokens.space.lg,
     paddingTop: tokens.space.md,
   },
-  shareIcon: { color: tokens.color.sage, fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
+  shareIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
   shareLabel: {
-    color: tokens.color.inkMuted,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.caption.size,
   },
   typing: {
-    color: tokens.color.inkFaint,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
     paddingVertical: tokens.space.sm,
   },
   composer: {
-    borderTopColor: tokens.color.border,
     borderTopWidth: 1,
     paddingHorizontal: tokens.space.lg,
     paddingVertical: tokens.space.md,
   },
   suggestions: { gap: tokens.space.sm, paddingBottom: tokens.space.md },
   suggestion: {
-    backgroundColor: tokens.color.surface,
-    borderColor: tokens.color.borderStrong,
     borderRadius: tokens.radius.pill,
     borderWidth: 1,
     paddingHorizontal: tokens.space.lg,
     paddingVertical: tokens.space.sm,
   },
-  suggestionLabel: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size },
+  suggestionLabel: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size },
   inputRow: {
     alignItems: "center",
-    backgroundColor: tokens.color.surface,
-    borderColor: tokens.color.borderStrong,
     borderRadius: tokens.radius.pill,
     borderWidth: 1,
     flexDirection: "row",
@@ -289,14 +291,13 @@ const styles = StyleSheet.create({
     paddingRight: tokens.space.sm,
     paddingVertical: tokens.space.sm,
   },
-  input: { color: tokens.color.ink, flex: 1, fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size },
+  input: { flex: 1, fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size },
   send: {
     alignItems: "center",
-    backgroundColor: tokens.color.ink,
     borderRadius: tokens.radius.pill,
-    height: tokens.size.logoSmall - tokens.space.sm,
+    height: tokens.size.sendButton,
     justifyContent: "center",
-    width: tokens.size.logoSmall - tokens.space.sm,
+    width: tokens.size.sendButton,
   },
-  sendIcon: { color: tokens.color.surface, fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
+  sendIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
 });

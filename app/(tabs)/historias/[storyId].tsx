@@ -8,9 +8,11 @@ import { AppScreen } from "../../../src/components/AppScreen";
 import { StoryViewer } from "../../../src/features/stories/StoryPanels";
 import { shareStory } from "../../../src/features/stories/storyShare";
 import { storiesApi } from "../../../src/features/stories/contracts";
+import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
 export default function StoryViewerScreen() {
+  const { color } = useTheme();
   const { storyId } = useLocalSearchParams<{ storyId?: string | string[] }>();
   const selectedStoryId = Array.isArray(storyId) ? storyId[0] : storyId;
   const story = useQuery(storiesApi.stories.getById, selectedStoryId ? { storyId: selectedStoryId } : "skip");
@@ -30,17 +32,21 @@ export default function StoryViewerScreen() {
   }
 
   return (
-    <AppScreen scroll style={styles.screen}>
+    <AppScreen scroll style={{ backgroundColor: color.surfaceAlt }}>
       <View style={styles.header}>
         <Pressable
           accessibilityLabel="Volver a historias"
           accessibilityRole="button"
           onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+          style={({ pressed }) => [
+            styles.backButton,
+            { backgroundColor: color.surface, borderColor: color.borderStrong },
+            pressed && { backgroundColor: color.surfaceAlt },
+          ]}
         >
-          <Text style={styles.backIcon}>‹</Text>
+          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
         </Pressable>
-        <Text style={styles.title}>{story.title}</Text>
+        <Text style={[styles.title, { color: color.ink }]}>{story.title}</Text>
       </View>
       <Pressable
         accessibilityHint={
@@ -60,20 +66,34 @@ export default function StoryViewerScreen() {
         style={styles.share}
         testID="historias-share-story"
       >
-        <Text style={styles.shareIcon}>↗</Text>
-        <Text style={styles.shareLabel}>Compartir esta historia</Text>
+        <Text style={[styles.shareIcon, { color: color.accent }]}>↗</Text>
+        <Text style={[styles.shareLabel, { color: color.accent }]}>Compartir esta historia</Text>
       </Pressable>
-      <StoryViewer images={Object.fromEntries((generated?.scenes ?? []).map((scene) => [scene.id, scene.status === "ready" && scene.uri ? { status: "ready", uri: scene.uri } : scene.status === "generating" ? { status: "generating" } : { status: "unavailable" }]))} story={story} />
+      <StoryViewer
+        images={Object.fromEntries(
+          (generated?.scenes ?? []).map((scene) => [
+            scene.id,
+            scene.status === "ready" && scene.uri
+              ? { status: "ready", uri: scene.uri }
+              : scene.status === "generating"
+                ? { status: "generating" }
+                : { status: "unavailable" },
+          ]),
+        )}
+        story={story}
+      />
     </AppScreen>
   );
 }
 
 function ViewerState({ detail, title }: { detail: string; title: string }) {
+  const { color } = useTheme();
+
   return (
-    <AppScreen contentStyle={styles.stateContent} style={styles.screen}>
+    <AppScreen contentStyle={styles.stateContent} style={{ backgroundColor: color.surfaceAlt }}>
       <View style={styles.stateCopy}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.detail}>{detail}</Text>
+        <Text style={[styles.title, { color: color.ink }]}>{title}</Text>
+        <Text style={[styles.detail, { color: color.inkMuted }]}>{detail}</Text>
       </View>
       <AppButton onPress={() => router.replace("/historias")} variant="secondary">
         Volver a historias
@@ -83,57 +103,48 @@ function ViewerState({ detail, title }: { detail: string; title: string }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: tokens.color.surfaceAlt },
   header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.xl },
   backButton: {
     alignItems: "center",
-    backgroundColor: tokens.color.surface,
-    borderColor: tokens.color.borderStrong,
     borderRadius: tokens.radius.pill,
     borderWidth: 1,
     justifyContent: "center",
-    padding: tokens.space.sm
+    padding: tokens.space.sm,
   },
-  backButtonPressed: { backgroundColor: tokens.color.surfaceAlt },
   backIcon: {
-    color: tokens.color.ink,
     fontFamily: tokens.font.serif,
     fontSize: tokens.type.verse.size,
-    lineHeight: tokens.type.verse.lineHeight
+    lineHeight: tokens.type.verse.lineHeight,
   },
   title: {
-    color: tokens.color.ink,
     flex: 1,
     fontFamily: tokens.font.serif,
     fontSize: tokens.type.subtitle.size,
-    lineHeight: tokens.type.subtitle.lineHeight
+    lineHeight: tokens.type.subtitle.lineHeight,
   },
   share: {
     alignItems: "center",
     alignSelf: "flex-start",
     flexDirection: "row",
     gap: tokens.space.sm,
-    marginBottom: tokens.space.lg
+    marginBottom: tokens.space.lg,
   },
   shareIcon: {
-    color: tokens.color.accent,
     fontFamily: tokens.font.sans,
     fontSize: tokens.type.bodySm.size,
-    lineHeight: tokens.type.bodySm.lineHeight
+    lineHeight: tokens.type.bodySm.lineHeight,
   },
   shareLabel: {
-    color: tokens.color.accent,
     fontFamily: tokens.font.sans,
     fontSize: tokens.type.bodySm.size,
-    lineHeight: tokens.type.bodySm.lineHeight
+    lineHeight: tokens.type.bodySm.lineHeight,
   },
   stateContent: { justifyContent: "space-between" },
   stateCopy: { flex: 1, justifyContent: "center" },
   detail: {
-    color: tokens.color.inkMuted,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.body.size,
     lineHeight: tokens.type.body.lineHeight,
-    marginTop: tokens.space.lg
-  }
+    marginTop: tokens.space.lg,
+  },
 });
