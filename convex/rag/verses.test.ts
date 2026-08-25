@@ -11,7 +11,12 @@ const modules = {
   "./rag/embed.ts": () => import("./embed"),
   "./rag/ingest.ts": () => import("./ingest"),
   "./rag/verses.ts": () => import("./verses"),
+  "./users.ts": () => import("../users"),
 };
+
+function asUser(t: ReturnType<typeof convexTest>, clerkId: string) {
+  return t.withIdentity({ subject: clerkId, issuer: "https://example-dev.clerk.accounts.dev" });
+}
 
 function sampleByRef(book: string, chapter: number, verse: number) {
   const match = loadRvr1960Sample().find(
@@ -118,6 +123,37 @@ describe("verses.getById", () => {
     expect(row).toBeNull();
   });
 });
+
+describe("verses.citedForUser", () => {
+  it("usa RVR1960 por defecto y el bibleVersion del usuario autenticado", async () => {
+    const t = convexTest(schema, modules);
+    const juan = sampleByRef("Juan", 3, 16);
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      ...juan,
+      version: "RVR1960",
+      embedding: zeroEmbedding(),
+    });
+
+    await expect(
+      t.query(api.rag.verses.citedForUser, { book: "Juan", chapter: 3, verse: 16 }),
+    ).resolves.toMatchObject({
+      version: "RVR1960",
+      verse: { text: juan.text, version: "RVR1960" },
+    });
+
+    const authed = asUser(t, "user_cite");
+    await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.updatePreferences, { bibleVersion: "NVI" });
+
+    await expect(
+      authed.query(api.rag.verses.citedForUser, { book: "Juan", chapter: 3, verse: 16 }),
+    ).resolves.toMatchObject({
+      version: "NVI",
+      verse: null,
+    });
+  });
+});
+
 
 describe("verses.upsertVerse", () => {
   it("es idempotente: la misma referencia no duplica la fila", async () => {
