@@ -1,7 +1,7 @@
 # Informe #37 — E2E dispositivo (consolidado por Dev C)
 
-Estado: **plan publicado; QA visual de Q&A hecho desde código; dispositivo real pendiente.**
-Fecha: 2026-08-24. Commit de referencia: `origin/master`.
+Estado: **Carril A iOS bloqueado — no hay dispositivo real ni development build.** QA visual de Q&A sigue hecho desde código.
+Fecha: 2026-08-25. Commit de referencia: `origin/master` (local `track-c/37-e2e` iba 8 commits atrás al arrancar).
 
 Los testers pegan PASS/FAIL en las tablas. C actualiza este archivo al cerrar la ronda.
 
@@ -51,44 +51,69 @@ Literales vs tokens (regla dura #1): back 34×34 en Q&A (el prototipo mide 34px;
 
 | ID | Track | Hallazgo | Bloquea #37? |
 |---|---|---|---|
-| H1 | App | `app.json` sin `ios.bundleIdentifier` | Puede bloquear build iOS / IAP |
+| H1 | App | `app.json` sin `ios.bundleIdentifier`; no hay carpeta `ios/` ni `eas.json` | **Sí** — no se firma development build / IAP iOS |
 | H2 | C/B | Q&A no consume `LimitReached`; Historias va a `/paywall` directo | No si el paywall abre; sí vs prototipo `isLimit` |
 | H3 | Paywall | Compra real exige Test Store + webhook + **development build** | Sí para criterio «pago en cada plataforma» |
 | H4 | Clerk | Hace falta publishable key del dashboard | Sí para cualquier tester sin `.env.local` |
+| H5 | Lab | 2026-08-25: `xcrun xctrace` no lista iPhone físico; solo simuladores. Este workspace no tiene `.env.local` | **Sí** para Carril A |
 
 ---
 
 ## 4. Resultados dispositivo
 
+### Carril A — iOS (dispositivo real)
+
+Intento 2026-08-25. **Ningún caso se ejecutó en iPhone.** El plan marca compra-en-simulador como FAIL (#37 §10); no se sustituyó por Simulator / Expo Go.
+
+| Caso | iOS | Notas |
+|---|---|---|
+| Onboarding: splash → auth (Google/Apple/email) → notificación → home | BLOCKED | H1 + H4 + H5. Flujo en código: `splash` → `login` (Google/Apple/email) → `onboarding` → `notifications` → `home` |
+| Home: versículo → expandir → WhatsApp | BLOCKED | `home-devotional-toggle` + `home-share-devotional` vía `shareContent` |
+| Q&A: libro/cap/versículo + pregunta libre → cita | BLOCKED | Confirmar §2 en device cuando desbloquee |
+| Voces: chat humano + rechazo Jesús/Dios/Espíritu Santo | BLOCKED | Guardrail unitario verde; falta runtime |
+| Historias: generar → visor de paneles | BLOCKED | 2ª muestra free va a `/paywall` directo (H2) |
+| Sentimiento: selector + texto libre → devocional + oración | BLOCKED | Cupo 3 (`QUOTA_LIMITS.feelings`) |
+| Agotar cuota en los 4 módulos → paywall | BLOCKED | Q&A 5, Voces 5, Sentir 3, Historias 1 (lifetime). Q&A usa `QaLimitScreen` local; Historias salta `LimitReached` |
+| Compra sandbox $4.99 → desbloqueo de los 4 | BLOCKED | H1 + H3. Paywall muestra `$4.99`; checkout exige Test Store + webhook + dev build |
+| Restaurar compra | BLOCKED | `paywall-restore` → `restorePurchases`; misma dependencia de dev build |
+
+Para desbloquear (humano, sin inventar bundle id en este PR):
+
+1. Conectar un iPhone y autorizar desarrollo.
+2. Tech lead confirma `ios.bundleIdentifier` (Android ya es `com.bibleaihonduras.app`).
+3. Entregar `.env.local` (Clerk / Convex / RevenueCat Test Store) — no pegarlo en el issue.
+4. Development build: `npx expo run:ios --device` o EAS. **No Expo Go.**
+5. Cuenta Clerk nueva para no heredar cuota/Pro.
+
 ### Dev A
 
 | Caso | iOS | Android | Notas |
 |---|---|---|---|
-| A1 Home devocional | | | |
-| A2 Notificaciones | | | |
-| A3 Sentir feliz | | | |
-| A4 Límite sentir | | | |
-| A5 Historias muestra | | | |
-| A6 Share historia | | | |
+| A1 Home devocional | BLOCKED | | Carril A — ver tabla de arriba |
+| A2 Notificaciones | BLOCKED | | Pantalla pide hora 6/12/21; OS prompt al activar |
+| A3 Sentir feliz | BLOCKED | | |
+| A4 Límite sentir | BLOCKED | | 4º free → `LimitReached` → paywall |
+| A5 Historias muestra | BLOCKED | | |
+| A6 Share historia | BLOCKED | | |
 
 ### Dev B
 
 | Caso | iOS | Android | Notas |
 |---|---|---|---|
-| B1 Pregunta con pasaje | | | |
-| B2 Pregunta libre | | | |
-| B3 Límite Q&A | | | |
-| B4 Share Q&A | | | |
+| B1 Pregunta con pasaje | BLOCKED | | Carril A |
+| B2 Pregunta libre | BLOCKED | | CTA «Prefiero preguntar directo…» |
+| B3 Límite Q&A | BLOCKED | | 6ª → `QaLimitScreen` local, no `LimitReached` |
+| B4 Share Q&A | BLOCKED | | |
 
 ### Dev C
 
 | Caso | iOS | Android | Notas |
 |---|---|---|---|
-| C1–C5 Voces | | | |
-| C6 Ajustes | | | |
-| C7 Compra | | | |
-| C8 Restore | | | |
-| Visual Q&A (confirmar §2) | | | |
+| C1–C5 Voces | BLOCKED | | Carril A |
+| C6 Ajustes | BLOCKED | | Fuera del checklist A; sigue pendiente |
+| C7 Compra | BLOCKED | | |
+| C8 Restore | BLOCKED | | |
+| Visual Q&A (confirmar §2) | BLOCKED | | |
 
 ---
 
