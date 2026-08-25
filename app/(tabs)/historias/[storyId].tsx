@@ -12,6 +12,7 @@ export default function StoryViewerScreen() {
   const { storyId } = useLocalSearchParams<{ storyId?: string | string[] }>();
   const selectedStoryId = Array.isArray(storyId) ? storyId[0] : storyId;
   const story = useQuery(storiesApi.stories.getById, selectedStoryId ? { storyId: selectedStoryId } : "skip");
+  const generated = useQuery(storiesApi.stories.latestForViewer, selectedStoryId ? { storyId: selectedStoryId } : "skip");
 
   if (!selectedStoryId) {
     return <ViewerState detail="No recibimos una historia para mostrar." title="Historia no encontrada" />;
@@ -38,7 +39,7 @@ export default function StoryViewerScreen() {
         </Pressable>
         <Text style={styles.title}>{story.title}</Text>
       </View>
-      <StoryViewer story={story} />
+      <StoryViewer images={Object.fromEntries((generated?.scenes ?? []).map((scene) => [scene.id, scene.status === "ready" && scene.uri ? { status: "ready", uri: scene.uri } : scene.status === "generating" ? { status: "generating" } : { status: "unavailable" }]))} story={story} />
     </AppScreen>
   );
 }

@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { storiesApi, type StoryCatalogItem } from "../../src/features/stories/contracts";
@@ -8,17 +9,21 @@ import { tokens } from "../../src/theme/tokens";
 
 export default function HistoriasScreen() {
   const stories = useQuery(storiesApi.stories.list, {});
+  const create = useMutation(storiesApi.stories.create);
+  const [creating, setCreating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <AppScreen scroll style={styles.screen}>
       <Text style={styles.title}>Historias ilustradas</Text>
       <Text style={styles.subtitle}>Elige una historia bíblica para ver sus escenas ilustradas.</Text>
-      {stories === undefined ? <Text style={styles.loading}>Cargando historias…</Text> : <StoryList stories={stories} />}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {stories === undefined ? <Text style={styles.loading}>Cargando historias…</Text> : <StoryList creating={creating} create={create} setCreating={setCreating} setError={setError} stories={stories} />}
     </AppScreen>
   );
 }
 
-function StoryList({ stories }: { stories: readonly StoryCatalogItem[] }) {
+function StoryList({ creating, create, setCreating, setError, stories }: { creating: string | null; create: ReturnType<typeof useMutation>; setCreating: (storyId: string | null) => void; setError: (error: string | null) => void; stories: readonly StoryCatalogItem[] }) {
   return (
     <View style={styles.list}>
       {stories.map((story) => (
@@ -26,7 +31,23 @@ function StoryList({ stories }: { stories: readonly StoryCatalogItem[] }) {
           accessibilityHint="Abre los paneles de esta historia"
           accessibilityRole="button"
           key={story.id}
-          onPress={() => router.push({ pathname: "/historias/[storyId]", params: { storyId: story.id } })}
+          disabled={creating !== null}
+          onPress={() => void (async () => {
+            setError(null);
+            setCreating(story.id);
+            try {
+              const result = await create({ storyId: story.id });
+              if (!result.allowed) {
+                router.push("/paywall");
+                return;
+              }
+              router.push({ pathname: "/historias/[storyId]", params: { storyId: story.id } });
+            } catch {
+              setError("No pudimos preparar esta historia. Intentá de nuevo.");
+            } finally {
+              setCreating(null);
+            }
+          })()}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
           testID={`story-catalog-${story.id}`}
         >
@@ -35,7 +56,7 @@ function StoryList({ stories }: { stories: readonly StoryCatalogItem[] }) {
             <Text style={styles.cardTitle}>{story.title}</Text>
             <Text style={styles.cardMeta}>{story.reference}</Text>
           </View>
-          <Text style={styles.badge}>{story.scenes.length} ESCENAS</Text>
+          <Text style={styles.badge}>{creating === story.id ? "DIBUJANDO…" : `${story.scenes.length} ESCENAS`}</Text>
         </Pressable>
       ))}
     </View>
@@ -64,6 +85,7 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.bodySm.lineHeight,
     marginTop: tokens.space.xxl
   },
+  error: { color: tokens.color.accentDeep, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.lg },
   list: { gap: tokens.space.md, marginTop: tokens.space.xxl },
   card: {
     alignItems: "center",

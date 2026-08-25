@@ -1,6 +1,8 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { makeFunctionReference } from "convex/server";
 
-import { query } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { generateStoryImage } from "./images";
 
 /**
  * Catálogo editorial para el libro ilustrado. Las escenas contienen el texto que
@@ -290,4 +292,88 @@ export const list = query({
 export const getById = query({
   args: { storyId: v.string() },
   handler: (_ctx, args) => findStoryById(args.storyId),
+});
+
+const generateImagesRef = makeFunctionReference<"action", { storyId: string }, null>("stories:generateImages");
+const loadForGenerationRef = makeFunctionReference<"query", { storyId: string }, any>("stories:loadForGeneration");
+const saveSceneRef = makeFunctionReference<"mutation", { storyId: string; sceneId: string; storageId?: string; failed?: boolean }, null>("stories:saveScene");
+const consumeStoryQuota = makeFunctionReference<"mutation", { module: "stories" }, { allowed: true } | { allowed: false; reason: "limit_reached"; module: "stories" }>("quotas:checkAndConsume");
+
+async function requireUser(ctx: { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: any }) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new ConvexError("No autenticado");
+  const user = await ctx.db.query("users").withIndex("by_clerk_id", (q: any) => q.eq("clerkId", identity.subject)).unique();
+  if (!user) throw new ConvexError("Usuario no encontrado — llamá a users.upsert primero");
+  return user;
+}
+
+// La cuota se consume antes de agendar el proveedor. Una escena nunca acepta
+// prompts del cliente: se deriva del catálogo editorial por catalogId.
+export const create = mutation({
+  args: { storyId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const catalog = findStoryById(args.storyId);
+    if (!catalog) throw new ConvexError("Historia no encontrada");
+    const quota = await ctx.runMutation(consumeStoryQuota, { module: "stories" });
+    if (!quota.allowed) return quota;
+    const storyId = await ctx.db.insert("stories", {
+      userId: user._id,
+      catalogId: catalog.id,
+      status: "generating",
+      createdAt: Date.now(),
+      scenes: catalog.scenes.map((scene) => ({
+        id: scene.id, order: scene.order, title: scene.title, narration: scene.narration, reference: scene.reference, status: "generating" as const,
+      })),
+    });
+    await ctx.scheduler.runAfter(0, generateImagesRef, { storyId });
+    return { allowed: true as const, storyId };
+  },
+});
+
+export const loadForGeneration = internalQuery({
+  args: { storyId: v.id("stories") },
+  handler: (ctx, args) => ctx.db.get(args.storyId),
+});
+
+export const saveScene = internalMutation({
+  args: { storyId: v.id("stories"), sceneId: v.string(), storageId: v.optional(v.id("_storage")), failed: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const story = await ctx.db.get(args.storyId);
+    if (!story) return;
+    const scenes = story.scenes.map((scene) => scene.id !== args.sceneId ? scene : {
+      ...scene, status: args.failed ? "failed" as const : "ready" as const, ...(args.storageId ? { storageId: args.storageId } : {}),
+    });
+    await ctx.db.patch(story._id, { scenes, status: scenes.every((scene) => scene.status !== "generating") ? (scenes.some((scene) => scene.status === "failed") ? "failed" : "ready") : "generating" });
+  },
+});
+
+export const generateImages = action({
+  args: { storyId: v.id("stories") },
+  handler: async (ctx, args) => {
+    const story = await ctx.runQuery(loadForGenerationRef, { storyId: args.storyId });
+    if (!story) return null;
+    const catalog = findStoryById(story.catalogId);
+    if (!catalog) return null;
+    for (const scene of catalog.scenes) {
+      try {
+        const storageId = await ctx.storage.store(await generateStoryImage(scene.imagePrompt));
+        await ctx.runMutation(saveSceneRef, { storyId: story._id, sceneId: scene.id, storageId });
+      } catch {
+        await ctx.runMutation(saveSceneRef, { storyId: story._id, sceneId: scene.id, failed: true });
+      }
+    }
+    return null;
+  },
+});
+
+export const latestForViewer = query({
+  args: { storyId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const records = await ctx.db.query("stories").withIndex("by_user_catalog", (q) => q.eq("userId", user._id).eq("catalogId", args.storyId)).collect();
+    const story = records.sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (!story) return null;
+    return { ...story, scenes: await Promise.all(story.scenes.map(async (scene) => ({ ...scene, uri: scene.storageId ? await ctx.storage.getUrl(scene.storageId) : null }))) };
+  },
 });
