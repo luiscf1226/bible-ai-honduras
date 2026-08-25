@@ -74,6 +74,27 @@ export const citedForUser = query({
   },
 });
 
+// Versículos indexados de un capítulo, para el paso 3 del selector de
+// pasaje (#12). Si el corpus todavía no ingirió ese capítulo, devuelve []
+// — el picker deja avanzar igual sin versículo puntual, no bloquea.
+export const listByChapter = query({
+  args: {
+    version: v.string(),
+    book: v.string(),
+    chapter: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("verses")
+      .withIndex("by_ref", (q) => q.eq("version", args.version).eq("book", args.book).eq("chapter", args.chapter))
+      .collect();
+
+    return rows
+      .map((row) => ({ book: row.book, chapter: row.chapter, verse: row.verse, version: row.version, text: row.text }))
+      .sort((a, b) => a.verse - b.verse);
+  },
+});
+
 // Consulta pública por id (usada tras un vectorSearch, que solo devuelve
 // _id + _score). No expone el embedding.
 export const getById = query({
