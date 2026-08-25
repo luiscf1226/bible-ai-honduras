@@ -7,8 +7,11 @@ import { Stack } from "expo-router";
 
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
+import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
 import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
+
+configureDailyReminderNotifications();
 
 if (!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
   throw new Error(
