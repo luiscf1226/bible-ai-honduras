@@ -1,11 +1,12 @@
 import { useQuery } from "convex/react";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
 import { BIBLE_BOOKS, chaptersFor } from "../../src/lib/bibleBooks";
+import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
 type Step = "books" | "chapters" | "verses";
@@ -22,7 +23,21 @@ function toStringParams(params: { book?: string; chapter?: number; verse?: numbe
   return result;
 }
 
+function pickTitle(step: Step, book: string | null, chapter: number | null) {
+  if (step === "books") return "¿Sobre qué pasaje?";
+  if (step === "chapters") return book ?? "";
+  return book && chapter ? `${book} ${chapter}` : "";
+}
+
+function pickSubtitle(step: Step) {
+  if (step === "books") return "Elige un libro, o pregunta directo sin pasaje.";
+  if (step === "chapters") return "Elige el capítulo.";
+  return "Toca los versículos sobre los que quieres preguntar.";
+}
+
 export default function PreguntarScreen() {
+  const { color } = useTheme();
+  const { width } = useWindowDimensions();
   const [step, setStep] = useState<Step>("books");
   const [book, setBook] = useState<string | null>(null);
   const [chapter, setChapter] = useState<number | null>(null);
@@ -31,6 +46,12 @@ export default function PreguntarScreen() {
     api.rag.verses.listByChapter,
     book && chapter ? { version: currentUser?.bibleVersion ?? "RVR1960", book, chapter } : "skip",
   );
+
+  const chapterCellSize = useMemo(() => {
+    const horizontalPadding = tokens.screenPadding.horizontal * 2;
+    const gaps = tokens.space.sm * (tokens.grid.chapterColumns - 1);
+    return (width - horizontalPadding - gaps) / tokens.grid.chapterColumns;
+  }, [width]);
 
   const back = () => {
     if (step === "verses") {
@@ -46,19 +67,22 @@ export default function PreguntarScreen() {
   };
 
   return (
-    <AppScreen scroll contentStyle={styles.content} style={styles.screen}>
+    <AppScreen scroll contentStyle={styles.content}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" onPress={back} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={back}
+          style={[styles.backButton, { borderColor: color.border }]}
+        >
+          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
         </Pressable>
-        <Text style={styles.title}>
-          {step === "books" ? "Elige un libro" : step === "chapters" ? "Elige un capítulo" : "Elige un versículo"}
-        </Text>
+        <Text style={[styles.title, { color: color.ink }]}>{pickTitle(step, book, chapter)}</Text>
       </View>
+      <Text style={[styles.subtitle, { color: color.inkSoft }]}>{pickSubtitle(step)}</Text>
 
       {step === "books" ? (
         <>
-          <View style={styles.list}>
+          <View style={[styles.list, { backgroundColor: color.surface, borderColor: color.border }]}>
             {BIBLE_BOOKS.map((entry, index) => (
               <Pressable
                 accessibilityRole="button"
@@ -67,15 +91,25 @@ export default function PreguntarScreen() {
                   setBook(entry.name);
                   setStep("chapters");
                 }}
-                style={[styles.row, index === BIBLE_BOOKS.length - 1 && styles.rowLast]}
+                style={[
+                  styles.row,
+                  { borderBottomColor: color.border },
+                  index === BIBLE_BOOKS.length - 1 && styles.rowLast,
+                ]}
               >
-                <Text style={styles.rowLabel}>{entry.name}</Text>
-                <Text style={styles.rowMeta}>{entry.chapters} capítulos</Text>
+                <Text style={[styles.rowLabel, { color: color.ink }]}>{entry.name}</Text>
+                <Text style={[styles.rowMeta, { color: color.inkFaint }]}>{entry.chapters} capítulos</Text>
               </Pressable>
             ))}
           </View>
-          <Pressable accessibilityRole="button" onPress={() => goToChat({})} style={styles.freeButton}>
-            <Text style={styles.freeButtonLabel}>Prefiero preguntar directo, sin elegir pasaje</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => goToChat({})}
+            style={[styles.freeButton, { borderColor: color.borderStrong }]}
+          >
+            <Text style={[styles.freeButtonLabel, { color: color.inkSoft }]}>
+              Prefiero preguntar directo, sin elegir pasaje
+            </Text>
           </Pressable>
         </>
       ) : null}
@@ -90,9 +124,17 @@ export default function PreguntarScreen() {
                 setChapter(n);
                 setStep("verses");
               }}
-              style={styles.chapterCell}
+              style={[
+                styles.chapterCell,
+                {
+                  backgroundColor: color.surface,
+                  borderColor: color.border,
+                  height: chapterCellSize,
+                  width: chapterCellSize,
+                },
+              ]}
             >
-              <Text style={styles.chapterLabel}>{n}</Text>
+              <Text style={[styles.chapterLabel, { color: color.ink }]}>{n}</Text>
             </Pressable>
           ))}
         </View>
@@ -101,8 +143,8 @@ export default function PreguntarScreen() {
       {step === "verses" && book && chapter ? (
         <>
           {verses === undefined ? null : verses.length === 0 ? (
-            <View style={styles.emptyVerses}>
-              <Text style={styles.emptyVersesText}>
+            <View style={[styles.emptyVerses, { backgroundColor: color.surfaceSunk }]}>
+              <Text style={[styles.emptyVersesText, { color: color.inkSoft }]}>
                 Todavía no tenemos versículos indexados de {book} {chapter}. Podés preguntar sobre el capítulo igual.
               </Text>
             </View>
@@ -115,14 +157,20 @@ export default function PreguntarScreen() {
                   onPress={() => goToChat({ book, chapter, verse: item.verse })}
                   style={styles.verseRow}
                 >
-                  <Text style={styles.verseNumber}>{item.verse}</Text>
-                  <Text style={styles.verseText}>{item.text}</Text>
+                  <Text style={[styles.verseNumber, { color: color.accent }]}>{item.verse}</Text>
+                  <Text style={[styles.verseText, { color: color.ink }]}>{item.text}</Text>
                 </Pressable>
               ))}
             </View>
           )}
-          <Pressable accessibilityRole="button" onPress={() => goToChat({ book, chapter })} style={styles.askButton}>
-            <Text style={styles.askButtonLabel}>Preguntar sobre {book} {chapter}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => goToChat({ book, chapter })}
+            style={[styles.askButton, { backgroundColor: color.ink }]}
+          >
+            <Text style={[styles.askButtonLabel, { color: color.surface }]}>
+              Preguntar sobre {book} {chapter}
+            </Text>
           </Pressable>
         </>
       ) : null}
@@ -131,28 +179,73 @@ export default function PreguntarScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: tokens.color.surface },
   content: { gap: 0, paddingBottom: tokens.space.xxl },
-  header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.xxl },
-  backButton: { alignItems: "center", borderColor: tokens.color.border, borderRadius: tokens.radius.pill, borderWidth: 1, height: 34, justifyContent: "center", width: 34 },
-  backIcon: { color: tokens.color.ink, fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
-  title: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight },
-  list: { backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
-  row: { alignItems: "center", borderBottomColor: tokens.color.border, borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
+  header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.xs },
+  backButton: {
+    alignItems: "center",
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    height: tokens.size.backButton,
+    justifyContent: "center",
+    width: tokens.size.backButton,
+  },
+  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
+  title: {
+    flex: 1,
+    fontFamily: tokens.font.serif,
+    fontSize: tokens.type.qaPickTitle.size,
+    lineHeight: tokens.type.qaPickTitle.lineHeight,
+  },
+  subtitle: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+    marginBottom: tokens.space.xxl,
+    marginLeft: tokens.size.backButton + tokens.space.md,
+  },
+  list: { borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
+  row: {
+    alignItems: "center",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: tokens.cardPadding.horizontal,
+    paddingVertical: tokens.cardPadding.vertical,
+  },
   rowLast: { borderBottomWidth: 0 },
-  rowLabel: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size },
-  rowMeta: { color: tokens.color.inkFaint, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size },
-  freeButton: { borderColor: tokens.color.borderStrong, borderRadius: tokens.radius.lg, borderStyle: "dashed", borderWidth: 1, marginTop: tokens.space.xl, paddingVertical: tokens.cardPadding.vertical },
-  freeButtonLabel: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, textAlign: "center" },
+  rowLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size },
+  rowMeta: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size },
+  freeButton: {
+    borderRadius: tokens.radius.lg,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    marginTop: tokens.space.xl,
+    paddingVertical: tokens.cardPadding.vertical,
+  },
+  freeButtonLabel: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, textAlign: "center" },
   chapterGrid: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
-  chapterCell: { alignItems: "center", backgroundColor: tokens.color.surface, borderColor: tokens.color.border, borderRadius: tokens.radius.md, borderWidth: 1, height: 52, justifyContent: "center", width: "18%" },
-  chapterLabel: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size },
-  emptyVerses: { backgroundColor: tokens.color.surfaceSunk, borderRadius: tokens.radius.md, padding: tokens.cardPadding.horizontal },
-  emptyVersesText: { color: tokens.color.inkSoft, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },
-  verseList: { gap: 2 },
-  verseRow: { flexDirection: "row", gap: tokens.space.md, paddingVertical: tokens.space.md },
-  verseNumber: { color: tokens.color.accent, fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size, minWidth: 16 },
-  verseText: { color: tokens.color.ink, flex: 1, fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
-  askButton: { backgroundColor: tokens.color.ink, borderRadius: tokens.radius.lg, marginTop: tokens.space.xl, paddingVertical: tokens.cardPadding.vertical },
-  askButtonLabel: { color: tokens.color.surface, fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, textAlign: "center" }
+  chapterCell: {
+    alignItems: "center",
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    justifyContent: "center",
+  },
+  chapterLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size },
+  emptyVerses: { borderRadius: tokens.radius.md, padding: tokens.cardPadding.horizontal },
+  emptyVersesText: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.caption.size,
+    lineHeight: tokens.type.caption.lineHeight,
+  },
+  verseList: { gap: tokens.space.xxs },
+  verseRow: { flexDirection: "row", gap: tokens.space.md, paddingVertical: tokens.space.lg },
+  verseNumber: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size, minWidth: tokens.space.lg },
+  verseText: {
+    flex: 1,
+    fontFamily: tokens.font.serif,
+    fontSize: tokens.type.versePicker.size,
+    lineHeight: tokens.type.versePicker.lineHeight,
+  },
+  askButton: { borderRadius: tokens.radius.lg, marginTop: tokens.space.xl, paddingVertical: tokens.cardPadding.vertical },
+  askButtonLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, textAlign: "center" },
 });

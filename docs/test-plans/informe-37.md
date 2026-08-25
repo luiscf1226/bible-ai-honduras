@@ -1,6 +1,6 @@
 # Informe #37 — E2E dispositivo (consolidado por Dev C)
 
-Estado: **Carril A iOS bloqueado — no hay dispositivo real ni development build.** QA visual de Q&A sigue hecho desde código.
+Estado: **QA visual Q&A + modo noche aplicados en código; dispositivo real pendiente (Carril A iOS bloqueado).**
 Fecha: 2026-08-25. Commit de referencia: `origin/master` (local `track-c/37-e2e` iba 8 commits atrás al arrancar).
 
 Los testers pegan PASS/FAIL en las tablas. C actualiza este archivo al cerrar la ronda.
@@ -21,29 +21,29 @@ Devolver resultados como comentario en #37 o editando las tablas de abajo.
 
 ## 2. QA visual Q&A vs prototipo (C, desde código)
 
-Comparado `app/(tabs)/preguntar.tsx` y `preguntar/chat.tsx` con `isQAPick` / `isQAChat` en `design/Bible AI Honduras.dc.html`. Sin Clerk en este entorno no hay screenshots de runtime; esto hay que **confirmar en dispositivo** (pasos §6 del plan).
+Comparado `app/(tabs)/preguntar.tsx` y `preguntar/chat.tsx` con `isQAPick` / `isQAChat` en `design/Bible AI Honduras.dc.html`. Confirmar en dispositivo (pasos §6 del plan).
 
 | Superficie | Prototipo | App | Veredicto |
 |---|---|---|---|
 | Flujo libro → cap → versículo | 3 pasos | 3 pasos | Alineado |
-| CTA «Prefiero preguntar directo, sin elegir pasaje» | Dashed, 13.5px, `#8E857A` | Mismo copy, `borderStyle: dashed`, `inkSoft` | Alineado |
-| Título del picker | «¿Sobre qué pasaje?» (20px) + subtítulo 13px a 46px | «Elige un libro» (`type.title` 25px), **sin subtítulo** | **Gap** |
-| Subtítulos cap/versículo | «Elige el capítulo.» / «Toca los versículos…» | No hay | **Gap** |
-| Grilla de capítulos | 5 columnas, `aspect-ratio: 1` | `width: 18%`, `height: 52` (no cuadrado 5-col) | **Gap** |
-| Selección de versículo | Multi-tap + sticky ask | Tap versículo **navega al chat**; hay ask de capítulo entero | **Gap de interacción** |
-| Chat header | Contexto + cuota | Contexto + `N de 5 preguntas gratis hoy` | Alineado (cupo 5, no el 3 del prototipo — correcto, `QUOTA_LIMITS.qa`) |
-| Burbuja AI | Garamond 17.5 + card cita `#F6F0E6` | Serif `body` 14.5 + `surfaceSunk` | Cerca; tamaño menor |
-| Disclaimer | «La IA puede equivocarse» junto a Compartir | **No está** | **Gap** |
-| Label compartir | «Compartir» | «Compartir esta respuesta» | Copy distinto |
-| Chips sugeridos | «¿Quién lo escribió?» / «¿Cómo lo aplico hoy?» / «Explícalo más simple» | **No están** | **Gap** |
+| CTA «Prefiero preguntar directo, sin elegir pasaje» | Dashed, 13.5px, `#8E857A` | Mismo copy, dashed, `inkSoft` | Alineado |
+| Título del picker | «¿Sobre qué pasaje?» (20px) + subtítulo indentado | Título dinámico 20px (`qaPickTitle`) + subtítulo por paso | **Alineado** |
+| Subtítulos cap/versículo | «Elige el capítulo.» / «Toca los versículos…» | Subtítulo dinámico por paso | **Alineado** |
+| Grilla de capítulos | 5 columnas, celdas cuadradas | 5 cols (`grid.chapterColumns`), tamaño cuadrado vía `useWindowDimensions` | **Alineado** |
+| Selección de versículo | Multi-tap + sticky ask | Tap versículo navega al chat; sticky «Preguntar sobre…» capítulo | **Gap de interacción** (API solo 1 versículo) |
+| Chat header | Contexto + cuota | Contexto + `N de 5 preguntas gratis hoy` | Alineado |
+| Burbuja AI | Garamond 17.5 + card cita | Serif `aiBubble` 17.5 + `surfaceSunk` | **Alineado** |
+| Disclaimer | «La IA puede equivocarse» junto a Compartir | Presente junto a «Compartir» | **Alineado** |
+| Label compartir | «Compartir» | «Compartir» | **Alineado** |
+| Chips sugeridos | 3 chips fijos | 3 chips del prototipo en composer | **Alineado** |
 | Placeholder composer | «Escribe tu pregunta…» | Igual | Alineado |
 | Typing | «Buscando en el texto…» | Igual | Alineado |
-| Límite | `isLimit` único | `QaLimitScreen` **local** (no usa `LimitReached`); copy sin «el devocional del día sigue abierto» | **Gap** (#32) |
-| Tab bar inferior | Hoy / Preguntar / Voces / Historias | **No hay tabs**; se vuelve al home | **Gap de app** (no solo Q&A) |
+| Límite | `isLimit` único | `LimitReached` compartido (`module: "qa"`) | **Alineado** |
+| Tab bar inferior | Hoy / Preguntar / Voces / Historias | Sin tabs (navegación desde Home) | **Gap de app** (fuera de Q&A) |
 
-Literales vs tokens (regla dura #1): back 34×34 en Q&A (el prototipo mide 34px; en Voces se compuso con tokens). No bloquea E2E.
+Literales vs tokens: back 34, grilla 5-col, switch 46×28, send 30 — todos tokenizados en `design/tokens.json`. Auth/onboarding siguen paleta día (pre-login).
 
-**Para dispositivo:** capturar picker (libros, caps, versos) y un chat con cita, al lado del prototipo. Confirmar o refutar los gaps.
+Modo noche suave: `useTheme()` en Home, Q&A, Voces, Sentir, Historias, Ajustes, Historial, `LimitReached`, `AppButton`, `Brand`, `StoryPanels`. Paywall mantiene paleta propia.
 
 ---
 
@@ -52,7 +52,7 @@ Literales vs tokens (regla dura #1): back 34×34 en Q&A (el prototipo mide 34px;
 | ID | Track | Hallazgo | Bloquea #37? |
 |---|---|---|---|
 | H1 | App | `app.json` sin `ios.bundleIdentifier`; no hay carpeta `ios/` ni `eas.json` | **Sí** — no se firma development build / IAP iOS |
-| H2 | C/B | Q&A no consume `LimitReached`; Historias va a `/paywall` directo | No si el paywall abre; sí vs prototipo `isLimit` |
+| H2 | C/B | Historias va a `/paywall` directo (no `LimitReached`) | No si el paywall abre |
 | H3 | Paywall | Compra real exige Test Store + webhook + **development build** | Sí para criterio «pago en cada plataforma» |
 | H4 | Clerk | Hace falta publishable key del dashboard | Sí para cualquier tester sin `.env.local` |
 | H5 | Lab | 2026-08-25: `xcrun xctrace` no lista iPhone físico; solo simuladores. Este workspace no tiene `.env.local` | **Sí** para Carril A |

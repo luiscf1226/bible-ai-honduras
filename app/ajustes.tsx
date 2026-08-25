@@ -233,9 +233,15 @@ const styles = StyleSheet.create({
   hourPicker: { flexDirection: "row", gap: tokens.space.xs },
   hourPill: { borderRadius: tokens.radius.sm, borderWidth: 1, paddingHorizontal: tokens.space.md, paddingVertical: tokens.space.sm },
   hourPillLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
-  switchTrack: { borderRadius: tokens.radius.pill, height: 28, justifyContent: "center", padding: 3, width: 46 },
-  switchKnob: { borderRadius: tokens.radius.pill, height: 22, width: 22 },
-  switchKnobActive: { transform: [{ translateX: 18 }] },
+  switchTrack: {
+    borderRadius: tokens.radius.pill,
+    height: tokens.size.switchTrack.height,
+    justifyContent: "center",
+    padding: tokens.size.switchPadding,
+    width: tokens.size.switchTrack.width,
+  },
+  switchKnob: { borderRadius: tokens.radius.pill, height: tokens.size.switchKnob, width: tokens.size.switchKnob },
+  switchKnobActive: { transform: [{ translateX: tokens.size.switchKnobOffset }] },
   privacyCopy: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
