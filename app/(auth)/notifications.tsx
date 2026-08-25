@@ -1,28 +1,85 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useMutation } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 
 import { api } from "../../convex/_generated/api";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { cancelDailyDevotionalReminder, scheduleDailyDevotionalReminders } from "../../src/lib/dailyReminder";
+import { upcomingReminderDates } from "../../src/lib/reminderDates";
 import { REMINDER_HOURS, reminderHourFromDisplay, type ReminderDisplay } from "../../src/lib/reminderHours";
 import { tokens } from "../../src/theme/tokens";
 
 export default function NotificationsScreen() {
+  const convex = useConvex();
+  const currentUser = useQuery(api.users.current);
+  const todayDevotional = useQuery(api.devotional.today);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [time, setTime] = useState<ReminderDisplay>(REMINDER_HOURS[0].display);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const finish = async (saveHour: boolean) => {
-    if (saveHour) {
-      try {
-        await updatePreferences({ reminderHour: reminderHourFromDisplay(time) });
-      } catch {
-        // #10 leerá `users.reminderHour`. Si el espejo Convex todavía no existe,
-        // no bloqueamos el onboarding — el usuario puede fijar la hora en Ajustes.
+  useEffect(() => {
+    const savedTime = REMINDER_HOURS.find((option) => option.hour === currentUser?.reminderHour);
+    if (savedTime) setTime(savedTime.display);
+  }, [currentUser?.reminderHour]);
+
+  const finish = () => router.replace("/home");
+  const selectedTime = reminderHourFromDisplay(time);
+
+  const activateReminder = async () => {
+    setError(null);
+    setIsSaving(true);
+
+    try {
+      await updatePreferences({ reminderHour: selectedTime });
+      if (!todayDevotional) {
+        throw new Error("El devocional de hoy todavía no está disponible.");
       }
+
+      const dates = upcomingReminderDates(selectedTime);
+      const devotionals = await Promise.all(
+        dates.map(async (date) => {
+          if (date === todayDevotional.date) {
+            return { date, verseRef: todayDevotional.verseRef };
+          }
+
+          const devotional = await convex.query(api.devotional.byDate, { date });
+          return { date: devotional.date, verseRef: devotional.verseRef };
+        }),
+      );
+      const result = await scheduleDailyDevotionalReminders(selectedTime, devotionals);
+
+      if (result === "scheduled") {
+        finish();
+        return;
+      }
+
+      setError(
+        result === "unsupported"
+          ? "Los recordatorios se activan desde la app en tu teléfono."
+          : "No autorizaste las notificaciones. Podés activarlas desde los ajustes del teléfono.",
+      );
+    } catch {
+      setError("No pudimos guardar tu recordatorio. Intentá de nuevo.");
+    } finally {
+      setIsSaving(false);
     }
-    router.replace("/home");
+  };
+
+  const skipReminder = async () => {
+    setError(null);
+    setIsSaving(true);
+
+    try {
+      await cancelDailyDevotionalReminder();
+      finish();
+    } catch {
+      setError("No pudimos desactivar el recordatorio. Intentá de nuevo.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -30,12 +87,21 @@ export default function NotificationsScreen() {
       <View style={styles.main}>
         <Text style={styles.icon}>◌</Text>
         <Text style={styles.title}>¿A qué hora te lo recordamos?</Text>
-        <Text style={styles.description}>Un solo aviso al día con el versículo. Sin insistir, sin notificaciones de más.</Text>
+        <Text style={styles.description}>
+          {error ?? "Un solo aviso al día con el versículo. Sin insistir, sin notificaciones de más."}
+        </Text>
         <View style={styles.timeList}>
           {REMINDER_HOURS.map((option) => {
             const selected = option.display === time;
             return (
-              <Pressable accessibilityRole="button" key={option.display} onPress={() => setTime(option.display)} style={[styles.time, selected && styles.timeSelected]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                disabled={isSaving}
+                key={option.display}
+                onPress={() => setTime(option.display)}
+                style={[styles.time, selected && styles.timeSelected]}
+              >
                 <Text style={[styles.timeValue, selected && styles.timeValueSelected]}>{option.display}</Text>
                 <Text style={styles.timeLabel}>{option.label}</Text>
               </Pressable>
@@ -44,8 +110,12 @@ export default function NotificationsScreen() {
         </View>
       </View>
       <View style={styles.actions}>
-        <AppButton onPress={() => void finish(true)}>Activar el recordatorio</AppButton>
-        <AppButton onPress={() => void finish(false)} variant="quiet">Prefiero sin avisos</AppButton>
+        <AppButton disabled={isSaving || !todayDevotional} onPress={activateReminder} testID="activate-daily-reminder">
+          {isSaving ? "Guardando…" : "Activar el recordatorio"}
+        </AppButton>
+        <AppButton disabled={isSaving} onPress={skipReminder} variant="quiet">
+          Prefiero sin avisos
+        </AppButton>
       </View>
     </AppScreen>
   );
