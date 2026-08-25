@@ -20,7 +20,7 @@ const IMPERSONATION_PATTERN =
   /finge|fingi|pretend|roleplay|impersonat|switch character|olvidate que sos|forget you are|ignora(?:r)? (?:tus |las )?instrucciones|en (?:boca|nombre) de|primera persona|1ra persona|1a persona|hace de cuenta|habla como|responde como|como si|usa yo|yo\/me\/mi/;
 
 const IDENTITY_CLAIM_PATTERN =
-  /\b(?:sos|eres|you are|ahora sos)(?: el)? (?:jesus|cristo|christ|dios|god|espiritu|holy spirit|jehova|yahve|hijo|trinity|trinidad|creador)\b/;
+  /\b(?:sos|eres|you are|ahora sos)(?: el| the)? (?:jesus|cristo|christ|dios|god|espiritu|holy spirit|jehova|yahve|hijo|trinity|trinidad|creador|mesias|messiah)\b/;
 
 const ASSISTANT_DIVINE_FIRST_PERSON =
   /\b(yo soy|soy) (el )?(jesus|jesucristo|cristo|dios|jehova|yahve|espiritu santo|hijo de dios|mesias|que soy)\b/;
