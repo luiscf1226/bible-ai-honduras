@@ -8,6 +8,11 @@ import { STORY_CATALOG, type StoryCatalogItem } from "./stories";
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./stories.ts": () => import("./stories"),
+  "./users.ts": () => import("./users"),
+  "./quotas.ts": () => import("./quotas"),
+  "./entitlements.ts": () => import("./entitlements"),
+  "./devotional.ts": () => import("./devotional"),
+  "./devotionalCatalog.ts": () => import("./devotionalCatalog"),
 };
 
 // El deployment aún no está configurado en este worktree, por lo que Convex no
@@ -19,6 +24,11 @@ const listStories = makeFunctionReference<"query", Record<string, never>, readon
 const getStoryById = makeFunctionReference<"query", { storyId: string }, StoryCatalogItem | null>(
   "stories:getById",
 );
+const createStory = makeFunctionReference<
+  "mutation",
+  { storyId: string },
+  { allowed: true; storyId: string } | { allowed: false; reason: "limit_reached"; module: "stories" }
+>("stories:create");
 
 describe("catálogo de historias", () => {
   it("incluye al menos cinco historias y tres o más escenas completas por historia", () => {
@@ -74,5 +84,25 @@ describe("stories.getById", () => {
     const t = convexTest(schema, modules);
 
     await expect(t.query(getStoryById, { storyId: "no-existe" })).resolves.toBeNull();
+  });
+});
+
+describe("stories.create", () => {
+  it("consume la cuota de historias antes de crear y agendar la generación", async () => {
+    const t = convexTest(schema, modules);
+    const authed = t.withIdentity({
+      subject: "story_quota_user",
+      issuer: "https://example-dev.clerk.accounts.dev",
+    });
+    await authed.mutation(makeFunctionReference<"mutation", Record<string, never>, string>("users:upsert"), {});
+
+    await expect(authed.mutation(createStory, { storyId: "arca-de-noe" })).resolves.toMatchObject({
+      allowed: true,
+    });
+    await expect(authed.mutation(createStory, { storyId: "arca-de-noe" })).resolves.toEqual({
+      allowed: false,
+      reason: "limit_reached",
+      module: "stories",
+    });
   });
 });

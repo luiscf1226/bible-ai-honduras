@@ -1,8 +1,10 @@
 import { ConvexError, v } from "convex/values";
-import { makeFunctionReference } from "convex/server";
+import { makeFunctionReference, type FunctionReference } from "convex/server";
 
+import { api } from "./_generated/api";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { generateStoryImage } from "./images";
+import type { QuotaModule } from "./quotas";
 
 /**
  * Catálogo editorial para el libro ilustrado. Las escenas contienen el texto que
@@ -297,7 +299,12 @@ export const getById = query({
 const generateImagesRef = makeFunctionReference<"action", { storyId: string }, null>("stories:generateImages");
 const loadForGenerationRef = makeFunctionReference<"query", { storyId: string }, any>("stories:loadForGeneration");
 const saveSceneRef = makeFunctionReference<"mutation", { storyId: string; sceneId: string; storageId?: string; failed?: boolean }, null>("stories:saveScene");
-const consumeStoryQuota = makeFunctionReference<"mutation", { module: "stories" }, { allowed: true } | { allowed: false; reason: "limit_reached"; module: "stories" }>("quotas:checkAndConsume");
+const consumeStoryQuota: FunctionReference<
+  "mutation",
+  "public",
+  { module: QuotaModule },
+  { allowed: true; reason?: undefined; module?: undefined } | { allowed: false; reason: "limit_reached"; module: QuotaModule }
+> = api.quotas.checkAndConsume;
 
 async function requireUser(ctx: { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: any }) {
   const identity = await ctx.auth.getUserIdentity();
