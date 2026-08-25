@@ -12,6 +12,7 @@ import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
 import type * as devotionalCatalog from "../devotionalCatalog.js";
 import type * as entitlements from "../entitlements.js";
+import type * as http from "../http.js";
 import type * as quotas from "../quotas.js";
 import type * as users from "../users.js";
 
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   devotional: typeof devotional;
   devotionalCatalog: typeof devotionalCatalog;
   entitlements: typeof entitlements;
+  http: typeof http;
   quotas: typeof quotas;
   users: typeof users;
 }>;
