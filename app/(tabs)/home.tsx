@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useConvex } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
+import { buildDevotionalShareText } from "../../src/features/home/shareDevotional";
+import { shareContent } from "../../src/lib/share";
 import { api } from "../../convex/_generated/api";
 import { tokens } from "../../src/theme/tokens";
 
@@ -59,6 +61,7 @@ function hondurasDate() {
 
 export default function HomeScreen() {
   const { retry, state } = useTodayDevotional();
+  const currentUser = useQuery(api.users.current);
   const [isDevotionalOpen, setIsDevotionalOpen] = useState(false);
 
   const isReady = state.status === "ready";
@@ -71,6 +74,15 @@ export default function HomeScreen() {
     }
 
     if (isReady) setIsDevotionalOpen((isOpen) => !isOpen);
+  };
+
+  const onShareDevotional = () => {
+    if (!devotional || !currentUser?.referralCode) return;
+
+    void shareContent({
+      referralCode: currentUser.referralCode,
+      text: buildDevotionalShareText(devotional)
+    });
   };
 
   return (
@@ -118,6 +130,17 @@ export default function HomeScreen() {
           <View style={styles.devotionalBody}>
             <Text style={styles.devotionalTitle}>Una pausa para hoy</Text>
             <Text style={styles.reflection}>{devotional.reflection}</Text>
+            <Pressable
+              accessibilityHint={currentUser?.referralCode ? "Abre las opciones para compartir este devocional." : "Esperá mientras cargamos tu perfil."}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !currentUser?.referralCode }}
+              disabled={!currentUser?.referralCode}
+              onPress={onShareDevotional}
+              style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
+              testID="home-share-devotional"
+            >
+              <Text style={styles.shareButtonLabel}>Compartir por WhatsApp</Text>
+            </Pressable>
           </View>
         </View>
       ) : null}
@@ -162,6 +185,8 @@ const styles = StyleSheet.create({
   devotionalBody: { paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   devotionalTitle: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   reflection: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight, marginTop: tokens.space.lg },
+  shareButton: { alignItems: "center", borderColor: tokens.color.borderStrong, borderRadius: tokens.radius.md, borderWidth: 1, justifyContent: "center", marginTop: tokens.space.xl, paddingVertical: tokens.space.lg },
+  shareButtonLabel: { color: tokens.color.ink, fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
   feelingCard: { backgroundColor: tokens.color.surfaceAlt, borderColor: tokens.color.border, borderRadius: tokens.radius.xl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   feelingTitle: { color: tokens.color.ink, fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   feelingDescription: { color: tokens.color.inkMuted, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
