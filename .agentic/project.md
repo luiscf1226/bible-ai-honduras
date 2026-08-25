@@ -3,13 +3,13 @@
 Written by `orient`. The shared source of truth for **how this repo works**, read by every other skill
 and every teammate. Regenerate with `orient` when it goes stale.
 
-- **Mapped on:** 2026-08-24 (commit `7b7a0bee` on origin/master; local docs commit `4bb045ee`)
+- **Mapped on:** 2026-08-25 (commit `30de9d22` on `origin/master`)
 - **Project type:** existing (inherited)
 
 ## Stack
 | Field | Value |
 |-------|-------|
-| Language / runtime | TypeScript, Node (Expo SDK 57 / RN 0.86) |
+| Language / runtime | TypeScript, Node 22 in CI (Expo SDK 57 / RN 0.86) |
 | Framework | Expo Router (React Native, iOS + Android) |
 | Package manager | npm (`package-lock.json`) |
 | Database + ORM | Convex (`convex/schema.ts`, generated `convex/_generated/*`) |
@@ -20,13 +20,13 @@ Mark each one `verified` (you ran it) or `UNVERIFIED`. Never guess.
 
 | Purpose | Command | Status |
 |---------|---------|--------|
-| Install | `npm ci` | verified (2026-08-24) |
+| Install | `npm ci` | verified (2026-08-25); Node 23 locally emits engine warnings because CI/project dependencies target Node 22 |
 | Run (dev) | `npm start` (`expo start`) | UNVERIFIED |
-| Build | `npm run export` | UNVERIFIED |
-| Test (all) | `npm test` (`vitest run`) | verified — 13 passing (2026-08-24, before Track B) |
+| Build | `npm run export` | verified — web, Android and iOS exports (2026-08-25) |
+| Test (all) | `npm test` (`vitest run`) | verified — 32 files / 187 tests passing (2026-08-25) |
 | Test (single file) | `npx vitest run convex/users.test.ts` | UNVERIFIED (inferred from vitest) |
 | Lint / format | none in `package.json` | UNVERIFIED — no lint script |
-| Typecheck | `npm run typecheck` (`tsc --noEmit`) | verified (2026-08-24) |
+| Typecheck | `npm run typecheck` (`tsc --noEmit`) | verified (2026-08-25) |
 | Convex codegen | `npx convex codegen` | UNVERIFIED — required after adding `convex/*.ts` modules |
 | Convex local | `npm run convex:once` / `npm run convex:dev` | UNVERIFIED; needs Convex project |
 | Seed | none | UNVERIFIED |
@@ -48,7 +48,7 @@ Exact names as they appear in code (`superadmin` ≠ `admin`).
 | Role | How it's checked | Can do |
 |------|------------------|--------|
 | authenticated user | `ctx.auth.getUserIdentity()` | own profile via `users.*` |
-| Pro (planned) | `entitlements.isPro` from RevenueCat webhook — **not built yet** | skip free quotas |
+| Pro | `entitlements.isPro` from RevenueCat webhook | skip free quotas; purchase/restore through RevenueCat SDK |
 
 No app-level RBAC. Identity is Clerk `identity.subject`. Never accept `userId` from client args.
 
@@ -72,7 +72,8 @@ Names only — **never values**.
 | `ANTHROPIC_API_KEY` | RAG answer (#7) | Anthropic — Convex env only |
 | `VOYAGE_API_KEY` | RAG embed (#5) | Voyage — Convex env only |
 | `REVENUECAT_WEBHOOK_SECRET` | webhook (#4/#31) | RevenueCat — Convex env only |
-| RevenueCat public SDK key | purchase/restore | RevenueCat — app env, never a secret API key |
+| `EXPO_PUBLIC_REVENUECAT_API_KEY` | purchase/restore | RevenueCat — public SDK key, never a secret API key |
+| `OPENAI_API_KEY` | illustrated story generation | OpenAI — Convex env only |
 
 External services: Clerk, Convex, Anthropic, Voyage AI, RevenueCat. No staging URL in repo.
 
@@ -92,10 +93,10 @@ two of these to different tracks at once.
 
 ## Unverified / unknown
 Everything the map could not confirm. Be explicit — this is the list the next person picks up.
-- `npm start` / `npm run export` not run in this session.
+- `npm start` not run in this session.
 - `npx convex codegen` not run yet (no new modules on this map pass).
 - No ESLint/Prettier script.
-- RevenueCat Test Store project is not created in this repo; dashboard is human-owned.
+- RevenueCat dashboard/Test Store configuration is human-owned; device validation remains in #37.
 - Full RVR1960 corpus is not in git (copyright); #5 must ingest from a fixture + documented loader.
 - NVI license still unresolved (`PRD.md`).
 - `no-mistakes` CLI not confirmed installed in this repo.
