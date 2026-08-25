@@ -15,6 +15,7 @@ const modules = {
   "./rag/embed.ts": () => import("./embed"),
   "./rag/verses.ts": () => import("./verses"),
   "./rag/retrieve.ts": () => import("./retrieve"),
+  "./rag/commentary.ts": () => import("./commentary"),
   "./rag/llm.ts": () => import("./llm"),
   "./rag/answer.ts": () => import("./answer"),
   "./rag/prompts/qa.ts": () => import("./prompts/qa"),
@@ -190,5 +191,42 @@ describe("rag.answer.ask", () => {
     expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
     expect(result.answer).not.toContain("Romanos 8:28");
     expect(result.answer).toContain("Jehová es mi pastor");
+  });
+
+  it("cuando hay comentario relevante (#6), lo incluye en el prompt como contexto adicional", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    await seedVerse(t, unitVector(0));
+    await t.mutation(internal.rag.commentary.upsertCommentary, {
+      source: "Comentario de referencia (muestra)",
+      book: "Salmos",
+      chapter: 23,
+      text: "La imagen del pastor viene de la experiencia diaria de David.",
+      embedding: unitVector(0),
+    });
+    const fetchMock = stubExternalApis({ queryEmbedding: unitVector(0) });
+
+    await t.action(api.rag.answer.ask, { question: "¿Quién es mi pastor?" });
+
+    const anthropicCall = fetchMock.mock.calls.find((call: unknown[]) => call[0] === ANTHROPIC_MESSAGES_URL);
+    const body = JSON.parse(String((anthropicCall as [string, RequestInit])[1].body)) as {
+      messages: Array<{ content: string }>;
+    };
+    expect(body.messages[0].content).toContain("La imagen del pastor viene de la experiencia diaria de David.");
+  });
+
+  it("sin comentario relevante, responde igual solo con el versículo", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    await seedVerse(t, zeroEmbedding()); // sin comentarios indexados
+    stubExternalApis();
+
+    const result = await t.action(api.rag.answer.ask, {
+      question: "¿Qué significa este salmo?",
+      passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
+    });
+
+    expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
+    expect(result.answer.length).toBeGreaterThan(0);
   });
 });

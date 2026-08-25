@@ -4,6 +4,7 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action } from "../_generated/server";
+import { retrieveCommentary } from "./commentary";
 import { generateStructuredAnswer } from "./llm";
 import {
   buildQaUserPrompt,
@@ -57,9 +58,13 @@ export const ask = action({
     }
 
     const primary = citations[0];
+    // Segunda fuente de recuperación (#6) — enriquece la respuesta, nunca
+    // la condiciona: si no hay comentario relevante, sigue igual con solo
+    // el versículo. Nunca se busca sin una cita ya asegurada.
+    const commentary = await retrieveCommentary(ctx, { query: args.question, book: primary.book });
     const structured = await generateStructuredAnswer({
       system: QA_SYSTEM_PROMPT,
-      userPrompt: buildQaUserPrompt(args.question, citations),
+      userPrompt: buildQaUserPrompt(args.question, citations, commentary),
       schema: QA_RESPONSE_SCHEMA,
     });
 

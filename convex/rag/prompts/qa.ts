@@ -8,6 +8,13 @@ export type VerseContext = {
   text: string;
 };
 
+export type CommentaryContext = {
+  source: string;
+  book: string;
+  chapter: number;
+  text: string;
+};
+
 export const QA_CITATION_SCHEMA = z.object({
   book: z.string(),
   chapter: z.number(),
@@ -34,15 +41,24 @@ No agregues opinión teológica propia ni cites un pasaje que no esté en el con
 Si el contexto no alcanza para responder con seguridad, decilo con honestidad en vez de inventar.
 Respondé en español de Honduras, en un tono cálido y pastoral, en 2 a 4 oraciones.
 Devolvé "citations" con exactamente los versículos del contexto que usaste para responder —
-nunca agregues uno que no te hayan dado.`;
+nunca agregues uno que no te hayan dado.
+Si se te da un comentario de referencia, es para tu propio entendimiento del pasaje — te puede
+ayudar a responder con más profundidad, pero nunca lo cites como si fuera texto bíblico, y
+"citations" solo lleva versículos, nunca el comentario.`;
 
 export function formatCitation(verse: VerseContext): string {
   return `${verse.book} ${verse.chapter}:${verse.verse} (${verse.version})`;
 }
 
-export function buildQaUserPrompt(question: string, verses: VerseContext[]): string {
+export function buildQaUserPrompt(question: string, verses: VerseContext[], commentary: CommentaryContext[] = []): string {
   const context = verses.map((verse) => `${formatCitation(verse)} — "${verse.text}"`).join("\n");
-  return `Contexto bíblico (usalo como única fuente, no agregues otros pasajes):\n${context}\n\nPregunta: ${question}`;
+  const commentaryBlock =
+    commentary.length > 0
+      ? `\n\nComentario de referencia (contexto, no es texto bíblico):\n${commentary
+          .map((entry) => `${entry.source} sobre ${entry.book} ${entry.chapter} — "${entry.text}"`)
+          .join("\n")}`
+      : "";
+  return `Contexto bíblico (usalo como única fuente, no agregues otros pasajes):\n${context}${commentaryBlock}\n\nPregunta: ${question}`;
 }
 
 export const NO_RELEVANT_CONTENT_ANSWER =
