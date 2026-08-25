@@ -30,7 +30,7 @@ poll manual del estado de GitHub. Archivos de #7: `convex/rag/retrieve.ts`, `con
 - [x] Sub-plan #19 — Guardrail duro (listo, bloqueado por #18)
 - [x] Sub-plan #20 — Cuota Voces (listo, bloqueado por #18)
 - [x] Sub-plan #21 — Compartir cita (listo, bloqueado por #18 y #36)
-- [ ] #35 — Borrar historial (hard delete; tablas `conversations`/`messages` aún no existen)
+- [x] #35 — Borrar historial: tablas `conversations`/`messages` (append-only), `history.deleteAll` hace hard delete (0 filas, no `deleted: true`), UI de Privacidad en Ajustes + `app/historial.tsx`. Tests cubren que Bob no pierde su historial.
 - [ ] #30 — UI de paywall (`app/paywall.tsx`; consume `entitlements.mine` y `revenuecat.ts`)
 - [x] Ejecución de O2 — #36 hecho (mergeado, PR #48)
 - [x] Ejecución de O2 — #17 hecho (mergeado, PR #49)

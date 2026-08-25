@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from "convex/react";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
+import { measured } from "../src/theme/measured";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -18,6 +20,8 @@ export default function AjustesScreen() {
   const user = useQuery(api.users.current);
   const entitlement = useQuery(api.entitlements.mine);
   const updatePreferences = useMutation(api.users.updatePreferences);
+  const deleteHistory = useMutation(api.history.deleteAll);
+  const [cleared, setCleared] = useState(false);
   const isPro = entitlement?.isPro === true;
   const bibleVersion = user?.bibleVersion ?? "RVR1960";
   const darkMode = user?.darkMode ?? false;
@@ -139,7 +143,53 @@ export default function AjustesScreen() {
             })}
           </View>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/historial")}
+          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+          testID="ajustes-historial"
+        >
+          <Text style={[styles.rowLabel, { color: color.ink }]}>Mis conversaciones</Text>
+          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
+        </Pressable>
       </View>
+
+      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Privacidad</Text>
+      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+        <Text style={[styles.privacyCopy, { color: color.inkMuted }]}>
+          Tus conversaciones son privadas y no se usan para entrenar modelos de IA.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={cleared}
+          onPress={() => {
+            Alert.alert(
+              "¿Borrar tu historial?",
+              "Se eliminan de verdad tus conversaciones. No se puede deshacer.",
+              [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Borrar",
+                  style: "destructive",
+                  onPress: () => {
+                    void deleteHistory({}).then(() => setCleared(true));
+                  },
+                },
+              ],
+            );
+          }}
+          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+          testID="ajustes-borrar-historial"
+        >
+          <Text style={[styles.rowLabel, { color: cleared ? color.inkSoft : measured.danger }]}>
+            {cleared ? "Historial borrado" : "Borrar mi historial"}
+          </Text>
+        </Pressable>
+      </View>
+
+      <Text style={[styles.disclaimer, { color: color.inkFaint }]}>
+        Esta app acompaña tu lectura; no sustituye el consejo pastoral. La IA puede cometer errores.
+      </Text>
     </AppScreen>
   );
 }
@@ -187,4 +237,18 @@ const styles = StyleSheet.create({
   switchTrack: { borderRadius: tokens.radius.pill, height: 28, justifyContent: "center", padding: 3, width: 46 },
   switchKnob: { borderRadius: tokens.radius.pill, height: 22, width: 22 },
   switchKnobActive: { transform: [{ translateX: 18 }] },
+  privacyCopy: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+    paddingHorizontal: tokens.cardPadding.horizontal,
+    paddingVertical: tokens.cardPadding.vertical,
+  },
+  disclaimer: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.caption.size,
+    lineHeight: tokens.type.caption.lineHeight,
+    marginTop: tokens.space.xxl,
+    textAlign: "center",
+  },
 });
