@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
-import { cancelDailyDevotionalReminder, scheduleDailyDevotionalReminder } from "../../src/lib/dailyReminder";
+import { cancelDailyDevotionalReminder, scheduleDailyDevotionalReminders } from "../../src/lib/dailyReminder";
+import { upcomingReminderDates } from "../../src/lib/reminderDates";
 import { tokens } from "../../src/theme/tokens";
 import { api } from "../../convex/_generated/api";
 
@@ -16,7 +17,9 @@ const times = [
 ] as const;
 
 export default function NotificationsScreen() {
+  const convex = useConvex();
   const currentUser = useQuery(api.users.current);
+  const todayDevotional = useQuery(api.devotional.today);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [time, setTime] = useState<(typeof times)[number]["value"]>(times[0].value);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,7 +39,22 @@ export default function NotificationsScreen() {
 
     try {
       await updatePreferences({ reminderHour: selectedTime.hour });
-      const result = await scheduleDailyDevotionalReminder(selectedTime.hour);
+      if (!todayDevotional) {
+        throw new Error("El devocional de hoy todavía no está disponible.");
+      }
+
+      const dates = upcomingReminderDates(selectedTime.hour);
+      const devotionals = await Promise.all(
+        dates.map(async (date) => {
+          if (date === todayDevotional.date) {
+            return { date, verseRef: todayDevotional.verseRef };
+          }
+
+          const devotional = await convex.query(api.devotional.byDate, { date });
+          return { date: devotional.date, verseRef: devotional.verseRef };
+        }),
+      );
+      const result = await scheduleDailyDevotionalReminders(selectedTime.hour, devotionals);
 
       if (result === "scheduled") {
         finish();
@@ -97,7 +115,7 @@ export default function NotificationsScreen() {
         </View>
       </View>
       <View style={styles.actions}>
-        <AppButton disabled={isSaving} onPress={activateReminder} testID="activate-daily-reminder">
+        <AppButton disabled={isSaving || !todayDevotional} onPress={activateReminder} testID="activate-daily-reminder">
           {isSaving ? "Guardando…" : "Activar el recordatorio"}
         </AppButton>
         <AppButton disabled={isSaving} onPress={skipReminder} variant="quiet">
