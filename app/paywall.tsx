@@ -7,8 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
+import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
 import { purchaseMonthly } from "../src/lib/revenuecat";
-import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES, paywallTokens } from "../src/theme/paywallTokens";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
@@ -46,7 +46,7 @@ export default function PaywallScreen() {
 
   return (
     <LinearGradient
-      colors={[paywallTokens.color.bgStart, paywallTokens.color.bgMid, paywallTokens.color.bgEnd]}
+      colors={[tokens.paywall.color.bgStart, tokens.paywall.color.bgMid, tokens.paywall.color.bgEnd]}
       locations={[0, 0.6, 1]}
       style={styles.gradient}
     >
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: tokens.space.xl, paddingBottom: tokens.space.xl },
   close: {
     alignItems: "center",
-    borderColor: paywallTokens.color.closeBorder,
+    borderColor: tokens.paywall.color.closeBorder,
     borderRadius: tokens.radius.pill,
     borderWidth: 1,
     height: tokens.size.dotActive + tokens.space.md,
@@ -132,14 +132,14 @@ const styles = StyleSheet.create({
   },
   logo: { marginTop: tokens.space.xxl + tokens.space.md },
   title: {
-    color: paywallTokens.color.title,
+    color: tokens.paywall.color.title,
     fontFamily: tokens.font.serif,
-    fontSize: paywallTokens.type.headline.size,
-    lineHeight: paywallTokens.type.headline.lineHeight,
+    fontSize: tokens.paywall.type.headline.size,
+    lineHeight: tokens.paywall.type.headline.lineHeight,
     marginTop: tokens.space.xxl + tokens.space.xs,
   },
   subtitle: {
-    color: paywallTokens.color.muted,
+    color: tokens.paywall.color.muted,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.body.size,
     lineHeight: tokens.type.body.lineHeight,
@@ -147,27 +147,27 @@ const styles = StyleSheet.create({
   },
   features: { marginTop: tokens.space.xxl + tokens.space.md },
   featureRow: {
-    borderBottomColor: paywallTokens.color.featureRule,
+    borderBottomColor: tokens.paywall.color.featureRule,
     borderBottomWidth: 1,
     flexDirection: "row",
     gap: tokens.space.lg,
     paddingVertical: tokens.space.lg,
   },
   check: {
-    color: paywallTokens.color.check,
+    color: tokens.paywall.color.check,
     fontFamily: tokens.font.sans,
     fontSize: tokens.type.body.size,
     marginTop: tokens.space.xs,
   },
   featureText: { flex: 1 },
   featureTitle: {
-    color: paywallTokens.color.title,
+    color: tokens.paywall.color.title,
     fontFamily: tokens.font.serif,
-    fontSize: paywallTokens.type.feature.size,
-    lineHeight: paywallTokens.type.feature.lineHeight,
+    fontSize: tokens.paywall.type.feature.size,
+    lineHeight: tokens.paywall.type.feature.lineHeight,
   },
   featureSubtitle: {
-    color: paywallTokens.color.mutedDeep,
+    color: tokens.paywall.color.mutedDeep,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.caption.size,
     lineHeight: tokens.type.caption.lineHeight,
@@ -175,8 +175,8 @@ const styles = StyleSheet.create({
   },
   priceCard: {
     alignItems: "baseline",
-    backgroundColor: paywallTokens.color.priceFill,
-    borderColor: paywallTokens.color.priceBorder,
+    backgroundColor: tokens.paywall.color.priceFill,
+    borderColor: tokens.paywall.color.priceBorder,
     borderRadius: tokens.radius.xl,
     borderWidth: 1,
     flexDirection: "row",
@@ -185,24 +185,24 @@ const styles = StyleSheet.create({
     padding: tokens.space.xl,
   },
   price: {
-    color: paywallTokens.color.title,
+    color: tokens.paywall.color.title,
     fontFamily: tokens.font.serif,
-    fontSize: paywallTokens.type.price.size,
-    lineHeight: paywallTokens.type.price.lineHeight,
+    fontSize: tokens.paywall.type.price.size,
+    lineHeight: tokens.paywall.type.price.lineHeight,
   },
   priceHint: {
-    color: paywallTokens.color.muted,
+    color: tokens.paywall.color.muted,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
   },
   cta: {
-    backgroundColor: paywallTokens.color.button,
+    backgroundColor: tokens.paywall.color.button,
     borderRadius: tokens.radius.lg,
     marginTop: tokens.space.lg,
     paddingVertical: tokens.space.lg + tokens.space.xs / 2,
   },
   ctaLabel: {
-    color: paywallTokens.color.buttonInk,
+    color: tokens.paywall.color.buttonInk,
     fontFamily: tokens.font.sans,
     fontSize: tokens.type.label.size,
     textAlign: "center",
@@ -210,13 +210,13 @@ const styles = StyleSheet.create({
   pressed: { opacity: tokens.opacity.pressed },
   skip: { marginTop: tokens.space.md, paddingVertical: tokens.space.lg },
   skipLabel: {
-    color: paywallTokens.color.skip,
+    color: tokens.paywall.color.skip,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
     textAlign: "center",
   },
   notice: {
-    color: paywallTokens.color.muted,
+    color: tokens.paywall.color.muted,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.caption.size,
     lineHeight: tokens.type.caption.lineHeight,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   legal: {
-    color: paywallTokens.color.legal,
+    color: tokens.paywall.color.legal,
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.overline.size,
     lineHeight: tokens.type.caption.lineHeight,

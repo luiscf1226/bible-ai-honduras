@@ -2,8 +2,7 @@ import { createContext, useContext, useMemo, type PropsWithChildren } from "reac
 import { useQuery } from "convex/react";
 
 import { api } from "../../convex/_generated/api";
-import { nightTokens, type ThemeColor } from "./nightTokens";
-import { tokens } from "./tokens";
+import { tokens, type ThemeColor } from "./tokens";
 
 export type Theme = {
   dark: boolean;
@@ -19,7 +18,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const dark = user?.darkMode ?? false;
 
   const value = useMemo<Theme>(
-    () => ({ color: dark ? nightTokens.color : tokens.color, dark }),
+    () => ({ color: dark ? tokens.night.color : tokens.color, dark }),
     [dark],
   );
 
