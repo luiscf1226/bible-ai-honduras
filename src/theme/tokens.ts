@@ -35,7 +35,9 @@ export const tokens = {
     caption: { size: 11.5, lineHeight: 17 },
     overline: { size: 10.5, lineHeight: 11, letterSpacing: 0.16 }
   },
+  opacity: { pressed: 0.9 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
-  size: { logoLarge: 96, logoMedium: 76, logoSmall: 38, dot: 6, dotActive: 22 }
+  cardPadding: { vertical: 16, horizontal: 18 },
+  size: { logoLarge: 96, logoMedium: 76, logoSmall: 38, dot: 6, dotActive: 22, avatar: 48 }
 } as const;

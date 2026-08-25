@@ -9,6 +9,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     bibleVersion: v.union(v.literal("RVR1960"), v.literal("NVI")),
     reminderHour: v.optional(v.number()),
+    darkMode: v.optional(v.boolean()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
 
