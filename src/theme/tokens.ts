@@ -85,4 +85,7 @@ export const tokens = {
   size: { logoLarge: 96, logoMedium: 76, logoSmall: 38, dot: 6, dotActive: 22, avatar: 48 }
 } as const;
 
-export type ThemeColor = typeof tokens.color;
+// Ambas paletas (día y noche) comparten llaves; el tipo se ensancha a string
+// para que un componente pueda recibir cualquiera de las dos sin atarse a los
+// literales de la paleta clara.
+export type ThemeColor = { readonly [K in keyof typeof tokens.color]: string };
