@@ -5,8 +5,9 @@
 
 ## Status
 Plan aprobado. Sub-plans escritos para las 8 issues (#17, #36, #34, #18, #19, #20, #21, #35).
-Oleada O2 completa: #36, #17 y #34 implementados y verificados. #36 y #17 mergeados a master
-(PR #48, PR #49).
+**Oleada O2 completa y mergeada a master:** #36 (PR #48), #17 (PR #49), #34 (PR #52).
+Oleada O3 (#18, #19, #20, #21) bloqueada — #7 (función RAG, Track B) sigue abierto en GitHub a la
+fecha de este baton (2026-08-24). No arrancar O3 hasta confirmar que #7 está mergeado.
 
 ## Progress
 - [x] Master plan de Track C escrito y verificado contra bloqueos reales de GitHub (no solo
@@ -34,7 +35,7 @@ Oleada O2 completa: #36, #17 y #34 implementados y verificados. #36 y #17 mergea
 - [x] Sub-plan #35 — Borrar historial (listo, bloqueado por #14/#18/#28)
 - [x] Ejecución de O2 — #36 hecho (mergeado, PR #48)
 - [x] Ejecución de O2 — #17 hecho (mergeado, PR #49)
-- [x] Ejecución de O2 — #34 hecho (pendiente de PR/merge)
+- [x] Ejecución de O2 — #34 hecho (mergeado, PR #52)
 
 ## Next
 O2 completa. Antes de tomar cualquiera de O3 (#18, #19, #20, #21), confirmar en GitHub que #7
