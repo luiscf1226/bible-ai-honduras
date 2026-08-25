@@ -12,6 +12,8 @@ import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
 import type * as devotionalCatalog from "../devotionalCatalog.js";
 import type * as users from "../users.js";
+import type * as voices from "../voices.js";
+import type * as voicesCatalog from "../voicesCatalog.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +26,8 @@ declare const fullApi: ApiFromModules<{
   devotional: typeof devotional;
   devotionalCatalog: typeof devotionalCatalog;
   users: typeof users;
+  voices: typeof voices;
+  voicesCatalog: typeof voicesCatalog;
 }>;
 
 /**
