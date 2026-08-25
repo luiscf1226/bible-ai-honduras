@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import { QUOTA_LIMITS } from "../../../convex/quotas";
+import { shareVoiceReply } from "../../../src/features/voices/shareVoice";
 import { tokens } from "../../../src/theme/tokens";
 
 const AVATAR_INITIAL_COLOR = "rgba(255,255,255,0.9)";
@@ -143,6 +144,33 @@ export default function VocesChatScreen() {
                 <Text style={[styles.bubbleText, message.role === "user" ? styles.bubbleTextUser : styles.bubbleTextAi]}>
                   {message.text}
                 </Text>
+                {message.role === "assistant" ? (
+                  <Pressable
+                    accessibilityHint={
+                      currentUser?.referralCode
+                        ? "Abre las opciones para compartir esta respuesta."
+                        : "Esperá mientras cargamos tu perfil."
+                    }
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !currentUser?.referralCode }}
+                    disabled={!currentUser?.referralCode}
+                    onPress={() => {
+                      if (!currentUser?.referralCode) {
+                        return;
+                      }
+                      void shareVoiceReply({
+                        characterName: character.name,
+                        referralCode: currentUser.referralCode,
+                        reply: message.text,
+                      });
+                    }}
+                    style={styles.share}
+                    testID="voices-share-reply"
+                  >
+                    <Text style={styles.shareIcon}>↗</Text>
+                    <Text style={styles.shareLabel}>Compartir esta respuesta</Text>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           ))}
@@ -241,6 +269,21 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
   bubbleTextUser: { color: tokens.color.surface, fontFamily: tokens.font.sans },
   bubbleTextAi: { color: tokens.color.ink, fontFamily: tokens.font.serif },
+  share: {
+    alignItems: "center",
+    borderTopColor: tokens.color.border,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.xs,
+    marginTop: tokens.space.lg,
+    paddingTop: tokens.space.md,
+  },
+  shareIcon: { color: tokens.color.sage, fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
+  shareLabel: {
+    color: tokens.color.inkMuted,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.caption.size,
+  },
   typing: {
     color: tokens.color.inkFaint,
     fontFamily: tokens.font.sansLight,
