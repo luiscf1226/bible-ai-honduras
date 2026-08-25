@@ -113,6 +113,18 @@ describe("users.updatePreferences", () => {
     expect(user).toMatchObject({ bibleVersion: "NVI", reminderHour: 6 });
   });
 
+  it("persiste las horas de aviso del prototipo (6, 12, 21) para que #10 las consuma", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_hours");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    for (const hour of [6, 12, 21]) {
+      await authed.mutation(api.users.updatePreferences, { reminderHour: hour });
+      const user = await t.run((ctx) => ctx.db.get(userId));
+      expect(user?.reminderHour).toBe(hour);
+    }
+  });
+
   it("rechaza reminderHour fuera de 0-23", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_bad_hour");
