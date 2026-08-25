@@ -75,6 +75,20 @@ export default defineSchema({
     conversationId: v.id("conversations"),
     role: v.union(v.literal("user"), v.literal("assistant")),
     text: v.string(),
+    devotional: v.optional(
+      v.object({
+        title: v.string(),
+        reflection: v.string(),
+        prayer: v.string(),
+        citation: v.object({
+          book: v.string(),
+          chapter: v.number(),
+          verse: v.number(),
+          version: v.string(),
+          text: v.string(),
+        }),
+      }),
+    ),
     citations: v.optional(
       v.array(
         v.object({
