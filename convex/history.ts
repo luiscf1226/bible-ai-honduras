@@ -1,4 +1,4 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
 
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
