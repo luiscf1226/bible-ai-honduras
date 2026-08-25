@@ -16,7 +16,50 @@ export const tokens = {
     borderStrong: "#E8E1D6",
     accent: "#B08260",
     accentDeep: "#8C6A4C",
-    sage: "#7C8F7B"
+    sage: "#7C8F7B",
+    danger: "#B0603F",
+  },
+  night: {
+    color: {
+      ink: "#EDE6DA",
+      inkMuted: "#8E857A",
+      inkSoft: "#7A7269",
+      inkFaint: "#5F5A53",
+      bg: "#211F1D",
+      surface: "#292522",
+      surfaceAlt: "#282522",
+      surfaceSunk: "#252220",
+      border: "#34302B",
+      borderStrong: "#33302C",
+      accent: "#C99B5E",
+      accentDeep: "#8C6A4C",
+      sage: "#8FA48D",
+      danger: "#B0603F",
+    },
+  },
+  paywall: {
+    color: {
+      bgStart: "#3B352E",
+      bgMid: "#2E2A25",
+      bgEnd: "#252220",
+      title: "#FBF8F3",
+      muted: "#B7AEA1",
+      mutedDeep: "#9C9488",
+      check: "#C99B5E",
+      button: "#F4EDE2",
+      buttonInk: "#2E2A25",
+      skip: "#8B8377",
+      legal: "#6E675E",
+      closeBorder: "rgba(251,248,243,0.2)",
+      featureRule: "rgba(251,248,243,0.09)",
+      priceBorder: "rgba(201,155,94,0.45)",
+      priceFill: "rgba(201,155,94,0.09)",
+    },
+    type: {
+      headline: { size: 31, lineHeight: 40 },
+      price: { size: 34, lineHeight: 34 },
+      feature: { size: 16.5, lineHeight: 22 },
+    },
   },
   font: {
     serif: "EBGaramond_400Regular",
@@ -41,3 +84,5 @@ export const tokens = {
   cardPadding: { vertical: 16, horizontal: 18 },
   size: { logoLarge: 96, logoMedium: 76, logoSmall: 38, dot: 6, dotActive: 22, avatar: 48 }
 } as const;
+
+export type ThemeColor = typeof tokens.color;
