@@ -6,6 +6,8 @@ import type { FunctionReturnType } from "convex/server";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
+import { buildDevotionalShareText } from "../../src/features/home/shareDevotional";
+import { shareContent } from "../../src/lib/share";
 import { api } from "../../convex/_generated/api";
 import { parseVerseRef } from "../../src/lib/parseVerseRef";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -62,6 +64,7 @@ function hondurasDate() {
 export default function HomeScreen() {
   const { color, dark } = useTheme();
   const { retry, state } = useTodayDevotional();
+  const currentUser = useQuery(api.users.current);
   const [isDevotionalOpen, setIsDevotionalOpen] = useState(false);
 
   const isReady = state.status === "ready";
@@ -78,6 +81,15 @@ export default function HomeScreen() {
     }
 
     if (isReady) setIsDevotionalOpen((isOpen) => !isOpen);
+  };
+
+  const onShareDevotional = () => {
+    if (!devotional || !currentUser?.referralCode) return;
+
+    void shareContent({
+      referralCode: currentUser.referralCode,
+      text: buildDevotionalShareText(devotional)
+    });
   };
 
   return (
@@ -144,6 +156,17 @@ export default function HomeScreen() {
           <View style={styles.devotionalBody}>
             <Text style={[styles.devotionalTitle, { color: color.ink }]}>Una pausa para hoy</Text>
             <Text style={[styles.reflection, { color: color.inkMuted }]}>{devotional.reflection}</Text>
+            <Pressable
+              accessibilityHint={currentUser?.referralCode ? "Abre las opciones para compartir este devocional." : "Esperá mientras cargamos tu perfil."}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !currentUser?.referralCode }}
+              disabled={!currentUser?.referralCode}
+              onPress={onShareDevotional}
+              style={({ pressed }) => [styles.shareButton, { borderColor: color.borderStrong }, pressed && styles.pressed]}
+              testID="home-share-devotional"
+            >
+              <Text style={[styles.shareButtonLabel, { color: color.ink }]}>Compartir por WhatsApp</Text>
+            </Pressable>
           </View>
         </View>
       ) : null}
@@ -204,6 +227,8 @@ const styles = StyleSheet.create({
   devotionalBody: { paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   devotionalTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   reflection: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight, marginTop: tokens.space.lg },
+  shareButton: { alignItems: "center", borderRadius: tokens.radius.md, borderWidth: 1, justifyContent: "center", marginTop: tokens.space.xl, paddingVertical: tokens.space.lg },
+  shareButtonLabel: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
   feelingCard: { borderRadius: tokens.radius.xl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   feelingTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   feelingDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
