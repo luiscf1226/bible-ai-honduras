@@ -1,4 +1,5 @@
 import { convexTest } from "convex-test";
+import { makeFunctionReference } from "convex/server";
 import { describe, expect, it } from "vitest";
 
 import { api } from "./_generated/api";
@@ -11,6 +12,10 @@ const modules = {
   "./users.ts": () => import("./users"),
   "./voicesCatalog.ts": () => import("./voicesCatalog"),
 };
+
+const getHistoryConversation = makeFunctionReference<"query", { conversationId: Id<"conversations"> }, unknown>(
+  "history:getById",
+);
 
 function asUser(t: ReturnType<typeof convexTest>, clerkId: string) {
   return t.withIdentity({ subject: clerkId, issuer: "https://example-dev.clerk.accounts.dev" });
@@ -71,6 +76,26 @@ describe("history.list", () => {
       preview: "El camino se abrió mientras caminaba.",
       module: "voices",
     });
+  });
+});
+
+describe("history.getById", () => {
+  it("devuelve el detalle propio y no revela el de otro usuario", async () => {
+    const t = convexTest(schema, modules);
+    const alice = asUser(t, "user_alice_detail");
+    const bob = asUser(t, "user_bob_detail");
+    const aliceId = await alice.mutation(api.users.upsert, {});
+    await bob.mutation(api.users.upsert, {});
+    const conversationId = await seedConversation(t, aliceId, {
+      module: "feelings",
+      messages: [{ role: "assistant", text: "Dios cuida de vos." }],
+    });
+
+    await expect(alice.query(getHistoryConversation, { conversationId })).resolves.toMatchObject({
+      module: "feelings",
+      messages: [{ text: "Dios cuida de vos." }],
+    });
+    await expect(bob.query(getHistoryConversation, { conversationId })).resolves.toBeNull();
   });
 });
 
