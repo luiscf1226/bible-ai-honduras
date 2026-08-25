@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 
 import { api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action } from "../_generated/server";
 import { embedQuery } from "./embed";
 
 export type RetrievedVerse = {
+  _id: Id<"verses">;
   book: string;
   chapter: number;
   verse: number;
@@ -45,7 +47,7 @@ export async function retrieveTopVerses(
   const result: RetrievedVerse[] = [];
   verses.forEach((verse, index) => {
     if (verse) {
-      result.push({ ...verse, score: relevant[index]._score });
+      result.push({ ...verse, _id: relevant[index]._id, score: relevant[index]._score });
     }
   });
   return result;

@@ -97,6 +97,7 @@ export default defineSchema({
           verse: v.number(),
           version: v.string(),
           verseId: v.id("verses"),
+          text: v.string(),
         }),
       ),
     ),

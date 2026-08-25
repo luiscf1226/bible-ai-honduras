@@ -2,9 +2,13 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 import { EMBEDDING_DIMENSIONS, VOYAGE_EMBEDDINGS_URL, zeroEmbedding } from "./embed";
-import { ANTHROPIC_MESSAGES_URL } from "./llm";
+import { isGrounded } from "./answer";
+import { ANTHROPIC_MODEL } from "./llm";
+
+const FAKE_VERSE_ID = "verse_fake" as Id<"verses">;
 
 const modules = {
   "./_generated/api.js": () => import("../_generated/api"),
@@ -16,6 +20,8 @@ const modules = {
   "./rag/prompts/qa.ts": () => import("./prompts/qa"),
 };
 
+const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+
 function unitVector(index: number): number[] {
   return Array.from({ length: EMBEDDING_DIMENSIONS }, (_, i) => (i === index ? 1 : 0));
 }
@@ -24,15 +30,33 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-function stubExternalApis(options: { queryEmbedding?: number[]; answerText?: string } = {}) {
+function anthropicPayload(structured: unknown) {
+  return {
+    id: "msg_test",
+    type: "message",
+    role: "assistant",
+    model: ANTHROPIC_MODEL,
+    content: [{ type: "text", text: JSON.stringify(structured) }],
+    stop_reason: "end_turn",
+    stop_sequence: null,
+    usage: { input_tokens: 10, output_tokens: 10 },
+  };
+}
+
+function stubExternalApis(options: { queryEmbedding?: number[]; structured?: unknown } = {}) {
   const queryEmbedding = options.queryEmbedding ?? zeroEmbedding();
-  const answerText = options.answerText ?? "El salmo describe a Dios como un pastor que cuida y provee.";
+  const structured =
+    options.structured ??
+    {
+      answer: "El salmo describe a Dios como un pastor que cuida y provee.",
+      citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
+    };
   const fetchMock = vi.fn().mockImplementation((url: string) => {
     if (url === VOYAGE_EMBEDDINGS_URL) {
       return Promise.resolve(jsonResponse({ data: [{ embedding: queryEmbedding }] }));
     }
     if (url === ANTHROPIC_MESSAGES_URL) {
-      return Promise.resolve(jsonResponse({ content: [{ type: "text", text: answerText }] }));
+      return Promise.resolve(jsonResponse(anthropicPayload(structured)));
     }
     throw new Error(`fetch no esperado a ${url}`);
   });
@@ -60,6 +84,28 @@ function stubEnv() {
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("VOYAGE_API_KEY", "test-key");
 }
+
+describe("isGrounded", () => {
+  const retrieved = [
+    { _id: FAKE_VERSE_ID, book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "...", score: 1 },
+  ];
+
+  it("es verdadero cuando las citas del modelo están todas en lo recuperado", () => {
+    expect(
+      isGrounded({ answer: "x", citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }] }, retrieved),
+    ).toBe(true);
+  });
+
+  it("es falso cuando el modelo cita algo fuera del contexto recuperado", () => {
+    expect(
+      isGrounded({ answer: "x", citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RVR1960" }] }, retrieved),
+    ).toBe(false);
+  });
+
+  it("es falso cuando el modelo no cita nada", () => {
+    expect(isGrounded({ answer: "x", citations: [] }, retrieved)).toBe(false);
+  });
+});
 
 describe("rag.answer.ask", () => {
   it("con pasaje explícito, responde citando el versículo correcto", async () => {
@@ -104,7 +150,6 @@ describe("rag.answer.ask", () => {
 
     expect(result.citation).toBeNull();
     expect(result.answer.length).toBeGreaterThan(0);
-    // No debería llamar a Anthropic si no hay contenido bíblico al que anclar la respuesta.
     const calledAnthropic = fetchMock.mock.calls.some((call: unknown[]) => call[0] === ANTHROPIC_MESSAGES_URL);
     expect(calledAnthropic).toBe(false);
   });
@@ -122,5 +167,28 @@ describe("rag.answer.ask", () => {
     expect(result.citation).toBeNull();
     const calledAnthropic = fetchMock.mock.calls.some((call: unknown[]) => call[0] === ANTHROPIC_MESSAGES_URL);
     expect(calledAnthropic).toBe(false);
+  });
+
+  it("si el modelo cita algo fuera del contexto, nunca se lo muestra al usuario — usa el fallback verificado", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    await seedVerse(t, zeroEmbedding());
+    stubExternalApis({
+      structured: {
+        answer: "Esto viene de Romanos 8:28, no de lo que se te dio.",
+        citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RVR1960" }],
+      },
+    });
+
+    const result = await t.action(api.rag.answer.ask, {
+      question: "¿Qué significa este salmo?",
+      passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
+    });
+
+    // La cita estructural sigue siendo la real (Salmos 23:1) — nunca la que
+    // el modelo inventó — y la respuesta no repite el texto no verificado.
+    expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
+    expect(result.answer).not.toContain("Romanos 8:28");
+    expect(result.answer).toContain("Jehová es mi pastor");
   });
 });
