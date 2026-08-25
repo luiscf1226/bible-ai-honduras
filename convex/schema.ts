@@ -61,4 +61,30 @@ export default defineSchema({
     source: v.string(), // "revenuecat_webhook"
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Historial compartido (Voces, Q&A, Sentimiento). #35 borra estas filas
+  // de verdad — no hay `deleted: true`.
+  conversations: defineTable({
+    userId: v.id("users"),
+    module: v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings")),
+    characterId: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user_module", ["userId", "module"]),
+
+  messages: defineTable({
+    conversationId: v.id("conversations"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    text: v.string(),
+    citations: v.optional(
+      v.array(
+        v.object({
+          book: v.string(),
+          chapter: v.number(),
+          verse: v.number(),
+          version: v.string(),
+          verseId: v.id("verses"),
+        }),
+      ),
+    ),
+  }).index("by_conversation", ["conversationId"]),
 });
