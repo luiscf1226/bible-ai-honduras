@@ -1,20 +1,29 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import { useMutation } from "convex/react";
 
+import { api } from "../../convex/_generated/api";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { REMINDER_HOURS, reminderHourFromDisplay, type ReminderDisplay } from "../../src/lib/reminderHours";
 import { tokens } from "../../src/theme/tokens";
 
-const times = [
-  { label: "Al despertar", value: "6:00" },
-  { label: "Al mediodía", value: "12:00" },
-  { label: "Antes de dormir", value: "21:00" }
-] as const;
-
 export default function NotificationsScreen() {
-  const [time, setTime] = useState<(typeof times)[number]["value"]>(times[0].value);
-  const finish = () => router.replace("/home");
+  const updatePreferences = useMutation(api.users.updatePreferences);
+  const [time, setTime] = useState<ReminderDisplay>(REMINDER_HOURS[0].display);
+
+  const finish = async (saveHour: boolean) => {
+    if (saveHour) {
+      try {
+        await updatePreferences({ reminderHour: reminderHourFromDisplay(time) });
+      } catch {
+        // #10 leerá `users.reminderHour`. Si el espejo Convex todavía no existe,
+        // no bloqueamos el onboarding — el usuario puede fijar la hora en Ajustes.
+      }
+    }
+    router.replace("/home");
+  };
 
   return (
     <AppScreen contentStyle={styles.content} style={styles.screen}>
@@ -23,11 +32,11 @@ export default function NotificationsScreen() {
         <Text style={styles.title}>¿A qué hora te lo recordamos?</Text>
         <Text style={styles.description}>Un solo aviso al día con el versículo. Sin insistir, sin notificaciones de más.</Text>
         <View style={styles.timeList}>
-          {times.map((option) => {
-            const selected = option.value === time;
+          {REMINDER_HOURS.map((option) => {
+            const selected = option.display === time;
             return (
-              <Pressable accessibilityRole="button" key={option.value} onPress={() => setTime(option.value)} style={[styles.time, selected && styles.timeSelected]}>
-                <Text style={[styles.timeValue, selected && styles.timeValueSelected]}>{option.value}</Text>
+              <Pressable accessibilityRole="button" key={option.display} onPress={() => setTime(option.display)} style={[styles.time, selected && styles.timeSelected]}>
+                <Text style={[styles.timeValue, selected && styles.timeValueSelected]}>{option.display}</Text>
                 <Text style={styles.timeLabel}>{option.label}</Text>
               </Pressable>
             );
@@ -35,8 +44,8 @@ export default function NotificationsScreen() {
         </View>
       </View>
       <View style={styles.actions}>
-        <AppButton onPress={finish}>Activar el recordatorio</AppButton>
-        <AppButton onPress={finish} variant="quiet">Prefiero sin avisos</AppButton>
+        <AppButton onPress={() => void finish(true)}>Activar el recordatorio</AppButton>
+        <AppButton onPress={() => void finish(false)} variant="quiet">Prefiero sin avisos</AppButton>
       </View>
     </AppScreen>
   );

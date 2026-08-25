@@ -1,13 +1,12 @@
 # Baton — Track C: Voces & transversales
 
-**Worktree:** `.claude/worktrees/voces+track-c` · **Branch:** `worktree-voces+track-c`
+**Worktree:** `.claude/worktrees/track-c-34` · **Branch:** `track-c/34-cerrar-ajustes`
 **Master plan:** `docs/plans/track-c/master-plan-track-c.md`
 
 ## Status
-Plan aprobado. Sub-plans escritos para las 8 issues (#17, #36, #34, #18, #19, #20, #21, #35).
-**Oleada O2 completa y mergeada a master:** #36 (PR #48), #17 (PR #49), #34 (PR #52).
-Oleada O3 (#18, #19, #20, #21) bloqueada — #7 (función RAG, Track B) sigue abierto en GitHub a la
-fecha de este baton (2026-08-24). No arrancar O3 hasta confirmar que #7 está mergeado.
+Cola de esta semana (Dev C): **#34 → #35 → #30**. Voces (#18–#21) sigue bloqueada por #7.
+Issue #34 en GitHub está cerrado como esqueleto (PR #52); este baton cierra los criterios reales:
+versión citada según `bibleVersion`, noche suave aplicada, hora de recordatorio persistida para #10.
 
 **Nota de Dev B (Track B), 2026-08-24:** #7 se construye solo sobre #5 (versículos, ya mergeado en
 `convex/rag/verses.ts`) — el "Bloqueado por: #5, #6" del issue de GitHub está desactualizado, #6
@@ -19,33 +18,24 @@ poll manual del estado de GitHub. Archivos de #7: `convex/rag/retrieve.ts`, `con
 ## Progress
 - [x] Master plan de Track C escrito y verificado contra bloqueos reales de GitHub (no solo
       `master-plan.md` de la raíz)
-- [x] Sub-plan #17 — Lista de personajes (**implementado**: `convex/voicesCatalog.ts` (catálogo
-      estático de 6 personajes, mismo patrón que `devotionalCatalog.ts`), `convex/voices.ts`
-      (query `list`), `convex/voices.test.ts`, pantalla `app/(tabs)/voces.tsx` con datos y
-      gradientes tomados 1:1 del prototipo. Agregado `expo-linear-gradient` como dependencia
-      (necesaria para el avatar degradado) y `cardPadding`/`size.avatar` a `src/theme/tokens.ts`
-      — medidos del prototipo, mismo criterio que el resto de `size`. `npm run test` 25/25 verde,
-      `npm run typecheck` limpio, `expo export --platform web` bundlea sin errores.)
-- [x] Sub-plan #36 — Componente de compartir (**implementado**: `src/lib/share.ts` +
-      `src/lib/share.test.ts`, `npm run test` 23/23 verde, `npm run typecheck` limpio. No cierra
-      el issue de GitHub #36 — falta que #11/#16/#21/#26 lo consuman.)
-- [x] Sub-plan #34 — Ajustes esqueleto (**implementado**: `app/ajustes.tsx` con versión bíblica
-      + modo noche suave; agrega `users.darkMode` a schema/`updatePreferences` (append-only,
-      opcional). Recordatorio (#10) y "Mis conversaciones"/borrar historial (#35) quedan fuera,
-      tal como marca el sub-plan. Falta que algún track enlace la pantalla desde algún ícono de
-      navegación — ruta `/ajustes` ya es alcanzable vía `router.push`. `npm run test` 26/26 verde,
-      `npm run typecheck` limpio, `expo export --platform web` bundlea sin errores.)
+- [x] Sub-plan #17 — Lista de personajes (mergeado, PR #49)
+- [x] Sub-plan #36 — Componente de compartir (mergeado, PR #48; issue abierto hasta consumidores)
+- [x] Sub-plan #34 — Ajustes esqueleto (mergeado, PR #52)
+- [x] Cerrar #34 de verdad: `verses.citedForUser` respeta `users.bibleVersion` (NVI sin corpus
+      no inventa texto); `nightTokens` medidos del prototipo `isHomeDark` vía ThemeProvider
+      (no se tocó `tokens.ts` / `tokens.json`); hora 6/12/21 se guarda en `reminderHour` desde
+      Ajustes y onboarding (para que #10 la consuma); Home cita la versión y abre `/ajustes`.
+      `npm test` 75/75.
 - [x] Sub-plan #18 — Chat 1ra persona (listo, bloqueado por #7 de Track B)
 - [x] Sub-plan #19 — Guardrail duro (listo, bloqueado por #18)
 - [x] Sub-plan #20 — Cuota Voces (listo, bloqueado por #18)
 - [x] Sub-plan #21 — Compartir cita (listo, bloqueado por #18 y #36)
-- [x] Sub-plan #35 — Borrar historial (listo, bloqueado por #14/#18/#28)
+- [x] #35 — Borrar historial: tablas `conversations`/`messages` (append-only), `history.deleteAll` hace hard delete (0 filas, no `deleted: true`), UI de Privacidad en Ajustes + `app/historial.tsx`. Tests cubren que Bob no pierde su historial.
+- [ ] #30 — UI de paywall (`app/paywall.tsx`; consume `entitlements.mine` y `revenuecat.ts`)
 - [x] Ejecución de O2 — #36 hecho (mergeado, PR #48)
 - [x] Ejecución de O2 — #17 hecho (mergeado, PR #49)
-- [x] Ejecución de O2 — #34 hecho (mergeado, PR #52)
+- [x] Ejecución de O2 — #34 esqueleto (mergeado, PR #52)
 
 ## Next
-O2 completa. Antes de tomar cualquiera de O3 (#18, #19, #20, #21), confirmar en GitHub que #7
-(Track B, función RAG) está mergeado — sin eso no hay pipeline al que anclar el prompt de Voces
-(regla dura #4). Antes de #35 (O4), confirmar #14 y #28 también. Cuando #11/#16/#21/#26 empiecen a
-consumir `src/lib/share.ts`, avisar para cerrar el issue #36 en GitHub.
+#35 (borrar historial de verdad) → #30 (UI de paywall). No arrancar Voces hasta que #7 mergee.
+Cuando #7 mergee: tests adversariales de #19 **antes** del prompt de #18.

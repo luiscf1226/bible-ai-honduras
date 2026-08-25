@@ -1,7 +1,51 @@
 import { ConvexError, v } from "convex/values";
 
+import type { QueryCtx } from "../_generated/server";
 import { internalMutation, query } from "../_generated/server";
 import { EMBEDDING_DIMENSIONS } from "./embed";
+
+const DEFAULT_VERSION = "RVR1960";
+
+async function findVerse(
+  ctx: QueryCtx,
+  args: { version: string; book: string; chapter: number; verse: number },
+) {
+  const row = await ctx.db
+    .query("verses")
+    .withIndex("by_ref", (q) =>
+      q
+        .eq("version", args.version)
+        .eq("book", args.book)
+        .eq("chapter", args.chapter)
+        .eq("verse", args.verse),
+    )
+    .unique();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    _id: row._id,
+    book: row.book,
+    chapter: row.chapter,
+    verse: row.verse,
+    version: row.version,
+    text: row.text,
+  };
+}
+
+async function bibleVersionForIdentity(ctx: QueryCtx): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    return DEFAULT_VERSION;
+  }
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .unique();
+  return user?.bibleVersion ?? DEFAULT_VERSION;
+}
 
 // Consulta pública por referencia exacta. No expone el embedding.
 export const getByRef = query({
@@ -11,30 +55,22 @@ export const getByRef = query({
     chapter: v.number(),
     verse: v.number(),
   },
+  handler: async (ctx, args) => findVerse(ctx, args),
+});
+
+// La versión sale de `users.bibleVersion` (RVR1960 por defecto). Si el usuario
+// eligió NVI y ese versículo no está ingerido, `verse` es null — no se inventa
+// texto. El caller muestra la versión preferida igual.
+export const citedForUser = query({
+  args: {
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+  },
   handler: async (ctx, args) => {
-    const row = await ctx.db
-      .query("verses")
-      .withIndex("by_ref", (q) =>
-        q
-          .eq("version", args.version)
-          .eq("book", args.book)
-          .eq("chapter", args.chapter)
-          .eq("verse", args.verse),
-      )
-      .unique();
-
-    if (!row) {
-      return null;
-    }
-
-    return {
-      _id: row._id,
-      book: row.book,
-      chapter: row.chapter,
-      verse: row.verse,
-      version: row.version,
-      text: row.text,
-    };
+    const version = await bibleVersionForIdentity(ctx);
+    const verse = await findVerse(ctx, { ...args, version });
+    return { version, verse };
   },
 });
 
