@@ -11,6 +11,9 @@
 import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
 import type * as devotionalCatalog from "../devotionalCatalog.js";
+import type * as entitlements from "../entitlements.js";
+import type * as http from "../http.js";
+import type * as quotas from "../quotas.js";
 import type * as rag_embed from "../rag/embed.js";
 import type * as rag_ingest from "../rag/ingest.js";
 import type * as rag_verses from "../rag/verses.js";
@@ -28,6 +31,9 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   devotional: typeof devotional;
   devotionalCatalog: typeof devotionalCatalog;
+  entitlements: typeof entitlements;
+  http: typeof http;
+  quotas: typeof quotas;
   "rag/embed": typeof rag_embed;
   "rag/ingest": typeof rag_ingest;
   "rag/verses": typeof rag_verses;

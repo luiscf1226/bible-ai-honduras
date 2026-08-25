@@ -91,6 +91,17 @@ describe("users.upsert", () => {
 });
 
 describe("users.updatePreferences", () => {
+  it("actualiza darkMode del usuario autenticado", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_dark");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    await authed.mutation(api.users.updatePreferences, { darkMode: true });
+
+    const user = await t.run((ctx) => ctx.db.get(userId));
+    expect(user).toMatchObject({ darkMode: true });
+  });
+
   it("actualiza bibleVersion y reminderHour del usuario autenticado", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_prefs");
