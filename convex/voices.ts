@@ -129,6 +129,11 @@ export const sendMessage = action({
       return { status: "refused" as const, answer: refusal, citation: null };
     }
 
+    const quota = await ctx.runMutation(api.quotas.checkAndConsume, { module: "voices" });
+    if (!quota.allowed) {
+      return { status: "limit_reached" as const, answer: null, citation: null };
+    }
+
     const user = await ctx.runQuery(api.users.current, {});
     const version = user?.bibleVersion ?? "RVR1960";
     const verses = await retrieveTopVerses(ctx, {
