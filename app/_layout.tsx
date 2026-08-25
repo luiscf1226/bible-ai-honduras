@@ -8,6 +8,7 @@ import { Stack } from "expo-router";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
+import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 
 if (!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
   throw new Error(
@@ -18,7 +19,13 @@ const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as str
 
 function AppNavigator() {
   useSyncConvexUser();
-  return <Stack screenOptions={{ animation: "fade", headerShown: false }} />;
+  const { dark } = useTheme();
+  return (
+    <>
+      <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
+      <Stack screenOptions={{ animation: "fade", headerShown: false }} />
+    </>
+  );
 }
 
 export default function RootLayout() {
@@ -33,8 +40,9 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={clerkTokenCache}>
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
-          <StatusBar barStyle="dark-content" />
-          <AppNavigator />
+          <ThemeProvider>
+            <AppNavigator />
+          </ThemeProvider>
         </ConvexProviderWithClerk>
       </ClerkLoaded>
     </ClerkProvider>
