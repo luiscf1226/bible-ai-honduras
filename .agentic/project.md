@@ -2,7 +2,7 @@
 
 ## Stack
 
-- Expo 57 + Expo Router, React Native 0.86 y TypeScript.
+- Expo 57 + Expo Router, React Native 0.86 y TypeScript; `expo-notifications` 57.0.14 para recordatorios locales.
 - Convex para datos y Clerk para autenticación.
 - Gestor de paquetes: npm (`package-lock.json`).
 
@@ -13,6 +13,7 @@
 - Tipos: `npm run typecheck` — verificado el 2026-08-24.
 - Export: `npm run export` — no verificado.
 - Servidor Expo: `npm start`; web: `npm run web` — no verificados.
+- Configuración Expo: `npx expo config --type public` — verificado el 2026-08-24; resuelve los plugins `expo-router`, `expo-font` y `expo-notifications`.
 
 ## Estructura
 
@@ -27,6 +28,7 @@
 - La UI usa `tokens` de `src/theme/tokens.ts`; no se agregan valores visuales literales.
 - Los títulos y versículos usan EB Garamond; la UI usa DM Sans.
 - `convex/devotional.today` da el contenido editorial del día y hace fallback de catálogo cuando aún no existe una fila persistida.
+- Los recordatorios son notificaciones locales. En Android se programa un trigger diario con canal propio; en iOS se usa un trigger de calendario repetido. Un recordatorio no incluye el contenido fijo del día para no repetir información editorial vencida.
 
 ## Riesgos de coordinación
 
