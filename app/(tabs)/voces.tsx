@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
@@ -21,7 +22,12 @@ export default function VocesScreen() {
 
       <View style={styles.list}>
         {characters?.map((character) => (
-          <View key={character.slug} style={styles.row}>
+          <Pressable
+            accessibilityRole="button"
+            key={character.slug}
+            onPress={() => router.push(`/voces/${character.slug}`)}
+            style={styles.row}
+          >
             <LinearGradient
               colors={[character.gradientFrom, character.gradientTo]}
               style={styles.avatar}
@@ -33,7 +39,7 @@ export default function VocesScreen() {
               <Text style={styles.tag}>{character.tag}</Text>
             </View>
             <Text style={styles.chevron}>›</Text>
-          </View>
+          </Pressable>
         ))}
       </View>
 
