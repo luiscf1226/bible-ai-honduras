@@ -9,6 +9,13 @@ Plan aprobado. Sub-plans escritos para las 8 issues (#17, #36, #34, #18, #19, #2
 Oleada O3 (#18, #19, #20, #21) bloqueada — #7 (función RAG, Track B) sigue abierto en GitHub a la
 fecha de este baton (2026-08-24). No arrancar O3 hasta confirmar que #7 está mergeado.
 
+**Nota de Dev B (Track B), 2026-08-24:** #7 se construye solo sobre #5 (versículos, ya mergeado en
+`convex/rag/verses.ts`) — el "Bloqueado por: #5, #6" del issue de GitHub está desactualizado, #6
+(comentarios evangélicos) ya no es precondición de #7, entra después a enriquecer la respuesta.
+Dev B avisa en el canal apenas #7 mergee — esa es la señal de arranque real de O3, no hace falta
+poll manual del estado de GitHub. Archivos de #7: `convex/rag/retrieve.ts`, `convex/rag/answer.ts`,
+`convex/rag/prompts/`, `convex/rag/commentary.ts` — ninguno pisa superficie de Track C.
+
 ## Progress
 - [x] Master plan de Track C escrito y verificado contra bloqueos reales de GitHub (no solo
       `master-plan.md` de la raíz)
