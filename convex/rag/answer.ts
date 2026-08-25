@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action } from "../_generated/server";
 import { generateStructuredAnswer } from "./llm";
@@ -15,6 +16,7 @@ import {
 import { retrieveTopVerses, type RetrievedVerse } from "./retrieve";
 
 export type Citation = {
+  verseId: Id<"verses">;
   book: string;
   chapter: number;
   verse: number;
@@ -71,6 +73,7 @@ export const ask = action({
 
 function toCitation(verse: RetrievedVerse): Citation {
   return {
+    verseId: verse._id,
     book: verse.book,
     chapter: verse.chapter,
     verse: verse.verse,

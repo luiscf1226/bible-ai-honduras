@@ -56,6 +56,7 @@ describe("retrieve.topVerses", () => {
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
     expect(results[0].score).toBeGreaterThanOrEqual(RELEVANCE_THRESHOLD);
+    expect(typeof results[0]._id).toBe("string");
   });
 
   it("no devuelve nada cuando la similitud queda por debajo del umbral — nunca fabrica una cita", async () => {

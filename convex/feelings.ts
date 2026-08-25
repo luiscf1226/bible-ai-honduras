@@ -148,8 +148,11 @@ export const generate = action({
       throw new ConvexError("No encontramos un pasaje bíblico para acompañarte ahora. Intentá con otras palabras.");
     }
 
+    // `result.citation` incluye `verseId` (agregado en #14 para la tarjeta de
+    // cita de Q&A) — devotionalValidator no lo espera, se descarta acá.
+    const { verseId: _verseId, ...citation } = result.citation;
     const devotional = {
-      citation: result.citation,
+      citation,
       prayer: prayerForFeeling(args),
       reflection: result.answer,
       title: titleForFeeling(args),

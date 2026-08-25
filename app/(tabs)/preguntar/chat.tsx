@@ -20,7 +20,13 @@ export default function PreguntarChatScreen() {
     : "Pregunta libre";
 
   const messages = useMemo(
-    () => (thread ?? []).map((message) => ({ key: message._id, role: message.role, text: message.text })),
+    () =>
+      (thread ?? []).map((message) => ({
+        key: message._id,
+        role: message.role,
+        text: message.text,
+        citation: message.citations?.[0] ?? null,
+      })),
     [thread],
   );
 
@@ -64,6 +70,14 @@ export default function PreguntarChatScreen() {
                 <Text style={[styles.bubbleText, message.role === "user" ? styles.bubbleTextUser : styles.bubbleTextAi]}>
                   {message.text}
                 </Text>
+                {message.citation ? (
+                  <View style={styles.citation}>
+                    <Text style={styles.citationQuote}>&ldquo;{message.citation.text}&rdquo;</Text>
+                    <Text style={styles.citationRef}>
+                      {message.citation.book} {message.citation.chapter}:{message.citation.verse} ({message.citation.version})
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           ))}
@@ -127,6 +141,9 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
   bubbleTextUser: { color: tokens.color.surface, fontFamily: tokens.font.sans },
   bubbleTextAi: { color: tokens.color.ink, fontFamily: tokens.font.serif },
+  citation: { backgroundColor: tokens.color.surfaceSunk, borderRadius: tokens.radius.md, marginTop: tokens.space.lg, padding: tokens.space.lg },
+  citationQuote: { color: tokens.color.inkMuted, fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, fontStyle: "italic", lineHeight: tokens.type.body.lineHeight },
+  citationRef: { color: tokens.color.inkFaint, fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, marginTop: tokens.space.sm },
   typing: { color: tokens.color.inkFaint, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size },
   limit: { color: tokens.color.accent, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size },
   composer: { borderTopColor: tokens.color.border, borderTopWidth: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.md },

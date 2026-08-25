@@ -2,10 +2,13 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 import { EMBEDDING_DIMENSIONS, VOYAGE_EMBEDDINGS_URL, zeroEmbedding } from "./embed";
 import { isGrounded } from "./answer";
 import { ANTHROPIC_MODEL } from "./llm";
+
+const FAKE_VERSE_ID = "verse_fake" as Id<"verses">;
 
 const modules = {
   "./_generated/api.js": () => import("../_generated/api"),
@@ -84,7 +87,7 @@ function stubEnv() {
 
 describe("isGrounded", () => {
   const retrieved = [
-    { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "...", score: 1 },
+    { _id: FAKE_VERSE_ID, book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "...", score: 1 },
   ];
 
   it("es verdadero cuando las citas del modelo están todas en lo recuperado", () => {
