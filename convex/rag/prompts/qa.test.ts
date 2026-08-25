@@ -24,11 +24,29 @@ describe("buildQaUserPrompt", () => {
     expect(prompt).toContain(VERSE.text);
     expect(prompt).toContain(second.text);
   });
+
+  it("sin comentario, no agrega la sección de comentario", () => {
+    const prompt = buildQaUserPrompt("¿Quién es mi pastor?", [VERSE]);
+    expect(prompt).not.toContain("Comentario de referencia");
+  });
+
+  it("con comentario (#6), lo incluye marcado como contexto, no como texto bíblico", () => {
+    const commentary = [
+      { source: "Comentario de referencia (muestra)", book: "Salmos", chapter: 23, text: "La imagen del pastor viene de la experiencia diaria de David." },
+    ];
+    const prompt = buildQaUserPrompt("¿Quién es mi pastor?", [VERSE], commentary);
+    expect(prompt).toContain("Comentario de referencia (contexto, no es texto bíblico)");
+    expect(prompt).toContain("La imagen del pastor viene de la experiencia diaria de David.");
+  });
 });
 
 describe("QA_SYSTEM_PROMPT / NO_RELEVANT_CONTENT_ANSWER", () => {
   it("el system prompt prohíbe opinión fuera del contexto (regla dura #4)", () => {
     expect(QA_SYSTEM_PROMPT).toContain("SOLO a partir de los versículos");
+  });
+
+  it("el system prompt aclara que el comentario nunca se cita como texto bíblico (#6)", () => {
+    expect(QA_SYSTEM_PROMPT).toContain("nunca lo cites como si fuera texto bíblico");
   });
 
   it("la respuesta de fallback no inventa una cita", () => {

@@ -23,6 +23,7 @@ const modules = {
   "./rag/embed.ts": () => import("./rag/embed"),
   "./rag/verses.ts": () => import("./rag/verses"),
   "./rag/retrieve.ts": () => import("./rag/retrieve"),
+  "./rag/commentary.ts": () => import("./rag/commentary"),
   "./rag/llm.ts": () => import("./rag/llm"),
   "./rag/answer.ts": () => import("./rag/answer"),
   "./rag/prompts/qa.ts": () => import("./rag/prompts/qa"),
