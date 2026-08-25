@@ -1,7 +1,8 @@
+import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,10 +13,12 @@ import { purchaseMonthly } from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
+  const { userId } = useAuth();
   const entitlement = useQuery(api.entitlements.mine);
   const isPro = entitlement?.isPro === true;
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [awaitingUnlock, setAwaitingUnlock] = useState(false);
 
   const close = () => {
     if (router.canGoBack()) {
@@ -25,6 +28,14 @@ export default function PaywallScreen() {
     router.replace("/home");
   };
 
+  useEffect(() => {
+    if (!awaitingUnlock || !isPro) {
+      return;
+    }
+    setAwaitingUnlock(false);
+    close();
+  }, [awaitingUnlock, isPro]);
+
   const onSubscribe = async () => {
     if (isPro) {
       close();
@@ -33,10 +44,19 @@ export default function PaywallScreen() {
     setBusy(true);
     setNotice(null);
     try {
-      const result = await purchaseMonthly();
-      if (!result.ok) {
-        setNotice("La compra se completa en un development build. Seguí en la versión gratis por ahora.");
+      const result = await purchaseMonthly(userId ?? undefined);
+      if (result.ok) {
+        setAwaitingUnlock(true);
+        return;
       }
+      if (result.reason === "user_cancelled") {
+        return;
+      }
+      if (result.reason === "dev_build_required") {
+        setNotice("La compra se completa en un development build. Seguí en la versión gratis por ahora.");
+        return;
+      }
+      setNotice("No pudimos completar la compra. Seguí en la versión gratis por ahora.");
     } catch {
       setNotice("No pudimos abrir la compra. Seguí en la versión gratis por ahora.");
     } finally {
