@@ -26,7 +26,15 @@ export const REVENUECAT_TEST_STORE_PRODUCT_ID = REVENUECAT_PRODUCT.productId;
 
 export type PurchaseResult =
   | { ok: true }
-  | { ok: false; reason: "dev_build_required" | "user_cancelled" | "offering_unavailable" | "purchase_failed" };
+  | {
+      ok: false;
+      reason:
+        | "not_configured"
+        | "dev_build_required"
+        | "user_cancelled"
+        | "offering_unavailable"
+        | "purchase_failed";
+    };
 
 export class RevenueCatDevBuildRequiredError extends Error {
   constructor() {
@@ -58,6 +66,16 @@ export function setRevenueCatNativeForTests(native: NativeOverride): void {
 export function resetRevenueCatForTests(): void {
   nativeOverride = undefined;
   configured = false;
+}
+
+/**
+ * Beta sin RevenueCat (#93): sin la key pública no hay compra posible.
+ * La UI debe *ocultar* el CTA, no dejarlo romper — Apple rechaza builds que
+ * muestran precio sin IAP funcional. `isPro` lo sigue mandando Convex
+ * `entitlements.mine`, así que un Pro otorgado a mano funciona igual.
+ */
+export function purchasesConfigured(): boolean {
+  return Boolean(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY);
 }
 
 function publicApiKey(): string {
@@ -125,6 +143,9 @@ export async function logIn(clerkUserId: string): Promise<PurchaseResult> {
       "logIn requiere clerkUserId = Clerk identity.subject (users.clerkId)",
     );
   }
+  if (!purchasesConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
   const native = await loadNative();
   if (!native) {
     return { ok: false, reason: "dev_build_required" };
@@ -135,6 +156,9 @@ export async function logIn(clerkUserId: string): Promise<PurchaseResult> {
 }
 
 export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseResult> {
+  if (!purchasesConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
   const native = await loadNative();
   if (!native) {
     return { ok: false, reason: "dev_build_required" };
@@ -165,6 +189,9 @@ export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseRes
 }
 
 export async function restorePurchases(clerkUserId?: string): Promise<PurchaseResult> {
+  if (!purchasesConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
   const native = await loadNative();
   if (!native) {
     return { ok: false, reason: "dev_build_required" };

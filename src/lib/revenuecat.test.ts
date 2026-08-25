@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   logIn,
+  purchasesConfigured,
   purchaseMonthly,
   resetRevenueCatForTests,
   restorePurchases,
@@ -84,5 +85,42 @@ describe("revenuecat purchase + identity", () => {
     await expect(restorePurchases("user_clerk_ana")).resolves.toEqual({ ok: true });
     expect(native.logIn).toHaveBeenCalledWith("user_clerk_ana");
     expect(native.restorePurchases).toHaveBeenCalledOnce();
+  });
+});
+
+describe("beta sin RevenueCat (#93)", () => {
+  afterEach(() => {
+    resetRevenueCatForTests();
+    vi.unstubAllEnvs();
+  });
+
+  it("purchasesConfigured es false sin la key pública", () => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "");
+    expect(purchasesConfigured()).toBe(false);
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "test_public_key");
+    expect(purchasesConfigured()).toBe(true);
+  });
+
+  it("sin la key no lanza: devuelve not_configured y no toca el SDK nativo", async () => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "");
+    const native = mockNative();
+    setRevenueCatNativeForTests(native);
+
+    await expect(purchaseMonthly("user_beta")).resolves.toEqual({
+      ok: false,
+      reason: "not_configured",
+    });
+    await expect(restorePurchases("user_beta")).resolves.toEqual({
+      ok: false,
+      reason: "not_configured",
+    });
+    await expect(logIn("user_beta")).resolves.toEqual({
+      ok: false,
+      reason: "not_configured",
+    });
+
+    expect(native.configure).not.toHaveBeenCalled();
+    expect(native.purchasePackage).not.toHaveBeenCalled();
+    expect(native.restorePurchases).not.toHaveBeenCalled();
   });
 });

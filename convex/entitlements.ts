@@ -8,6 +8,9 @@ import { internalMutation, query } from "./_generated/server";
 
 export const PRO_ENTITLEMENT_ID = "pro";
 export const ENTITLEMENT_SOURCE = "revenuecat_webhook";
+// Beta sin RevenueCat (#93). Queda en `source` para distinguir un Pro de
+// cortesía de uno comprado — no borrar filas con este origen al migrar.
+export const BETA_ENTITLEMENT_SOURCE = "beta_manual";
 
 const GRANT_EVENT_TYPES = new Set([
   "INITIAL_PURCHASE",
@@ -185,15 +188,16 @@ async function findEntitlementByUser(ctx: QueryCtx, userId: Id<"users">) {
 
 async function upsertEntitlement(
   ctx: MutationCtx,
-  args: { userId: Id<"users">; isPro: boolean; expiresAt?: number },
+  args: { userId: Id<"users">; isPro: boolean; expiresAt?: number; source?: string },
 ) {
   const existing = await findEntitlementByUser(ctx, args.userId);
   const updatedAt = Date.now();
+  const source = args.source ?? ENTITLEMENT_SOURCE;
   if (existing) {
     await ctx.db.patch(existing._id, {
       isPro: args.isPro,
       expiresAt: args.expiresAt,
-      source: ENTITLEMENT_SOURCE,
+      source,
       updatedAt,
     });
     return existing._id;
@@ -202,7 +206,7 @@ async function upsertEntitlement(
     userId: args.userId,
     isPro: args.isPro,
     expiresAt: args.expiresAt,
-    source: ENTITLEMENT_SOURCE,
+    source,
     updatedAt,
   });
 }
@@ -227,6 +231,43 @@ export const upsertFromWebhook = internalMutation({
       expiresAt: args.expiresAt,
     });
     return { ignored: false as const, userId: user._id };
+  },
+});
+
+/**
+ * Otorga (o revoca) Pro a mano para la beta cerrada — #93.
+ *
+ * La autoridad de `isPro` es esta tabla, no el SDK de RevenueCat, así que una
+ * fila escrita acá desbloquea los 4 módulos igual que una compra real (#32).
+ *
+ * `internalMutation`: no se puede llamar desde la app, solo desde el dashboard
+ * de Convex o `npx convex run`. Un tester no puede auto-otorgarse Pro.
+ *
+ *   npx convex run entitlements:grantProForBeta '{"clerkId":"user_2abc..."}'
+ *   npx convex run entitlements:grantProForBeta '{"clerkId":"user_2abc...","isPro":false}'
+ *
+ * El tester tiene que haber entrado al menos una vez (users.upsert) — si no,
+ * devuelve `ignored` en vez de crear la fila de users, igual que el webhook.
+ */
+export const grantProForBeta = internalMutation({
+  args: {
+    clerkId: v.string(),
+    isPro: v.optional(v.boolean()),
+    expiresAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await findByClerkId(ctx, args.clerkId);
+    if (!user) {
+      return { ignored: true as const };
+    }
+    const isPro = args.isPro ?? true;
+    await upsertEntitlement(ctx, {
+      userId: user._id,
+      isPro,
+      expiresAt: args.expiresAt,
+      source: BETA_ENTITLEMENT_SOURCE,
+    });
+    return { ignored: false as const, userId: user._id, isPro };
   },
 });
 

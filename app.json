@@ -15,7 +15,8 @@
       "typedRoutes": true
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bibleaihonduras.app"
     },
     "android": {
       "package": "com.bibleaihonduras.app"
