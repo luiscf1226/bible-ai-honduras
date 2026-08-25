@@ -5,7 +5,15 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, query } from "./_generated/server";
 import type { Citation } from "./rag/answer";
-import { formatCitation } from "./rag/prompts/qa";
+
+const citationArg = v.object({
+  verseId: v.id("verses"),
+  book: v.string(),
+  chapter: v.number(),
+  verse: v.number(),
+  version: v.string(),
+  text: v.string(),
+});
 
 async function findByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
   return ctx.db
@@ -58,6 +66,7 @@ export const persistTurn = internalMutation({
   args: {
     userText: v.string(),
     assistantText: v.string(),
+    citation: v.optional(citationArg),
   },
   handler: async (ctx, args): Promise<Id<"conversations">> => {
     const user = await requireUser(ctx);
@@ -70,7 +79,12 @@ export const persistTurn = internalMutation({
       : await ctx.db.insert("conversations", { userId: user._id, module: "qa", createdAt: Date.now() });
 
     await ctx.db.insert("messages", { conversationId, role: "user", text: args.userText });
-    await ctx.db.insert("messages", { conversationId, role: "assistant", text: args.assistantText });
+    await ctx.db.insert("messages", {
+      conversationId,
+      role: "assistant",
+      text: args.assistantText,
+      citations: args.citation ? [args.citation] : undefined,
+    });
     return conversationId;
   },
 });
@@ -119,9 +133,12 @@ export const ask = action({
 
     const result = await ctx.runAction(api.rag.answer.ask, { question, passage, version });
 
-    const stored = result.citation ? `${result.answer}\n\n— ${formatCitation(result.citation)}` : result.answer;
-    await ctx.runMutation(internal.qa.persistTurn, { userText: args.question, assistantText: stored });
+    await ctx.runMutation(internal.qa.persistTurn, {
+      userText: args.question,
+      assistantText: result.answer,
+      citation: result.citation ?? undefined,
+    });
 
-    return { status: "ok", answer: stored, citation: result.citation };
+    return { status: "ok", answer: result.answer, citation: result.citation };
   },
 });

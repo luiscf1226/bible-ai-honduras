@@ -94,12 +94,18 @@ describe("qa.ask", () => {
     expect(result.status).toBe("ok");
     if (result.status !== "ok") throw new Error("esperado ok");
     expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
-    expect(result.answer).toContain("Salmos 23:1");
+    expect(result.answer).toBe("El pastor cuida a quien confía en él.");
 
     const thread = await authed.query(api.qa.thread, {});
     expect(thread).toHaveLength(2);
     expect(thread[0]?.role).toBe("user");
     expect(thread[1]?.role).toBe("assistant");
+    expect(thread[1]?.citations?.[0]).toMatchObject({
+      book: "Salmos",
+      chapter: 23,
+      verse: 1,
+      text: "Jehová es mi pastor; nada me faltará.",
+    });
   });
 
   it("responde con pasaje exacto (libro, capítulo y versículo elegidos en #12)", async () => {
