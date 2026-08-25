@@ -85,6 +85,7 @@ export const updatePreferences = mutation({
   args: {
     bibleVersion: v.optional(v.union(v.literal("RVR1960"), v.literal("NVI"))),
     reminderHour: v.optional(v.number()),
+    darkMode: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
@@ -99,12 +100,15 @@ export const updatePreferences = mutation({
       throw new ConvexError("reminderHour debe ser un entero entre 0 y 23");
     }
 
-    const patch: Partial<{ bibleVersion: "RVR1960" | "NVI"; reminderHour: number }> = {};
+    const patch: Partial<{ bibleVersion: "RVR1960" | "NVI"; reminderHour: number; darkMode: boolean }> = {};
     if (args.bibleVersion !== undefined) {
       patch.bibleVersion = args.bibleVersion;
     }
     if (args.reminderHour !== undefined) {
       patch.reminderHour = args.reminderHour;
+    }
+    if (args.darkMode !== undefined) {
+      patch.darkMode = args.darkMode;
     }
     await ctx.db.patch(existing._id, patch);
   },
