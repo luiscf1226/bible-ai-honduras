@@ -1,21 +1,24 @@
+import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
 import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
-import { purchaseMonthly } from "../src/lib/revenuecat";
+import { purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
+  const { userId } = useAuth();
   const entitlement = useQuery(api.entitlements.mine);
   const isPro = entitlement?.isPro === true;
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [awaitingUnlock, setAwaitingUnlock] = useState(false);
 
   const close = () => {
     if (router.canGoBack()) {
@@ -25,6 +28,14 @@ export default function PaywallScreen() {
     router.replace("/home");
   };
 
+  useEffect(() => {
+    if (!awaitingUnlock || !isPro) {
+      return;
+    }
+    setAwaitingUnlock(false);
+    close();
+  }, [awaitingUnlock, isPro]);
+
   const onSubscribe = async () => {
     if (isPro) {
       close();
@@ -33,12 +44,42 @@ export default function PaywallScreen() {
     setBusy(true);
     setNotice(null);
     try {
-      const result = await purchaseMonthly();
-      if (!result.ok) {
-        setNotice("La compra se completa en un development build. Seguí en la versión gratis por ahora.");
+      const result = await purchaseMonthly(userId ?? undefined);
+      if (result.ok) {
+        setAwaitingUnlock(true);
+        return;
       }
+      if (result.reason === "user_cancelled") {
+        return;
+      }
+      if (result.reason === "dev_build_required") {
+        setNotice("La compra se completa en un development build. Seguí en la versión gratis por ahora.");
+        return;
+      }
+      setNotice("No pudimos completar la compra. Seguí en la versión gratis por ahora.");
     } catch {
       setNotice("No pudimos abrir la compra. Seguí en la versión gratis por ahora.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRestore = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await restorePurchases(userId ?? undefined);
+      if (result.ok) {
+        setAwaitingUnlock(true);
+        return;
+      }
+      if (result.reason === "dev_build_required") {
+        setNotice("La restauración se completa en un development build. Seguí en la versión gratis por ahora.");
+        return;
+      }
+      setNotice("No encontramos una compra para restaurar. Seguí en la versión gratis por ahora.");
+    } catch {
+      setNotice("No pudimos restaurar la compra. Seguí en la versión gratis por ahora.");
     } finally {
       setBusy(false);
     }
@@ -98,6 +139,16 @@ export default function PaywallScreen() {
 
           <Pressable accessibilityRole="button" onPress={close} style={styles.skip}>
             <Text style={styles.skipLabel}>Seguir en la versión gratis</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => void onRestore()}
+            style={styles.skip}
+            testID="paywall-restore"
+          >
+            <Text style={styles.skipLabel}>Restaurar compras</Text>
           </Pressable>
 
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}

@@ -8,6 +8,7 @@ import { Stack } from "expo-router";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
 import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
+import { useRevenueCatLogin } from "../src/hooks/useRevenueCatLogin";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
 import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 
@@ -22,6 +23,7 @@ const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as str
 
 function AppNavigator() {
   useSyncConvexUser();
+  useRevenueCatLogin();
   const { dark } = useTheme();
   return (
     <>

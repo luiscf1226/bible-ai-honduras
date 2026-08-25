@@ -15,6 +15,7 @@ import type * as entitlements from "../entitlements.js";
 import type * as feelings from "../feelings.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
+import type * as qa from "../qa.js";
 import type * as quotas from "../quotas.js";
 import type * as rag_answer from "../rag/answer.js";
 import type * as rag_embed from "../rag/embed.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   feelings: typeof feelings;
   history: typeof history;
   http: typeof http;
+  qa: typeof qa;
   quotas: typeof quotas;
   "rag/answer": typeof rag_answer;
   "rag/embed": typeof rag_embed;

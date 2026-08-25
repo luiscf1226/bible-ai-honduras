@@ -97,8 +97,25 @@ export default defineSchema({
           verse: v.number(),
           version: v.string(),
           verseId: v.id("verses"),
+          text: v.string(),
         }),
       ),
     ),
   }).index("by_conversation", ["conversationId"]),
+
+  stories: defineTable({
+    userId: v.id("users"),
+    catalogId: v.string(),
+    status: v.union(v.literal("generating"), v.literal("ready"), v.literal("failed")),
+    scenes: v.array(v.object({
+      id: v.string(),
+      order: v.number(),
+      title: v.string(),
+      narration: v.string(),
+      reference: v.string(),
+      status: v.union(v.literal("generating"), v.literal("ready"), v.literal("failed")),
+      storageId: v.optional(v.id("_storage")),
+    })),
+    createdAt: v.number(),
+  }).index("by_user_catalog", ["userId", "catalogId"]),
 });
