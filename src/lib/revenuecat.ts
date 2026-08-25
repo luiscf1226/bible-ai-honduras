@@ -11,9 +11,7 @@
  *   entitlement `pro` · offering `default` · Test Store product `pro_monthly`
  * El precio USD 4.99 / 1 mes vive en RevenueCat, no en este módulo ni en UI.
  *
- * Expo Go no incluye el módulo nativo; hace falta un development build.
- * #31 conecta `react-native-purchases`. Hasta entonces este facade no importa
- * el nativo (así `npm test` / typecheck no se rompen).
+ * Expo Go y web no completan una compra real. Hace falta un development build.
  */
 
 export const REVENUECAT_PRODUCT = {
@@ -26,7 +24,9 @@ export const REVENUECAT_ENTITLEMENT_ID = REVENUECAT_PRODUCT.entitlementId;
 export const REVENUECAT_OFFERING_ID = REVENUECAT_PRODUCT.offeringId;
 export const REVENUECAT_TEST_STORE_PRODUCT_ID = REVENUECAT_PRODUCT.productId;
 
-export type PurchaseResult = { ok: true } | { ok: false; reason: string };
+export type PurchaseResult =
+  | { ok: true }
+  | { ok: false; reason: "dev_build_required" | "user_cancelled" | "offering_unavailable" | "purchase_failed" };
 
 export class RevenueCatDevBuildRequiredError extends Error {
   constructor() {
@@ -35,6 +35,29 @@ export class RevenueCatDevBuildRequiredError extends Error {
     );
     this.name = "RevenueCatDevBuildRequiredError";
   }
+}
+
+export type RevenueCatNative = {
+  configure: (config: { apiKey: string; appUserID?: string }) => unknown;
+  logIn: (appUserID: string) => Promise<unknown>;
+  getOfferings: () => Promise<{ current?: { monthly?: unknown } | null }>;
+  purchasePackage: (pkg: unknown) => Promise<unknown>;
+  restorePurchases: () => Promise<unknown>;
+};
+
+type NativeOverride = RevenueCatNative | null | undefined;
+
+let nativeOverride: NativeOverride;
+let configured = false;
+
+export function setRevenueCatNativeForTests(native: NativeOverride): void {
+  nativeOverride = native;
+  configured = false;
+}
+
+export function resetRevenueCatForTests(): void {
+  nativeOverride = undefined;
+  configured = false;
 }
 
 function publicApiKey(): string {
@@ -47,28 +70,110 @@ function publicApiKey(): string {
   return key;
 }
 
-// Configura el SDK público. No consulta CustomerInfo y no decide isPro.
+function isStoreClient(executionEnvironment: string | null | undefined): boolean {
+  return executionEnvironment === "storeClient";
+}
+
+async function loadNative(): Promise<RevenueCatNative | null> {
+  if (nativeOverride !== undefined) {
+    return nativeOverride;
+  }
+
+  try {
+    const { Platform } = await import("react-native");
+    if (Platform.OS === "web") {
+      return null;
+    }
+    const Constants = (await import("expo-constants")).default;
+    if (isStoreClient(Constants.executionEnvironment)) {
+      return null;
+    }
+    const mod = await import("react-native-purchases");
+    return mod.default as unknown as RevenueCatNative;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureConfigured(native: RevenueCatNative, clerkUserId?: string): Promise<void> {
+  if (configured) {
+    return;
+  }
+  native.configure({
+    apiKey: publicApiKey(),
+    appUserID: clerkUserId,
+  });
+  configured = true;
+}
+
+function isUserCancelled(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "userCancelled" in error &&
+    (error as { userCancelled?: boolean }).userCancelled === true
+  );
+}
+
 export function configure(): string {
   return publicApiKey();
 }
 
-// Vincula el App User ID de RevenueCat al clerkId (identity.subject).
 export async function logIn(clerkUserId: string): Promise<PurchaseResult> {
   if (!clerkUserId) {
     throw new Error(
       "logIn requiere clerkUserId = Clerk identity.subject (users.clerkId)",
     );
   }
-  configure();
-  return { ok: false, reason: "dev_build_required" };
+  const native = await loadNative();
+  if (!native) {
+    return { ok: false, reason: "dev_build_required" };
+  }
+  await ensureConfigured(native, clerkUserId);
+  await native.logIn(clerkUserId);
+  return { ok: true };
 }
 
-export async function purchaseMonthly(): Promise<PurchaseResult> {
-  configure();
-  return { ok: false, reason: "dev_build_required" };
+export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseResult> {
+  const native = await loadNative();
+  if (!native) {
+    return { ok: false, reason: "dev_build_required" };
+  }
+  if (clerkUserId) {
+    const identified = await logIn(clerkUserId);
+    if (!identified.ok) {
+      return identified;
+    }
+  } else {
+    await ensureConfigured(native);
+  }
+
+  try {
+    const offerings = await native.getOfferings();
+    const monthly = offerings.current?.monthly;
+    if (!monthly) {
+      return { ok: false, reason: "offering_unavailable" };
+    }
+    await native.purchasePackage(monthly);
+    return { ok: true };
+  } catch (error) {
+    if (isUserCancelled(error)) {
+      return { ok: false, reason: "user_cancelled" };
+    }
+    return { ok: false, reason: "purchase_failed" };
+  }
 }
 
 export async function restorePurchases(): Promise<PurchaseResult> {
-  configure();
-  return { ok: false, reason: "dev_build_required" };
+  const native = await loadNative();
+  if (!native) {
+    return { ok: false, reason: "dev_build_required" };
+  }
+  await ensureConfigured(native);
+  try {
+    await native.restorePurchases();
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "purchase_failed" };
+  }
 }
