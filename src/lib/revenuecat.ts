@@ -164,12 +164,19 @@ export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseRes
   }
 }
 
-export async function restorePurchases(): Promise<PurchaseResult> {
+export async function restorePurchases(clerkUserId?: string): Promise<PurchaseResult> {
   const native = await loadNative();
   if (!native) {
     return { ok: false, reason: "dev_build_required" };
   }
-  await ensureConfigured(native);
+  if (clerkUserId) {
+    const identified = await logIn(clerkUserId);
+    if (!identified.ok) {
+      return identified;
+    }
+  } else {
+    await ensureConfigured(native);
+  }
   try {
     await native.restorePurchases();
     return { ok: true };

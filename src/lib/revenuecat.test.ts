@@ -81,7 +81,8 @@ describe("revenuecat purchase + identity", () => {
     const native = mockNative();
     setRevenueCatNativeForTests(native);
 
-    await expect(restorePurchases()).resolves.toEqual({ ok: true });
+    await expect(restorePurchases("user_clerk_ana")).resolves.toEqual({ ok: true });
+    expect(native.logIn).toHaveBeenCalledWith("user_clerk_ana");
     expect(native.restorePurchases).toHaveBeenCalledOnce();
   });
 });
