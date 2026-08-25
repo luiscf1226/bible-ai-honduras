@@ -90,6 +90,40 @@ describe("verses.getByRef", () => {
   });
 });
 
+describe("verses.getById", () => {
+  it("devuelve el versículo por id, sin exponer el embedding", async () => {
+    const t = convexTest(schema, modules);
+    const juan = sampleByRef("Juan", 3, 16);
+    const id = await t.mutation(internal.rag.verses.upsertVerse, {
+      ...juan,
+      version: "RVR1960",
+      embedding: zeroEmbedding(),
+    });
+
+    const row = await t.query(api.rag.verses.getById, { id });
+    expect(row).toMatchObject({ book: "Juan", chapter: 3, verse: 16, version: "RVR1960", text: juan.text });
+    expect(row).not.toHaveProperty("embedding");
+  });
+
+  it("devuelve null si el id no existe", async () => {
+    const t = convexTest(schema, modules);
+    const other = await t.mutation(internal.rag.verses.upsertVerse, {
+      ...sampleByRef("Génesis", 1, 1),
+      version: "RVR1960",
+      embedding: zeroEmbedding(),
+    });
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      ...sampleByRef("Juan", 3, 16),
+      version: "RVR1960",
+      embedding: zeroEmbedding(),
+    });
+    await t.run((ctx) => ctx.db.delete(other));
+
+    const row = await t.query(api.rag.verses.getById, { id: other });
+    expect(row).toBeNull();
+  });
+});
+
 describe("verses.citedForUser", () => {
   it("usa RVR1960 por defecto y el bibleVersion del usuario autenticado", async () => {
     const t = convexTest(schema, modules);
@@ -119,6 +153,7 @@ describe("verses.citedForUser", () => {
     });
   });
 });
+
 
 describe("verses.upsertVerse", () => {
   it("es idempotente: la misma referencia no duplica la fila", async () => {
