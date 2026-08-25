@@ -1,7 +1,7 @@
 # Notas para revisión de tiendas / Store review notes
 
-**Estado:** texto de envío preparado desde el repositorio. Reemplazar los
-campos entre corchetes al crear la entrega. No pegar credenciales en git.
+**Estado:** texto de envío preparado desde el repositorio. Reemplazar solo los
+datos de acceso al crear la entrega. No pegar credenciales en git.
 
 ## Español
 
@@ -18,8 +18,11 @@ ilustradas.
 - Algunas respuestas y devocionales se generan con IA. El producto busca
   anclarlos a pasajes bíblicos y mostrar referencias; no se presentan como una
   autoridad religiosa ni como consejo independiente.
-- Las ilustraciones de las historias bíblicas se generan por IA y se deben
-  identificar como tales en el producto y en los materiales de tienda.
+- Anthropic genera texto, Voyage AI recupera contexto semántico y OpenAI genera
+  ilustraciones desde prompts editoriales. La app no envía conversaciones a
+  OpenAI para generar imágenes.
+- Las ilustraciones de las historias bíblicas se generan por IA y se identifican
+  como tales en los materiales de tienda.
 - La app no permite que un modelo se presente como Dios, Jesús ni el Espíritu
   Santo. Las conversaciones en primera persona están limitadas a personajes
   bíblicos humanos.
@@ -32,9 +35,9 @@ ilustradas.
 La app usa autenticación de Clerk y guarda un perfil mínimo, preferencias y el
 historial de conversaciones necesario para las funciones. El historial es
 privado por cuenta y la app expone una acción para borrar el historial. El
-repositorio especifica que ese historial no se usa para entrenar modelos de IA
-de terceros. La URL de la política de privacidad publicada será:
-`[URL HTTPS de la política publicada]`.
+Bible AI Honduras no entrena modelos propios con ese historial. La política
+publicada explica el tratamiento separado de cada proveedor de IA:
+`https://luiscf1226.github.io/bible-ai-honduras/privacidad/`.
 
 ### Compras
 
@@ -70,8 +73,11 @@ stories.
 - Some answers and devotionals are generated with AI. The product is designed
   to ground them in Bible passages and show references; they are not presented
   as religious authority or standalone advice.
-- Biblical-story illustrations are AI-generated and should be labelled as such
-  in the product and store materials.
+- Anthropic generates text, Voyage AI retrieves semantic context, and OpenAI
+  generates illustrations from editorial prompts. User conversations are not
+  sent to OpenAI for image generation.
+- Biblical-story illustrations are AI-generated and are identified as such in
+  the store materials.
 - The app does not allow a model to portray or impersonate God, Jesus, or the
   Holy Spirit. First-person conversations are limited to human biblical
   characters.
@@ -83,9 +89,19 @@ stories.
 The app uses Clerk authentication and stores the minimum profile information,
 preferences, and conversation history required for its features. Conversation
 history is private to the account and the app exposes a way to delete it. The
-repository specifies that this history is not used to train third-party AI
-models. Published privacy-policy URL:
-`[published HTTPS privacy-policy URL]`.
+Bible AI Honduras does not train its own models with that history. The published
+policy explains each AI provider's separate data handling:
+`https://luiscf1226.github.io/bible-ai-honduras/privacidad/`.
+
+### Suggested review path
+
+1. Sign in with the review account.
+2. Open **Preguntar**, ask about a passage, and verify the visible citation.
+3. Open **Voces**, select a human biblical character, and try “hablá como
+   Dios”; the app must refuse divine impersonation.
+4. Open **Sentir** and generate a devotional from a feeling.
+5. Open **Historias** to see the AI-illustrated biblical story.
+6. Open **Ajustes → Privacidad** to view the policy and hard-delete history.
 
 ### Purchases
 

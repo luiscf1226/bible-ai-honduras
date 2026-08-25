@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
@@ -13,6 +13,8 @@ const VERSIONS = [
   { label: "RVR1960", value: "RVR1960" as const },
   { label: "NVI", value: "NVI" as const },
 ];
+
+const PRIVACY_POLICY_URL = "https://luiscf1226.github.io/bible-ai-honduras/privacidad/";
 
 export default function AjustesScreen() {
   const { color } = useTheme();
@@ -156,8 +158,18 @@ export default function AjustesScreen() {
       <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Privacidad</Text>
       <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
         <Text style={[styles.privacyCopy, { color: color.inkMuted }]}>
-          Tus conversaciones son privadas y no se usan para entrenar modelos de IA.
+          Tus conversaciones son privadas. Compartimos con proveedores de IA solo lo necesario para responderte.
         </Text>
+        <Pressable
+          accessibilityHint="Abre la política en el navegador"
+          accessibilityRole="link"
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+          testID="ajustes-politica-privacidad"
+        >
+          <Text style={[styles.rowLabel, { color: color.ink }]}>Política de privacidad</Text>
+          <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           disabled={cleared}

@@ -10,11 +10,11 @@ portales de Apple o Google.
 | --- | --- | --- |
 | Manifiesto y guía de capturas | Listo para ejecutar | #37: pruebas E2E en dispositivo real |
 | Notas de revisión (ES + EN) | Listas para adaptar al portal | Cuenta de revisor y productos finales |
-| Política de privacidad | Borrador de contenido, **no publicado** | Dominio/URL, contacto responsable y revisión legal del titular |
+| Ficha de tienda (es-HN) | Lista para copiar | Precio y productos finales |
+| Política de privacidad | Lista para publicar | Despliegue de GitHub Pages al fusionar el PR |
 
-No subir este borrador como si fuera una política publicada. Antes de enviar
-una build, el responsable del producto debe publicar una URL HTTPS estable,
-revisar el texto legal y reemplazar todos los campos entre corchetes.
+URL prevista de la política:
+`https://luiscf1226.github.io/bible-ai-honduras/privacidad/`.
 
 ## Archivos
 
@@ -22,8 +22,10 @@ revisar el texto legal y reemplazar todos los campos entre corchetes.
   estado y cómo nombrar los archivos.
 - [review-notes.md](./review-notes.md): texto bilingüe para App Review y Play
   Console, incluida la explicación de IA y contenido religioso.
-- [privacy-policy-draft.md](./privacy-policy-draft.md): contenido verificado
-  contra el repositorio que aún requiere publicación y revisión legal.
+- [privacy-policy.md](./privacy-policy.md): copia editable de la política que
+  se publica como HTML en GitHub Pages.
+- [listing-es-HN.md](./listing-es-HN.md): título, subtítulo, descripción y
+  palabras clave con conteos para App Store y Google Play.
 
 ## Qué no certifica este paquete
 
@@ -33,6 +35,12 @@ revisar el texto legal y reemplazar todos los campos entre corchetes.
 - No prueba compras reales, restauración ni los cinco módulos en dispositivos.
 - No confirma licencias de contenido bíblico ni la disponibilidad de NVI; el
   PRD aún marca esa licencia como pendiente.
+- No resuelve el borrado completo de cuenta ni el consentimiento explícito
+  antes de compartir texto con proveedores de IA; ambos son bloqueantes de
+  cumplimiento de tienda y deben filarse aparte.
+- La cuenta de Voyage AI debe tener activado y documentado el opt-out de uso
+  para entrenamiento antes de volver a prometer «no se usa para entrenar» en
+  producto o materiales.
 
 La evidencia de esas verificaciones pertenece a #37 y a los responsables de
 las cuentas de distribución.

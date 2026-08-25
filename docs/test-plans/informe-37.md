@@ -73,7 +73,7 @@ Intento 2026-08-25. **Ningún caso se ejecutó en iPhone.** El plan marca compra
 | Voces: chat humano + rechazo Jesús/Dios/Espíritu Santo | BLOCKED | Guardrail unitario verde; falta runtime |
 | Historias: generar → visor de paneles | BLOCKED | 2ª muestra free va a `/paywall` directo (H2) |
 | Sentimiento: selector + texto libre → devocional + oración | BLOCKED | Cupo 3 (`QUOTA_LIMITS.feelings`) |
-| Agotar cuota en los 4 módulos → paywall | BLOCKED | Q&A 5, Voces 5, Sentir 3, Historias 1 (lifetime). Q&A usa `QaLimitScreen` local; Historias salta `LimitReached` |
+| Agotar cuota en los 4 módulos → paywall | BLOCKED | Q&A 5, Voces 5, Sentir 3, Historias 1 (lifetime). Q&A/Voces/Sentir usan `LimitReached` compartido; Historias salta a `/paywall` directo (H2) |
 | Compra sandbox $4.99 → desbloqueo de los 4 | BLOCKED | H1 + H3. Paywall muestra `$4.99`; checkout exige Test Store + webhook + dev build |
 | Restaurar compra | BLOCKED | `paywall-restore` → `restorePurchases`; misma dependencia de dev build |
 
@@ -102,7 +102,7 @@ Para desbloquear (humano, sin inventar bundle id en este PR):
 |---|---|---|---|
 | B1 Pregunta con pasaje | BLOCKED | | Carril A |
 | B2 Pregunta libre | BLOCKED | | CTA «Prefiero preguntar directo…» |
-| B3 Límite Q&A | BLOCKED | | 6ª → `QaLimitScreen` local, no `LimitReached` |
+| B3 Límite Q&A | BLOCKED | | 6ª → `LimitReached` compartido (`module: "qa"`) |
 | B4 Share Q&A | BLOCKED | | |
 
 ### Dev C
