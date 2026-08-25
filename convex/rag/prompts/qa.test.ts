@@ -1,0 +1,37 @@
+import { describe, expect, it } from "vitest";
+
+import { buildQaUserPrompt, formatCitation, NO_RELEVANT_CONTENT_ANSWER, QA_SYSTEM_PROMPT } from "./qa";
+
+const VERSE = { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "Jehová es mi pastor; nada me faltará." };
+
+describe("formatCitation", () => {
+  it("arma la referencia legible", () => {
+    expect(formatCitation(VERSE)).toBe("Salmos 23:1 (RVR1960)");
+  });
+});
+
+describe("buildQaUserPrompt", () => {
+  it("incluye la pregunta y el texto del versículo citado", () => {
+    const prompt = buildQaUserPrompt("¿Quién es mi pastor?", [VERSE]);
+    expect(prompt).toContain("¿Quién es mi pastor?");
+    expect(prompt).toContain(VERSE.text);
+    expect(prompt).toContain(formatCitation(VERSE));
+  });
+
+  it("incluye todos los versículos cuando hay más de uno", () => {
+    const second = { ...VERSE, verse: 2, text: "En lugares de delicados pastos me hará descansar." };
+    const prompt = buildQaUserPrompt("¿Qué más dice?", [VERSE, second]);
+    expect(prompt).toContain(VERSE.text);
+    expect(prompt).toContain(second.text);
+  });
+});
+
+describe("QA_SYSTEM_PROMPT / NO_RELEVANT_CONTENT_ANSWER", () => {
+  it("el system prompt prohíbe opinión fuera del contexto (regla dura #4)", () => {
+    expect(QA_SYSTEM_PROMPT).toContain("SOLO a partir de los versículos");
+  });
+
+  it("la respuesta de fallback no inventa una cita", () => {
+    expect(NO_RELEVANT_CONTENT_ANSWER).not.toMatch(/\d+:\d+/);
+  });
+});

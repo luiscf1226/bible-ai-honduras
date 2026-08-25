@@ -38,6 +38,26 @@ export const getByRef = query({
   },
 });
 
+// Consulta pública por id (usada tras un vectorSearch, que solo devuelve
+// _id + _score). No expone el embedding.
+export const getById = query({
+  args: { id: v.id("verses") },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.id);
+    if (!row) {
+      return null;
+    }
+
+    return {
+      book: row.book,
+      chapter: row.chapter,
+      verse: row.verse,
+      version: row.version,
+      text: row.text,
+    };
+  },
+});
+
 // Idempotente en (version, book, chapter, verse): si existe, parchea texto
 // y embedding; si no, inserta. Solo la ingesta (internal) puede escribir.
 export const upsertVerse = internalMutation({
