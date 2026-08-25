@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
 import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
-import { purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
+import { purchasesConfigured, purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
@@ -19,6 +19,9 @@ export default function PaywallScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [awaitingUnlock, setAwaitingUnlock] = useState(false);
+  // Beta sin RevenueCat (#93): sin key no hay compra. Se oculta precio y CTA
+  // en vez de dejarlos romper — Apple rechaza precio visible sin IAP funcional.
+  const canPurchase = purchasesConfigured();
 
   const close = () => {
     if (router.canGoBack()) {
@@ -122,40 +125,52 @@ export default function PaywallScreen() {
             ))}
           </View>
 
-          <View style={styles.priceCard}>
-            <Text style={styles.price}>{PAYWALL_DISPLAY_PRICE}</Text>
-            <Text style={styles.priceHint}>al mes · cancela cuando quieras</Text>
-          </View>
+          {canPurchase ? (
+            <View style={styles.priceCard}>
+              <Text style={styles.price}>{PAYWALL_DISPLAY_PRICE}</Text>
+              <Text style={styles.priceHint}>al mes · cancela cuando quieras</Text>
+            </View>
+          ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={() => void onSubscribe()}
-            style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
-            testID="paywall-subscribe"
-          >
-            <Text style={styles.ctaLabel}>{isPro ? "Ya eres Pro" : "Empezar con Pro"}</Text>
-          </Pressable>
+          {canPurchase || isPro ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy || !canPurchase}
+              onPress={() => void onSubscribe()}
+              style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
+              testID="paywall-subscribe"
+            >
+              <Text style={styles.ctaLabel}>{isPro ? "Ya eres Pro" : "Empezar con Pro"}</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.notice} testID="paywall-beta-notice">
+              Pro todavía no está a la venta en esta beta. Escribinos y te lo activamos.
+            </Text>
+          )}
 
           <Pressable accessibilityRole="button" onPress={close} style={styles.skip}>
             <Text style={styles.skipLabel}>Seguir en la versión gratis</Text>
           </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={() => void onRestore()}
-            style={styles.skip}
-            testID="paywall-restore"
-          >
-            <Text style={styles.skipLabel}>Restaurar compras</Text>
-          </Pressable>
+          {canPurchase ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void onRestore()}
+              style={styles.skip}
+              testID="paywall-restore"
+            >
+              <Text style={styles.skipLabel}>Restaurar compras</Text>
+            </Pressable>
+          ) : null}
 
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-          <Text style={styles.legal}>
-            Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.
-          </Text>
+          {canPurchase ? (
+            <Text style={styles.legal}>
+              Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.
+            </Text>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

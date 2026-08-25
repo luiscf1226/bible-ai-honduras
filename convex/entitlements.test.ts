@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import {
+  BETA_ENTITLEMENT_SOURCE,
   authorizationHeaderIsValid,
   handleRevenueCatWebhook,
   parseRevenueCatEvent,
@@ -260,5 +261,77 @@ describe("handleRevenueCatWebhook", () => {
     expect(response.status).toBe(200);
     expect(await t.run((c) => c.db.query("users").collect())).toHaveLength(0);
     expect(await t.run((c) => c.db.query("entitlements").collect())).toHaveLength(0);
+  });
+});
+
+describe("entitlements.grantProForBeta (#93)", () => {
+  it("otorga Pro a mano y desbloquea igual que una compra real", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_tester").mutation(api.users.upsert, {});
+
+    const result = await t.mutation(internal.entitlements.grantProForBeta, {
+      clerkId: "user_tester",
+    });
+    expect(result).toMatchObject({ ignored: false, isPro: true });
+
+    expect(await asUser(t, "user_tester").query(api.entitlements.mine, {})).toMatchObject({
+      isPro: true,
+    });
+  });
+
+  it("marca la fila con source beta_manual, no como si fuera del webhook", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_src").mutation(api.users.upsert, {});
+    await t.mutation(internal.entitlements.grantProForBeta, { clerkId: "user_src" });
+
+    const rows = await t.run((ctx) => ctx.db.query("entitlements").collect());
+    expect(rows).toHaveLength(1);
+    expect(rows[0].source).toBe(BETA_ENTITLEMENT_SOURCE);
+  });
+
+  it("isPro:false revoca el Pro de cortesía", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_revoke").mutation(api.users.upsert, {});
+    await t.mutation(internal.entitlements.grantProForBeta, { clerkId: "user_revoke" });
+    await t.mutation(internal.entitlements.grantProForBeta, {
+      clerkId: "user_revoke",
+      isPro: false,
+    });
+    expect(await asUser(t, "user_revoke").query(api.entitlements.mine, {})).toMatchObject({
+      isPro: false,
+    });
+  });
+
+  it("respeta expiresAt: un Pro vencido se lee como free", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_exp").mutation(api.users.upsert, {});
+    await t.mutation(internal.entitlements.grantProForBeta, {
+      clerkId: "user_exp",
+      expiresAt: 1_000,
+    });
+    expect(await asUser(t, "user_exp").query(api.entitlements.mine, {})).toMatchObject({
+      isPro: false,
+    });
+  });
+
+  it("un clerkId desconocido no crea usuario ni entitlement", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.mutation(internal.entitlements.grantProForBeta, {
+      clerkId: "user_ghost_beta",
+    });
+    expect(result).toEqual({ ignored: true });
+    expect(await t.run((ctx) => ctx.db.query("entitlements").collect())).toHaveLength(0);
+    expect(await t.run((ctx) => ctx.db.query("users").collect())).toHaveLength(0);
+  });
+
+  it("no duplica la fila si ya existía una del webhook", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_mix").mutation(api.users.upsert, {});
+    await t.mutation(internal.entitlements.upsertFromWebhook, { clerkId: "user_mix", isPro: false });
+    await t.mutation(internal.entitlements.grantProForBeta, { clerkId: "user_mix" });
+
+    const rows = await t.run((ctx) => ctx.db.query("entitlements").collect());
+    expect(rows).toHaveLength(1);
+    expect(rows[0].isPro).toBe(true);
   });
 });
