@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
 import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
-import { purchaseMonthly } from "../src/lib/revenuecat";
+import { purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
@@ -59,6 +59,27 @@ export default function PaywallScreen() {
       setNotice("No pudimos completar la compra. Seguí en la versión gratis por ahora.");
     } catch {
       setNotice("No pudimos abrir la compra. Seguí en la versión gratis por ahora.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRestore = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await restorePurchases(userId ?? undefined);
+      if (result.ok) {
+        setAwaitingUnlock(true);
+        return;
+      }
+      if (result.reason === "dev_build_required") {
+        setNotice("La restauración se completa en un development build. Seguí en la versión gratis por ahora.");
+        return;
+      }
+      setNotice("No encontramos una compra para restaurar. Seguí en la versión gratis por ahora.");
+    } catch {
+      setNotice("No pudimos restaurar la compra. Seguí en la versión gratis por ahora.");
     } finally {
       setBusy(false);
     }
@@ -118,6 +139,16 @@ export default function PaywallScreen() {
 
           <Pressable accessibilityRole="button" onPress={close} style={styles.skip}>
             <Text style={styles.skipLabel}>Seguir en la versión gratis</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => void onRestore()}
+            style={styles.skip}
+            testID="paywall-restore"
+          >
+            <Text style={styles.skipLabel}>Restaurar compras</Text>
           </Pressable>
 
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
