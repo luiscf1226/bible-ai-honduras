@@ -3,6 +3,7 @@ import { makeFunctionReference } from "convex/server";
 
 import { api } from "./_generated/api";
 import { action, mutation } from "./_generated/server";
+import type { QuotaModule } from "./quotas";
 
 const MAX_FEELINGS = 4;
 const MAX_NOTE_LENGTH = 600;
@@ -106,15 +107,27 @@ export const saveGenerated = mutation({
   },
 });
 
+type GenerateResult =
+  | { allowed: false; reason: "limit_reached"; module: QuotaModule }
+  | { allowed: true; conversationId: string; devotional: FeelingDevotional };
+
 // Este módulo no llama a Anthropic ni a Voyage: reutiliza el pipeline RAG de
 // rag.answer. Si no hay una cita recuperada, no devolvemos un devocional que
 // parezca una opinión libre.
+//
+// El return type está anotado a mano (no inferido): sin esto, TS entra en
+// una referencia circular al resolver `api` (esta acción llama a
+// `ctx.runAction(api.rag.answer.ask, ...)`, que forma parte del mismo `api`
+// que depende de resolver el tipo de esta acción) y termina marcando como
+// `any` código sin relación en todo el proyecto (retrieve.ts, componentes
+// de voces/sentir, etc.) — visto al mergear master con la corrección de
+// citación de rag/answer.ts.
 export const generate = action({
   args: {
     feelings: v.array(v.string()),
     note: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<GenerateResult> => {
     normalizedInput(args);
     const user = await ctx.runQuery(api.users.current, {});
     if (!user) {

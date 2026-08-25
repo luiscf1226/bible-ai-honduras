@@ -65,7 +65,13 @@ describe("feelings.generate", () => {
     vi.stubEnv("VOYAGE_API_KEY", "test-key");
     const fetchMock = vi.fn((url: string) => {
       if (url === VOYAGE_EMBEDDINGS_URL) return Promise.resolve(jsonResponse({ data: [{ embedding: unitVector(0) }] }));
-      if (url === ANTHROPIC_MESSAGES_URL) return Promise.resolve(jsonResponse({ content: [{ type: "text", text: "Dios cuida a su pueblo aun cuando el camino pesa." }] }));
+      if (url === ANTHROPIC_MESSAGES_URL) {
+        const structured = {
+          answer: "Dios cuida a su pueblo aun cuando el camino pesa.",
+          citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
+        };
+        return Promise.resolve(jsonResponse({ content: [{ type: "text", text: JSON.stringify(structured) }] }));
+      }
       throw new Error(`fetch no esperado: ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);

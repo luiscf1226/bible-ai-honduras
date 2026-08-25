@@ -4,7 +4,8 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, query } from "./_generated/server";
-import { generateAnswer } from "./rag/llm";
+import { isGrounded } from "./rag/answer";
+import { generateStructuredAnswer } from "./rag/llm";
 import { retrieveTopVerses } from "./rag/retrieve";
 import { voiceCharacters } from "./voicesCatalog";
 import {
@@ -16,6 +17,7 @@ import {
   buildVoicesSystemPrompt,
   buildVoicesUserPrompt,
   formatVoiceCitation,
+  VOICE_RESPONSE_SCHEMA,
   voicesNoContextReply,
 } from "./voicesPrompt";
 
@@ -152,10 +154,17 @@ export const sendMessage = action({
     }
 
     const primary = verses[0];
-    let answer = await generateAnswer(
-      buildVoicesSystemPrompt(character),
-      buildVoicesUserPrompt(character, args.text, verses),
-    );
+    const structured = await generateStructuredAnswer({
+      system: buildVoicesSystemPrompt(character),
+      userPrompt: buildVoicesUserPrompt(character, args.text, verses),
+      schema: VOICE_RESPONSE_SCHEMA,
+    });
+    // Si el modelo cita algo fuera del contexto recuperado, esa prosa nunca
+    // llega al usuario (regla dura #4) — cae a una respuesta segura anclada
+    // solo en el texto realmente recuperado.
+    let answer = isGrounded(structured, verses)
+      ? structured.answer
+      : `"${primary.text}"\n\n${formatVoiceCitation(primary)}`;
     if (assistantSpeaksAsDivine(answer)) {
       answer = DIVINE_REFUSAL;
     }

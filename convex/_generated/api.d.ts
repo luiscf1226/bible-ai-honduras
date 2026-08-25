@@ -12,6 +12,7 @@ import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
 import type * as devotionalCatalog from "../devotionalCatalog.js";
 import type * as entitlements from "../entitlements.js";
+import type * as feelings from "../feelings.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as quotas from "../quotas.js";
@@ -26,6 +27,8 @@ import type * as stories from "../stories.js";
 import type * as users from "../users.js";
 import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
+import type * as voicesGuardrail from "../voicesGuardrail.js";
+import type * as voicesPrompt from "../voicesPrompt.js";
 
 import type {
   ApiFromModules,
@@ -38,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   devotional: typeof devotional;
   devotionalCatalog: typeof devotionalCatalog;
   entitlements: typeof entitlements;
+  feelings: typeof feelings;
   history: typeof history;
   http: typeof http;
   quotas: typeof quotas;
@@ -52,6 +56,8 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   voices: typeof voices;
   voicesCatalog: typeof voicesCatalog;
+  voicesGuardrail: typeof voicesGuardrail;
+  voicesPrompt: typeof voicesPrompt;
 }>;
 
 /**
