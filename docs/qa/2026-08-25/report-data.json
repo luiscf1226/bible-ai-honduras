@@ -1,0 +1,371 @@
+{
+  "branch": "master",
+  "commit": "871c0ad8 — Merge PR #88 (fix/25-typed-convex-refs)",
+  "date": "25 de agosto de 2026",
+  "shot_count": 49,
+  "finding_count": 24,
+  "tests": "175/175",
+  "test_files": 31,
+  "n_high": 6,
+  "n_med": 8,
+  "n_low": 10,
+
+  "summary": [
+    "**La app está entera y se ve como el prototipo.** Los 4 módulos (Devocional, Pregunta al texto, Voces, Historias), el onboarding, los ajustes, el historial y el paywall existen, navegan y renderizan con los tokens de `design/tokens.json`. 175 tests en verde, `tsc --noEmit` limpio.",
+    "**Hay un agujero de navegación serio.** `app/(tabs)/` no tiene `_layout.tsx`, o sea que no existe la barra de tabs: Home es el único punto de entrada a los 4 módulos. Y Home esconde la grilla de módulos cuando está activo el modo noche suave. Con modo noche encendido, un usuario ya no puede llegar a Pregunta al texto, Voces ni Historias desde ningún lado (A1).",
+    "**Los transversales no están unificados como pide la regla dura #3.** Sentimiento y Voces usan `LimitReached`; Q&A tiene una copia local de esa pantalla con copy distinto; Historias ni siquiera muestra pantalla de límite, salta directo al paywall. Son 3 comportamientos para el mismo momento del funnel (A2, A3).",
+    "**Convex está tirando un warning real en cada arranque:** módulos de servidor entran al bundle del cliente vía `src/lib/limitCopy.ts` → `convex/quotas.ts` → `convex/devotional.ts`. Convex avisa que eso va a tirar error en versiones futuras (A4).",
+    "**NVI se puede elegir en Ajustes pero no tiene corpus ingerido**, así que el versículo del día se queda sin texto y el selector de versículos queda vacío (A5). El historial es una pantalla de solo lectura: las filas no son tocables, no se puede reabrir ninguna conversación (A6)."
+  ],
+
+  "routes": [
+    ["/", "app/index.tsx", "Redirige a /home o /splash según sesión", "arranque"],
+    ["/splash", "app/splash.tsx", "Marca + \"Toca para entrar\"", "sin sesión"],
+    ["/login", "app/(auth)/login.tsx", "Google, Apple o correo", "desde splash"],
+    ["/email", "app/(auth)/email.tsx", "Código de 6 dígitos (sign-in o sign-up)", "desde login"],
+    ["/onboarding", "app/(auth)/onboarding.tsx", "3 pasos de valor + \"Saltar\"", "tras autenticarse"],
+    ["/notifications", "app/(auth)/notifications.tsx", "Elegir hora del recordatorio", "fin del onboarding"],
+    ["/home", "app/(tabs)/home.tsx", "Devocional del día + accesos a los módulos", "raíz autenticada"],
+    ["/sentir", "app/(tabs)/sentir.tsx", "Devocional por sentimiento + historial propio", "tarjeta \"¿Cómo estás hoy?\""],
+    ["/preguntar", "app/(tabs)/preguntar.tsx", "Selector libro → capítulo → versículo", "grilla de Home"],
+    ["/preguntar/chat", "app/(tabs)/preguntar/chat.tsx", "Q&A con cita RVR1960", "desde el selector"],
+    ["/voces", "app/(tabs)/voces.tsx", "Lista de 6 personajes humanos", "grilla de Home"],
+    ["/voces/[slug]", "app/(tabs)/voces/[slug].tsx", "Chat en 1ra persona + sugerencias", "desde la lista"],
+    ["/historias", "app/(tabs)/historias.tsx", "Catálogo de 5 historias", "grilla de Home"],
+    ["/historias/[storyId]", "app/(tabs)/historias/[storyId].tsx", "Visor de 4 paneles ilustrados", "desde el catálogo"],
+    ["/ajustes", "app/ajustes.tsx", "Plan, versión, modo noche, recordatorio, privacidad", "engranaje en Home"],
+    ["/historial", "app/historial.tsx", "Lista de conversaciones", "Ajustes → Mis conversaciones"],
+    ["/paywall", "app/paywall.tsx", "$4.99/mes, comprar y restaurar", "límites y tarjeta de plan"]
+  ],
+
+  "flows": [
+    {
+      "id": "flujo-auth",
+      "title": "1 · Entrar y onboarding",
+      "route": "/splash → /login → /email → /onboarding ×3 → /notifications → /home",
+      "steps": [
+        {"action": "Abrir la app sin sesión", "observed": "Splash con la marca y la bajada TU FE. TUS PREGUNTAS. SU PALABRA.", "shot": "01-splash.png"},
+        {"action": "Tocar «Toca para entrar»", "observed": "Login con Google, Apple y «Usar mi correo». Aviso legal al pie.", "shot": "02-login.png"},
+        {"action": "Tocar «Usar mi correo»", "observed": "Campo de correo con autofocus; el CTA arranca deshabilitado hasta escribir.", "shot": "03-email.png"},
+        {"action": "Escribir el correo y enviar", "observed": "Pasa al paso de código: «Revisá tu correo», input de 6 dígitos y «Usar otro correo».", "note": "El copy acá vosea («Revisá», «Escribí») mientras el resto de la app tutea. Ver B8.", "shot": "04-email-codigo.png"},
+        {"action": "Confirmar el código", "observed": "Onboarding paso 1 de 3: «Un lugar tranquilo para leer».", "shot": "05-onboarding-1.png"},
+        {"action": "Continuar", "observed": "Paso 2: «Pregunta lo que no te atreves a preguntar».", "shot": "06-onboarding-2.png"},
+        {"action": "Continuar", "observed": "Paso 3: privacidad. El CTA cambia a «Empezar».", "shot": "07-onboarding-3.png"},
+        {"action": "Empezar", "observed": "Selector de hora del recordatorio: 6:00, 12:00, 21:00. Preseleccionada 6:00.", "shot": "08-notificaciones.png"},
+        {"action": "Activar el recordatorio (en navegador)", "observed": "«Los recordatorios se activan desde la app en tu teléfono». Es el camino correcto de `dailyReminder.ts` en web.", "note": "El mensaje reemplaza a la descripción en el mismo lugar; no hay un bloque de error diferenciado.", "shot": "09-notificaciones-web-unsupported.png"},
+        {"action": "«Prefiero sin avisos»", "observed": "Cae en Home con el devocional del día ya cargado.", "shot": "10-home.png"}
+      ]
+    },
+    {
+      "id": "flujo-home",
+      "title": "2 · Devocional diario (Home)",
+      "route": "/home — estados: normal, expandido, error, modo noche, NVI",
+      "steps": [
+        {"action": "Ver Home", "observed": "Fecha en español de Honduras, versículo del día citado con versión, tarjeta «¿Cómo estás hoy?» y grilla «Acompañamiento» con los 3 módulos.", "shot": "10-home.png"},
+        {"action": "Tocar la tarjeta del versículo", "observed": "Se abre el devocional completo: imagen, reflexión y «Compartir por WhatsApp».", "note": "El botón dice WhatsApp pero `shareContent` abre el share sheet genérico de RN (`Share.share`). Ver B14.", "shot": "11-home-devocional-abierto.png"},
+        {"action": "Activar «Modo noche suave» en Ajustes y volver", "observed": "El tema oscuro se aplica bien, pero desaparecen «Acompañamiento» y las 3 tarjetas de módulo. Solo queda el devocional y Sentimiento.", "note": "A1 — sin barra de tabs, esto deja Q&A, Voces e Historias inalcanzables.", "bad": true, "shot": "12-home-modo-noche.png"},
+        {"action": "Simular que `devotional:today` falla", "observed": "«No pudimos preparar tu lectura. Tocá para intentarlo de nuevo.» El tap reintenta.", "note": "La línea de abajo sigue diciendo «Leer el devocional de hoy» en vez de «Reintentar». Ver B7.", "shot": "13-home-error-devocional.png"},
+        {"action": "Elegir NVI en Ajustes y volver a Home", "observed": "La tarjeta muestra solo «Salmos 46:1 / NVI». Sin texto del versículo.", "note": "A5 — NVI no tiene corpus ingerido; el fallback es correcto en el código pero el resultado para el usuario es una tarjeta vacía.", "bad": true, "shot": "37-home-nvi-sin-texto.png"}
+      ]
+    },
+    {
+      "id": "flujo-preguntar",
+      "title": "3 · Pregunta al texto (Q&A + RAG)",
+      "route": "/preguntar → /preguntar/chat — estados: libre, con pasaje, enviando, límite, Pro",
+      "steps": [
+        {"action": "Abrir «Pregunta al texto»", "observed": "Los 66 libros del canon protestante con su cantidad de capítulos.", "note": "Sin buscador ni separación AT/NT, y el atajo «Prefiero preguntar directo» queda al final de las 66 filas. Ver B1.", "shot": "14-preguntar-libros.png"},
+        {"action": "Elegir Salmos", "observed": "Grilla de 150 capítulos.", "note": "El encabezado dice solo «Elige un capítulo»; no recuerda que el libro es Salmos. Ver B2.", "shot": "15-preguntar-capitulos.png"},
+        {"action": "Elegir el capítulo 46", "observed": "Versículos indexados del capítulo + CTA «Preguntar sobre Salmos 46».", "shot": "16-preguntar-versiculos.png"},
+        {"action": "Tocar el versículo 1", "observed": "Chat con contexto «Salmos 46:1», contador «4 de 5 preguntas gratis hoy», respuesta con cita al pie y «Compartir esta respuesta».", "shot": "17-preguntar-chat.png"},
+        {"action": "Escribir una pregunta y enviar", "observed": "Aparece «Buscando en el texto…» — pero la pregunta recién enviada no se ve en el hilo hasta que llega la respuesta.", "note": "M2 — el usuario ve su pregunta desaparecer del input sin eco en la conversación.", "bad": true, "shot": "18-preguntar-chat-enviando.png"},
+        {"action": "Esperar la respuesta", "observed": "El par pregunta/respuesta aparece completo, con su cita.", "shot": "19-preguntar-chat-respuesta.png"},
+        {"action": "Entrar con la cuota agotada", "observed": "«Por hoy llegaste al límite. Usaste tus 5 preguntas gratis de hoy. Vuelven mañana a las 6:00 a.m.»", "note": "A3 — pantalla local, no el componente compartido; y le falta la coletilla «y el devocional del día sigue abierto para ti» que sí tienen Voces y Sentimiento.", "bad": true, "shot": "20-preguntar-limite.png"},
+        {"action": "Entrar como Pro", "observed": "El contador cambia a «Pro · sin límite» y no hay corte.", "shot": "42-preguntar-pro.png"},
+        {"action": "Entrar sin elegir pasaje", "observed": "Contexto «Pregunta libre» y estado vacío que explica que toda respuesta cita un versículo.", "shot": "43-preguntar-libre-vacio.png"},
+        {"action": "Con NVI seleccionada, abrir Salmos 46", "observed": "«Todavía no tenemos versículos indexados de Salmos 46. Podés preguntar sobre el capítulo igual.»", "note": "A5 — el capítulo entero queda sin versículos porque solo RVR1960 está ingerido.", "bad": true, "shot": "38-preguntar-nvi-vacio.png"}
+      ]
+    },
+    {
+      "id": "flujo-voces",
+      "title": "4 · Voces (chat en 1ra persona)",
+      "route": "/voces → /voces/[slug] — incluye la verificación de la regla dura #2",
+      "steps": [
+        {"action": "Abrir Voces", "observed": "6 personajes humanos (Moisés, David, Ester, Pablo, Rut, Elías) y el aviso explícito de que de Dios, Jesús y el Espíritu Santo se habla en 3ra persona.", "note": "Los avatares son círculos con degradé y la inicial; el PRD §4.3 pide «un avatar/ilustración visual propio». Ver M6.", "shot": "21-voces-lista.png"},
+        {"action": "Abrir Moisés", "observed": "Mensaje de apertura en 1ra persona + dos sugerencias de pregunta.", "note": "El saludo enlatado ya ofrece «Compartir esta respuesta» antes de que exista conversación real. Ver B6.", "shot": "22-voces-chat.png"},
+        {"action": "Tocar una sugerencia", "observed": "«Ester está escribiendo…» mientras responde.", "note": "M2 — igual que en Q&A, la pregunta enviada no aparece en el hilo mientras se espera.", "bad": true, "shot": "23b-voces-escribiendo.png"},
+        {"action": "Ver el hilo con respuesta", "observed": "Burbujas usuario/personaje y opción de compartir la respuesta.", "shot": "23-voces-chat-respuesta.png"},
+        {"action": "Entrar con la cuota agotada", "observed": "Pantalla `LimitReached` compartida: «Usaste tus 5 conversaciones gratis de hoy. Vuelven mañana a las 6:00 a.m., y el devocional del día sigue abierto para ti.»", "note": "Comparar con la captura 20: mismo momento, dos copys distintos.", "shot": "24-voces-limite.png"},
+        {"action": "Forzar /voces/jesus a mano", "observed": "«Ese personaje no está en Voces.» La regla dura #2 se sostiene también en el ruteo.", "note": "B3 — la pantalla está sin layout: texto pegado a la esquina, sin padding ni estructura de `AppScreen`.", "shot": "44-voces-personaje-invalido.png"},
+        {"action": "Cargar la lista con la query pendiente", "observed": "Título y aviso, pero ningún indicador de carga: la lista simplemente no está.", "note": "B4 — Historias sí muestra «Cargando historias…».", "shot": "47-voces-cargando-sin-estado.png"}
+      ]
+    },
+    {
+      "id": "flujo-sentir",
+      "title": "5 · Devocional por sentimiento",
+      "route": "/sentir — selección, generación, resultado, historial propio, límite",
+      "steps": [
+        {"action": "Abrir «¿Cómo estás hoy?»", "observed": "Cuota arriba, 14 chips de sentimiento, campo libre opcional, disclaimer de que no es consejo pastoral, y «LOS DE ANTES» con los devocionales previos.", "shot": "25-sentir.png"},
+        {"action": "Elegir un sentimiento", "observed": "El chip se marca en oscuro y el CTA se habilita.", "note": "Deshabilitado, el CTA se ve como un botón primario gris sólido; cuesta distinguir que no se puede tocar. Ver B15.", "shot": "25b-sentir-seleccion.png"},
+        {"action": "Tocar «Prepárame un devocional»", "observed": "Pantalla de espera: «Buscando un pasaje que hable de esto… Tomá un respiro mientras tanto.»", "note": "B11 — sin spinner ni forma de volver: el botón de atrás desaparece mientras genera.", "shot": "26-sentir-generando.png"},
+        {"action": "Esperar el resultado", "observed": "Título, versículo citado con versión, reflexión, oración corta, «Dame otro enfoque» y la nota de que es privado.", "note": "La «imagen» del devocional es un degradé plano, no una ilustración.", "shot": "27-sentir-resultado.png"},
+        {"action": "Abrir un devocional desde «LOS DE ANTES» y tocar «Dame otro enfoque»", "observed": "No pasa nada. El botón no está deshabilitado y no da ninguna señal.", "note": "M1 — `generateDevotional` sale temprano porque `canGenerate` es false (no hay chips ni texto al venir del historial).", "bad": true, "shot": "28-sentir-historial-dame-otro-enfoque.png"},
+        {"action": "Entrar con la cuota agotada", "observed": "`LimitReached` con la copia de 3 devocionales.", "shot": "29-sentir-limite.png"}
+      ]
+    },
+    {
+      "id": "flujo-historias",
+      "title": "6 · Historias ilustradas",
+      "route": "/historias → /historias/[storyId] — catálogo, visor, estados de imagen, límite",
+      "steps": [
+        {"action": "Abrir Historias", "observed": "5 historias del catálogo, cada una con referencia y «4 ESCENAS».", "note": "B12 — miniaturas vacías (rectángulo gris), sin indicador de cuota y sin botón de volver.", "shot": "30-historias-catalogo.png"},
+        {"action": "Estado de carga", "observed": "«Cargando historias…»", "shot": "46-historias-cargando.png"},
+        {"action": "Tocar «El arca de Noé»", "observed": "Se llama a `stories:create`, se consume la cuota y se abre el visor con «Compartir esta historia» y los paneles.", "shot": "31-historias-visor.png"},
+        {"action": "Bajar por los paneles", "observed": "Los 3 estados de imagen conviven: lista, «Generando ilustración…» y «Ilustración aún no disponible».", "note": "M4 — una escena fallida se muestra igual que una pendiente («Aparecerá aquí cuando la generación esté lista») y no hay reintento.", "bad": true, "shot": "32-historias-escenas-estados.png"},
+        {"action": "Tocar una historia con la cuota agotada", "observed": "Salta directo al paywall, sin pasar por la pantalla de límite.", "note": "A2 — es el único de los 4 módulos que se comporta así.", "bad": true, "shot": "33-paywall.png"},
+        {"action": "Abrir /historias/no-existe", "observed": "«Historia no encontrada» con CTA «Volver a historias». Bien construida, con `AppScreen`.", "shot": "45-historia-no-encontrada.png"}
+      ]
+    },
+    {
+      "id": "flujo-ajustes",
+      "title": "7 · Ajustes, historial y paywall",
+      "route": "/ajustes → /historial · /paywall",
+      "steps": [
+        {"action": "Abrir Ajustes desde el engranaje de Home", "observed": "Tarjeta de plan, versión de la Biblia, modo noche, hora del recordatorio, «Mis conversaciones» y borrar historial.", "note": "M3 — «3 preguntas y 2 devocionales al día» no coincide con `QUOTA_LIMITS` (5 y 3). Y falta cerrar sesión (M5).", "bad": true, "shot": "35-ajustes.png"},
+        {"action": "Cambiar a NVI y encender modo noche", "observed": "Ambos se aplican al instante en toda la app.", "note": "B9 — en modo noche la tarjeta «Plan gratis» se invierte a clara y parece la tarjeta destacada de Pro.", "shot": "36-ajustes-nvi-noche.png"},
+        {"action": "Entrar como Pro", "observed": "La tarjeta cambia a «Pro activo · Sin límites de preguntas ni conversaciones».", "shot": "41-ajustes-pro.png"},
+        {"action": "Abrir «Mis conversaciones»", "observed": "Lista con avatar, título, preview y «Hoy / Ayer / 20 ago».", "note": "A6 — ninguna fila es tocable: es una lista de solo lectura, no se puede reabrir nada.", "bad": true, "shot": "39-historial.png"},
+        {"action": "Historial vacío", "observed": "Solo el título y el subtítulo. No hay estado vacío ni CTA.", "note": "A6 — pantalla en blanco para todo usuario nuevo.", "bad": true, "shot": "40-historial-vacio.png"},
+        {"action": "Abrir el paywall", "observed": "4 beneficios, $4.99/mes, «Empezar con Pro», «Seguir en la versión gratis» y «Restaurar compras».", "note": "M3 — «Cada vez que lo necesites, no dos al día» contradice el límite real de 3.", "shot": "33-paywall.png"},
+        {"action": "Tocar «Empezar con Pro» fuera de un development build", "observed": "«La compra se completa en un development build. Seguí en la versión gratis por ahora.» Comportamiento correcto de `revenuecat.ts`.", "shot": "34-paywall-dev-build.png"}
+      ]
+    }
+  ],
+
+  "findings": [
+    {
+      "id": "A1", "sev": "alto", "module": "Home / navegación",
+      "title": "Con modo noche activo desaparecen los accesos a Q&A, Voces e Historias — y no hay barra de tabs que los reemplace",
+      "detail": "El render de Home hace `{dark ? <nightHint/> : <>«Acompañamiento» + grilla de módulos</>}`, así que la grilla existe solo en tema claro. Como `app/(tabs)/` no tiene `_layout.tsx`, no hay tab bar: Home es el único punto de entrada. Un usuario que enciende «Modo noche suave» pierde el acceso a 3 de los 4 módulos hasta que lo apague.",
+      "where": "app/(tabs)/home.tsx:187 · app/(tabs)/ sin _layout.tsx",
+      "evidence": "12"
+    },
+    {
+      "id": "A2", "sev": "alto", "module": "Historias / cuotas",
+      "title": "Historias salta directo al paywall en vez de mostrar la pantalla de límite compartida",
+      "detail": "`if (!result.allowed) router.push(\"/paywall\")`. Los otros 3 módulos renderizan `LimitReached`. Rompe la regla dura #3 de CLAUDE.md y el objetivo del issue #32 («una sola pantalla de límite hacia el paywall, para los 4 módulos»).",
+      "where": "app/(tabs)/historias.tsx:41",
+      "evidence": "33"
+    },
+    {
+      "id": "A3", "sev": "alto", "module": "Q&A / cuotas",
+      "title": "Q&A define su propia pantalla de límite en vez de usar `LimitReached`, y el copy diverge",
+      "detail": "`QaLimitScreen` está declarada dentro de chat.tsx con su propio `QA_LIMIT_BODY`. Dice «Vuelven mañana a las 6:00 a.m.» y omite «y el devocional del día sigue abierto para ti», que sí aparece en `limitCopy.ts` y por tanto en Voces y Sentimiento. Tres módulos, dos textos, para el mismo momento.",
+      "where": "app/(tabs)/preguntar/chat.tsx:13-32 vs src/components/LimitReached.tsx + src/lib/limitCopy.ts",
+      "evidence": "20 vs 24"
+    },
+    {
+      "id": "A4", "sev": "alto", "module": "Bundle / Convex",
+      "title": "Módulos de servidor de Convex entran al bundle del cliente; Convex avisa que va a tirar error",
+      "detail": "En cada arranque la app loguea: «Convex functions should not be imported in the browser. This will throw an error in future versions of `convex`.» La cadena es `app/(tabs)/sentir.tsx` → `LimitReached` → `src/lib/limitCopy.ts` → `convex/quotas.ts` → `convex/devotional.ts`. Lo mismo desde chat.tsx, que importa `QUOTA_LIMITS` directo de `convex/quotas`. Reproducible en cada carga; verificado en el overlay de error de Expo.",
+      "where": "src/lib/limitCopy.ts:1 · app/(tabs)/preguntar/chat.tsx:9",
+      "evidence": "consola"
+    },
+    {
+      "id": "A5", "sev": "alto", "module": "Ajustes / RAG",
+      "title": "NVI es seleccionable pero no tiene corpus: el versículo del día queda sin texto y el selector de versículos, vacío",
+      "detail": "Ajustes ofrece RVR1960 y NVI. Con NVI, `rag/verses:citedForUser` devuelve `verse: null` y `listByChapter` devuelve `[]` porque solo RVR1960 está ingerido. El resultado visible es una tarjeta de versículo sin versículo y un capítulo sin versículos. El PRD todavía lista la licencia de NVI como riesgo abierto (§riesgos y §próximos pasos).",
+      "where": "app/ajustes.tsx:12-15 · convex/rag/verses.ts:63-95 · PRD.md:150,172",
+      "evidence": "37, 38"
+    },
+    {
+      "id": "A6", "sev": "alto", "module": "Historial",
+      "title": "El historial es una lista de solo lectura: las filas no son tocables y no hay estado vacío",
+      "detail": "Cada ítem se renderiza como `<View>`, no como `Pressable`; en el árbol de accesibilidad el único elemento interactivo de la pantalla es el botón de volver. No se puede reabrir ninguna conversación desde ahí. Y cuando la lista está vacía no se renderiza nada: el usuario nuevo ve una pantalla en blanco bajo el título.",
+      "where": "app/historial.tsx:55, 49-86",
+      "evidence": "39, 40"
+    },
+
+    {
+      "id": "M1", "sev": "medio", "module": "Sentimiento",
+      "title": "«Dame otro enfoque» no hace nada si el devocional se abrió desde el historial",
+      "detail": "`generateDevotional()` sale temprano con `if (!canGenerate || isGenerating) return;`, y `canGenerate` es false porque al venir del historial no hay chips seleccionados ni texto libre. El botón no está deshabilitado ni muestra error: el tap se traga en silencio.",
+      "where": "app/(tabs)/sentir.tsx:79-82 · botón en :149",
+      "evidence": "28"
+    },
+    {
+      "id": "M2", "sev": "medio", "module": "Q&A + Voces",
+      "title": "La pregunta enviada desaparece hasta que llega la respuesta (sin eco optimista)",
+      "detail": "`onSend` limpia el input y espera a la action; el hilo solo se actualiza cuando el servidor responde. Durante esos segundos el usuario ve su texto borrado y únicamente «Buscando en el texto…» / «X está escribiendo…». En una respuesta lenta de LLM se lee como que el mensaje se perdió. Pasa igual en los dos módulos de chat.",
+      "where": "app/(tabs)/preguntar/chat.tsx:64-78 · app/(tabs)/voces/[slug].tsx:68-83",
+      "evidence": "18, 23b"
+    },
+    {
+      "id": "M3", "sev": "medio", "module": "Ajustes + Paywall",
+      "title": "Las cuotas escritas en el copy no coinciden con `QUOTA_LIMITS`",
+      "detail": "Ajustes dice «3 preguntas y 2 devocionales al día» y el paywall promete devocionales «cada vez que lo necesites, no dos al día». Los límites reales son qa: 5, voices: 5, feelings: 3, stories: 1. Los números están hardcodeados en el copy en vez de derivarse de la constante.",
+      "where": "app/ajustes.tsx:55 · src/lib/paywallCopy.ts:4 vs convex/quotas.ts:18",
+      "evidence": "35, 33"
+    },
+    {
+      "id": "M4", "sev": "medio", "module": "Historias",
+      "title": "Una escena cuya ilustración falló se muestra igual que una pendiente, y no hay reintento",
+      "detail": "`resolveSceneImage` colapsa `failed` en `unavailable`, y el panel dice «Ilustración aún no disponible / Aparecerá aquí cuando la generación esté lista». Para una generación definitivamente fallida ese texto es falso: no va a aparecer, y el usuario no tiene forma de volver a intentar.",
+      "where": "src/features/stories/storyViewer.ts:13-21 · src/features/stories/StoryPanels.tsx:48-55",
+      "evidence": "32"
+    },
+    {
+      "id": "M5", "sev": "medio", "module": "Ajustes",
+      "title": "No hay cerrar sesión en ninguna parte de la app",
+      "detail": "Ajustes tiene plan, lectura, recordatorio y privacidad, pero ninguna acción de cerrar sesión ni de borrar la cuenta. Una vez autenticado no hay salida desde la UI. Para App Store, borrar cuenta suele ser requisito de review cuando la app permite crearla.",
+      "where": "app/ajustes.tsx (pantalla completa)",
+      "evidence": "35"
+    },
+    {
+      "id": "M6", "sev": "medio", "module": "Voces",
+      "title": "Los personajes no tienen el avatar ilustrado que pide el PRD",
+      "detail": "El PRD §4.3 especifica «cada uno con un avatar/ilustración visual propio en el chat». Lo que hay es un círculo con degradé y la inicial del nombre, tanto en la lista como en el encabezado del chat.",
+      "where": "app/(tabs)/voces.tsx:31-36 · app/(tabs)/voces/[slug].tsx:96-99 · PRD.md:44",
+      "evidence": "21, 22"
+    },
+    {
+      "id": "M7", "sev": "medio", "module": "Sentimiento / Historias",
+      "title": "Referencias a Convex sin tipar donde el `api` generado ya alcanza",
+      "detail": "Sentimiento arma `feelings:generate` y `history:getById` con `makeFunctionReference` y strings a mano; Historias hace `api as unknown as StoriesApi` con el comentario de que «Convex no puede regenerar `api` en este worktree». Pero `convex/_generated/api.d.ts` sí incluye `feelings` y `stories`: el escape ya no hace falta y lo único que logra es apagar el chequeo de tipos entre cliente y servidor. Un rename en el backend no rompe la compilación, rompe en runtime.",
+      "where": "app/(tabs)/sentir.tsx:38,44 · src/features/stories/contracts.ts:20 · convex/_generated/api.d.ts:14,27",
+      "evidence": "—"
+    },
+    {
+      "id": "M8", "sev": "medio", "module": "Compartir",
+      "title": "El texto que se comparte del devocional dice RVR1960 aunque el usuario tenga NVI",
+      "detail": "`buildDevotionalShareText` interpola la versión como literal. Q&A sí usa `citation.version`. Si el usuario eligió NVI, comparte una atribución equivocada.",
+      "where": "src/features/home/shareDevotional.ts:7",
+      "evidence": "11"
+    },
+
+    {
+      "id": "B1", "sev": "bajo", "module": "Q&A",
+      "title": "Los 66 libros son una sola lista sin buscador ni separación Antiguo/Nuevo Testamento",
+      "detail": "Llegar a Apocalipsis exige recorrer 66 filas. Además el atajo «Prefiero preguntar directo, sin elegir pasaje» está debajo de toda la lista, donde casi nadie va a llegar.",
+      "where": "app/(tabs)/preguntar.tsx:60-84",
+      "evidence": "14"
+    },
+    {
+      "id": "B2", "sev": "bajo", "module": "Q&A",
+      "title": "La grilla de capítulos no dice de qué libro es",
+      "detail": "El encabezado es «Elige un capítulo» a secas. En Salmos son 150 celdas numéricas sin ninguna referencia al libro elegido.",
+      "where": "app/(tabs)/preguntar.tsx:55-57",
+      "evidence": "15"
+    },
+    {
+      "id": "B3", "sev": "bajo", "module": "Voces",
+      "title": "La pantalla de personaje inexistente está sin layout",
+      "detail": "«Ese personaje no está en Voces.» sale pegada a la esquina superior izquierda, sin padding ni `AppScreen`, y el «Volver» es texto plano. Contrasta con el `ViewerState` de Historias, que sí está construido con los componentes del sistema.",
+      "where": "app/(tabs)/voces/[slug].tsx:51-59",
+      "evidence": "44"
+    },
+    {
+      "id": "B4", "sev": "bajo", "module": "Voces",
+      "title": "La lista de personajes no tiene estado de carga",
+      "detail": "`characters?.map(...)` simplemente no renderiza nada mientras la query está pendiente. Historias sí muestra «Cargando historias…».",
+      "where": "app/(tabs)/voces.tsx:24",
+      "evidence": "47"
+    },
+    {
+      "id": "B5", "sev": "bajo", "module": "Voces",
+      "title": "El chat de Voces no muestra el contador de cuota",
+      "detail": "Q&A muestra «4 de 5 preguntas gratis hoy» y Sentimiento «2 DE 3 DEVOCIONALES GRATIS HOY». Voces consulta `quotas.remaining` pero nunca lo pinta: el usuario choca con el límite sin aviso previo.",
+      "where": "app/(tabs)/voces/[slug].tsx:31 (query sin render)",
+      "evidence": "22"
+    },
+    {
+      "id": "B6", "sev": "bajo", "module": "Voces",
+      "title": "El saludo enlatado del personaje ya ofrece «Compartir esta respuesta»",
+      "detail": "Cuando el hilo está vacío se inyecta `character.first` desde el catálogo y se renderiza con el botón de compartir, así que se puede compartir como «respuesta» un texto que la IA nunca generó.",
+      "where": "app/(tabs)/voces/[slug].tsx:47, 115-141",
+      "evidence": "22"
+    },
+    {
+      "id": "B7", "sev": "bajo", "module": "Home",
+      "title": "En estado de error la tarjeta sigue diciendo «Leer el devocional de hoy»",
+      "detail": "El cuerpo cambia a «No pudimos preparar tu lectura. Tocá para intentarlo de nuevo» pero la línea inferior, que es la que anuncia la acción, no cambia a «Reintentar».",
+      "where": "app/(tabs)/home.tsx:143-145",
+      "evidence": "13"
+    },
+    {
+      "id": "B8", "sev": "bajo", "module": "Copy (toda la app)",
+      "title": "Voseo y tuteo mezclados entre pantallas",
+      "detail": "Conviven «Revisá tu correo / Escribí el código / Preguntá lo que quieras / Contame qué llevás encima» con «Elige un libro / Escribe tu pregunta / ¿Qué llevas encima hoy? / Escoge lo que más se parezca». A veces en la misma pantalla.",
+      "where": "app/(auth)/email.tsx · app/(tabs)/preguntar.tsx · app/(tabs)/sentir.tsx · app/(tabs)/home.tsx",
+      "evidence": "04, 14, 25"
+    },
+    {
+      "id": "B9", "sev": "bajo", "module": "Ajustes",
+      "title": "En modo noche la tarjeta «Plan gratis» se invierte y parece la tarjeta destacada de Pro",
+      "detail": "El fondo es `isPro ? surfaceSunk : ink`. En tema oscuro `ink` es claro, así que el plan gratis queda como un bloque crema resaltado y Pro quedaría apagado: la jerarquía visual se invierte respecto al tema claro.",
+      "where": "app/ajustes.tsx:44-46",
+      "evidence": "36"
+    },
+    {
+      "id": "B10", "sev": "bajo", "module": "Historias",
+      "title": "El catálogo es de 5 historias fijas, pero el paywall promete «cualquier pasaje, en imágenes»",
+      "detail": "`STORY_CATALOG` tiene 5 entradas de 4 escenas cada una. El beneficio Pro del paywall dice «Historias ilustradas ilimitadas — cualquier pasaje, en imágenes». Con lo que hay hoy, pagar da 5 historias, no cualquier pasaje.",
+      "where": "convex/stories.ts:40 · src/lib/paywallCopy.ts:5",
+      "evidence": "30, 33"
+    },
+    {
+      "id": "B11", "sev": "bajo", "module": "Sentimiento",
+      "title": "La pantalla de generación no tiene spinner ni salida",
+      "detail": "Solo texto estático. El botón de volver desaparece mientras `isGenerating`, así que si la action tarda o falla el usuario queda mirando una pantalla sin controles.",
+      "where": "app/(tabs)/sentir.tsx:104-114",
+      "evidence": "26"
+    },
+    {
+      "id": "B12", "sev": "bajo", "module": "Historias",
+      "title": "Catálogo sin miniaturas, sin cuota visible y sin botón de volver",
+      "detail": "La miniatura es un rectángulo gris vacío. Tampoco muestra cuántas historias gratis quedan (a diferencia de Q&A y Sentimiento) y, como `/voces`, la pantalla no tiene botón de volver: se depende del gesto del sistema.",
+      "where": "app/(tabs)/historias.tsx:55, 17-24",
+      "evidence": "30"
+    },
+    {
+      "id": "B13", "sev": "bajo", "module": "Navegación",
+      "title": "`/voces` y `/historias` no tienen botón de volver",
+      "detail": "`/preguntar`, `/sentir`, `/ajustes`, `/historial` y las dos pantallas de chat sí lo tienen. Las dos listas de módulo, no. Con `headerShown: false` en el Stack, en Android queda solo el gesto/botón del sistema.",
+      "where": "app/(tabs)/voces.tsx · app/(tabs)/historias.tsx · app/_layout.tsx:31",
+      "evidence": "21, 30"
+    },
+    {
+      "id": "B14", "sev": "bajo", "module": "Compartir",
+      "title": "El botón dice «Compartir por WhatsApp» pero abre el share sheet genérico",
+      "detail": "`shareContent` llama a `Share.share({ message })` de React Native, que abre el selector del sistema con todas las apps. No es un bug funcional, pero el rótulo promete un destino concreto. Los otros módulos usan el rótulo neutro «Compartir esta respuesta / esta historia».",
+      "where": "src/lib/share.ts:15-19 · app/(tabs)/home.tsx:166",
+      "evidence": "11"
+    },
+    {
+      "id": "B15", "sev": "bajo", "module": "Sentimiento",
+      "title": "El CTA deshabilitado se ve como un botón primario activo",
+      "detail": "Sin sentimientos ni texto, «Prepárame un devocional» se pinta como un bloque gris sólido de ancho completo, con el mismo peso visual que el estado habilitado. Solo cambia el tono.",
+      "where": "app/(tabs)/sentir.tsx:207 · src/components/AppButton.tsx",
+      "evidence": "25"
+    }
+  ],
+
+  "good": [
+    "**La regla dura #2 se sostiene end-to-end.** `/voces/jesus` responde «Ese personaje no está en Voces», el catálogo son 6 humanos y la lista lleva el aviso explícito de que de Dios, Jesús y el Espíritu Santo se habla en 3ra persona. Además hay una suite de tests adversariales (`convex/voicesGuardrail.test.ts`, `convex/voicesPrompt.test.ts`) en verde.",
+    "**Compartir sí tiene un solo dueño.** Los 4 módulos que comparten pasan por `src/lib/share.ts`; nadie reimplementó su propia variante. Es exactamente lo que pide la regla dura #3, y contrasta con lo que pasó con las cuotas.",
+    "**Toda respuesta de Q&A viene con cita verificable** (libro, capítulo, versículo y versión) renderizada aparte del texto, como manda la regla dura #4.",
+    "**El sistema visual es consistente.** Serif EB Garamond para títulos y versículos, DM Sans para el resto, y los colores/espaciados salen de `design/tokens.json`. Las pantallas se parecen entre sí y al prototipo.",
+    "**Los estados de carga y error del devocional del día están bien resueltos**, con reintento tocando la tarjeta.",
+    "**El paywall degrada con elegancia fuera de un development build**: explica por qué no se puede comprar en vez de fallar en silencio.",
+    "**El visor de historias distingue los tres estados de imagen** (lista, generando, no disponible) y nunca presenta una ranura vacía como ilustración terminada.",
+    "**175 tests en 31 archivos, todos en verde, y `tsc --noEmit` sin errores.**"
+  ],
+
+  "not_verified": [
+    "**Todo lo que depende de IA real.** No hay `ANTHROPIC_API_KEY` ni `VOYAGE_API_KEY` en este worktree, así que la calidad de las respuestas de Q&A, Voces y Sentimiento, y la calidad/latencia de las ilustraciones de Historias, quedan sin probar. Las respuestas de las capturas son del harness.",
+    "**El decremento real de las cuotas.** `quotas:remaining` en el harness es un fixture fijo: se verificó cómo se ve el estado agotado (`?qa=limit`), no la transacción de consumo. Eso sí está cubierto por `convex/quotas.test.ts`.",
+    "**Compra y restauración de RevenueCat.** Requieren un development build; en navegador solo se llega hasta el mensaje `dev_build_required`.",
+    "**Notificaciones locales.** En web `dailyReminder` devuelve `unsupported`; hay que probarlo en dispositivo.",
+    "**El diálogo de «Borrar mi historial».** `Alert.alert` no existe en react-native-web, así que en el navegador no aparece. En iOS/Android sí; la mutation `history:deleteAll` está cubierta por tests.",
+    "**Comportamiento nativo específico:** `KeyboardAvoidingView` en iOS, safe areas reales, gesto de volver en Android, y el share sheet del sistema."
+  ]
+}
