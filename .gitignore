@@ -11,3 +11,7 @@ web-build/
 expo-env.d.ts
 # @end expo-cli
 .env.local
+
+# Reporte de QA autocontenido (qa-harness/build-report.py --embed).
+# El que se versiona es docs/qa/<pase>/index.html.
+QA-REPORT.html
