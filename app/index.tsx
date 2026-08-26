@@ -3,8 +3,7 @@ import { useConvexAuth } from "convex/react";
 import { useQuery } from "convex/react";
 
 import { api } from "../convex/_generated/api";
-
-const AI_CONSENT_VERSION = "2026-08-25"; // Mantener sincronizado con convex/users.ts.
+import { AI_CONSENT_VERSION } from "../convex/users";
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useConvexAuth();
