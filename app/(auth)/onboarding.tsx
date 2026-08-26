@@ -16,7 +16,7 @@ const steps = [
 export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const current = steps[step];
-  const next = () => step < steps.length - 1 ? setStep(step + 1) : router.replace("/notifications");
+  const next = () => step < steps.length - 1 ? setStep(step + 1) : router.replace("/consentimiento-ia");
 
   return (
     <AppScreen contentStyle={styles.content} style={styles.screen}>
@@ -31,7 +31,7 @@ export default function OnboardingScreen() {
         </View>
         <View style={styles.actions}>
           <AppButton onPress={next}>{current.cta}</AppButton>
-          <AppButton onPress={() => router.replace("/home")} variant="quiet">Saltar</AppButton>
+          <AppButton onPress={() => router.replace("/consentimiento-ia")} variant="quiet">Saltar</AppButton>
         </View>
       </View>
     </AppScreen>

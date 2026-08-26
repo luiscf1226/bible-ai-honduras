@@ -13,6 +13,8 @@
     "test": "vitest run",
     "convex:dev": "convex dev",
     "convex:once": "convex dev --once",
+    "rag:ingest": "node scripts/ingest-rag-corpus.mjs",
+    "rag:evaluate": "node scripts/evaluate-rag-retrieval.mjs",
     "spike:images": "node scripts/benchmark-image-providers.mjs"
   },
   "dependencies": {

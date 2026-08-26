@@ -2,20 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   EMBEDDING_DIMENSIONS,
-  VOYAGE_EMBEDDINGS_URL,
-  VOYAGE_MODEL,
+  OPENAI_EMBEDDINGS_URL,
+  OPENAI_EMBEDDING_MODEL,
   embedDocument,
+  embedDocuments,
   embedQuery,
   zeroEmbedding,
 } from "./embed";
 
-const SAMPLE_VECTOR = zeroEmbedding();
-
 function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
 afterEach(() => {
@@ -24,7 +20,7 @@ afterEach(() => {
 });
 
 describe("zeroEmbedding", () => {
-  it("devuelve un vector de 1024 ceros para tests y desarrollo sin clave", () => {
+  it("devuelve un vector de 1024 ceros para tests", () => {
     const vector = zeroEmbedding();
     expect(vector).toHaveLength(EMBEDDING_DIMENSIONS);
     expect(vector.every((value) => value === 0)).toBe(true);
@@ -32,69 +28,69 @@ describe("zeroEmbedding", () => {
 });
 
 describe("embedDocument / embedQuery", () => {
-  it("envía input_type document al indexar", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+  it("usa OpenAI con 1024 dimensiones sin input_type", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({ data: [{ embedding: SAMPLE_VECTOR }] }),
+      jsonResponse({ data: [{ index: 0, embedding: zeroEmbedding() }], usage: { total_tokens: 4 } }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     await embedDocument("En el principio");
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe(VOYAGE_EMBEDDINGS_URL);
+    expect(url).toBe(OPENAI_EMBEDDINGS_URL);
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer test-key");
-    const body = JSON.parse(String(init.body)) as {
-      input: string;
-      model: string;
-      input_type: string;
-    };
-    expect(body.model).toBe(VOYAGE_MODEL);
-    expect(body.input).toBe("En el principio");
-    expect(body.input_type).toBe("document");
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body).toEqual({
+      input: ["En el principio"],
+      model: OPENAI_EMBEDDING_MODEL,
+      dimensions: EMBEDDING_DIMENSIONS,
+      encoding_format: "float",
+    });
+    expect(body).not.toHaveProperty("input_type");
   });
 
-  it("envía input_type query al buscar", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({ data: [{ embedding: SAMPLE_VECTOR }] }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await embedQuery("¿quién creó los cielos?");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body)) as {
-      input_type: string;
-    };
-    expect(body.input_type).toBe("query");
-  });
-
-  it("document y query no mezclan input_type", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
-    const fetchMock = vi.fn().mockImplementation(() =>
-      Promise.resolve(jsonResponse({ data: [{ embedding: SAMPLE_VECTOR }] })),
-    );
+  it("documento y consulta usan el mismo contrato", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(
+      jsonResponse({ data: [{ index: 0, embedding: zeroEmbedding() }] }),
+    ));
     vi.stubGlobal("fetch", fetchMock);
 
     await embedDocument("texto para indexar");
     await embedQuery("texto para buscar");
 
-    const types = fetchMock.mock.calls.map((call) => {
-      const init = call[1] as RequestInit;
-      return (JSON.parse(String(init.body)) as { input_type: string }).input_type;
-    });
-    expect(types).toEqual(["document", "query"]);
+    const bodies = fetchMock.mock.calls.map((call) => JSON.parse(String((call[1] as RequestInit).body)));
+    expect(bodies[0]).toMatchObject({ model: OPENAI_EMBEDDING_MODEL, dimensions: 1024 });
+    expect(bodies[1]).toMatchObject({ model: OPENAI_EMBEDDING_MODEL, dimensions: 1024 });
+    expect(bodies.every((body) => !("input_type" in body))).toBe(true);
   });
 
-  it("falla si no hay VOYAGE_API_KEY — no llama a la red", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "");
+  it("embebe lotes y conserva el orden por index", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    const first = zeroEmbedding();
+    const second = zeroEmbedding();
+    second[0] = 1;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
+      data: [{ index: 1, embedding: second }, { index: 0, embedding: first }],
+      usage: { total_tokens: 9 },
+    })));
+
+    expect(await embedDocuments(["uno", "dos"])).toEqual({ embeddings: [first, second], totalTokens: 9 });
+  });
+
+  it("falla si no hay OPENAI_API_KEY y no llama a la red", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-
-    await expect(embedDocument("hola")).rejects.toThrow("VOYAGE_API_KEY");
+    await expect(embedDocument("hola")).rejects.toThrow("OPENAI_API_KEY");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rechaza vectores con dimension incorrecta", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ data: [{ index: 0, embedding: [1] }] })));
+    await expect(embedQuery("hola")).rejects.toThrow("embeddings invalidos");
   });
 });

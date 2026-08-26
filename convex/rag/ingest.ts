@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { embedDocument } from "./embed";
+import { embedDocuments } from "./embed";
 import rvr1960Sample from "./fixtures/rvr1960.sample.json";
 
 // El corpus completo de RVR1960 se carga desde un archivo local con licencia;
@@ -38,11 +38,17 @@ export const ingestVerses = internalAction({
   },
   handler: async (ctx, args) => {
     const defaultVersion = args.version ?? "RVR1960";
+    const startedAt = Date.now();
+    const pendingTexts = args.verses
+      .filter((item) => item.embedding === undefined)
+      .map((item) => item.text);
+    const embedded = await embedDocuments(pendingTexts);
+    let generatedIndex = 0;
     let upserted = 0;
 
     for (const item of args.verses) {
       const version = item.version ?? defaultVersion;
-      const embedding = item.embedding ?? (await embedDocument(item.text));
+      const embedding = item.embedding ?? embedded.embeddings[generatedIndex++];
       await ctx.runMutation(internal.rag.verses.upsertVerse, {
         book: item.book,
         chapter: item.chapter,
@@ -54,6 +60,6 @@ export const ingestVerses = internalAction({
       upserted += 1;
     }
 
-    return { upserted };
+    return { upserted, embeddingTokens: embedded.totalTokens, elapsedMs: Date.now() - startedAt };
   },
 });

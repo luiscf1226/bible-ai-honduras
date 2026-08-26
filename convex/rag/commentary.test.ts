@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import schema from "../schema";
 import { EMBEDDING_DIMENSIONS, zeroEmbedding } from "./embed";
 import { COMMENTARY_RELEVANCE_THRESHOLD, loadCommentarySample } from "./commentary";
@@ -17,7 +17,7 @@ function unitVector(index: number): number[] {
   return Array.from({ length: EMBEDDING_DIMENSIONS }, (_, i) => (i === index ? 1 : 0));
 }
 
-function stubVoyage(queryEmbedding: number[]) {
+function stubOpenAI(queryEmbedding: number[]) {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(JSON.stringify({ data: [{ embedding: queryEmbedding }] }), {
       status: 200,
@@ -85,12 +85,12 @@ describe("commentary.ingestCommentary", () => {
 
 describe("retrieveCommentary", () => {
   it("devuelve el comentario cuando la similitud supera el umbral", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     await seedCommentary(t, unitVector(0));
-    stubVoyage(unitVector(0));
+    stubOpenAI(unitVector(0));
 
-    const results = await t.action(api.rag.commentary.topCommentary, { query: "¿quién es mi pastor?" });
+    const results = await t.action(internal.rag.commentary.topCommentary, { query: "¿quién es mi pastor?" });
 
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({ source: "Comentario de referencia (muestra)", book: "Salmos", chapter: 23 });
@@ -98,18 +98,18 @@ describe("retrieveCommentary", () => {
   });
 
   it("no devuelve nada por debajo del umbral — nunca fabrica un comentario", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     await seedCommentary(t, unitVector(0));
-    stubVoyage(unitVector(1)); // ortogonal
+    stubOpenAI(unitVector(1)); // ortogonal
 
-    const results = await t.action(api.rag.commentary.topCommentary, { query: "algo sin relación" });
+    const results = await t.action(internal.rag.commentary.topCommentary, { query: "algo sin relación" });
 
     expect(results).toEqual([]);
   });
 
   it("filtra por libro cuando se pide", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     await seedCommentary(t, unitVector(0));
     await t.mutation(internal.rag.commentary.upsertCommentary, {
@@ -119,20 +119,20 @@ describe("retrieveCommentary", () => {
       text: "Otro comentario, en otro libro.",
       embedding: unitVector(0),
     });
-    stubVoyage(unitVector(0));
+    stubOpenAI(unitVector(0));
 
-    const results = await t.action(api.rag.commentary.topCommentary, { query: "cualquier cosa", book: "Salmos", limit: 5 });
+    const results = await t.action(internal.rag.commentary.topCommentary, { query: "cualquier cosa", book: "Salmos", limit: 5 });
 
     expect(results).toHaveLength(1);
     expect(results[0].book).toBe("Salmos");
   });
 
   it("sin comentarios indexados, devuelve [] en vez de fallar", async () => {
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules); // sin seedCommentary
-    stubVoyage(unitVector(0));
+    stubOpenAI(unitVector(0));
 
-    const results = await t.action(api.rag.commentary.topCommentary, { query: "¿quién es mi pastor?" });
+    const results = await t.action(internal.rag.commentary.topCommentary, { query: "¿quién es mi pastor?" });
 
     expect(results).toEqual([]);
   });

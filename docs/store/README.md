@@ -35,12 +35,9 @@ URL prevista de la política:
 - No prueba compras reales, restauración ni los cinco módulos en dispositivos.
 - No confirma licencias de contenido bíblico ni la disponibilidad de NVI; el
   PRD aún marca esa licencia como pendiente.
-- No resuelve el borrado completo de cuenta ni el consentimiento explícito
-  antes de compartir texto con proveedores de IA; ambos son bloqueantes de
-  cumplimiento de tienda y deben filarse aparte.
-- La cuenta de Voyage AI debe tener activado y documentado el opt-out de uso
-  para entrenamiento antes de volver a prometer «no se usa para entrenar» en
-  producto o materiales.
+- No resuelve el borrado completo de cuenta. El consentimiento explícito antes
+  de compartir texto con OpenAI/Anthropic sí está implementado y debe validarse
+  en el build de TestFlight.
 
 La evidencia de esas verificaciones pertenece a #37 y a los responsables de
 las cuentas de distribución.

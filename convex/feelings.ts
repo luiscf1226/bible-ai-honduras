@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { makeFunctionReference } from "convex/server";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { action, mutation } from "./_generated/server";
 import type { QuotaModule } from "./quotas";
 
@@ -111,13 +111,13 @@ type GenerateResult =
   | { allowed: false; reason: "limit_reached"; module: QuotaModule }
   | { allowed: true; conversationId: string; devotional: FeelingDevotional };
 
-// Este módulo no llama a Anthropic ni a Voyage: reutiliza el pipeline RAG de
+// Este módulo reutiliza el pipeline RAG de OpenAI + Anthropic en
 // rag.answer. Si no hay una cita recuperada, no devolvemos un devocional que
 // parezca una opinión libre.
 //
 // El return type está anotado a mano (no inferido): sin esto, TS entra en
 // una referencia circular al resolver `api` (esta acción llama a
-// `ctx.runAction(api.rag.answer.ask, ...)`, que forma parte del mismo `api`
+// `ctx.runAction(internal.rag.answer.ask, ...)`, que forma parte del mismo grafo
 // que depende de resolver el tipo de esta acción) y termina marcando como
 // `any` código sin relación en todo el proyecto (retrieve.ts, componentes
 // de voces/sentir, etc.) — visto al mergear master con la corrección de
@@ -133,13 +133,14 @@ export const generate = action({
     if (!user) {
       throw new ConvexError("No autenticado");
     }
+    await ctx.runQuery(api.users.requireAiConsent, {});
 
     // Se consume antes de llamar a rag.answer (y por lo tanto antes de gastar
     // embeddings/LLM). Pro queda permitido por el servicio único de cuotas.
     const quota = await ctx.runMutation(api.quotas.checkAndConsume, { module: "feelings" });
     if (!quota.allowed) return quota;
 
-    const result = await ctx.runAction(api.rag.answer.ask, {
+    const result = await ctx.runAction(internal.rag.answer.ask, {
       question: buildFeelingQuestion(args),
       version: user.bibleVersion,
     });

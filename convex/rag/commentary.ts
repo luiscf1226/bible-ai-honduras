@@ -3,8 +3,8 @@ import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import { action, internalAction, internalMutation, query } from "../_generated/server";
-import { embedDocument, embedQuery } from "./embed";
+import { internalAction, internalMutation, query } from "../_generated/server";
+import { embedDocuments, embedQuery } from "./embed";
 import commentarySample from "./fixtures/commentary.sample.json";
 
 // El corpus real de comentarios evangélicos (ej. Matthew Henry en español)
@@ -87,9 +87,15 @@ const commentaryInput = v.object({
 export const ingestCommentary = internalAction({
   args: { commentaries: v.array(commentaryInput) },
   handler: async (ctx, args) => {
+    const startedAt = Date.now();
+    const pendingTexts = args.commentaries
+      .filter((item) => item.embedding === undefined)
+      .map((item) => item.text);
+    const embedded = await embedDocuments(pendingTexts);
+    let generatedIndex = 0;
     let upserted = 0;
     for (const item of args.commentaries) {
-      const embedding = item.embedding ?? (await embedDocument(item.text));
+      const embedding = item.embedding ?? embedded.embeddings[generatedIndex++];
       await ctx.runMutation(internal.rag.commentary.upsertCommentary, {
         source: item.source,
         book: item.book,
@@ -99,7 +105,7 @@ export const ingestCommentary = internalAction({
       });
       upserted += 1;
     }
-    return { upserted };
+    return { upserted, embeddingTokens: embedded.totalTokens, elapsedMs: Date.now() - startedAt };
   },
 });
 
@@ -135,7 +141,7 @@ export async function retrieveCommentary(
 }
 
 // Wrapper pública — solo recuperación, para debug.
-export const topCommentary = action({
+export const topCommentary = internalAction({
   args: { query: v.string(), book: v.optional(v.string()), limit: v.optional(v.number()) },
   handler: async (ctx, args) => retrieveCommentary(ctx, args),
 });

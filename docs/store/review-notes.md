@@ -18,9 +18,9 @@ ilustradas.
 - Algunas respuestas y devocionales se generan con IA. El producto busca
   anclarlos a pasajes bíblicos y mostrar referencias; no se presentan como una
   autoridad religiosa ni como consejo independiente.
-- Anthropic genera texto, Voyage AI recupera contexto semántico y OpenAI genera
-  ilustraciones desde prompts editoriales. La app no envía conversaciones a
-  OpenAI para generar imágenes.
+- OpenAI recupera contexto semántico y genera ilustraciones desde prompts
+  editoriales; Anthropic genera texto. Las conversaciones no se usan como
+  prompts de imágenes.
 - Las ilustraciones de las historias bíblicas se generan por IA y se identifican
   como tales en los materiales de tienda.
 - La app no permite que un modelo se presente como Dios, Jesús ni el Espíritu
@@ -73,9 +73,8 @@ stories.
 - Some answers and devotionals are generated with AI. The product is designed
   to ground them in Bible passages and show references; they are not presented
   as religious authority or standalone advice.
-- Anthropic generates text, Voyage AI retrieves semantic context, and OpenAI
-  generates illustrations from editorial prompts. User conversations are not
-  sent to OpenAI for image generation.
+- OpenAI retrieves semantic context and generates illustrations from editorial
+  prompts; Anthropic generates text. Conversations are not used as image prompts.
 - Biblical-story illustrations are AI-generated and are identified as such in
   the store materials.
 - The app does not allow a model to portray or impersonate God, Jesus, or the

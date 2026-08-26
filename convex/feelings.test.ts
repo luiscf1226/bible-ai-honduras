@@ -6,7 +6,7 @@ import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { buildFeelingQuestion, prayerForFeeling } from "./feelings";
 import { ANTHROPIC_MESSAGES_URL } from "./rag/llm";
-import { EMBEDDING_DIMENSIONS, VOYAGE_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
+import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
 
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
@@ -63,9 +63,9 @@ afterEach(() => {
 describe("feelings.generate", () => {
   it("reutiliza rag.answer, conserva una cita real y agrega una oración corta", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const fetchMock = vi.fn((url: string) => {
-      if (url === VOYAGE_EMBEDDINGS_URL) return Promise.resolve(jsonResponse({ data: [{ embedding: unitVector(0) }] }));
+      if (url === OPENAI_EMBEDDINGS_URL) return Promise.resolve(jsonResponse({ data: [{ embedding: unitVector(0) }] }));
       if (url === ANTHROPIC_MESSAGES_URL) {
         const structured = {
           answer: "Dios cuida a su pueblo aun cuando el camino pesa.",
@@ -80,6 +80,7 @@ describe("feelings.generate", () => {
     const t = convexTest(schema, modules);
     const user = asUser(t, "feeling_user");
     await user.mutation(api.users.upsert, {});
+    await user.mutation(api.users.acceptAiConsent, {});
     await t.mutation(internal.rag.verses.upsertVerse, {
       book: "Salmos",
       chapter: 23,
@@ -112,9 +113,9 @@ describe("feelings.generate", () => {
 
   it("no genera un devocional sin una cita recuperada", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const fetchMock = vi.fn((url: string) => {
-      if (url === VOYAGE_EMBEDDINGS_URL) return Promise.resolve(jsonResponse({ data: [{ embedding: zeroEmbedding() }] }));
+      if (url === OPENAI_EMBEDDINGS_URL) return Promise.resolve(jsonResponse({ data: [{ embedding: zeroEmbedding() }] }));
       throw new Error(`fetch no esperado: ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -122,6 +123,7 @@ describe("feelings.generate", () => {
     const t = convexTest(schema, modules);
     const user = asUser(t, "feeling_no_citation");
     await user.mutation(api.users.upsert, {});
+    await user.mutation(api.users.acceptAiConsent, {});
 
     await expect(user.action(generateFeeling, { feelings: ["Miedo"] })).rejects.toThrow("No encontramos un pasaje");
     expect(fetchMock.mock.calls.some(([url]) => url === ANTHROPIC_MESSAGES_URL)).toBe(false);
@@ -131,6 +133,7 @@ describe("feelings.generate", () => {
     const t = convexTest(schema, modules);
     const user = asUser(t, "feeling_limited");
     await user.mutation(api.users.upsert, {});
+    await user.mutation(api.users.acceptAiConsent, {});
     for (let index = 0; index < 3; index += 1) {
       await user.mutation(api.quotas.checkAndConsume, { module: "feelings" });
     }
