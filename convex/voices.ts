@@ -131,6 +131,8 @@ export const sendMessage = action({
       return { status: "refused" as const, answer: refusal, citation: null };
     }
 
+    await ctx.runQuery(api.users.requireAiConsent, {});
+
     const quota = await ctx.runMutation(api.quotas.checkAndConsume, { module: "voices" });
     if (!quota.allowed) {
       return { status: "limit_reached" as const, answer: null, citation: null };

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { ANTHROPIC_MESSAGES_URL } from "./rag/llm";
-import { EMBEDDING_DIMENSIONS, VOYAGE_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
+import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
 import { QUOTA_LIMITS } from "./quotas";
 import { DIVINE_REFUSAL } from "./voicesGuardrail";
 import { voiceCharacters } from "./voicesCatalog";
@@ -52,7 +52,7 @@ function stubExternalApis(
   const answerText = options.answerText ?? "Yo no quería ir. El camino se abrió mientras caminaba.";
   const citations = options.citations ?? [DEFAULT_CITATION];
   const fetchMock = vi.fn().mockImplementation((url: string) => {
-    if (url === VOYAGE_EMBEDDINGS_URL) {
+    if (url === OPENAI_EMBEDDINGS_URL) {
       return Promise.resolve(jsonResponse({ data: [{ embedding: queryEmbedding }] }));
     }
     if (url === ANTHROPIC_MESSAGES_URL) {
@@ -92,7 +92,7 @@ describe("voices.list", () => {
 describe("voices.sendMessage", () => {
   it("rechaza un jailbreak sin llamar al LLM", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_voice_jail");
     await authed.mutation(api.users.upsert, {});
@@ -110,10 +110,11 @@ describe("voices.sendMessage", () => {
 
   it("ancla la respuesta a un versículo real y persiste el turno", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_voice_ok");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await t.mutation(internal.rag.verses.upsertVerse, {
       book: "Éxodo",
       chapter: 3,
@@ -140,10 +141,11 @@ describe("voices.sendMessage", () => {
 
   it("si el modelo se atribuye ser Jesús, se reemplaza por la negativa", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_voice_leak");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await t.mutation(internal.rag.verses.upsertVerse, {
       book: "Éxodo",
       chapter: 3,
@@ -169,10 +171,11 @@ describe("voices.sendMessage", () => {
     // Salmos 23:1 a propósito (no Éxodo 3:14): no dispara el guardrail de
     // 1ra persona divina, así se puede aislar la verificación de cita.
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_voice_ungrounded");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await t.mutation(internal.rag.verses.upsertVerse, {
       book: "Salmos",
       chapter: 23,
@@ -199,7 +202,7 @@ describe("voices.sendMessage", () => {
 
   it("un jailbreak no consume cuota", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_voice_quota_jail");
     await authed.mutation(api.users.upsert, {});
@@ -217,10 +220,11 @@ describe("voices.sendMessage", () => {
 
   it("el 6º mensaje free no llama al RAG", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("VOYAGE_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_voice_quota");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     for (let i = 0; i < QUOTA_LIMITS.voices; i += 1) {
       await authed.mutation(api.quotas.checkAndConsume, { module: "voices" });
     }

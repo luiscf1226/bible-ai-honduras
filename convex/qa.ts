@@ -113,6 +113,7 @@ export const ask = action({
     if (!identity) {
       throw new ConvexError("No autenticado");
     }
+    await ctx.runQuery(api.users.requireAiConsent, {});
 
     const quota = await ctx.runMutation(api.quotas.checkAndConsume, { module: "qa" });
     if (!quota.allowed) {
@@ -131,7 +132,7 @@ export const ask = action({
         ? { version, book: args.passage.book, chapter: args.passage.chapter, verse: args.passage.verse }
         : undefined;
 
-    const result = await ctx.runAction(api.rag.answer.ask, { question, passage, version });
+    const result = await ctx.runAction(internal.rag.answer.ask, { question, passage, version });
 
     await ctx.runMutation(internal.qa.persistTurn, {
       userText: args.question,

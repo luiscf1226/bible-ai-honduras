@@ -37,11 +37,12 @@ y atender solicitudes de privacidad.
 
 ## IA y proveedores externos
 
-Las funciones de Preguntar, Voces y Sentir usan IA. Para responder, podemos
-enviar a **Anthropic** y **Voyage AI** el texto que escribís junto con contexto
-bíblico recuperado. No incluyás datos que no querás que estos proveedores
-procesen. Las ilustraciones usan **OpenAI** con prompts editoriales de historias;
-el flujo actual no envía tus conversaciones a OpenAI para generar imágenes.
+Las funciones de Preguntar, Voces y Sentir usan IA. Para responder, enviamos a
+**OpenAI** el texto necesario para recuperar contexto bíblico y a **Anthropic**
+el texto junto con ese contexto para redactar la respuesta. Antes del primer
+envío pedimos consentimiento explícito. No incluyás datos que no querás que
+estos proveedores procesen. Las ilustraciones también usan OpenAI, pero con
+prompts editoriales de historias y no con tus conversaciones.
 
 También usamos [Clerk](https://clerk.com/legal/privacy) para autenticación,
 [Convex](https://www.convex.dev/legal/privacy) para base de datos, funciones y
@@ -55,10 +56,7 @@ políticas vigentes de las APIs comerciales de
 [Anthropic](https://privacy.claude.com/en/articles/7996885-how-do-you-use-personal-data-in-model-training)
 y [OpenAI](https://developers.openai.com/api/docs/guides/your-data) indican que
 sus entradas y salidas no se usan para entrenamiento por defecto, salvo acuerdo
-u opción expresa en contrario. Los términos de
-[Voyage AI](https://www.voyageai.com/tos) ofrecen un control de exclusión de
-entrenamiento en el dashboard; el tratamiento aplicable depende de la
-configuración de la cuenta de Bible AI Honduras. Los proveedores pueden
+u opción expresa en contrario. Los proveedores pueden
 conservar datos temporalmente para prestar el servicio, prevenir abuso o cumplir
 la ley; ese plazo no lo controla el botón de borrado de la app.
 

@@ -2,6 +2,8 @@ import { ConvexError, v } from "convex/values";
 import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 
+export const AI_CONSENT_VERSION = "2026-08-25";
+
 // `identity.subject` (el user id de Clerk) es la llave de todo lo que es del
 // usuario. Ninguna función de acá abajo confía en un userId que venga en los
 // argumentos — eso sería una IDOR esperando a pasar.
@@ -78,6 +80,36 @@ export const current = query({
       return null;
     }
     return await findByClerkId(ctx, identity.subject);
+  },
+});
+
+export const acceptAiConsent = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await requireIdentity(ctx);
+    const existing = await findByClerkId(ctx, identity.subject);
+    if (!existing) {
+      throw new ConvexError("Usuario no encontrado — llama a users.upsert primero");
+    }
+    const acceptedAt = Date.now();
+    await ctx.db.patch(existing._id, {
+      aiConsentAt: acceptedAt,
+      aiConsentVersion: AI_CONSENT_VERSION,
+    });
+    return { acceptedAt, version: AI_CONSENT_VERSION };
+  },
+});
+
+// Las actions de IA llaman esta query antes de consumir cuota o enviar texto.
+export const requireAiConsent = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await requireIdentity(ctx);
+    const existing = await findByClerkId(ctx, identity.subject);
+    if (!existing?.aiConsentAt || existing.aiConsentVersion !== AI_CONSENT_VERSION) {
+      throw new ConvexError("AI_CONSENT_REQUIRED");
+    }
+    return true;
   },
 });
 

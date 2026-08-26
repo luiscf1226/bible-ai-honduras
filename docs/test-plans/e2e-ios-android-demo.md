@@ -18,7 +18,7 @@ Probar de punta a punta, en **un iPhone y un Android reales**, el flujo onboardi
 - [ ] `origin/master` actualizado
 - [ ] Development build: `npx expo run:ios` / `npx expo run:android` (o EAS). **Expo Go no sirve para RevenueCat.**
 - [ ] `.env.local` con `EXPO_PUBLIC_CONVEX_URL`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_REVENUECAT_API_KEY` (Test Store). Pedir las claves al tech lead — no las pegues en este archivo ni en el issue.
-- [ ] Convex con RVR1960 indexado, `ANTHROPIC_API_KEY` / `VOYAGE_API_KEY` en el deploy, webhook `POST /revenuecat`
+- [ ] Convex con RVR1960 completo reindexado, `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` en el deploy, webhook `POST /revenuecat`
 - [ ] Cuenta Clerk de prueba (email o Google). Apple Sign-In solo en iOS
 - [ ] Prototipo abierto en el mismo escritorio para comparar lado a lado
 - [ ] iOS: `app.json` aún **no** declara `ios.bundleIdentifier` — si el build de iOS falla, parar y avisar; no inventar un bundle id en el PR de QA
@@ -40,8 +40,8 @@ Hacerlo **una vez por plataforma**. Después cada track corre su sección §5.
 
 1. **Action:** Instalar el development build y abrir la app.
    **Expected:** Splash → login (Google / Apple / correo).
-2. **Action:** Completar onboarding y permiso de notificaciones.
-   **Expected:** Home con versículo del día (serif), hub de 3 módulos, tarjeta «¿Cómo estás hoy?».
+2. **Action:** Completar onboarding, consentimiento de IA y permiso de notificaciones.
+   **Expected:** El consentimiento explica OpenAI/Anthropic y debe aceptarse antes de Preguntar, Voces o Sentir; después aparece Home.
 3. **Action:** Expandir el devocional, compartir.
    **Expected:** Imagen + reflexión; share sheet con texto y link `/r/{referralCode}`.
 4. **Action:** Recorrer los 4 módulos (Q&A, Voces, Historias, Sentimiento) con una acción feliz cada uno.

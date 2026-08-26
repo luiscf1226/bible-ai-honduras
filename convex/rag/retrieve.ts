@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import { action } from "../_generated/server";
+import { internalAction } from "../_generated/server";
 import { embedQuery } from "./embed";
 
 export type RetrievedVerse = {
@@ -55,7 +55,7 @@ export async function retrieveTopVerses(
 
 // Wrapper pública — solo recuperación, sin generar respuesta. Para debug o
 // para un consumidor que solo necesite los versículos relevantes.
-export const topVerses = action({
+export const topVerses = internalAction({
   args: { query: v.string(), version: v.optional(v.string()), limit: v.optional(v.number()) },
   handler: async (ctx, args) => retrieveTopVerses(ctx, args),
 });

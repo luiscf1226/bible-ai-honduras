@@ -10,6 +10,8 @@ export default defineSchema({
     bibleVersion: v.union(v.literal("RVR1960"), v.literal("NVI")),
     reminderHour: v.optional(v.number()),
     darkMode: v.optional(v.boolean()),
+    aiConsentAt: v.optional(v.number()),
+    aiConsentVersion: v.optional(v.string()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
 
@@ -20,7 +22,7 @@ export default defineSchema({
     verse: v.number(),
     version: v.string(),
     text: v.string(),
-    embedding: v.array(v.float64()), // voyage-4 → 1024 dims
+    embedding: v.array(v.float64()), // text-embedding-3-small reducido a 1024 dims
   })
     .index("by_ref", ["version", "book", "chapter", "verse"])
     .vectorIndex("by_embedding", {
