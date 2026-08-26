@@ -141,15 +141,24 @@ describe("verses.citedForUser", () => {
       verse: { text: juan.text, version: "RVR1960" },
     });
 
+    // #93 §4b: NVI no tiene corpus. Una preferencia guardada que ya no está
+    // disponible degrada a RVR1960 en vez de devolver `verse: null` — antes
+    // ese null dejaba al usuario sin ninguna cita, para siempre y sin aviso.
     const authed = asUser(t, "user_cite");
     await authed.mutation(api.users.upsert, {});
-    await authed.mutation(api.users.updatePreferences, { bibleVersion: "NVI" });
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "user_cite"))
+        .unique();
+      await ctx.db.patch(user!._id, { bibleVersion: "NVI" });
+    });
 
     await expect(
       authed.query(api.rag.verses.citedForUser, { book: "Juan", chapter: 3, verse: 16 }),
     ).resolves.toMatchObject({
-      version: "NVI",
-      verse: null,
+      version: "RVR1960",
+      verse: { text: juan.text, version: "RVR1960" },
     });
   });
 });

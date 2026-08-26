@@ -5,10 +5,14 @@ import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native"
 
 import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
+import { bibleVersionIsAvailable } from "../convex/bibleVersions";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
+// #93 §4b: NVI sigue en la lista para no romper el layout de dos píldoras del
+// prototipo, pero va deshabilitada — no hay corpus ingerido y la licencia sigue
+// sin resolver (PRD §6). `bibleVersionIsAvailable` es la única fuente de verdad.
 const VERSIONS = [
   { label: "RVR1960", value: "RVR1960" as const },
   { label: "NVI", value: "NVI" as const },
@@ -24,7 +28,10 @@ export default function AjustesScreen() {
   const deleteHistory = useMutation(api.history.deleteAll);
   const [cleared, setCleared] = useState(false);
   const isPro = entitlement?.isPro === true;
-  const bibleVersion = user?.bibleVersion ?? "RVR1960";
+  // Una preferencia guardada que ya no está disponible (NVI) se muestra como
+  // RVR1960, que es lo que el backend usa de verdad al recuperar.
+  const storedVersion = user?.bibleVersion ?? "RVR1960";
+  const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : "RVR1960";
   const darkMode = user?.darkMode ?? false;
 
   return (
@@ -66,11 +73,13 @@ export default function AjustesScreen() {
           <Text style={[styles.rowLabel, { color: color.ink }]}>Versión de la Biblia</Text>
           <View style={styles.versionPicker}>
             {VERSIONS.map((version) => {
-              const active = bibleVersion === version.value;
+              const available = bibleVersionIsAvailable(version.value);
+              const active = available && bibleVersion === version.value;
               return (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
+                  accessibilityState={{ disabled: !available, selected: active }}
+                  disabled={!available}
                   key={version.value}
                   onPress={() => updatePreferences({ bibleVersion: version.value })}
                   style={[
@@ -89,6 +98,9 @@ export default function AjustesScreen() {
               );
             })}
           </View>
+          <Text style={[styles.versionHint, { color: color.inkSoft }]} testID="ajustes-version-hint">
+            NVI todavía no está disponible. Estamos resolviendo la licencia.
+          </Text>
         </View>
 
         <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}>
@@ -237,6 +249,12 @@ const styles = StyleSheet.create({
   versionPicker: { flexDirection: "row", gap: tokens.space.sm, marginTop: tokens.space.lg },
   versionPill: { borderRadius: tokens.radius.sm, borderWidth: 1, flex: 1, paddingVertical: tokens.space.md },
   versionPillLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.bodySm.size, textAlign: "center" },
+  versionHint: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.caption.size,
+    lineHeight: tokens.type.caption.lineHeight,
+    marginTop: tokens.space.sm,
+  },
   row: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
   rowDivider: { borderTopWidth: 1 },
   rowText: { flex: 1, paddingRight: tokens.space.md },

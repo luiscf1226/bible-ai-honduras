@@ -1,13 +1,14 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { makeReferralCode } from "./users";
 
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./users.ts": () => import("./users"),
+  "./bibleVersions.ts": () => import("./bibleVersions"),
 };
 
 function asUser(t: ReturnType<typeof convexTest>, clerkId: string, extra: Record<string, unknown> = {}) {
@@ -59,7 +60,7 @@ describe("users.upsert", () => {
     const t = convexTest(schema, modules);
     const original = asUser(t, "user_refresh", { email: "old@example.hn", name: "Nombre Viejo" });
     const userId = await original.mutation(api.users.upsert, {});
-    await original.mutation(api.users.updatePreferences, { bibleVersion: "NVI", reminderHour: 7 });
+    await original.mutation(api.users.updatePreferences, { reminderHour: 7 });
 
     const updated = asUser(t, "user_refresh", { email: "new@example.hn", name: "Nombre Nuevo" });
     await updated.mutation(api.users.upsert, {});
@@ -68,7 +69,7 @@ describe("users.upsert", () => {
     expect(user).toMatchObject({
       email: "new@example.hn",
       name: "Nombre Nuevo",
-      bibleVersion: "NVI",
+      bibleVersion: "RVR1960",
       reminderHour: 7,
     });
   });
@@ -107,10 +108,10 @@ describe("users.updatePreferences", () => {
     const authed = asUser(t, "user_prefs");
     const userId = await authed.mutation(api.users.upsert, {});
 
-    await authed.mutation(api.users.updatePreferences, { bibleVersion: "NVI", reminderHour: 6 });
+    await authed.mutation(api.users.updatePreferences, { bibleVersion: "RVR1960", reminderHour: 6 });
 
     const user = await t.run((ctx) => ctx.db.get(userId));
-    expect(user).toMatchObject({ bibleVersion: "NVI", reminderHour: 6 });
+    expect(user).toMatchObject({ bibleVersion: "RVR1960", reminderHour: 6 });
   });
 
   it("persiste las horas de aviso del prototipo (6, 12, 21) para que #10 las consuma", async () => {
@@ -183,5 +184,48 @@ describe("makeReferralCode", () => {
 
   it("difiere entre usuarios distintos", () => {
     expect(makeReferralCode("user_aaa111")).not.toBe(makeReferralCode("user_bbb222"));
+  });
+});
+
+describe("bibleVersion sin corpus (#93 §4b)", () => {
+  it("elegir NVI se guarda como RVR1960: el schema la acepta pero no hay corpus", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_nvi");
+    await authed.mutation(api.users.upsert, {});
+
+    await authed.mutation(api.users.updatePreferences, { bibleVersion: "NVI" });
+
+    expect(await authed.query(api.users.current, {})).toMatchObject({
+      bibleVersion: "RVR1960",
+    });
+  });
+
+  it("migrateUnavailableBibleVersions devuelve a RVR1960 a quien quedó en NVI", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_legacy_nvi");
+    await authed.mutation(api.users.upsert, {});
+    // Simula una fila escrita antes de desactivar NVI.
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "user_legacy_nvi"))
+        .unique();
+      await ctx.db.patch(user!._id, { bibleVersion: "NVI" });
+    });
+
+    const result = await t.mutation(internal.users.migrateUnavailableBibleVersions, {});
+    expect(result).toMatchObject({ migrated: 1 });
+
+    expect(await authed.query(api.users.current, {})).toMatchObject({
+      bibleVersion: "RVR1960",
+    });
+  });
+
+  it("la migración es idempotente y no toca a quien ya está en RVR1960", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_ok").mutation(api.users.upsert, {});
+    expect(await t.mutation(internal.users.migrateUnavailableBibleVersions, {})).toMatchObject({
+      migrated: 0,
+    });
   });
 });

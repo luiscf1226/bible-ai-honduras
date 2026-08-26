@@ -1,3 +1,4 @@
+import { resolveBibleVersion } from "./bibleVersions";
 import { ConvexError, v } from "convex/values";
 
 import { api, internal } from "./_generated/api";
@@ -139,7 +140,8 @@ export const sendMessage = action({
     }
 
     const user = await ctx.runQuery(api.users.current, {});
-    const version = user?.bibleVersion ?? "RVR1960";
+    // #93 §4b: NVI no tiene corpus; resolveBibleVersion degrada a RVR1960.
+    const version = resolveBibleVersion(user?.bibleVersion);
     const verses = await retrieveTopVerses(ctx, {
       query: `${character.name}: ${args.text}`,
       version,

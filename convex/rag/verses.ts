@@ -1,3 +1,4 @@
+import { resolveBibleVersion } from "../bibleVersions";
 import { ConvexError, v } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
@@ -44,7 +45,8 @@ async function bibleVersionForIdentity(ctx: QueryCtx): Promise<string> {
     .query("users")
     .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
     .unique();
-  return user?.bibleVersion ?? DEFAULT_VERSION;
+  // #93 §4b: una preferencia sin corpus (NVI) degrada a RVR1960.
+  return resolveBibleVersion(user?.bibleVersion);
 }
 
 // Consulta pública por referencia exacta. No expone el embedding.
