@@ -1,7 +1,7 @@
 # Arquitectura — Bible AI Honduras
 
 **Stack:** Expo (React Native, TypeScript) · Convex (backend, DB, vector search) ·
-Clerk (auth) · Anthropic Claude Sonnet 5 (IA) · Voyage AI (embeddings) · RevenueCat (IAP) ·
+Clerk (auth) · Anthropic Claude Sonnet 5 (IA) · OpenAI (embeddings/imágenes) · RevenueCat (IAP) ·
 Claude Design (contrato visual).
 
 **Principio rector:** una sola fuente de verdad por cosa. Un prototipo para la UI, una
@@ -33,14 +33,13 @@ Relacionado: `PRD.md` (producto) · `phases.md` (orden de ejecución) · `CLAUDE
 │ Google/Apple │JWT│  ├─ auth.config.ts  valida el JWT        │
 │ email        │   │  ├─ db      perfiles, historial, cuotas  │
 └──────────────┘   │  ├─ vector  versículos + comentarios     │
-                   │  ├─ actions Sonnet 5, Voyage, imágenes   │
+                   │  ├─ actions Sonnet 5, OpenAI             │
                    │  ├─ crons   devocional diario            │
                    │  └─ http    webhook de RevenueCat        │
                    └─────────────────────────────────────────┘
                                   │
                                   ▼  solo desde actions
-                   Anthropic (Claude) · Voyage AI (embeddings)
-                   Proveedor de imágenes · RevenueCat
+                   Anthropic (Claude) · OpenAI · RevenueCat
 ```
 
 **Regla de frontera:** la app nunca llama a un proveedor externo. Ni al LLM, ni al
@@ -69,7 +68,7 @@ importa más que cualquier ventaja teórica de un stack más granular.
 |---|---|---|
 | **Clerk** | Auth: Google, Apple, email. Emite un JWT que Convex valida | publishable key en la app; secret en Clerk |
 | **Anthropic (Claude Sonnet 5)** | Q&A, Voces, Sentimiento — los 3 módulos conversacionales | `ANTHROPIC_API_KEY`, **solo** en Convex |
-| **Voyage AI** | Embeddings del RVR1960 y de los comentarios | `VOYAGE_API_KEY`, **solo** en Convex |
+| **OpenAI** | Embeddings del RVR1960/comentarios e imágenes | `OPENAI_API_KEY`, **solo** en Convex |
 | **RevenueCat** | Compra IAP + webhook de estado | SDK en la app; secret del webhook en Convex |
 
 **Ninguna clave de IA toca la app.** Si `ANTHROPIC_API_KEY` aparece en un archivo bajo
@@ -113,7 +112,7 @@ bible-ai-honduras/
 │   ├── auth.config.ts          # valida el JWT de Clerk           #3
 │   ├── users.ts                # upsert de perfil desde el JWT    #3
 │   ├── rag/
-│   │   ├── embed.ts            # cliente de Voyage AI (único lugar)
+│   │   ├── embed.ts            # cliente de embeddings OpenAI (único lugar)
 │   │   ├── ingest.ts           # RVR1960 → chunks → embeddings     #5
 │   │   ├── commentary.ts       # comentarios evangélicos           #6
 │   │   ├── retrieve.ts         # vectorSearch + hidratación        #7
@@ -285,24 +284,22 @@ app → action rag.answer({ pregunta, pasaje?, module })
 de la recuperación, la respuesta se descarta o se reintenta — no se muestra. Sin eso, el
 RAG es decoración.
 
-### 5.1.1 Embeddings — Voyage AI
+### 5.1.1 Embeddings — OpenAI
 
-**Anthropic no ofrece modelo de embeddings.** Es el hueco que el stack elegido no cubre y
-la razón de que haya un cuarto proveedor. Anthropic recomienda Voyage AI; el resto de la
-arquitectura no cambia si mañana se cambia de proveedor, salvo `dimensions` del índice.
+OpenAI ya se usa para imágenes, por lo que sus embeddings evitan una cuarta cuenta y
+clave de proveedor. El adaptador sigue aislado porque cambiar de familia exige reindexar
+todo el corpus aunque las dimensiones coincidan.
 
 | Decisión | Valor | Por qué |
 |---|---|---|
-| Modelo | `voyage-4` | Multilingüe (el corpus es español), calidad/costo balanceado |
-| Dimensiones | **1024** (default) | Va en `vectorIndex.dimensions`. Cambiarlo = re-embeder todo |
-| Alternativas | `voyage-4-lite` (latencia/costo), `voyage-4-large` (calidad) | Misma familia, misma dimensión — se puede probar sin migrar el esquema |
-| Reranking | `rerank-2.5` | Opcional. Sube precisión cuando el top-k trae ruido |
+| Modelo | `text-embedding-3-small` | Multilingüe, bajo costo y proveedor ya requerido |
+| Dimensiones | **1024** (parámetro `dimensions`) | Conserva el contrato de `vectorIndex`; cambiarlo exige reindexar |
+| Entrada | texto o lote de textos | La ingesta agrupa hasta 64 filas por acción |
+| Evaluación | recall@3 fuera del fixture | Detecta regresiones antes de abrir la beta |
 
-**El error que va a cometer alguien:** `input_type`. Al indexar se usa
-`input_type: "document"`; al consultar, `input_type: "query"`. Voyage antepone prompts
-distintos en cada caso. Si se omite o se mezcla, la recuperación empeora **en silencio** —
-no falla, solo trae versículos peores. Encapsulalo en `convex/rag/embed.ts` con dos
-funciones (`embedDocument`, `embedQuery`) y que nadie llame a Voyage desde otro lado.
+OpenAI no expone el `input_type: document/query` de Voyage. Se mantienen las funciones
+`embedDocument` y `embedQuery` como frontera semántica, pero hoy comparten contrato. La
+pérdida debe medirse con `npm run rag:evaluate` sobre el mismo corpus y umbral.
 
 Los embeddings de ingesta (~31,100 versículos + comentarios) se pagan **una vez, offline,
 en #5** — no en tiempo de request. En request solo se embebe la pregunta del usuario.
@@ -482,8 +479,8 @@ conversacionales; pantallas listas → enganche de cuotas; `#30` listo → `#31`
 | **Costo de embeddings de ingesta** | ~31,100 versículos + comentarios | Se paga una vez, offline, en `#5`. No en tiempo de request |
 | **Costo por request de Claude** | Sonnet 5 a $3/$15 por MTok, con contexto RAG en cada turno | Prompt caching sobre reglas y personas + `effort` bajo en rutas simples. Medir `cache_read_input_tokens` desde el día 1, no al final |
 | **Precio promocional que vence** | Sonnet 5 está a $2/$10 hasta el **2026-08-31**; después sube a $3/$15 (+50%) | El modelo de costo por usuario tiene que correrse con $3/$15, no con el promocional |
-| **`input_type` de Voyage mal usado** | No falla — degrada la recuperación en silencio | Encapsulado en `rag/embed.ts`; test que compare recuperación con y sin el parámetro |
-| **Un proveedor más de lo previsto** | Anthropic no hace embeddings; Voyage es un cuarto vendor con su propia cuenta y factura | Aislado en un módulo. Cambiar de proveedor = re-embeder + cambiar `dimensions` |
+| **Pérdida de `input_type` al migrar** | Puede degradar recuperación sin error visible | Benchmark recall@3 fuera del fixture y comparación con baseline |
+| **Vectores incompatibles** | Mezclar Voyage/OpenAI invalida similitud | Reingesta completa por lotes antes de habilitar el deployment |
 | **Vendor lock-in con Convex** | Real. El esquema y las funciones no son portables | Aceptado a cambio de velocidad. La lógica de negocio vive en funciones puras testeables; lo acoplado es la capa de datos |
 | **Clerk como punto único de login** | Si Clerk cae, nadie entra — ni usuarios con sesión vieja, según la expiración del JWT | Aceptado. Es el trade normal de auth gestionada; la alternativa es mantener OAuth propio |
 | **Verificación de citas** | Si se implementa flojo, la regla dura #4 es decorativa | Test que le pida al LLM citar algo fuera del contexto y verifique que la respuesta se descarta |
@@ -514,7 +511,7 @@ conversacionales; pantallas listas → enganche de cuotas; `#30` listo → `#31`
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | app (pública) | ClerkProvider |
 | `CLERK_JWT_ISSUER_DOMAIN` | **Convex** | `auth.config.ts` |
 | `ANTHROPIC_API_KEY` | **Convex** | `rag/answer.ts` |
-| `VOYAGE_API_KEY` | **Convex** | `rag/embed.ts` |
+| `OPENAI_API_KEY` | **Convex** | `rag/embed.ts`, `images.ts` |
 | `REVENUECAT_WEBHOOK_SECRET` | **Convex** | `http.ts` |
 | RevenueCat public SDK key | app (pública) | compra y restore |
 

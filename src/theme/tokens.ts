@@ -18,6 +18,7 @@ export const tokens = {
     accentDeep: "#8C6A4C",
     sage: "#7C8F7B",
     danger: "#B0603F",
+    avatarInitial: "rgba(255,255,255,0.9)",
   },
   night: {
     color: {
@@ -35,6 +36,7 @@ export const tokens = {
       accentDeep: "#8C6A4C",
       sage: "#8FA48D",
       danger: "#B0603F",
+      avatarInitial: "rgba(255,255,255,0.9)",
     },
   },
   paywall: {
@@ -76,13 +78,33 @@ export const tokens = {
     bodySm: { size: 13.5, lineHeight: 23 },
     label: { size: 14.5, lineHeight: 15 },
     caption: { size: 11.5, lineHeight: 17 },
-    overline: { size: 10.5, lineHeight: 11, letterSpacing: 0.16 }
+    overline: { size: 10.5, lineHeight: 11, letterSpacing: 0.16 },
+    qaPickTitle: { size: 20, lineHeight: 26 },
+    aiBubble: { size: 17.5, lineHeight: 30 },
+    versePicker: { size: 17, lineHeight: 28 },
+    chip: { size: 12.5, lineHeight: 13 },
+    disclaimer: { size: 12, lineHeight: 12 },
   },
   opacity: { pressed: 0.9 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
-  space: { xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
+  space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
-  size: { logoLarge: 96, logoMedium: 76, logoSmall: 38, dot: 6, dotActive: 22, avatar: 48 }
+  screenPadding: { horizontal: 20 },
+  size: {
+    logoLarge: 96,
+    logoMedium: 76,
+    logoSmall: 38,
+    dot: 6,
+    dotActive: 22,
+    avatar: 48,
+    backButton: 34,
+    sendButton: 30,
+    switchTrack: { width: 46, height: 28 },
+    switchKnob: 22,
+    switchKnobOffset: 18,
+    switchPadding: 3,
+  },
+  grid: { chapterColumns: 5 },
 } as const;
 
 // Ambas paletas (día y noche) comparten llaves; el tipo se ensancha a string

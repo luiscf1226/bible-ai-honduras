@@ -97,7 +97,10 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 ## 8. Privacidad y datos
 
 - Historial de conversación **privado por usuario**, ligado solo a su cuenta.
-- **No se usa el historial del usuario para entrenar modelos de IA de terceros.**
+- **Bible AI Honduras no entrena modelos propios con el historial del usuario.**
+  El tratamiento de entrenamiento por los proveedores de IA de terceros
+  (Anthropic y OpenAI) depende de sus políticas y de la
+  configuración de cuenta vigente — ver `docs/store/privacy-policy.md`.
 - El usuario puede borrar su historial desde la app.
 - Justificación: comunidad de iglesia es una red social densa — una filtración o percepción de "no privado" se propaga rápido y destruye confianza.
 

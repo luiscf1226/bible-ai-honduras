@@ -10,6 +10,8 @@ export default defineSchema({
     bibleVersion: v.union(v.literal("RVR1960"), v.literal("NVI")),
     reminderHour: v.optional(v.number()),
     darkMode: v.optional(v.boolean()),
+    aiConsentAt: v.optional(v.number()),
+    aiConsentVersion: v.optional(v.string()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
 
@@ -20,13 +22,30 @@ export default defineSchema({
     verse: v.number(),
     version: v.string(),
     text: v.string(),
-    embedding: v.array(v.float64()), // voyage-4 → 1024 dims
+    embedding: v.array(v.float64()), // text-embedding-3-small reducido a 1024 dims
   })
     .index("by_ref", ["version", "book", "chapter", "verse"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1024,
       filterFields: ["version", "book"],
+    }),
+
+  // Comentarios evangélicos de referencia (#6) — granularidad de capítulo,
+  // no de versículo (así se publican). Segunda fuente de recuperación que
+  // enriquece la respuesta de rag.answer; nunca reemplaza la cita bíblica.
+  commentaries: defineTable({
+    source: v.string(), // "Matthew Henry", etc.
+    book: v.string(),
+    chapter: v.number(),
+    text: v.string(),
+    embedding: v.array(v.float64()),
+  })
+    .index("by_ref", ["source", "book", "chapter"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1024,
+      filterFields: ["source", "book"],
     }),
 
   // Contenido editorial curado. La fecha usa el calendario de Honduras

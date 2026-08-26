@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
-import { EMBEDDING_DIMENSIONS, VOYAGE_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
+import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
 import { QUOTA_LIMITS } from "./quotas";
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
@@ -19,6 +19,7 @@ const modules = {
   "./rag/embed.ts": () => import("./rag/embed"),
   "./rag/verses.ts": () => import("./rag/verses"),
   "./rag/retrieve.ts": () => import("./rag/retrieve"),
+  "./rag/commentary.ts": () => import("./rag/commentary"),
   "./rag/llm.ts": () => import("./rag/llm"),
   "./rag/answer.ts": () => import("./rag/answer"),
   "./rag/prompts/qa.ts": () => import("./rag/prompts/qa"),
@@ -45,7 +46,7 @@ function stubExternalApis(
   const answerText = options.answerText ?? "El pastor cuida a quien confía en él.";
   const citations = options.citations ?? [DEFAULT_CITATION];
   const fetchMock = vi.fn().mockImplementation((url: string) => {
-    if (url === VOYAGE_EMBEDDINGS_URL) {
+    if (url === OPENAI_EMBEDDINGS_URL) {
       return Promise.resolve(jsonResponse({ data: [{ embedding: queryEmbedding }] }));
     }
     if (url === ANTHROPIC_MESSAGES_URL) {
@@ -61,7 +62,7 @@ function stubExternalApis(
 
 function stubEnv() {
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-  vi.stubEnv("VOYAGE_API_KEY", "test-key");
+  vi.stubEnv("OPENAI_API_KEY", "test-key");
 }
 
 afterEach(() => {
@@ -81,11 +82,27 @@ async function seedSalmos23(t: ReturnType<typeof convexTest>, embedding: number[
 }
 
 describe("qa.ask", () => {
+  it("no consume cuota ni llama proveedores sin consentimiento", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "qa_without_consent");
+    await authed.mutation(api.users.upsert, {});
+    const fetchMock = stubExternalApis();
+
+    await expect(authed.action(api.qa.ask, { question: "texto personal" })).rejects.toThrow(
+      "AI_CONSENT_REQUIRED",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    const usage = await t.run((ctx) => ctx.db.query("usage").collect());
+    expect(usage).toEqual([]);
+  });
+
   it("responde una pregunta libre, sin pasaje, y persiste el turno", async () => {
     stubEnv();
     const t = convexTest(schema, modules);
     const authed = asUser(t, "qa_free");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await seedSalmos23(t, unitVector(0));
     stubExternalApis({ queryEmbedding: unitVector(0) });
 
@@ -113,6 +130,7 @@ describe("qa.ask", () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "qa_passage");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await seedSalmos23(t, zeroEmbedding());
     stubExternalApis();
 
@@ -131,6 +149,7 @@ describe("qa.ask", () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "qa_chapter_only");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await seedSalmos23(t, unitVector(3));
     stubExternalApis({ queryEmbedding: unitVector(3) });
 
@@ -149,6 +168,7 @@ describe("qa.ask", () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "qa_limit");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     for (let i = 0; i < QUOTA_LIMITS.qa; i += 1) {
       await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
     }
@@ -167,6 +187,7 @@ describe("qa.ask", () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "qa_thread");
     await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
     await seedSalmos23(t, zeroEmbedding());
     stubExternalApis();
 

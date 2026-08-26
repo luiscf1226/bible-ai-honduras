@@ -1,0 +1,7 @@
+[
+  { "question": "¿La salvación se obtiene por obras o por gracia?", "expected": { "book": "Efesios", "chapter": 2 } },
+  { "question": "¿Qué dice la Biblia sobre confiar en Dios y no en mi propia prudencia?", "expected": { "book": "Proverbios", "chapter": 3 } },
+  { "question": "¿Cómo debo tratar a quienes me hacen daño?", "expected": { "book": "Mateo", "chapter": 5 } },
+  { "question": "¿Qué hago cuando me falta sabiduría?", "expected": { "book": "Santiago", "chapter": 1 } },
+  { "question": "¿Dios me acompaña cuando tengo miedo?", "expected": { "book": "Isaías", "chapter": 41 } }
+]

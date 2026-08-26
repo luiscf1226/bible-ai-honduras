@@ -1,10 +1,10 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
-import { EMBEDDING_DIMENSIONS, VOYAGE_EMBEDDINGS_URL, zeroEmbedding } from "./embed";
+import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./embed";
 import { isGrounded } from "./answer";
 import { ANTHROPIC_MODEL } from "./llm";
 
@@ -15,6 +15,7 @@ const modules = {
   "./rag/embed.ts": () => import("./embed"),
   "./rag/verses.ts": () => import("./verses"),
   "./rag/retrieve.ts": () => import("./retrieve"),
+  "./rag/commentary.ts": () => import("./commentary"),
   "./rag/llm.ts": () => import("./llm"),
   "./rag/answer.ts": () => import("./answer"),
   "./rag/prompts/qa.ts": () => import("./prompts/qa"),
@@ -52,7 +53,7 @@ function stubExternalApis(options: { queryEmbedding?: number[]; structured?: unk
       citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
     };
   const fetchMock = vi.fn().mockImplementation((url: string) => {
-    if (url === VOYAGE_EMBEDDINGS_URL) {
+    if (url === OPENAI_EMBEDDINGS_URL) {
       return Promise.resolve(jsonResponse({ data: [{ embedding: queryEmbedding }] }));
     }
     if (url === ANTHROPIC_MESSAGES_URL) {
@@ -82,7 +83,7 @@ async function seedVerse(t: ReturnType<typeof convexTest>, embedding: number[]) 
 
 function stubEnv() {
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-  vi.stubEnv("VOYAGE_API_KEY", "test-key");
+  vi.stubEnv("OPENAI_API_KEY", "test-key");
 }
 
 describe("isGrounded", () => {
@@ -114,7 +115,7 @@ describe("rag.answer.ask", () => {
     await seedVerse(t, zeroEmbedding());
     stubExternalApis();
 
-    const result = await t.action(api.rag.answer.ask, {
+    const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué significa este salmo?",
       passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
     });
@@ -135,7 +136,7 @@ describe("rag.answer.ask", () => {
     await seedVerse(t, unitVector(0));
     stubExternalApis({ queryEmbedding: unitVector(0) });
 
-    const result = await t.action(api.rag.answer.ask, { question: "¿Quién es mi pastor?" });
+    const result = await t.action(internal.rag.answer.ask, { question: "¿Quién es mi pastor?" });
 
     expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
     expect(result.answer.length).toBeGreaterThan(0);
@@ -146,7 +147,7 @@ describe("rag.answer.ask", () => {
     const t = convexTest(schema, modules); // sin versículos indexados
     const fetchMock = stubExternalApis();
 
-    const result = await t.action(api.rag.answer.ask, { question: "¿Cuál es la capital de Honduras?" });
+    const result = await t.action(internal.rag.answer.ask, { question: "¿Cuál es la capital de Honduras?" });
 
     expect(result.citation).toBeNull();
     expect(result.answer.length).toBeGreaterThan(0);
@@ -159,7 +160,7 @@ describe("rag.answer.ask", () => {
     const t = convexTest(schema, modules); // sin versículos indexados
     const fetchMock = stubExternalApis();
 
-    const result = await t.action(api.rag.answer.ask, {
+    const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué dice?",
       passage: { version: "RVR1960", book: "Juan", chapter: 3, verse: 16 },
     });
@@ -180,7 +181,7 @@ describe("rag.answer.ask", () => {
       },
     });
 
-    const result = await t.action(api.rag.answer.ask, {
+    const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué significa este salmo?",
       passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
     });
@@ -190,5 +191,42 @@ describe("rag.answer.ask", () => {
     expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
     expect(result.answer).not.toContain("Romanos 8:28");
     expect(result.answer).toContain("Jehová es mi pastor");
+  });
+
+  it("cuando hay comentario relevante (#6), lo incluye en el prompt como contexto adicional", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    await seedVerse(t, unitVector(0));
+    await t.mutation(internal.rag.commentary.upsertCommentary, {
+      source: "Comentario de referencia (muestra)",
+      book: "Salmos",
+      chapter: 23,
+      text: "La imagen del pastor viene de la experiencia diaria de David.",
+      embedding: unitVector(0),
+    });
+    const fetchMock = stubExternalApis({ queryEmbedding: unitVector(0) });
+
+    await t.action(internal.rag.answer.ask, { question: "¿Quién es mi pastor?" });
+
+    const anthropicCall = fetchMock.mock.calls.find((call: unknown[]) => call[0] === ANTHROPIC_MESSAGES_URL);
+    const body = JSON.parse(String((anthropicCall as [string, RequestInit])[1].body)) as {
+      messages: Array<{ content: string }>;
+    };
+    expect(body.messages[0].content).toContain("La imagen del pastor viene de la experiencia diaria de David.");
+  });
+
+  it("sin comentario relevante, responde igual solo con el versículo", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    await seedVerse(t, zeroEmbedding()); // sin comentarios indexados
+    stubExternalApis();
+
+    const result = await t.action(internal.rag.answer.ask, {
+      question: "¿Qué significa este salmo?",
+      passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
+    });
+
+    expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });
+    expect(result.answer.length).toBeGreaterThan(0);
   });
 });

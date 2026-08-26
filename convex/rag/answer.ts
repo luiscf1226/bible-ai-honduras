@@ -3,7 +3,8 @@ import { v } from "convex/values";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import { action } from "../_generated/server";
+import { internalAction } from "../_generated/server";
+import { retrieveCommentary } from "./commentary";
 import { generateStructuredAnswer } from "./llm";
 import {
   buildQaUserPrompt,
@@ -41,7 +42,7 @@ const passageArg = v.object({
 // disponible (regla dura #4) — si no hay nada relevante, admite que no
 // encontró nada en vez de fabricar una cita; y si el modelo cita algo que
 // no se le dio como contexto, esa respuesta nunca llega al usuario.
-export const ask = action({
+export const ask = internalAction({
   args: {
     question: v.string(),
     passage: v.optional(passageArg),
@@ -57,9 +58,13 @@ export const ask = action({
     }
 
     const primary = citations[0];
+    // Segunda fuente de recuperación (#6) — enriquece la respuesta, nunca
+    // la condiciona: si no hay comentario relevante, sigue igual con solo
+    // el versículo. Nunca se busca sin una cita ya asegurada.
+    const commentary = await retrieveCommentary(ctx, { query: args.question, book: primary.book });
     const structured = await generateStructuredAnswer({
       system: QA_SYSTEM_PROMPT,
-      userPrompt: buildQaUserPrompt(args.question, citations),
+      userPrompt: buildQaUserPrompt(args.question, citations, commentary),
       schema: QA_RESPONSE_SCHEMA,
     });
 

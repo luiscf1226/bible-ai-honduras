@@ -154,6 +154,28 @@ describe("users.updatePreferences", () => {
   });
 });
 
+describe("users.acceptAiConsent", () => {
+  it("registra consentimiento explicito con version", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_consent");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    const result = await authed.mutation(api.users.acceptAiConsent, {});
+    const user = await t.run((ctx) => ctx.db.get(userId));
+
+    expect(result.version).toBe("2026-08-25");
+    expect(user?.aiConsentAt).toBe(result.acceptedAt);
+    expect(await authed.query(api.users.requireAiConsent, {})).toBe(true);
+  });
+
+  it("bloquea IA sin consentimiento", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_without_consent");
+    await authed.mutation(api.users.upsert, {});
+    await expect(authed.query(api.users.requireAiConsent, {})).rejects.toThrow("AI_CONSENT_REQUIRED");
+  });
+});
+
 describe("makeReferralCode", () => {
   it("es determinístico para el mismo clerkId", () => {
     expect(makeReferralCode("user_2abcXYZ")).toBe(makeReferralCode("user_2abcXYZ"));

@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from "react-native";
 
+import { useTheme } from "../theme/ThemeProvider";
 import { tokens } from "../theme/tokens";
 
 type AppButtonProps = PropsWithChildren<{
@@ -12,16 +13,31 @@ type AppButtonProps = PropsWithChildren<{
 }>;
 
 export function AppButton({ children, disabled = false, onPress, style, testID, variant = "primary" }: AppButtonProps) {
+  const { color } = useTheme();
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.base, styles[variant], pressed && styles.pressed, disabled && styles.disabled, style]}
+      style={({ pressed }) => [
+        styles.base,
+        variant === "primary" && { backgroundColor: color.ink },
+        variant === "secondary" && { backgroundColor: color.surface, borderColor: color.borderStrong, borderWidth: 1 },
+        variant === "quiet" && styles.quiet,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+        style,
+      ]}
       testID={testID}
     >
-      <Text style={[styles.label, variant === "primary" ? styles.labelPrimary : styles.labelSecondary]}>
+      <Text
+        style={[
+          styles.label,
+          variant === "primary" ? { color: color.surface } : { color: color.ink },
+        ]}
+      >
         {children}
       </Text>
     </Pressable>
@@ -34,14 +50,10 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg,
     justifyContent: "center",
     paddingHorizontal: tokens.space.xl,
-    paddingVertical: tokens.space.lg
+    paddingVertical: tokens.space.lg,
   },
-  primary: { backgroundColor: tokens.color.ink },
-  secondary: { backgroundColor: tokens.color.surface, borderColor: tokens.color.borderStrong, borderWidth: 1 },
   quiet: { backgroundColor: "transparent", paddingVertical: tokens.space.md },
-  pressed: { opacity: tokens.type.bodySm.size / tokens.type.label.size },
-  disabled: { opacity: 0.6 },
+  pressed: { opacity: tokens.opacity.pressed },
+  disabled: { opacity: tokens.opacity.pressed },
   label: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
-  labelPrimary: { color: tokens.color.surface },
-  labelSecondary: { color: tokens.color.ink }
 });

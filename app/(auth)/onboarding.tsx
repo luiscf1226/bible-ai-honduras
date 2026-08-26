@@ -10,13 +10,13 @@ import { tokens } from "../../src/theme/tokens";
 const steps = [
   { body: "Cada mañana, un versículo. Si tienes tiempo, se abre en un devocional completo. Si no, con el versículo basta.", cta: "Continuar", title: "Un lugar tranquilo para leer" },
   { body: "Elige un pasaje y pregunta sobre él. Las respuestas citan siempre el texto bíblico, no opiniones sueltas.", cta: "Continuar", title: "Pregunta lo que no te atreves a preguntar" },
-  { body: "Tus conversaciones son privadas y no se usan para entrenar modelos de IA. Puedes borrarlas cuando quieras.", cta: "Empezar", title: "Nadie te va a ver aquí" }
+  { body: "Tus conversaciones son privadas. Compartimos con proveedores de IA solo lo necesario para responderte. Podés borrar el historial cuando querás.", cta: "Empezar", title: "Nadie te va a ver aquí" }
 ] as const;
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const current = steps[step];
-  const next = () => step < steps.length - 1 ? setStep(step + 1) : router.replace("/notifications");
+  const next = () => step < steps.length - 1 ? setStep(step + 1) : router.replace("/consentimiento-ia");
 
   return (
     <AppScreen contentStyle={styles.content} style={styles.screen}>
@@ -31,7 +31,7 @@ export default function OnboardingScreen() {
         </View>
         <View style={styles.actions}>
           <AppButton onPress={next}>{current.cta}</AppButton>
-          <AppButton onPress={() => router.replace("/home")} variant="quiet">Saltar</AppButton>
+          <AppButton onPress={() => router.replace("/consentimiento-ia")} variant="quiet">Saltar</AppButton>
         </View>
       </View>
     </AppScreen>
