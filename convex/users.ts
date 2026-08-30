@@ -1,6 +1,12 @@
+import {
+  DEFAULT_BIBLE_VERSION,
+  bibleVersionIsAvailable,
+  resolveBibleVersion,
+  type BibleVersion,
+} from "./bibleVersions";
 import { ConvexError, v } from "convex/values";
 import type { QueryCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
 
@@ -113,6 +119,29 @@ export const requireAiConsent = query({
   },
 });
 
+/**
+ * Devuelve a RVR1960 a los usuarios que alcanzaron a elegir NVI antes de que
+ * se desactivara — #93 §4b. Sin esto quedan con una preferencia que la lectura
+ * degrada en cada request pero que sigue guardada como NVI.
+ *
+ *   npx convex run users:migrateUnavailableBibleVersions '{}'
+ */
+export const migrateUnavailableBibleVersions = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    let migrated = 0;
+    for (const user of users) {
+      if (bibleVersionIsAvailable(user.bibleVersion)) {
+        continue;
+      }
+      await ctx.db.patch(user._id, { bibleVersion: DEFAULT_BIBLE_VERSION });
+      migrated += 1;
+    }
+    return { scanned: users.length, migrated };
+  },
+});
+
 export const updatePreferences = mutation({
   args: {
     bibleVersion: v.optional(v.union(v.literal("RVR1960"), v.literal("NVI"))),
@@ -132,9 +161,12 @@ export const updatePreferences = mutation({
       throw new ConvexError("reminderHour debe ser un entero entre 0 y 23");
     }
 
-    const patch: Partial<{ bibleVersion: "RVR1960" | "NVI"; reminderHour: number; darkMode: boolean }> = {};
+    const patch: Partial<{ bibleVersion: BibleVersion; reminderHour: number; darkMode: boolean }> = {};
     if (args.bibleVersion !== undefined) {
-      patch.bibleVersion = args.bibleVersion;
+      // #93 §4b: el schema sigue aceptando NVI (hay filas viejas que la tienen),
+      // pero sin corpus ingerido no se puede guardar como preferencia nueva.
+      // Se coerce en vez de lanzar para no romper builds ya instaladas en la beta.
+      patch.bibleVersion = resolveBibleVersion(args.bibleVersion) as BibleVersion;
     }
     if (args.reminderHour !== undefined) {
       patch.reminderHour = args.reminderHour;
