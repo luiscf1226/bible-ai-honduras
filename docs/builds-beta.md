@@ -3,14 +3,27 @@
 Contexto: #93. Perfiles en `eas.json`. La app es managed (no hay `android/` ni
 `ios/` en el repo); EAS hace el prebuild en la nube.
 
+## Dos entornos de Convex
+
+Proyecto `luiscf1226/bible-ai-honduras`.
+
+| Entorno | Deployment | URL | Lo usa |
+|---|---|---|---|
+| Test | `neighborly-kudu-508` | `https://neighborly-kudu-508.convex.cloud` | `apk`, `play`, `testflight` |
+| Producción | `optimistic-labrador-439` | `https://optimistic-labrador-439.convex.cloud` | `production` |
+
+La beta corre contra **test**: los testers pueden romper datos, agotar cuotas y
+recibir Pro de cortesía sin tocar producción.
+
 ## Antes de la primera build
 
-**Reemplazá los `REEMPLAZAR` de `eas.json`.** Los tres perfiles llevan las
-mismas dos variables:
+Las URLs de Convex ya están en `eas.json`. **Falta la key de Clerk** —
+reemplazar `pk_REEMPLAZAR` en los perfiles de beta y `pk_live_REEMPLAZAR` en
+`production`.
 
 | Variable | De dónde sale |
 |---|---|
-| `EXPO_PUBLIC_CONVEX_URL` | `npx convex deploy` (usar la URL de **producción**) |
+| `EXPO_PUBLIC_CONVEX_URL` | Ya configurada (tabla de arriba) |
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk → API Keys |
 
 > **Estas dos van dentro del perfil, no en `.env.local`.** `.env.local` no viaja
@@ -20,19 +33,34 @@ mismas dos variables:
 Las claves privadas (Anthropic, OpenAI, Clerk issuer) no van acá: viven en el
 deployment de Convex.
 
+En el deployment de **test** (el que usa la beta):
+
 ```bash
-npx convex env set --prod CLERK_JWT_ISSUER_DOMAIN https://tu-instancia.clerk.accounts.dev
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://tu-instancia.clerk.accounts.dev
+npx convex env set ANTHROPIC_API_KEY sk-ant-...
+npx convex env set OPENAI_API_KEY sk-...
+```
+
+Y en **producción**, cuando llegue el momento:
+
+```bash
+npx convex env set --prod CLERK_JWT_ISSUER_DOMAIN https://...
 npx convex env set --prod ANTHROPIC_API_KEY sk-ant-...
 npx convex env set --prod OPENAI_API_KEY sk-...
 ```
 
+> Ningún deployment tiene funciones desplegadas todavía: el push falla con
+> `CLERK_JWT_ISSUER_DOMAIN is used in auth config file but its value was not
+> set`. Es lo primero que hay que resolver.
+
 ## Perfiles
 
-| Perfil | Sale | Para qué |
-|---|---|---|
-| `apk` | APK | Instalación directa por link. La ronda más rápida |
-| `play` | AAB | Google Play → Internal testing |
-| `testflight` | IPA | App Store Connect → TestFlight |
+| Perfil | Sale | Convex | Para qué |
+|---|---|---|---|
+| `apk` | APK | test | Instalación directa por link. La ronda más rápida |
+| `play` | AAB | test | Google Play → Internal testing |
+| `testflight` | IPA | test | App Store Connect → TestFlight |
+| `production` | AAB / IPA | **prod** | Lanzamiento real (#39). No usar para la beta |
 
 `autoIncrement` + `appVersionSource: remote` hacen que EAS lleve el número de
 build. No hay que tocar `version` en `app.json` a mano entre builds.

@@ -11,7 +11,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://REEMPLAZAR.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_REEMPLAZAR"
       }
     },
@@ -22,7 +22,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://REEMPLAZAR.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_REEMPLAZAR"
       }
     },
@@ -30,8 +30,19 @@
       "distribution": "store",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://REEMPLAZAR.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_REEMPLAZAR"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-labrador-439.convex.cloud",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_REEMPLAZAR"
       }
     }
   },
@@ -47,6 +58,17 @@
         "appleId": "REEMPLAZAR@ejemplo.com",
         "ascAppId": "REEMPLAZAR",
         "appleTeamId": "REEMPLAZAR"
+      }
+    },
+    "production": {
+      "ios": {
+        "appleId": "REEMPLAZAR@ejemplo.com",
+        "ascAppId": "REEMPLAZAR",
+        "appleTeamId": "REEMPLAZAR"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./play-service-account.json",
+        "track": "production"
       }
     }
   }
