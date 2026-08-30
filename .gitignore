@@ -11,3 +11,6 @@ web-build/
 expo-env.d.ts
 # @end expo-cli
 .env.local
+
+# Clave de servicio de Google Play para `eas submit` (#93). Nunca commitear.
+play-service-account.json
