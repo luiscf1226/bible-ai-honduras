@@ -28,7 +28,7 @@ describe("users.current", () => {
 });
 
 describe("users.upsert", () => {
-  it("crea el espejo local del usuario la primera vez, con RVR1960 por defecto", async () => {
+  it("crea el espejo local del usuario la primera vez, con RV1909 por defecto", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_abc", { email: "ana@example.hn", name: "Ana" });
 
@@ -39,7 +39,7 @@ describe("users.upsert", () => {
       clerkId: "user_abc",
       email: "ana@example.hn",
       name: "Ana",
-      bibleVersion: "RVR1960",
+      bibleVersion: "RV1909",
       referralCode: makeReferralCode("user_abc"),
     });
   });
@@ -69,7 +69,7 @@ describe("users.upsert", () => {
     expect(user).toMatchObject({
       email: "new@example.hn",
       name: "Nombre Nuevo",
-      bibleVersion: "RVR1960",
+      bibleVersion: "RV1909",
       reminderHour: 7,
     });
   });
@@ -108,10 +108,10 @@ describe("users.updatePreferences", () => {
     const authed = asUser(t, "user_prefs");
     const userId = await authed.mutation(api.users.upsert, {});
 
-    await authed.mutation(api.users.updatePreferences, { bibleVersion: "RVR1960", reminderHour: 6 });
+    await authed.mutation(api.users.updatePreferences, { bibleVersion: "RV1909", reminderHour: 6 });
 
     const user = await t.run((ctx) => ctx.db.get(userId));
-    expect(user).toMatchObject({ bibleVersion: "RVR1960", reminderHour: 6 });
+    expect(user).toMatchObject({ bibleVersion: "RV1909", reminderHour: 6 });
   });
 
   it("persiste las horas de aviso del prototipo (6, 12, 21) para que #10 las consuma", async () => {
@@ -188,7 +188,7 @@ describe("makeReferralCode", () => {
 });
 
 describe("bibleVersion sin corpus (#93 §4b)", () => {
-  it("elegir NVI se guarda como RVR1960: el schema la acepta pero no hay corpus", async () => {
+  it("elegir NVI se guarda como RV1909: el schema la acepta pero no hay corpus", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_nvi");
     await authed.mutation(api.users.upsert, {});
@@ -196,11 +196,11 @@ describe("bibleVersion sin corpus (#93 §4b)", () => {
     await authed.mutation(api.users.updatePreferences, { bibleVersion: "NVI" });
 
     expect(await authed.query(api.users.current, {})).toMatchObject({
-      bibleVersion: "RVR1960",
+      bibleVersion: "RV1909",
     });
   });
 
-  it("migrateUnavailableBibleVersions devuelve a RVR1960 a quien quedó en NVI", async () => {
+  it("migrateUnavailableBibleVersions devuelve a RV1909 a quien quedó en NVI", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_legacy_nvi");
     await authed.mutation(api.users.upsert, {});
@@ -217,11 +217,11 @@ describe("bibleVersion sin corpus (#93 §4b)", () => {
     expect(result).toMatchObject({ migrated: 1 });
 
     expect(await authed.query(api.users.current, {})).toMatchObject({
-      bibleVersion: "RVR1960",
+      bibleVersion: "RV1909",
     });
   });
 
-  it("la migración es idempotente y no toca a quien ya está en RVR1960", async () => {
+  it("la migración es idempotente y no toca a quien ya está en RV1909", async () => {
     const t = convexTest(schema, modules);
     await asUser(t, "user_ok").mutation(api.users.upsert, {});
     expect(await t.mutation(internal.users.migrateUnavailableBibleVersions, {})).toMatchObject({

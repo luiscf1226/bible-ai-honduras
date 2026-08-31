@@ -5,7 +5,7 @@ import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native"
 
 import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
-import { bibleVersionIsAvailable } from "../convex/bibleVersions";
+import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
@@ -14,8 +14,8 @@ import { tokens } from "../src/theme/tokens";
 // prototipo, pero va deshabilitada — no hay corpus ingerido y la licencia sigue
 // sin resolver (PRD §6). `bibleVersionIsAvailable` es la única fuente de verdad.
 const VERSIONS = [
+  { label: "RV1909", value: "RV1909" as const },
   { label: "RVR1960", value: "RVR1960" as const },
-  { label: "NVI", value: "NVI" as const },
 ];
 
 const PRIVACY_POLICY_URL = "https://luiscf1226.github.io/bible-ai-honduras/privacidad/";
@@ -30,8 +30,8 @@ export default function AjustesScreen() {
   const isPro = entitlement?.isPro === true;
   // Una preferencia guardada que ya no está disponible (NVI) se muestra como
   // RVR1960, que es lo que el backend usa de verdad al recuperar.
-  const storedVersion = user?.bibleVersion ?? "RVR1960";
-  const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : "RVR1960";
+  const storedVersion = user?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
+  const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : DEFAULT_BIBLE_VERSION;
   const darkMode = user?.darkMode ?? false;
 
   return (
@@ -99,7 +99,7 @@ export default function AjustesScreen() {
             })}
           </View>
           <Text style={[styles.versionHint, { color: color.inkSoft }]} testID="ajustes-version-hint">
-            NVI todavía no está disponible. Estamos resolviendo la licencia.
+            RVR1960 y NVI todavía no están disponibles: son de licencia comercial.
           </Text>
         </View>
 

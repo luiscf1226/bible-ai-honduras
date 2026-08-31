@@ -15,12 +15,13 @@
  * alcanza para reactivarla en toda la app.
  */
 
-export const DEFAULT_BIBLE_VERSION = "RVR1960";
+export const DEFAULT_BIBLE_VERSION = "RV1909";
 
-// Ingeridas y consultables hoy. NVI queda fuera hasta resolver licencia + corpus.
+// Ingeridas y consultables hoy. RVR1960 y NVI quedan fuera hasta resolver
+// licencia + corpus; sus literales siguen en el schema por las filas viejas.
 export const AVAILABLE_BIBLE_VERSIONS = [DEFAULT_BIBLE_VERSION] as const;
 
-export type BibleVersion = "RVR1960" | "NVI";
+export type BibleVersion = "RV1909" | "RVR1960" | "NVI";
 
 export function bibleVersionIsAvailable(version: string | undefined | null): boolean {
   return (

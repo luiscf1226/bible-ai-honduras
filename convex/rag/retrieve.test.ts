@@ -38,7 +38,7 @@ async function seedVerse(t: ReturnType<typeof convexTest>, embedding: number[]) 
     book: "Salmos",
     chapter: 23,
     verse: 1,
-    version: "RVR1960",
+    version: "RV1909",
     text: "Jehová es mi pastor; nada me faltará.",
     embedding,
   });
@@ -83,7 +83,7 @@ describe("retrieve.topVerses", () => {
     });
     stubOpenAI(unitVector(0));
 
-    const results = await t.action(internal.rag.retrieve.topVerses, { query: "mi pastor", version: "RVR1960" });
+    const results = await t.action(internal.rag.retrieve.topVerses, { query: "mi pastor", version: "RV1909" });
 
     expect(results).toEqual([]);
   });
