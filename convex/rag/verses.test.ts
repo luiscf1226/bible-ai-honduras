@@ -37,18 +37,18 @@ describe("verses.getByRef", () => {
 
     await t.mutation(internal.rag.verses.upsertVerse, {
       ...juan,
-      version: "RVR1960",
+      version: "RV1909",
       embedding,
     });
     await t.mutation(internal.rag.verses.upsertVerse, {
       ...genesis,
-      version: "RVR1960",
+      version: "RV1909",
       embedding,
     });
 
     await expect(
       t.query(api.rag.verses.getByRef, {
-        version: "RVR1960",
+        version: "RV1909",
         book: "Juan",
         chapter: 3,
         verse: 16,
@@ -57,13 +57,13 @@ describe("verses.getByRef", () => {
       book: "Juan",
       chapter: 3,
       verse: 16,
-      version: "RVR1960",
+      version: "RV1909",
       text: juan.text,
     });
 
     await expect(
       t.query(api.rag.verses.getByRef, {
-        version: "RVR1960",
+        version: "RV1909",
         book: "Génesis",
         chapter: 1,
         verse: 1,
@@ -72,7 +72,7 @@ describe("verses.getByRef", () => {
       book: "Génesis",
       chapter: 1,
       verse: 1,
-      version: "RVR1960",
+      version: "RV1909",
       text: genesis.text,
     });
   });
@@ -81,7 +81,7 @@ describe("verses.getByRef", () => {
     const t = convexTest(schema, modules);
     await expect(
       t.query(api.rag.verses.getByRef, {
-        version: "RVR1960",
+        version: "RV1909",
         book: "Juan",
         chapter: 3,
         verse: 16,
@@ -96,12 +96,12 @@ describe("verses.getById", () => {
     const juan = sampleByRef("Juan", 3, 16);
     const id = await t.mutation(internal.rag.verses.upsertVerse, {
       ...juan,
-      version: "RVR1960",
+      version: "RV1909",
       embedding: zeroEmbedding(),
     });
 
     const row = await t.query(api.rag.verses.getById, { id });
-    expect(row).toMatchObject({ book: "Juan", chapter: 3, verse: 16, version: "RVR1960", text: juan.text });
+    expect(row).toMatchObject({ book: "Juan", chapter: 3, verse: 16, version: "RV1909", text: juan.text });
     expect(row).not.toHaveProperty("embedding");
   });
 
@@ -109,12 +109,12 @@ describe("verses.getById", () => {
     const t = convexTest(schema, modules);
     const other = await t.mutation(internal.rag.verses.upsertVerse, {
       ...sampleByRef("Génesis", 1, 1),
-      version: "RVR1960",
+      version: "RV1909",
       embedding: zeroEmbedding(),
     });
     await t.mutation(internal.rag.verses.upsertVerse, {
       ...sampleByRef("Juan", 3, 16),
-      version: "RVR1960",
+      version: "RV1909",
       embedding: zeroEmbedding(),
     });
     await t.run((ctx) => ctx.db.delete(other));
@@ -125,24 +125,24 @@ describe("verses.getById", () => {
 });
 
 describe("verses.citedForUser", () => {
-  it("usa RVR1960 por defecto y el bibleVersion del usuario autenticado", async () => {
+  it("usa RV1909 por defecto y el bibleVersion del usuario autenticado", async () => {
     const t = convexTest(schema, modules);
     const juan = sampleByRef("Juan", 3, 16);
     await t.mutation(internal.rag.verses.upsertVerse, {
       ...juan,
-      version: "RVR1960",
+      version: "RV1909",
       embedding: zeroEmbedding(),
     });
 
     await expect(
       t.query(api.rag.verses.citedForUser, { book: "Juan", chapter: 3, verse: 16 }),
     ).resolves.toMatchObject({
-      version: "RVR1960",
-      verse: { text: juan.text, version: "RVR1960" },
+      version: "RV1909",
+      verse: { text: juan.text, version: "RV1909" },
     });
 
     // #93 §4b: NVI no tiene corpus. Una preferencia guardada que ya no está
-    // disponible degrada a RVR1960 en vez de devolver `verse: null` — antes
+    // disponible degrada a RV1909 en vez de devolver `verse: null` — antes
     // ese null dejaba al usuario sin ninguna cita, para siempre y sin aviso.
     const authed = asUser(t, "user_cite");
     await authed.mutation(api.users.upsert, {});
@@ -157,8 +157,8 @@ describe("verses.citedForUser", () => {
     await expect(
       authed.query(api.rag.verses.citedForUser, { book: "Juan", chapter: 3, verse: 16 }),
     ).resolves.toMatchObject({
-      version: "RVR1960",
-      verse: { text: juan.text, version: "RVR1960" },
+      version: "RV1909",
+      verse: { text: juan.text, version: "RV1909" },
     });
   });
 });
@@ -168,15 +168,15 @@ describe("verses.listByChapter", () => {
   it("devuelve los versículos indexados de un capítulo, ordenados", async () => {
     const t = convexTest(schema, modules);
     const genesis = sampleByRef("Génesis", 1, 1);
-    await t.mutation(internal.rag.verses.upsertVerse, { ...genesis, version: "RVR1960", embedding: zeroEmbedding() });
+    await t.mutation(internal.rag.verses.upsertVerse, { ...genesis, version: "RV1909", embedding: zeroEmbedding() });
 
-    const rows = await t.query(api.rag.verses.listByChapter, { version: "RVR1960", book: "Génesis", chapter: 1 });
-    expect(rows).toEqual([{ book: "Génesis", chapter: 1, verse: 1, version: "RVR1960", text: genesis.text }]);
+    const rows = await t.query(api.rag.verses.listByChapter, { version: "RV1909", book: "Génesis", chapter: 1 });
+    expect(rows).toEqual([{ book: "Génesis", chapter: 1, verse: 1, version: "RV1909", text: genesis.text }]);
   });
 
   it("devuelve [] si el capítulo todavía no está ingerido", async () => {
     const t = convexTest(schema, modules);
-    const rows = await t.query(api.rag.verses.listByChapter, { version: "RVR1960", book: "Apocalipsis", chapter: 22 });
+    const rows = await t.query(api.rag.verses.listByChapter, { version: "RV1909", book: "Apocalipsis", chapter: 22 });
     expect(rows).toEqual([]);
   });
 });
@@ -192,14 +192,14 @@ describe("verses.upsertVerse", () => {
 
     const firstId = await t.mutation(internal.rag.verses.upsertVerse, {
       ...juan,
-      version: "RVR1960",
+      version: "RV1909",
       embedding: firstEmbedding,
     });
     const secondId = await t.mutation(internal.rag.verses.upsertVerse, {
       book: juan.book,
       chapter: juan.chapter,
       verse: juan.verse,
-      version: "RVR1960",
+      version: "RV1909",
       text: "texto actualizado",
       embedding: secondEmbedding,
     });

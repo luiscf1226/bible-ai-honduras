@@ -1,3 +1,4 @@
+import { DEFAULT_BIBLE_VERSION } from "../../convex/bibleVersions";
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
@@ -71,7 +72,7 @@ export default function HomeScreen() {
   const devotional = isReady ? state.devotional : null;
   const parsed = parseVerseRef(devotional?.verseRef ?? "");
   const cited = useQuery(api.rag.verses.citedForUser, parsed ?? "skip");
-  const bibleVersion = cited?.version ?? "RVR1960";
+  const bibleVersion = cited?.version ?? DEFAULT_BIBLE_VERSION;
   const verseText = cited?.verse?.text;
 
   const onDevotionalPress = () => {
@@ -88,7 +89,7 @@ export default function HomeScreen() {
 
     void shareContent({
       referralCode: currentUser.referralCode,
-      text: buildDevotionalShareText(devotional)
+      text: buildDevotionalShareText({ ...devotional, version: bibleVersion })
     });
   };
 

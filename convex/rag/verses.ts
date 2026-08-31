@@ -1,11 +1,11 @@
-import { resolveBibleVersion } from "../bibleVersions";
+import { DEFAULT_BIBLE_VERSION, resolveBibleVersion } from "../bibleVersions";
 import { ConvexError, v } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
 import { internalMutation, query } from "../_generated/server";
 import { EMBEDDING_DIMENSIONS } from "./embed";
 
-const DEFAULT_VERSION = "RVR1960";
+const DEFAULT_VERSION = DEFAULT_BIBLE_VERSION;
 
 async function findVerse(
   ctx: QueryCtx,

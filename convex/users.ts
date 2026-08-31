@@ -70,7 +70,7 @@ export const upsert = mutation({
       clerkId: identity.subject,
       email: identity.email,
       name: identity.name,
-      bibleVersion: "RVR1960",
+      bibleVersion: DEFAULT_BIBLE_VERSION,
       referralCode: makeReferralCode(identity.subject),
     });
   },
@@ -144,7 +144,7 @@ export const migrateUnavailableBibleVersions = internalMutation({
 
 export const updatePreferences = mutation({
   args: {
-    bibleVersion: v.optional(v.union(v.literal("RVR1960"), v.literal("NVI"))),
+    bibleVersion: v.optional(v.union(v.literal("RV1909"), v.literal("RVR1960"), v.literal("NVI"))),
     reminderHour: v.optional(v.number()),
     darkMode: v.optional(v.boolean()),
   },

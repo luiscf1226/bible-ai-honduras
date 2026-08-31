@@ -7,7 +7,7 @@ export default defineSchema({
     clerkId: v.string(), // identity.subject del JWT de Clerk
     email: v.optional(v.string()),
     name: v.optional(v.string()),
-    bibleVersion: v.union(v.literal("RVR1960"), v.literal("NVI")),
+    bibleVersion: v.union(v.literal("RV1909"), v.literal("RVR1960"), v.literal("NVI")),
     reminderHour: v.optional(v.number()),
     darkMode: v.optional(v.boolean()),
     aiConsentAt: v.optional(v.number()),

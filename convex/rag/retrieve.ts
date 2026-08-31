@@ -1,3 +1,4 @@
+import { DEFAULT_BIBLE_VERSION } from "../bibleVersions";
 import { v } from "convex/values";
 
 import { api } from "../_generated/api";
@@ -16,7 +17,7 @@ export type RetrievedVerse = {
   score: number;
 };
 
-const DEFAULT_VERSION = "RVR1960";
+const DEFAULT_VERSION = DEFAULT_BIBLE_VERSION;
 const DEFAULT_LIMIT = 3;
 
 // Umbral conservador de similitud coseno: por debajo de esto tratamos la

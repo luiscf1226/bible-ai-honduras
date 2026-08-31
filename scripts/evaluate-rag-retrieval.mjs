@@ -17,7 +17,7 @@ const binary = resolve("node_modules/.bin/convex");
 let hits = 0;
 
 for (const testCase of cases) {
-  const args = ["run", "rag/retrieve:topVerses", JSON.stringify({ query: testCase.question, version: "RVR1960", limit: 3 })];
+  const args = ["run", "rag/retrieve:topVerses", JSON.stringify({ query: testCase.question, version: "RV1909", limit: 3 })];
   if (prod) args.push("--prod");
   const result = spawnSync(binary, args, { encoding: "utf8" });
   if (result.status !== 0) throw new Error(result.stderr || `fallo evaluando ${testCase.question}`);

@@ -69,7 +69,7 @@ describe("feelings.generate", () => {
       if (url === ANTHROPIC_MESSAGES_URL) {
         const structured = {
           answer: "Dios cuida a su pueblo aun cuando el camino pesa.",
-          citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
+          citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RV1909" }],
         };
         return Promise.resolve(jsonResponse({ content: [{ type: "text", text: JSON.stringify(structured) }] }));
       }
@@ -85,7 +85,7 @@ describe("feelings.generate", () => {
       book: "Salmos",
       chapter: 23,
       verse: 1,
-      version: "RVR1960",
+      version: "RV1909",
       text: "Jehová es mi pastor; nada me faltará.",
       embedding: unitVector(0),
     });
@@ -98,7 +98,7 @@ describe("feelings.generate", () => {
     expect(result).toMatchObject({
       allowed: true,
       devotional: {
-        citation: { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" },
+        citation: { book: "Salmos", chapter: 23, verse: 1, version: "RV1909" },
         reflection: "Dios cuida a su pueblo aun cuando el camino pesa.",
         title: "Para ansiedad",
       },
