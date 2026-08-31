@@ -20,6 +20,13 @@
     },
     "android": {
       "package": "com.bibleaihonduras.app"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "28bbe778-9ec7-4940-92a3-c1ff62b0a419"
+      }
+    },
+    "owner": "luiscf1226"
   }
 }
