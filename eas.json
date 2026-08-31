@@ -12,7 +12,7 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_REEMPLAZAR"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bW92ZWQtcmFtLTM2MzAuY2xlcmsuYWNjb3VudHMuZGV2JA"
       }
     },
     "play": {
@@ -23,7 +23,7 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_REEMPLAZAR"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bW92ZWQtcmFtLTM2MzAuY2xlcmsuYWNjb3VudHMuZGV2JA"
       }
     },
     "testflight": {
@@ -31,7 +31,7 @@
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_REEMPLAZAR"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bW92ZWQtcmFtLTM2MzAuY2xlcmsuYWNjb3VudHMuZGV2JA"
       }
     },
     "production": {
