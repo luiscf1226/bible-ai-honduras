@@ -1,12 +1,15 @@
 # Manifiesto de capturas de tienda
 
-**Estado:** plantilla de ejecución. No hay capturas E2E adjuntas mientras #37
-esté abierto.
+**Estado:** plantilla de ejecución. **No hay PNG de tienda en este
+repositorio** (no se inventan capturas). Bloqueado por build estable en
+dispositivo (#37 E2E / #101 TestFlight–Play Internal) e ícono/splash de
+producción (#102).
 
 ## Precondiciones
 
 1. Usar una build candidata en un dispositivo físico de cada plataforma, no
-   Expo Go ni una captura del navegador.
+   Expo Go ni una captura del navegador. El ícono visible en springboard /
+   launcher debe ser el de #102, no el default de Expo.
 2. Completar el flujo de email/Clerk con una cuenta de prueba controlada por el
    responsable de la tienda. No incluir credenciales en este repositorio ni en
    las imágenes.
@@ -20,8 +23,8 @@ esté abierto.
 
 ## Destinos y nomenclatura
 
-Guardar los PNG finales fuera de git, en el repositorio seguro de materiales de
-release, con estos nombres:
+Guardar los PNG finales **fuera de git**, en el repositorio seguro de
+materiales de release, con estos nombres:
 
 | Destino | Prefijo | Dispositivos a validar |
 | --- | --- | --- |
@@ -45,8 +48,9 @@ esos requisitos son externos al repositorio y cambian con el tiempo.
 | `{{platform}}-historias-{{locale}}-{{build}}.png` | Catálogo o visor de historia ilustrada | Escena bíblica, referencia y atribución de ilustración generada | No revelar que la imagen es generada por IA |
 | `{{platform}}-pro-{{locale}}-{{build}}.png` | Paywall/plan Pro, si compra verificada | Beneficios, precio localizado y restauración | Afirmar precio o compra sin configuración final |
 | `{{platform}}-privacidad-{{locale}}-{{build}}.png` | Ajustes > Privacidad | Mensaje de privacidad y borrado de historial | Contradecir la política publicada |
+| `{{platform}}-cuenta-{{locale}}-{{build}}.png` | Ajustes > Cuenta | Correo, **Cerrar sesión** y **Eliminar mi cuenta** | Afirmar que falta borrado in-app (guideline 5.1.1(v)) |
 
-## Secuencia de evidencia para #37
+## Secuencia de evidencia para #37 / #101
 
 Para cada plataforma, registrar junto a las imágenes:
 
@@ -54,7 +58,8 @@ Para cada plataforma, registrar junto a las imágenes:
 - identificador de build y commit probado;
 - fecha, zona horaria y persona que ejecutó la prueba;
 - resultado del onboarding, de los cinco módulos, de borrar historial, de
-  compra/restore sandbox y de la navegación a la política publicada;
+  cerrar sesión / eliminar cuenta (#107), de compra/restore sandbox y de la
+  navegación a la política publicada;
 - defectos o divergencias entre la imagen y la build.
 
 Una captura solo se marca como aprobada cuando coinciden la imagen, la build y

@@ -1,7 +1,12 @@
 # Notas para revisión de tiendas / Store review notes
 
-**Estado:** texto de envío preparado desde el repositorio. Reemplazar solo los
-datos de acceso al crear la entrega. No pegar credenciales en git.
+**Estado:** texto de envío preparado desde el repositorio. Incluye la ruta
+in-app de cierre de sesión y eliminación de cuenta (#107 / PR #118). Reemplazar
+solo los datos de acceso al crear la entrega. No pegar credenciales en git.
+
+**Operativo antes de pegar en el portal:** confirmar en Convex la variable
+`CLERK_SECRET_KEY` (sin ella el borrado de datos funciona pero la identidad de
+Clerk puede quedar viva) y validar el flujo en un dispositivo real (#37).
 
 ## Español
 

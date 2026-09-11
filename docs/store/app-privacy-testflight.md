@@ -14,9 +14,12 @@ Finalidades aplicables: **App Functionality** para todas; **Analytics** solo deb
 
 Checklist del portal:
 
-- [ ] Publicar la URL de privacidad.
+- [ ] Publicar la URL de privacidad (`https://luiscf1226.github.io/bible-ai-honduras/privacidad/`).
 - [ ] Marcar las categorías anteriores según el build exacto.
 - [ ] Declarar que los datos se vinculan a la identidad cuando corresponda.
 - [ ] Confirmar que no se usan para tracking.
+- [ ] Confirmar Account Deletion / Data Deletion: flujo in-app
+      `Ajustes → Cuenta → Eliminar mi cuenta` (#107) y URL
+      `https://luiscf1226.github.io/bible-ai-honduras/eliminar-cuenta/`.
 - [ ] Revisar formularios de Clerk, Convex, Anthropic, OpenAI y RevenueCat contra los contratos/configuración reales.
 - [ ] Guardar fecha y captura de la respuesta enviada en el registro privado de lanzamiento.

@@ -1,6 +1,6 @@
 # Política de privacidad — Bible AI Honduras
 
-**Vigente desde:** 25 de agosto de 2026  
+**Vigente desde:** 10 de septiembre de 2026  
 **Responsable:** Bible AI Honduras  
 **Contacto de privacidad:** [luiscf1226@gmail.com](mailto:luiscf1226@gmail.com)  
 **URL pública:** <https://luiscf1226.github.io/bible-ai-honduras/privacidad/>
@@ -74,8 +74,19 @@ el tiempo razonablemente necesario para prestar y proteger el servicio. Los
 registros exigidos por razones fiscales, antifraude o legales pueden conservarse
 durante el plazo aplicable.
 
-Para solicitar la eliminación completa de tu cuenta y datos asociados, escribí
-a [luiscf1226@gmail.com](mailto:luiscf1226@gmail.com) desde el correo de tu
+### Eliminación completa de la cuenta
+
+Podés eliminar la cuenta **desde la app** en
+**Ajustes → Cuenta → Eliminar mi cuenta**. El flujo pide confirmación en dos
+pasos (incluido escribir la palabra ELIMINAR). Borra en cascada el perfil, las
+conversaciones y mensajes, los conteos de uso, el plan dentro de la app, las
+historias e imágenes generadas que controlemos, y la identidad asociada en
+Clerk. **Eliminar la cuenta no cancela la suscripción de la tienda**; eso se
+administra en App Store o Google Play. También podés cerrar sesión sin borrar
+datos en **Ajustes → Cuenta → Cerrar sesión**.
+
+Si ya no tenés la app instalada, escribí a
+[luiscf1226@gmail.com](mailto:luiscf1226@gmail.com) desde el correo de tu
 cuenta, o seguí el proceso publicado en
 <https://luiscf1226.github.io/bible-ai-honduras/eliminar-cuenta/>. Confirmaremos
 la recepción y podremos pedirte verificar que sos titular de la cuenta.
@@ -89,11 +100,11 @@ datos fuera de Honduras según su infraestructura y contratos.
 
 ## Tus decisiones y derechos
 
-Podés borrar el historial desde la app, cambiar preferencias y retirar el
-permiso de notificaciones desde los ajustes del dispositivo. También podés
-solicitar acceso, corrección o eliminación escribiendo al contacto de privacidad.
-Responderemos conforme a la ley aplicable y te explicaremos si una excepción
-legal impide atender parte de la solicitud.
+Podés borrar el historial, cerrar sesión o eliminar la cuenta desde la app,
+cambiar preferencias y retirar el permiso de notificaciones desde los ajustes
+del dispositivo. También podés solicitar acceso, corrección o eliminación
+escribiendo al contacto de privacidad. Responderemos conforme a la ley aplicable
+y te explicaremos si una excepción legal impide atender parte de la solicitud.
 
 ## Contenido religioso y límites de la IA
 
