@@ -51,7 +51,7 @@ local "rápida" — eso rompe el issue #32 (conectar los 4 límites al paywall).
 ## Regla dura #4 — Todo contenido bíblico va anclado al RAG
 
 La IA no emite opinión teológica libre. Toda respuesta de Q&A, Voces y Sentimiento sale
-del pipeline de RAG con cita verificable al texto (RVR1960) y comentarios evangélicos.
+del pipeline de RAG con cita verificable al texto (RV1909) y comentarios evangélicos.
 Si una feature necesita generación libre, se discute antes de construirla.
 
 ---
