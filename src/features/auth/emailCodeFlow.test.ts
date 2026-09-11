@@ -9,6 +9,7 @@ import {
   clerkErrorCodes,
   hasClerkErrorCode,
   resendCooldownRemaining,
+  resendEmailCode,
   resendLabel,
   sendEmailCode,
   type SendCodeDeps,
@@ -206,5 +207,97 @@ describe("cooldown de reenvío", () => {
     expect(resendLabel(0)).toBe("Reenviar código");
     expect(resendLabel(30)).toBe("Reenviar en 30 s");
     expect(resendLabel(1)).toBe("Reenviar en 1 s");
+  });
+});
+
+// ── Reenviar el código (#124) ───────────────────────────────
+
+/** Un `ClerkAPIResponseError` con el código útil en `errors[].code`. */
+function apiError(code: string) {
+  return { code: "api_response_error", errors: [{ code }] };
+}
+
+describe("resendEmailCode", () => {
+  it("reenvía el sign-in sin identificador mientras el intento siga vivo", async () => {
+    const resendSignInCode = vi.fn(async () => ({ error: null }));
+    const resendSignUpCode = vi.fn(async () => ({ error: null }));
+
+    const result = await resendEmailCode("signIn", "ana@example.hn", {
+      hasSignInAttempt: () => true,
+      resendSignInCode,
+      resendSignUpCode,
+    });
+
+    expect(result).toEqual({ ok: true, mode: "signIn" });
+    expect(resendSignInCode).toHaveBeenCalledWith(undefined);
+    expect(resendSignUpCode).not.toHaveBeenCalled();
+  });
+
+  it("si el intento de sign-in se perdió, reenvía con el correo en vez de quedarse sin salida", async () => {
+    const resendSignInCode = vi.fn(async () => ({ error: null }));
+
+    const result = await resendEmailCode("signIn", "  ana@example.hn  ".trim(), {
+      hasSignInAttempt: () => false,
+      resendSignInCode,
+      resendSignUpCode: vi.fn(),
+    });
+
+    expect(result).toEqual({ ok: true, mode: "signIn" });
+    expect(resendSignInCode).toHaveBeenCalledWith("ana@example.hn");
+  });
+
+  it("el sign-up reenvía por su propio camino y nunca mira el intento de sign-in", async () => {
+    const resendSignUpCode = vi.fn(async () => ({ error: null }));
+    const hasSignInAttempt = vi.fn(() => false);
+
+    const result = await resendEmailCode("signUp", "ana@example.hn", {
+      hasSignInAttempt,
+      resendSignInCode: vi.fn(),
+      resendSignUpCode,
+    });
+
+    expect(result).toEqual({ ok: true, mode: "signUp" });
+    expect(resendSignUpCode).toHaveBeenCalledOnce();
+    expect(hasSignInAttempt).not.toHaveBeenCalled();
+  });
+
+  it("una EXCEPCIÓN de Clerk se convierte en un error visible, no en un unhandled rejection (#124)", async () => {
+    // `signIn.emailCode.sendCode()` lanza (no devuelve `{ error }`) cuando el
+    // guard de precondición no se cumple. El botón de #104 no lo capturaba:
+    // se quedaba mudo y el usuario concluía que el reenvío no funciona.
+    const boom = new Error("signIn.emailCode.sendCode() cannot be called without an emailAddress …");
+    const result = await resendEmailCode("signIn", "ana@example.hn", {
+      hasSignInAttempt: () => true,
+      resendSignInCode: vi.fn(async () => {
+        throw boom;
+      }),
+      resendSignUpCode: vi.fn(),
+    });
+
+    expect(result).toEqual({ ok: false, error: "sendFailed", cause: boom });
+  });
+
+  it("una excepción de red se reporta como falta de conexión", async () => {
+    const offline = { code: "network_error" };
+    const result = await resendEmailCode("signUp", "ana@example.hn", {
+      hasSignInAttempt: () => true,
+      resendSignInCode: vi.fn(),
+      resendSignUpCode: vi.fn(async () => {
+        throw offline;
+      }),
+    });
+
+    expect(result).toEqual({ ok: false, error: "offline", cause: offline });
+  });
+
+  it("un error devuelto por la API se clasifica igual que en el primer envío", async () => {
+    const error = apiError("strategy_for_user_invalid");
+    const result = await resendEmailCode("signIn", "ana@example.hn", {
+      hasSignInAttempt: () => true,
+      resendSignInCode: vi.fn(async () => ({ error })),
+      resendSignUpCode: vi.fn(),
+    });
+
+    expect(result).toEqual({ ok: false, error: "otherMethod", cause: error });
   });
 });
