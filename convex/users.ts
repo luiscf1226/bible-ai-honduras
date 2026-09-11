@@ -5,8 +5,11 @@ import {
   type BibleVersion,
 } from "./bibleVersions";
 import { ConvexError, v } from "convex/values";
-import type { QueryCtx } from "./_generated/server";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { action, internalMutation, mutation, query } from "./_generated/server";
+import { deleteConversationsForUser } from "./history";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
 
@@ -175,5 +178,263 @@ export const updatePreferences = mutation({
       patch.darkMode = args.darkMode;
     }
     await ctx.db.patch(existing._id, patch);
+  },
+});
+
+// ── Eliminar mi cuenta (#107 · App Store 5.1.1(v)) ──────────
+//
+// Tablas del schema que apuntan al usuario y por lo tanto se borran acá:
+//   users          → la fila espejo (última, cuando ya no queda nada más)
+//   conversations  → vía history.deleteConversationsForUser (#35)
+//   messages       → idem (hijos de conversations)
+//   usage          → contadores de cuota (transversal #15/#20/#24/#29)
+//   entitlements   → fila de Pro; NO cancela la suscripción de la tienda
+//   stories        → la fila y además cada blob de `_storage` de sus escenas
+// `verses`, `commentaries` y `dailyDevotionals` son contenido editorial global:
+// no tienen userId y no se tocan.
+
+const PURGE_BUDGET = 256; // filas por transacción
+const PURGE_MAX_PASSES = 200; // techo duro: 200 × 256 ≈ 51k filas
+
+export type PurgeCounts = {
+  messages: number;
+  conversations: number;
+  usage: number;
+  entitlements: number;
+  stories: number;
+  storyImages: number;
+  users: number;
+};
+
+export type ClerkDeletionStatus = "deleted" | "not_configured" | "failed";
+
+export type DeleteAccountResult = {
+  /**
+   * ok                → datos borrados y usuario de Clerk borrado.
+   * clerk_pendiente   → datos borrados, pero la identidad de Clerk sobrevive.
+   *                     La UI debe avisar y cerrar sesión igual.
+   * datos_incompletos → quedó data sin borrar; la UI no cierra sesión y pide
+   *                     reintentar (la identidad de Clerk sigue viva a propósito).
+   */
+  status: "ok" | "clerk_pendiente" | "datos_incompletos";
+  clerk: ClerkDeletionStatus;
+  deleted: PurgeCounts;
+};
+
+function emptyPurgeCounts(): PurgeCounts {
+  return {
+    messages: 0,
+    conversations: 0,
+    usage: 0,
+    entitlements: 0,
+    stories: 0,
+    storyImages: 0,
+    users: 0,
+  };
+}
+
+async function deleteUsageForUser(ctx: MutationCtx, userId: Id<"users">, budget: number) {
+  const rowsOf = (limit: number) =>
+    ctx.db
+      .query("usage")
+      .withIndex("by_user_module_day", (q) => q.eq("userId", userId))
+      .take(limit);
+
+  let deleted = 0;
+  while (deleted < budget) {
+    const page = await rowsOf(Math.min(budget - deleted, 128));
+    if (page.length === 0) {
+      return { deleted, done: true };
+    }
+    for (const row of page) {
+      await ctx.db.delete(row._id);
+      deleted += 1;
+    }
+  }
+  return { deleted, done: (await rowsOf(1)).length === 0 };
+}
+
+async function deleteEntitlementsForUser(ctx: MutationCtx, userId: Id<"users">, budget: number) {
+  const rowsOf = (limit: number) =>
+    ctx.db
+      .query("entitlements")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .take(limit);
+
+  let deleted = 0;
+  while (deleted < budget) {
+    const page = await rowsOf(Math.min(budget - deleted, 128));
+    if (page.length === 0) {
+      return { deleted, done: true };
+    }
+    for (const row of page) {
+      await ctx.db.delete(row._id);
+      deleted += 1;
+    }
+  }
+  return { deleted, done: (await rowsOf(1)).length === 0 };
+}
+
+/**
+ * Historias + los blobs de `_storage` de sus escenas. Cada historia se borra
+ * completa (blobs primero, después la fila) para que un corte a mitad no deje
+ * un blob sin dueño ni una fila apuntando a un blob que ya no está.
+ */
+async function deleteStoriesForUser(ctx: MutationCtx, userId: Id<"users">, budget: number) {
+  let stories = 0;
+  let storyImages = 0;
+  let spent = 0;
+
+  const nextStory = () =>
+    ctx.db
+      .query("stories")
+      .withIndex("by_user_catalog", (q) => q.eq("userId", userId))
+      .first();
+
+  while (spent < budget) {
+    const story = await nextStory();
+    if (!story) {
+      return { stories, storyImages, done: true };
+    }
+    for (const scene of story.scenes) {
+      if (!scene.storageId) {
+        continue;
+      }
+      try {
+        await ctx.storage.delete(scene.storageId);
+        storyImages += 1;
+      } catch {
+        // El blob ya no existe (reintento, o borrado a mano). La fila se va
+        // igual: dejarla viva sería peor que no contar este blob.
+      }
+      spent += 1;
+    }
+    await ctx.db.delete(story._id);
+    stories += 1;
+    spent += 1;
+  }
+
+  return { stories, storyImages, done: (await nextStory()) === null };
+}
+
+/**
+ * Una pasada del borrado en cascada. Interna: el `clerkId` lo pone la action a
+ * partir de `identity.subject`, nunca el cliente — un argumento así expuesto
+ * al cliente sería una IDOR con forma de "borrame la cuenta de otro".
+ */
+export const purgeAccountData = internalMutation({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args): Promise<{ done: boolean; deleted: PurgeCounts }> => {
+    const deleted = emptyPurgeCounts();
+    const user = await findByClerkId(ctx, args.clerkId);
+    if (!user) {
+      // Ya no queda nada que borrar (reintento después de una pasada completa).
+      return { done: true, deleted };
+    }
+
+    const conversations = await deleteConversationsForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.conversations = conversations.deletedConversations;
+    deleted.messages = conversations.deletedMessages;
+
+    const stories = await deleteStoriesForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.stories = stories.stories;
+    deleted.storyImages = stories.storyImages;
+
+    const usage = await deleteUsageForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.usage = usage.deleted;
+
+    const entitlements = await deleteEntitlementsForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.entitlements = entitlements.deleted;
+
+    const childrenDone = conversations.done && stories.done && usage.done && entitlements.done;
+    if (!childrenDone) {
+      return { done: false, deleted };
+    }
+
+    // La fila del usuario va al final: mientras exista, una pasada nueva sabe
+    // a quién le falta limpiar.
+    await ctx.db.delete(user._id);
+    deleted.users = 1;
+    return { done: true, deleted };
+  },
+});
+
+const CLERK_BACKEND_API = "https://api.clerk.com/v1";
+
+/**
+ * Borra la identidad en Clerk (Backend API `DELETE /v1/users/{id}`). Se llama
+ * *después* de que los datos ya no están, y nunca lanza: el resultado viaja al
+ * cliente para que la UI pueda avisar si la identidad quedó pendiente.
+ */
+export async function deleteClerkUser(clerkId: string): Promise<ClerkDeletionStatus> {
+  const secret = process.env.CLERK_SECRET_KEY;
+  if (!secret) {
+    console.error(
+      "CLERK_SECRET_KEY no está configurada: los datos se borraron pero el usuario de Clerk sobrevive. " +
+        "Configurala con `npx convex env set CLERK_SECRET_KEY`.",
+    );
+    return "not_configured";
+  }
+
+  try {
+    const response = await fetch(`${CLERK_BACKEND_API}/users/${encodeURIComponent(clerkId)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    // 404 = ya no existe en Clerk; para nosotros es el mismo estado final.
+    if (response.ok || response.status === 404) {
+      return "deleted";
+    }
+    console.error(`Clerk DELETE /v1/users falló con ${response.status} para ${clerkId}`);
+    return "failed";
+  } catch (error) {
+    console.error(`Clerk DELETE /v1/users lanzó un error para ${clerkId}`, error);
+    return "failed";
+  }
+}
+
+/**
+ * Eliminar mi cuenta. Orden deliberado: **primero los datos, después Clerk.**
+ *
+ * Si Clerk se borrara primero y el purgado fallara, el usuario quedaría sin
+ * identidad y con datos vivos: nadie podría volver a pedir el borrado. Al
+ * revés, si Clerk falla después, los datos ya no están (que es lo que exige la
+ * guideline 5.1.1(v) y la política publicada) y devolvemos
+ * `status: "clerk_pendiente"` para que la UI lo diga en voz alta y cierre
+ * sesión igual — nunca datos borrados con sesión viva y en silencio.
+ *
+ * Si el borrado de datos no terminó, la identidad de Clerk **no** se toca:
+ * mejor un reintento posible que una cuenta huérfana e inalcanzable.
+ */
+export const deleteAccount = action({
+  args: {},
+  handler: async (ctx): Promise<DeleteAccountResult> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("No autenticado");
+    }
+    const clerkId = identity.subject;
+
+    const deleted = emptyPurgeCounts();
+    let dataDone = false;
+    for (let pass = 0; pass < PURGE_MAX_PASSES && !dataDone; pass += 1) {
+      const result = await ctx.runMutation(internal.users.purgeAccountData, { clerkId });
+      deleted.messages += result.deleted.messages;
+      deleted.conversations += result.deleted.conversations;
+      deleted.usage += result.deleted.usage;
+      deleted.entitlements += result.deleted.entitlements;
+      deleted.stories += result.deleted.stories;
+      deleted.storyImages += result.deleted.storyImages;
+      deleted.users += result.deleted.users;
+      dataDone = result.done;
+    }
+
+    if (!dataDone) {
+      console.error(`El borrado de datos de ${clerkId} no terminó en ${PURGE_MAX_PASSES} pasadas`);
+      return { status: "datos_incompletos", clerk: "failed", deleted };
+    }
+
+    const clerk = await deleteClerkUser(clerkId);
+    return { status: clerk === "deleted" ? "ok" : "clerk_pendiente", clerk, deleted };
   },
 });
