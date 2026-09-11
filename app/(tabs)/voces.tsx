@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
+import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
@@ -14,6 +15,11 @@ export default function VocesScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.content}>
+      <ScreenHeader
+        accessibilityLabel="Volver al inicio"
+        style={styles.header}
+        testID="voces-back"
+      />
       <Text style={[styles.title, { color: color.ink }]}>¿Con quién quieres hablar?</Text>
       <Text style={[styles.subtitle, { color: color.inkMuted }]}>
         Responden en primera persona, desde lo que la Biblia cuenta de su vida.
@@ -50,6 +56,7 @@ export default function VocesScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 0 },
+  header: { marginBottom: tokens.space.xl },
   title: { fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight },
   subtitle: {
     fontFamily: tokens.font.sansLight,

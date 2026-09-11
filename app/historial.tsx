@@ -1,10 +1,10 @@
 import { useQuery } from "convex/react";
-import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { voiceCharacters } from "../convex/voicesCatalog";
 import { AppScreen } from "../src/components/AppScreen";
+import { ScreenHeader } from "../src/components/ScreenHeader";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -35,16 +35,11 @@ export default function HistorialScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.back()}
-          style={[styles.backButton, { borderColor: color.border }]}
-        >
-          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: color.ink }]}>Mis conversaciones</Text>
-      </View>
+      <ScreenHeader
+        accessibilityLabel="Volver"
+        style={styles.header}
+        title="Mis conversaciones"
+      />
       <Text style={[styles.subtitle, { color: color.inkSoft }]}>Solo tú las ves. Se guardan en tu cuenta.</Text>
 
       {(items ?? []).length > 0 ? (
@@ -90,10 +85,7 @@ export default function HistorialScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 0 },
-  header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.sm },
-  backButton: { alignItems: "center", borderRadius: tokens.radius.pill, borderWidth: 1, height: tokens.size.dotActive + tokens.space.md, justifyContent: "center", width: tokens.size.dotActive + tokens.space.md },
-  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
-  title: { fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight },
+  header: { marginBottom: tokens.space.sm },
   subtitle: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,

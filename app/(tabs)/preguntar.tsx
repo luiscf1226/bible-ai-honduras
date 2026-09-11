@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-na
 
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
+import { ScreenHeader, goBackOrHome } from "../../src/components/ScreenHeader";
 import { BIBLE_BOOKS, chaptersFor } from "../../src/lib/bibleBooks";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
@@ -64,21 +65,20 @@ export default function PreguntarScreen() {
       setBook(null);
       return;
     }
-    router.replace("/home");
+    // Primer paso: salimos de la pantalla. `goBackOrHome` desapila si hay
+    // historial (evita apilar dos Home) y si no, aterriza en Home.
+    goBackOrHome();
   };
 
   return (
     <AppScreen scroll contentStyle={styles.content}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={back}
-          style={[styles.backButton, { borderColor: color.border }]}
-        >
-          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: color.ink }]}>{pickTitle(step, book, chapter)}</Text>
-      </View>
+      <ScreenHeader
+        accessibilityLabel="Volver"
+        onBack={back}
+        style={styles.header}
+        title={pickTitle(step, book, chapter)}
+        titleSize="pick"
+      />
       <Text style={[styles.subtitle, { color: color.inkSoft }]}>{pickSubtitle(step)}</Text>
 
       {step === "books" ? (
@@ -181,22 +181,7 @@ export default function PreguntarScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 0, paddingBottom: tokens.space.xxl },
-  header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.xs },
-  backButton: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    height: tokens.size.backButton,
-    justifyContent: "center",
-    width: tokens.size.backButton,
-  },
-  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
-  title: {
-    flex: 1,
-    fontFamily: tokens.font.serif,
-    fontSize: tokens.type.qaPickTitle.size,
-    lineHeight: tokens.type.qaPickTitle.lineHeight,
-  },
+  header: { marginBottom: tokens.space.xs },
   subtitle: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
