@@ -67,6 +67,7 @@ export default function HomeScreen() {
   const { retry, state } = useTodayDevotional();
   const currentUser = useQuery(api.users.current);
   const [isDevotionalOpen, setIsDevotionalOpen] = useState(false);
+  const [shareFailed, setShareFailed] = useState(false);
 
   const isReady = state.status === "ready";
   const devotional = isReady ? state.devotional : null;
@@ -84,13 +85,18 @@ export default function HomeScreen() {
     if (isReady) setIsDevotionalOpen((isOpen) => !isOpen);
   };
 
-  const onShareDevotional = () => {
+  const onShareDevotional = async () => {
     if (!devotional || !currentUser?.referralCode) return;
 
-    void shareContent({
+    setShareFailed(false);
+    const result = await shareContent({
       referralCode: currentUser.referralCode,
       text: buildDevotionalShareText({ ...devotional, version: bibleVersion })
     });
+
+    // Cancelar el share sheet (dismissedAction en iOS, o el usuario simplemente
+    // cierra en Android) es un flujo normal: no es error y no se muestra nada.
+    if (result.status === "error") setShareFailed(true);
   };
 
   return (
@@ -162,12 +168,17 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityState={{ disabled: !currentUser?.referralCode }}
               disabled={!currentUser?.referralCode}
-              onPress={onShareDevotional}
+              onPress={() => void onShareDevotional()}
               style={({ pressed }) => [styles.shareButton, { borderColor: color.borderStrong }, pressed && styles.pressed]}
               testID="home-share-devotional"
             >
               <Text style={[styles.shareButtonLabel, { color: color.ink }]}>Compartir por WhatsApp</Text>
             </Pressable>
+            {shareFailed ? (
+              <Text style={[styles.shareErrorText, { color: color.danger }]} testID="home-share-devotional-error">
+                No pudimos abrir el compartir. Probá de nuevo.
+              </Text>
+            ) : null}
           </View>
         </View>
       ) : null}
@@ -230,6 +241,7 @@ const styles = StyleSheet.create({
   reflection: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight, marginTop: tokens.space.lg },
   shareButton: { alignItems: "center", borderRadius: tokens.radius.md, borderWidth: 1, justifyContent: "center", marginTop: tokens.space.xl, paddingVertical: tokens.space.lg },
   shareButtonLabel: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
+  shareErrorText: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.md, textAlign: "center" },
   feelingCard: { borderRadius: tokens.radius.xl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   feelingTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   feelingDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },

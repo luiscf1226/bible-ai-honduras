@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "convex/react";
@@ -18,6 +19,7 @@ export default function StoryViewerScreen() {
   const story = useQuery(storiesApi.stories.getById, selectedStoryId ? { storyId: selectedStoryId } : "skip");
   const generated = useQuery(storiesApi.stories.latestForViewer, selectedStoryId ? { storyId: selectedStoryId } : "skip");
   const currentUser = useQuery(api.users.current);
+  const [shareFailed, setShareFailed] = useState(false);
 
   if (!selectedStoryId) {
     return <ViewerState detail="No recibimos una historia para mostrar." title="Historia no encontrada" />;
@@ -61,7 +63,12 @@ export default function StoryViewerScreen() {
           if (!currentUser?.referralCode) {
             return;
           }
-          void shareStory({ referralCode: currentUser.referralCode, story });
+          setShareFailed(false);
+          void shareStory({ referralCode: currentUser.referralCode, story }).then((result) => {
+            // Cancelar el share sheet (dismissedAction en iOS, o el usuario cierra
+            // en Android) es un flujo normal: no es error y no se muestra nada.
+            if (result.status === "error") setShareFailed(true);
+          });
         }}
         style={styles.share}
         testID="historias-share-story"
@@ -69,6 +76,11 @@ export default function StoryViewerScreen() {
         <Text style={[styles.shareIcon, { color: color.accent }]}>↗</Text>
         <Text style={[styles.shareLabel, { color: color.accent }]}>Compartir esta historia</Text>
       </Pressable>
+      {shareFailed ? (
+        <Text style={[styles.shareErrorText, { color: color.danger }]} testID="historias-share-story-error">
+          No pudimos abrir el compartir. Probá de nuevo.
+        </Text>
+      ) : null}
       <StoryViewer
         images={Object.fromEntries(
           (generated?.scenes ?? []).map((scene) => [
@@ -138,6 +150,12 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.sans,
     fontSize: tokens.type.bodySm.size,
     lineHeight: tokens.type.bodySm.lineHeight,
+  },
+  shareErrorText: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+    marginBottom: tokens.space.lg,
   },
   stateContent: { justifyContent: "space-between" },
   stateCopy: { flex: 1, justifyContent: "center" },
