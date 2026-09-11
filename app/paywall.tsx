@@ -19,8 +19,9 @@ export default function PaywallScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [awaitingUnlock, setAwaitingUnlock] = useState(false);
-  // Beta sin RevenueCat (#93): sin key no hay compra. Se oculta precio y CTA
-  // en vez de dejarlos romper — Apple rechaza precio visible sin IAP funcional.
+  // Sin RevenueCat configurado (#93/#108): sin key no hay compra. Se oculta
+  // precio y CTA en vez de dejarlos romper — Apple rechaza precio visible sin
+  // IAP funcional.
   const canPurchase = purchasesConfigured();
 
   const close = () => {
@@ -143,8 +144,8 @@ export default function PaywallScreen() {
               <Text style={styles.ctaLabel}>{isPro ? "Ya eres Pro" : "Empezar con Pro"}</Text>
             </Pressable>
           ) : (
-            <Text style={styles.notice} testID="paywall-beta-notice">
-              Pro todavía no está a la venta en esta beta. Escribinos y te lo activamos.
+            <Text style={styles.notice} testID="paywall-pro-notice">
+              Pro todavía no está a la venta. Escribinos y te lo activamos.
             </Text>
           )}
 

@@ -1,0 +1,13 @@
+
+> bible-ai-honduras@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.11 /Users/luiscf1226/bible-ai-honduras/.worktrees/108-beta-copy
+
+
+ Test Files  36 passed (36)
+      Tests  259 passed (259)
+   Start at  21:14:58
+   Duration  5.70s (transform 3.41s, setup 0ms, import 6.96s, tests 4.98s, environment 8.09s)
+

@@ -14,12 +14,13 @@ import { REMINDER_HOURS } from "../src/lib/reminderHours";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
-// #93 §4b: NVI sigue en la lista para no romper el layout de dos píldoras del
-// prototipo, pero va deshabilitada — no hay corpus ingerido y la licencia sigue
-// sin resolver (PRD §6). `bibleVersionIsAvailable` es la única fuente de verdad.
+// #93 §4b / #108: solo RV1909 está en AVAILABLE_BIBLE_VERSIONS. RVR1960 y NVI
+// se muestran deshabilitadas (licencia/corpus pendientes). La fuente de verdad
+// es `bibleVersionIsAvailable`.
 const VERSIONS = [
   { label: "RV1909", value: "RV1909" as const },
   { label: "RVR1960", value: "RVR1960" as const },
+  { label: "NVI", value: "NVI" as const },
 ];
 
 const PRIVACY_POLICY_URL = "https://luiscf1226.github.io/bible-ai-honduras/privacidad/";
@@ -50,8 +51,8 @@ export default function AjustesScreen() {
   const [busy, setBusy] = useState<"signOut" | "delete" | null>(null);
   const keywordMatches = deleteKeyword.trim().toUpperCase() === DELETE_KEYWORD;
   const isPro = entitlement?.isPro === true;
-  // Una preferencia guardada que ya no está disponible (NVI) se muestra como
-  // RVR1960, que es lo que el backend usa de verdad al recuperar.
+  // Una preferencia sin corpus (RVR1960/NVI) se muestra como RV1909, que es lo
+  // que el backend usa de verdad al recuperar.
   const storedVersion = user?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
   const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : DEFAULT_BIBLE_VERSION;
   const darkMode = user?.darkMode ?? false;
@@ -192,10 +193,16 @@ export default function AjustesScreen() {
                       backgroundColor: active ? color.surfaceSunk : color.surface,
                       borderColor: active ? color.borderStrong : color.border,
                     },
+                    !available && styles.versionPillDisabled,
                   ]}
                   testID={`ajustes-version-${version.value}`}
                 >
-                  <Text style={[styles.versionPillLabel, { color: active ? color.ink : color.inkSoft }]}>
+                  <Text
+                    style={[
+                      styles.versionPillLabel,
+                      { color: active ? color.ink : available ? color.inkSoft : color.inkFaint },
+                    ]}
+                  >
                     {version.label}
                   </Text>
                 </Pressable>
@@ -423,6 +430,7 @@ const styles = StyleSheet.create({
   versionBlock: { paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
   versionPicker: { flexDirection: "row", gap: tokens.space.sm, marginTop: tokens.space.lg },
   versionPill: { borderRadius: tokens.radius.sm, borderWidth: 1, flex: 1, paddingVertical: tokens.space.md },
+  versionPillDisabled: { opacity: tokens.opacity.pressed },
   versionPillLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.bodySm.size, textAlign: "center" },
   versionHint: {
     fontFamily: tokens.font.sansLight,
