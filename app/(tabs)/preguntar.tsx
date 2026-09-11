@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-na
 
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
-import { ScreenHeader } from "../../src/components/ScreenHeader";
+import { ScreenHeader, goBackOrHome } from "../../src/components/ScreenHeader";
 import { BIBLE_BOOKS, chaptersFor } from "../../src/lib/bibleBooks";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
@@ -65,7 +65,9 @@ export default function PreguntarScreen() {
       setBook(null);
       return;
     }
-    router.replace("/home");
+    // Primer paso: salimos de la pantalla. `goBackOrHome` desapila si hay
+    // historial (evita apilar dos Home) y si no, aterriza en Home.
+    goBackOrHome();
   };
 
   return (

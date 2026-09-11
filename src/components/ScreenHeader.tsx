@@ -1,15 +1,16 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, type StyleProp, type TextStyle, type ViewStyle, View } from "react-native";
 
+import { goBackOrHomeWith, type BackNavigator } from "../lib/navigation";
 import { useTheme } from "../theme/ThemeProvider";
 import { tokens } from "../theme/tokens";
 
 export type ScreenHeaderProps = {
-  /** Optional title shown to the right of the back button (design: QA pick / Ajustes). */
+  /** Título opcional a la derecha del ‹ (diseño: Ajustes, Historial, picker de Preguntar). */
   title?: string;
   /**
-   * `page` — large screen title (Ajustes, Historial).
-   * `pick` — compact picker title (Preguntar book/chapter).
+   * `page` — título grande de pantalla (Ajustes, Historial).
+   * `pick` — título compacto del picker (Preguntar: libro / capítulo).
    */
   titleSize?: "page" | "pick";
   titleStyle?: StyleProp<TextStyle>;
@@ -19,18 +20,15 @@ export type ScreenHeaderProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Stack back when possible; otherwise land on Home (dead-end / cold start). */
+/** Desapila si hay historial; si no, aterriza en Home (arranque en frío / deep link). */
 export function goBackOrHome() {
-  if (router.canGoBack()) {
-    router.back();
-    return;
-  }
-  router.replace("/home");
+  goBackOrHomeWith(router as unknown as BackNavigator);
 }
 
 /**
- * Shared screen chrome: circular ‹ back (design 34px / `tokens.size.backButton`)
- * plus optional title. Matches Claude Design headers on Sentir / Preguntar / Voces chat.
+ * Chrome compartido de pantalla: ‹ circular (`tokens.size.backButton`, 34px del
+ * prototipo) más título opcional. Único dueño del estilo del botón de volver;
+ * ninguna pantalla debe redefinirlo (issue #106).
  */
 export function ScreenHeader({
   title,
@@ -56,7 +54,13 @@ export function ScreenHeader({
         <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
       </Pressable>
       {title ? (
-        <Text style={[styles.title, { color: color.ink, fontSize: titleType.size, lineHeight: titleType.lineHeight }, titleStyle]}>
+        <Text
+          style={[
+            styles.title,
+            { color: color.ink, fontSize: titleType.size, lineHeight: titleType.lineHeight },
+            titleStyle,
+          ]}
+        >
           {title}
         </Text>
       ) : null}
