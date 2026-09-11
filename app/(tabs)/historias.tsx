@@ -4,16 +4,24 @@ import { router } from "expo-router";
 import { useMutation, useQuery } from "convex/react";
 
 import { AppScreen } from "../../src/components/AppScreen";
+import { LoadingState } from "../../src/components/LoadingState";
 import { storiesApi, type StoryCatalogItem } from "../../src/features/stories/contracts";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
 export default function HistoriasScreen() {
   const { color } = useTheme();
-  const stories = useQuery(storiesApi.stories.list, {});
+  const [listEpoch, setListEpoch] = useState(0);
+  const stories = useQuery(storiesApi.stories.list, listEpoch >= 0 ? {} : "skip");
   const create = useMutation(storiesApi.stories.create);
   const [creating, setCreating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const retryList = () => {
+    // Re-suscribe: skip un tick y vuelve a pedir el catálogo.
+    setListEpoch(-1);
+    requestAnimationFrame(() => setListEpoch((value) => (value < 0 ? 0 : value + 1)));
+  };
 
   return (
     <AppScreen scroll>
@@ -22,8 +30,13 @@ export default function HistoriasScreen() {
         Elige una historia bíblica para ver sus escenas ilustradas.
       </Text>
       {error ? <Text style={[styles.error, { color: color.accentDeep }]}>{error}</Text> : null}
-      {stories === undefined ? (
-        <Text style={[styles.loading, { color: color.inkSoft }]}>Cargando historias…</Text>
+      {stories === undefined || listEpoch < 0 ? (
+        <LoadingState
+          message="Cargando historias…"
+          onRetry={retryList}
+          testID="historias-list-loading"
+          variant="inline"
+        />
       ) : (
         <StoryList
           color={color}
@@ -111,12 +124,6 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.bodySm.size,
     lineHeight: tokens.type.bodySm.lineHeight,
     marginTop: tokens.space.sm,
-  },
-  loading: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.bodySm.size,
-    lineHeight: tokens.type.bodySm.lineHeight,
-    marginTop: tokens.space.xxl,
   },
   error: {
     fontFamily: tokens.font.sansLight,
