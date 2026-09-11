@@ -18,3 +18,15 @@ QA-REPORT.html
 
 # Clave de servicio de Google Play para `eas submit` (#93). Nunca commitear.
 play-service-account.json
+
+# Clave de App Store Connect API para `eas submit` iOS. Nunca commitear.
+AuthKey_*.p8
+asc-api-key.json
+.secrets/
+
+# Salida de `expo prebuild` (CNG). Se regenera con `npx expo prebuild`.
+/ios
+/android
+
+# Worktrees de agentes
+.worktrees/

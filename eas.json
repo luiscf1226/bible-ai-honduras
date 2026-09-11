@@ -55,16 +55,22 @@
     },
     "testflight": {
       "ios": {
-        "appleId": "REEMPLAZAR@ejemplo.com",
-        "ascAppId": "REEMPLAZAR",
-        "appleTeamId": "REEMPLAZAR"
+        "appleId": "lcf1226ai@gmail.com",
+        "ascAppId": "6807627270",
+        "appleTeamId": "W6X2AU66BG",
+        "ascApiKeyPath": "./.secrets/AuthKey_5ZPPKU47L8.p8",
+        "ascApiKeyId": "5ZPPKU47L8",
+        "ascApiKeyIssuerId": "f6791394-29bd-46b6-8d8d-7fd758942349"
       }
     },
     "production": {
       "ios": {
-        "appleId": "REEMPLAZAR@ejemplo.com",
-        "ascAppId": "REEMPLAZAR",
-        "appleTeamId": "REEMPLAZAR"
+        "appleId": "lcf1226ai@gmail.com",
+        "ascAppId": "6807627270",
+        "appleTeamId": "W6X2AU66BG",
+        "ascApiKeyPath": "./.secrets/AuthKey_5ZPPKU47L8.p8",
+        "ascApiKeyId": "5ZPPKU47L8",
+        "ascApiKeyIssuerId": "f6791394-29bd-46b6-8d8d-7fd758942349"
       },
       "android": {
         "serviceAccountKeyPath": "./play-service-account.json",
