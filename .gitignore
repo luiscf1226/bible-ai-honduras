@@ -12,5 +12,9 @@ expo-env.d.ts
 # @end expo-cli
 .env.local
 
+# Reporte de QA autocontenido (qa-harness/build-report.py --embed).
+# El que se versiona es docs/qa/<pase>/index.html.
+QA-REPORT.html
+
 # Clave de servicio de Google Play para `eas submit` (#93). Nunca commitear.
 play-service-account.json
