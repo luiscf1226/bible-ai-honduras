@@ -47,6 +47,11 @@ export function ScreenHeader({
       <Pressable
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
+        // El círculo mide 34 (tokens.size.backButton) porque así está en el
+        // prototipo, pero 34 queda por debajo del mínimo táctil de 44pt de iOS
+        // y 48dp de Android. El hitSlop agranda el área sin tocar el diseño:
+        // 34 + 9*2 = 52. Al estar acá, aplica a las 5 pantallas de una.
+        hitSlop={tokens.space.sm}
         onPress={onBack}
         style={[styles.backButton, { borderColor: color.border }]}
         testID={testID}
