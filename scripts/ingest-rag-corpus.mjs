@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-const EXPECTED_RVR1960_VERSES = 31_102;
+const EXPECTED_CANON_VERSES = 31_102;
+const DEFAULT_VERSION = "RV1909";
 const DEFAULT_BATCH_SIZE = 64;
 const OPENAI_USD_PER_MILLION_TOKENS = 0.02;
 
@@ -54,15 +55,15 @@ function validateRows(kind, parsed, allowPartial) {
     const duplicateIndex = keys.findIndex((key) => seen.has(key) || !seen.add(key));
     throw new Error(`referencia duplicada en indice ${duplicateIndex}: ${keys[duplicateIndex]}`);
   }
-  if (kind === "verses" && rows.length !== EXPECTED_RVR1960_VERSES && !allowPartial) {
-    throw new Error(`se esperaban ${EXPECTED_RVR1960_VERSES} versiculos y llegaron ${rows.length}; usa --allow-partial solo para pruebas`);
+  if (kind === "verses" && rows.length !== EXPECTED_CANON_VERSES && !allowPartial) {
+    throw new Error(`se esperaban ${EXPECTED_CANON_VERSES} versiculos y llegaron ${rows.length}; usa --allow-partial solo para pruebas`);
   }
   return rows;
 }
 
 function runBatch(options, rows) {
   const functionName = options.kind === "verses" ? "rag/ingest:ingestVerses" : "rag/commentary:ingestCommentary";
-  const payload = options.kind === "verses" ? { verses: rows, version: "RVR1960" } : { commentaries: rows };
+  const payload = options.kind === "verses" ? { verses: rows, version: DEFAULT_VERSION } : { commentaries: rows };
   const binary = resolve("node_modules/.bin/convex");
   const args = ["run", functionName, JSON.stringify(payload)];
   if (options.prod) args.push("--prod");

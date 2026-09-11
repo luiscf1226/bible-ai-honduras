@@ -1,3 +1,4 @@
+import { DEFAULT_BIBLE_VERSION } from "../bibleVersions";
 import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
@@ -37,7 +38,7 @@ export const ingestVerses = internalAction({
     version: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const defaultVersion = args.version ?? "RVR1960";
+    const defaultVersion = args.version ?? DEFAULT_BIBLE_VERSION;
     const startedAt = Date.now();
     const pendingTexts = args.verses
       .filter((item) => item.embedding === undefined)

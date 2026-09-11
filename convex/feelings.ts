@@ -1,3 +1,4 @@
+import { resolveBibleVersion } from "./bibleVersions";
 import { ConvexError, v } from "convex/values";
 import { makeFunctionReference } from "convex/server";
 
@@ -142,7 +143,8 @@ export const generate = action({
 
     const result = await ctx.runAction(internal.rag.answer.ask, {
       question: buildFeelingQuestion(args),
-      version: user.bibleVersion,
+      // #93 §4b: NVI no tiene corpus; resolveBibleVersion degrada a RVR1960.
+      version: resolveBibleVersion(user.bibleVersion),
     });
 
     if (!result.citation) {

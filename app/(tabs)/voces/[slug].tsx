@@ -1,7 +1,7 @@
 import { useAction, useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -18,11 +18,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../../../convex/_generated/api";
 import { LimitReached } from "../../../src/components/LimitReached";
 import { shareVoiceReply } from "../../../src/features/voices/shareVoice";
+import {
+  useScreenInsets,
+  useScrollToEndOnKeyboard,
+} from "../../../src/hooks/useKeyboardAvoidance";
+import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../../src/lib/keyboardAvoidance";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
 export default function VocesChatScreen() {
   const { color } = useTheme();
+  const insets = useScreenInsets();
+  const threadRef = useRef<ScrollView>(null);
+  useScrollToEndOnKeyboard(threadRef);
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const characters = useQuery(api.voices.list);
   const character = characters?.find((item) => item.slug === slug);
@@ -91,7 +99,11 @@ export default function VocesChatScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+      <KeyboardAvoidingView
+        behavior={keyboardBehaviorFor(Platform.OS)}
+        keyboardVerticalOffset={keyboardVerticalOffsetFor({ insets, platform: Platform.OS })}
+        style={styles.flex}
+      >
         <View style={[styles.header, { borderBottomColor: color.border }]}>
           <Pressable
             accessibilityRole="button"
@@ -109,7 +121,15 @@ export default function VocesChatScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.thread}>
+        <ScrollView
+          contentContainerStyle={styles.thread}
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          // Con el teclado abierto, el primer tap sobre "Compartir esta
+          // respuesta" solo lo cerraría en vez de compartir.
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => threadRef.current?.scrollToEnd({ animated: true })}
+          ref={threadRef}
+        >
           {messages.map((message) => (
             <View
               key={message.key}
@@ -167,7 +187,14 @@ export default function VocesChatScreen() {
         </ScrollView>
 
         <View style={[styles.composer, { borderTopColor: color.border }]}>
-          <ScrollView horizontal contentContainerStyle={styles.suggestions} showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.suggestions}
+            horizontal
+            // Chips tocables al lado del input: sin esto el primer tap con el
+            // teclado abierto solo lo cierra y se traga la sugerencia.
+            keyboardShouldPersistTaps="handled"
+            showsHorizontalScrollIndicator={false}
+          >
             {character.suggestions.map((suggestion) => (
               <Pressable
                 accessibilityRole="button"

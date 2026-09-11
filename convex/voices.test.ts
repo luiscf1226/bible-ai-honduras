@@ -43,7 +43,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const DEFAULT_CITATION = { book: "Éxodo", chapter: 3, verse: 14, version: "RVR1960" };
+const DEFAULT_CITATION = { book: "Éxodo", chapter: 3, verse: 14, version: "RV1909" };
 
 function stubExternalApis(
   options: { queryEmbedding?: number[]; answerText?: string; citations?: Array<Record<string, unknown>> } = {},
@@ -119,7 +119,7 @@ describe("voices.sendMessage", () => {
       book: "Éxodo",
       chapter: 3,
       verse: 14,
-      version: "RVR1960",
+      version: "RV1909",
       text: "Y respondió Dios a Moisés: YO SOY EL QUE SOY.",
       embedding: unitVector(0),
     });
@@ -131,7 +131,7 @@ describe("voices.sendMessage", () => {
     });
 
     expect(result.status).toBe("ok");
-    expect(result.citation).toMatchObject({ book: "Éxodo", chapter: 3, verse: 14, version: "RVR1960" });
+    expect(result.citation).toMatchObject({ book: "Éxodo", chapter: 3, verse: 14, version: "RV1909" });
     const thread = await authed.query(api.voices.thread, { slug: "moises" });
     expect(thread).toHaveLength(2);
     expect(thread[0]?.role).toBe("user");
@@ -150,7 +150,7 @@ describe("voices.sendMessage", () => {
       book: "Éxodo",
       chapter: 3,
       verse: 14,
-      version: "RVR1960",
+      version: "RV1909",
       text: "Y respondió Dios a Moisés: YO SOY EL QUE SOY.",
       embedding: unitVector(1),
     });
@@ -180,14 +180,14 @@ describe("voices.sendMessage", () => {
       book: "Salmos",
       chapter: 23,
       verse: 1,
-      version: "RVR1960",
+      version: "RV1909",
       text: "Jehová es mi pastor; nada me faltará.",
       embedding: unitVector(2),
     });
     stubExternalApis({
       queryEmbedding: unitVector(2),
       answerText: "Esto viene de Romanos 8:28, no del contexto que me diste.",
-      citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RVR1960" }],
+      citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RV1909" }],
     });
 
     const result = await authed.action(api.voices.sendMessage, {

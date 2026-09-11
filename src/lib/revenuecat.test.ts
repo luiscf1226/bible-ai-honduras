@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   logIn,
+  logOut,
   purchasesConfigured,
   purchaseMonthly,
   resetRevenueCatForTests,
@@ -122,5 +123,45 @@ describe("beta sin RevenueCat (#93)", () => {
     expect(native.configure).not.toHaveBeenCalled();
     expect(native.purchasePackage).not.toHaveBeenCalled();
     expect(native.restorePurchases).not.toHaveBeenCalled();
+  });
+});
+
+describe("logOut al cerrar sesión (#107)", () => {
+  beforeEach(() => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "test_public_key");
+  });
+
+  afterEach(() => {
+    resetRevenueCatForTests();
+    vi.unstubAllEnvs();
+  });
+
+  it("desvincula el App User ID para que el próximo login no herede compras", async () => {
+    const native = mockNative({ logOut: vi.fn().mockResolvedValue({}) });
+    setRevenueCatNativeForTests(native);
+
+    await expect(logOut()).resolves.toEqual({ ok: true });
+    expect(native.logOut).toHaveBeenCalledOnce();
+  });
+
+  it("si el SDK se queja, no bloquea el cierre de sesión de la app", async () => {
+    const native = mockNative({ logOut: vi.fn().mockRejectedValue(new Error("anonymous")) });
+    setRevenueCatNativeForTests(native);
+
+    await expect(logOut()).resolves.toEqual({ ok: false, reason: "purchase_failed" });
+  });
+
+  it("sin módulo nativo (Expo Go / web) no finge nada", async () => {
+    setRevenueCatNativeForTests(null);
+    await expect(logOut()).resolves.toEqual({ ok: false, reason: "dev_build_required" });
+  });
+
+  it("sin la key pública devuelve not_configured", async () => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "");
+    const native = mockNative({ logOut: vi.fn() });
+    setRevenueCatNativeForTests(native);
+
+    await expect(logOut()).resolves.toEqual({ ok: false, reason: "not_configured" });
+    expect(native.logOut).not.toHaveBeenCalled();
   });
 });

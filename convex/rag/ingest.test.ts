@@ -15,7 +15,7 @@ const modules = {
 };
 
 describe("loadRvr1960Sample", () => {
-  it("incluye las referencias mínimas en español de RVR1960", () => {
+  it("incluye las referencias mínimas en español de RV1909", () => {
     const sample = loadRvr1960Sample();
     const refs = sample.map((item) => `${item.book} ${item.chapter}:${item.verse}`);
     expect(refs).toEqual(
@@ -40,13 +40,13 @@ describe("ingest.ingestVerses", () => {
     expect(result.upserted).toBe(verses.length);
 
     const juan = await t.query(api.rag.verses.getByRef, {
-      version: "RVR1960",
+      version: "RV1909",
       book: "Juan",
       chapter: 3,
       verse: 16,
     });
     const genesis = await t.query(api.rag.verses.getByRef, {
-      version: "RVR1960",
+      version: "RV1909",
       book: "Génesis",
       chapter: 1,
       verse: 1,
@@ -70,7 +70,7 @@ describe("ingest.ingestVerses", () => {
     expect(rows).toHaveLength(verses.length);
   });
 
-  it("usa version RVR1960 por defecto", async () => {
+  it("usa version RV1909 por defecto", async () => {
     const t = convexTest(schema, modules);
     await t.action(internal.rag.ingest.ingestVerses, {
       verses: [
@@ -85,7 +85,7 @@ describe("ingest.ingestVerses", () => {
     });
 
     const row = await t.query(api.rag.verses.getByRef, {
-      version: "RVR1960",
+      version: "RV1909",
       book: "Salmos",
       chapter: 23,
       verse: 1,

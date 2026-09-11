@@ -44,7 +44,7 @@ async function seedCommentary(t: ReturnType<typeof convexTest>, embedding: numbe
 }
 
 describe("loadCommentarySample", () => {
-  it("incluye los mismos libros que la muestra de RVR1960", () => {
+  it("incluye los mismos libros que la muestra de RV1909", () => {
     const sample = loadCommentarySample();
     const books = sample.map((item) => item.book);
     expect(books).toEqual(expect.arrayContaining(["Génesis", "Salmos", "Juan", "Romanos"]));

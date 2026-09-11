@@ -50,7 +50,7 @@ function stubExternalApis(options: { queryEmbedding?: number[]; structured?: unk
     options.structured ??
     {
       answer: "El salmo describe a Dios como un pastor que cuida y provee.",
-      citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
+      citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RV1909" }],
     };
   const fetchMock = vi.fn().mockImplementation((url: string) => {
     if (url === OPENAI_EMBEDDINGS_URL) {
@@ -75,7 +75,7 @@ async function seedVerse(t: ReturnType<typeof convexTest>, embedding: number[]) 
     book: "Salmos",
     chapter: 23,
     verse: 1,
-    version: "RVR1960",
+    version: "RV1909",
     text: "Jehová es mi pastor; nada me faltará.",
     embedding,
   });
@@ -88,18 +88,18 @@ function stubEnv() {
 
 describe("isGrounded", () => {
   const retrieved = [
-    { _id: FAKE_VERSE_ID, book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "...", score: 1 },
+    { _id: FAKE_VERSE_ID, book: "Salmos", chapter: 23, verse: 1, version: "RV1909", text: "...", score: 1 },
   ];
 
   it("es verdadero cuando las citas del modelo están todas en lo recuperado", () => {
     expect(
-      isGrounded({ answer: "x", citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }] }, retrieved),
+      isGrounded({ answer: "x", citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RV1909" }] }, retrieved),
     ).toBe(true);
   });
 
   it("es falso cuando el modelo cita algo fuera del contexto recuperado", () => {
     expect(
-      isGrounded({ answer: "x", citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RVR1960" }] }, retrieved),
+      isGrounded({ answer: "x", citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RV1909" }] }, retrieved),
     ).toBe(false);
   });
 
@@ -117,14 +117,14 @@ describe("rag.answer.ask", () => {
 
     const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué significa este salmo?",
-      passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
+      passage: { version: "RV1909", book: "Salmos", chapter: 23, verse: 1 },
     });
 
     expect(result.citation).toMatchObject({
       book: "Salmos",
       chapter: 23,
       verse: 1,
-      version: "RVR1960",
+      version: "RV1909",
       text: "Jehová es mi pastor; nada me faltará.",
     });
     expect(result.answer.length).toBeGreaterThan(0);
@@ -162,7 +162,7 @@ describe("rag.answer.ask", () => {
 
     const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué dice?",
-      passage: { version: "RVR1960", book: "Juan", chapter: 3, verse: 16 },
+      passage: { version: "RV1909", book: "Juan", chapter: 3, verse: 16 },
     });
 
     expect(result.citation).toBeNull();
@@ -177,13 +177,13 @@ describe("rag.answer.ask", () => {
     stubExternalApis({
       structured: {
         answer: "Esto viene de Romanos 8:28, no de lo que se te dio.",
-        citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RVR1960" }],
+        citations: [{ book: "Romanos", chapter: 8, verse: 28, version: "RV1909" }],
       },
     });
 
     const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué significa este salmo?",
-      passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
+      passage: { version: "RV1909", book: "Salmos", chapter: 23, verse: 1 },
     });
 
     // La cita estructural sigue siendo la real (Salmos 23:1) — nunca la que
@@ -223,7 +223,7 @@ describe("rag.answer.ask", () => {
 
     const result = await t.action(internal.rag.answer.ask, {
       question: "¿Qué significa este salmo?",
-      passage: { version: "RVR1960", book: "Salmos", chapter: 23, verse: 1 },
+      passage: { version: "RV1909", book: "Salmos", chapter: 23, verse: 1 },
     });
 
     expect(result.citation).toMatchObject({ book: "Salmos", chapter: 23, verse: 1 });

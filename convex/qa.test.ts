@@ -37,7 +37,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-const DEFAULT_CITATION = { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" };
+const DEFAULT_CITATION = { book: "Salmos", chapter: 23, verse: 1, version: "RV1909" };
 
 function stubExternalApis(
   options: { queryEmbedding?: number[]; answerText?: string; citations?: Array<Record<string, unknown>> } = {},
@@ -75,7 +75,7 @@ async function seedSalmos23(t: ReturnType<typeof convexTest>, embedding: number[
     book: "Salmos",
     chapter: 23,
     verse: 1,
-    version: "RVR1960",
+    version: "RV1909",
     text: "Jehová es mi pastor; nada me faltará.",
     embedding,
   });

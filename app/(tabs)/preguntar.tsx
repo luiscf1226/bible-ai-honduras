@@ -1,3 +1,4 @@
+import { DEFAULT_BIBLE_VERSION } from "../../convex/bibleVersions";
 import { useQuery } from "convex/react";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
@@ -44,7 +45,7 @@ export default function PreguntarScreen() {
   const currentUser = useQuery(api.users.current);
   const verses = useQuery(
     api.rag.verses.listByChapter,
-    book && chapter ? { version: currentUser?.bibleVersion ?? "RVR1960", book, chapter } : "skip",
+    book && chapter ? { version: currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION, book, chapter } : "skip",
   );
 
   const chapterCellSize = useMemo(() => {

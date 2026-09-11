@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { buildQaUserPrompt, formatCitation, NO_RELEVANT_CONTENT_ANSWER, QA_RESPONSE_SCHEMA, QA_SYSTEM_PROMPT } from "./qa";
 
-const VERSE = { book: "Salmos", chapter: 23, verse: 1, version: "RVR1960", text: "Jehová es mi pastor; nada me faltará." };
+const VERSE = { book: "Salmos", chapter: 23, verse: 1, version: "RV1909", text: "Jehová es mi pastor; nada me faltará." };
 
 describe("formatCitation", () => {
   it("arma la referencia legible", () => {
-    expect(formatCitation(VERSE)).toBe("Salmos 23:1 (RVR1960)");
+    expect(formatCitation(VERSE)).toBe("Salmos 23:1 (RV1909)");
   });
 });
 
@@ -58,7 +58,7 @@ describe("QA_RESPONSE_SCHEMA", () => {
   it("acepta answer + citations[] bien formadas", () => {
     const result = QA_RESPONSE_SCHEMA.safeParse({
       answer: "Dios cuida de vos.",
-      citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RVR1960" }],
+      citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RV1909" }],
     });
     expect(result.success).toBe(true);
   });
