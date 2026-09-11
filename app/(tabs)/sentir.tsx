@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { useAction, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { BottomPanel } from "../../src/components/BottomPanel";
 import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingState";
 import { LimitReached } from "../../src/components/LimitReached";
 import { api } from "../../convex/_generated/api";
@@ -183,114 +184,168 @@ export default function SentirScreen() {
     );
   }
 
+  const quotaLabel = quota?.isPro
+    ? "Pro · sin límite"
+    : `${quota?.remaining ?? "…"} de ${quota?.limit ?? "…"} devocionales gratis hoy`;
+  const hasSelection = selectedFeelings.length > 0;
+  const selectionSummary = hasSelection
+    ? `Escogiste: ${selectedFeelings.join(" · ")}`
+    : "Todavía no escoges nada. También puedes escribirlo abajo.";
+
   return (
-    <AppScreen scroll contentStyle={styles.content}>
-      <Pressable
-        accessibilityLabel="Volver al inicio"
-        accessibilityRole="button"
-        onPress={() => router.replace("/home")}
-        style={[styles.backButton, { borderColor: color.border }]}
+    <AppScreen contentStyle={styles.selectContent}>
+      <ScrollView
+        contentContainerStyle={styles.intro}
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        keyboardShouldPersistTaps="handled"
+        style={styles.introScroll}
       >
-        <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-      </Pressable>
+        <Pressable
+          accessibilityLabel="Volver al inicio"
+          accessibilityRole="button"
+          onPress={() => router.replace("/home")}
+          style={[styles.backButton, { borderColor: color.border }]}
+        >
+          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
+        </Pressable>
 
-      <View>
-        <Text style={[styles.quota, { color: color.inkSoft }]}>
-          {quota?.isPro
-            ? "Pro · sin límite"
-            : `${quota?.remaining ?? "…"} de ${quota?.limit ?? "…"} devocionales gratis hoy`}
-        </Text>
-        <Text style={[styles.title, { color: color.ink }]}>¿Qué llevas encima hoy?</Text>
-        <Text style={[styles.description, { color: color.inkMuted }]}>
-          Escoge lo que más se parezca, o escríbelo con tus palabras. Esto queda solo entre tú y la app.
-        </Text>
-      </View>
+        <View>
+          <Text style={[styles.title, { color: color.ink }]}>¿Qué llevas encima hoy?</Text>
+          <Text style={[styles.description, { color: color.inkMuted }]}>
+            Escoge lo que más se parezca, o escríbelo con tus palabras. Esto queda solo entre tú y la app.
+          </Text>
+        </View>
 
-      <View accessibilityLabel="Selecciona uno o más sentimientos" style={styles.chips}>
-        {feelings.map((feeling) => {
-          const isSelected = selectedFeelings.includes(feeling);
+        {pastDevotionals.length > 0 ? (
+          <View style={styles.historySection}>
+            <Text style={[styles.historyKicker, { color: color.inkSoft }]}>LOS DE ANTES</Text>
+            {pastDevotionals.map((item) => (
+              <Pressable
+                accessibilityHint="Abre este devocional anterior."
+                accessibilityRole="button"
+                key={item.id}
+                onPress={() => setSelectedHistoryId(item.id)}
+                style={[styles.historyItem, { backgroundColor: color.surface, borderColor: color.border }]}
+              >
+                <View style={[styles.historyDot, { backgroundColor: color.sage }]} />
+                <View style={styles.historyCopy}>
+                  <Text numberOfLines={1} style={[styles.historyTitle, { color: color.ink }]}>
+                    {item.preview}
+                  </Text>
+                  <Text style={[styles.historyMeta, { color: color.inkSoft }]}>{item.title}</Text>
+                </View>
+                <Text style={[styles.historyArrow, { color: color.borderStrong }]}>›</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </ScrollView>
 
-          return (
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isSelected }}
-              key={feeling}
-              onPress={() => toggleFeeling(feeling)}
+      <BottomPanel
+        bodyStyle={styles.panelBody}
+        footer={
+          <>
+            <TextInput
+              accessibilityLabel="Cuéntanos cómo estuvo tu día"
+              multiline
+              onChangeText={setFreeText}
+              placeholder="Cuéntame en una o dos líneas cómo estuvo tu día. Opcional."
+              placeholderTextColor={color.inkFaint}
               style={[
-                styles.chip,
-                { backgroundColor: color.surface, borderColor: color.borderStrong },
-                isSelected && { backgroundColor: color.ink, borderColor: color.ink },
+                styles.input,
+                { backgroundColor: color.surface, borderColor: color.border, color: color.ink },
+              ]}
+              textAlignVertical="top"
+              value={freeText}
+            />
+            {error ? (
+              <Text accessibilityRole="alert" style={[styles.error, { color: color.accentDeep }]}>
+                {error}
+              </Text>
+            ) : null}
+            <AppButton
+              disabled={!canGenerate}
+              onPress={() => void generateDevotional()}
+              testID="generate-feeling-devotional"
+            >
+              Prepárame un devocional
+            </AppButton>
+            <Text style={[styles.disclaimer, { color: color.inkFaint }]}>
+              Acompañamiento, no consejo pastoral ni atención en crisis.
+            </Text>
+          </>
+        }
+        header={
+          <>
+            <Text style={[styles.quota, { color: color.inkSoft }]}>{quotaLabel}</Text>
+            <Text
+              accessibilityLiveRegion="polite"
+              numberOfLines={2}
+              style={[
+                styles.selection,
+                hasSelection
+                  ? { color: color.ink, fontFamily: tokens.font.sansMedium }
+                  : { color: color.inkSoft, fontFamily: tokens.font.sansLight },
               ]}
             >
-              <Text
+              {selectionSummary}
+            </Text>
+          </>
+        }
+        testID="sentir-panel"
+      >
+        <View accessibilityLabel="Selecciona uno o más sentimientos" style={styles.chips}>
+          {feelings.map((feeling) => {
+            const isSelected = selectedFeelings.includes(feeling);
+
+            return (
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                key={feeling}
+                onPress={() => toggleFeeling(feeling)}
                 style={[
-                  styles.chipLabel,
-                  { color: color.ink },
-                  isSelected && { color: color.surface },
+                  styles.chip,
+                  { backgroundColor: color.surface, borderColor: color.borderStrong },
+                  isSelected && { backgroundColor: color.ink, borderColor: color.ink },
                 ]}
               >
-                {feeling}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <TextInput
-        accessibilityLabel="Cuéntanos cómo estuvo tu día"
-        multiline
-        onChangeText={setFreeText}
-        placeholder="Cuéntame en una o dos líneas cómo estuvo tu día. Opcional."
-        placeholderTextColor={color.inkFaint}
-        style={[
-          styles.input,
-          { backgroundColor: color.surface, borderColor: color.border, color: color.ink },
-        ]}
-        textAlignVertical="top"
-        value={freeText}
-      />
-
-      {error ? (
-        <Text accessibilityRole="alert" style={[styles.error, { color: color.accentDeep }]}>
-          {error}
-        </Text>
-      ) : null}
-      <AppButton disabled={!canGenerate} onPress={() => void generateDevotional()} testID="generate-feeling-devotional">
-        Prepárame un devocional
-      </AppButton>
-      <Text style={[styles.disclaimer, { color: color.inkFaint }]}>
-        Acompañamiento, no consejo pastoral ni atención en crisis.
-      </Text>
-
-      {pastDevotionals.length > 0 ? (
-        <View style={styles.historySection}>
-          <Text style={[styles.historyKicker, { color: color.inkSoft }]}>LOS DE ANTES</Text>
-          {pastDevotionals.map((item) => (
-            <Pressable
-              accessibilityHint="Abre este devocional anterior."
-              accessibilityRole="button"
-              key={item.id}
-              onPress={() => setSelectedHistoryId(item.id)}
-              style={[styles.historyItem, { backgroundColor: color.surface, borderColor: color.border }]}
-            >
-              <View style={[styles.historyDot, { backgroundColor: color.sage }]} />
-              <View style={styles.historyCopy}>
-                <Text numberOfLines={1} style={[styles.historyTitle, { color: color.ink }]}>
-                  {item.preview}
+                <Text
+                  style={[
+                    styles.chipLabel,
+                    { color: color.ink },
+                    isSelected && { color: color.surface },
+                  ]}
+                >
+                  {feeling}
                 </Text>
-                <Text style={[styles.historyMeta, { color: color.inkSoft }]}>{item.title}</Text>
-              </View>
-              <Text style={[styles.historyArrow, { color: color.borderStrong }]}>›</Text>
-            </Pressable>
-          ))}
+              </Pressable>
+            );
+          })}
         </View>
-      ) : null}
+      </BottomPanel>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: tokens.space.xl },
+  // El panel inferior sangra hasta los bordes, así que el padding horizontal y
+  // el de abajo dejan de ser del contenedor y pasan a cada zona (issue #109).
+  selectContent: { paddingBottom: 0, paddingHorizontal: 0 },
+  introScroll: { flex: 1 },
+  intro: {
+    gap: tokens.space.xl,
+    paddingBottom: tokens.space.xl,
+    paddingHorizontal: tokens.screenPadding.horizontal,
+  },
+  // Techo de la lista de chips: garantiza que el campo libre y el CTA entran en
+  // pantalla incluso en un iPhone SE. El piso deja siempre una fila asomada,
+  // para que se lea que la lista sigue. Los dos valores salen de tokens.
+  panelBody: { maxHeight: tokens.size.logoLarge * 2, minHeight: tokens.size.logoSmall },
+  selection: {
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+  },
   backButton: {
     alignItems: "center",
     borderRadius: tokens.radius.pill,
@@ -320,7 +375,6 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.overline.size,
     letterSpacing: tokens.type.overline.letterSpacing,
     lineHeight: tokens.type.overline.lineHeight,
-    marginBottom: tokens.space.md,
     textTransform: "uppercase",
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
@@ -341,13 +395,13 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.body.size,
     lineHeight: tokens.type.body.lineHeight,
-    // El campo crece con el texto, pero topa al doble de su alto inicial: de ahí
-    // en adelante scrollea adentro en vez de empujar el CTA fuera de pantalla
-    // (issue #105). Los dos valores salen del mismo token, no hay medida nueva.
-    maxHeight: tokens.size.logoLarge * 2,
-    minHeight: tokens.size.logoLarge,
-    paddingHorizontal: tokens.space.xl,
-    paddingVertical: tokens.space.xl,
+    // Dentro del panel el campo arranca en una línea y crece con el texto hasta
+    // topar: de ahí en adelante scrollea adentro en vez de empujar el CTA fuera
+    // de pantalla (issues #105 y #109). El tope sale de un token, no es medida
+    // nueva.
+    maxHeight: tokens.size.logoLarge,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
   },
   disclaimer: {
     fontFamily: tokens.font.sansLight,
