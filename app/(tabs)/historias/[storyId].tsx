@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppScreen } from "../../../src/components/AppScreen";
+import { LoadingState } from "../../../src/components/LoadingState";
 import { StoryViewer } from "../../../src/features/stories/StoryPanels";
 import { shareStory } from "../../../src/features/stories/storyShare";
 import { storiesApi } from "../../../src/features/stories/contracts";
@@ -16,17 +17,34 @@ export default function StoryViewerScreen() {
   const { color } = useTheme();
   const { storyId } = useLocalSearchParams<{ storyId?: string | string[] }>();
   const selectedStoryId = Array.isArray(storyId) ? storyId[0] : storyId;
-  const story = useQuery(storiesApi.stories.getById, selectedStoryId ? { storyId: selectedStoryId } : "skip");
-  const generated = useQuery(storiesApi.stories.latestForViewer, selectedStoryId ? { storyId: selectedStoryId } : "skip");
+  const [viewerEpoch, setViewerEpoch] = useState(0);
+  const storyArgs =
+    selectedStoryId && viewerEpoch >= 0 ? { storyId: selectedStoryId } : ("skip" as const);
+  const story = useQuery(storiesApi.stories.getById, storyArgs);
+  const generated = useQuery(storiesApi.stories.latestForViewer, storyArgs === "skip" ? "skip" : storyArgs);
   const currentUser = useQuery(api.users.current);
   const [shareFailed, setShareFailed] = useState(false);
+
+  const retryViewer = () => {
+    setViewerEpoch(-1);
+    requestAnimationFrame(() => setViewerEpoch((value) => (value < 0 ? 0 : value + 1)));
+  };
 
   if (!selectedStoryId) {
     return <ViewerState detail="No recibimos una historia para mostrar." title="Historia no encontrada" />;
   }
 
-  if (story === undefined) {
-    return <ViewerState detail="Estamos preparando los paneles de esta historia." title="Cargando historia…" />;
+  if (story === undefined || viewerEpoch < 0) {
+    return (
+      <AppScreen contentStyle={styles.stateContent} style={{ backgroundColor: color.surfaceAlt }}>
+        <LoadingState
+          detail="Estamos preparando los paneles de esta historia."
+          message="Cargando historia…"
+          onRetry={retryViewer}
+          testID="historias-viewer-loading"
+        />
+      </AppScreen>
+    );
   }
 
   if (story === null) {

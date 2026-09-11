@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import { LimitReached } from "../../../src/components/LimitReached";
+import { LoadingState, QA_ANSWER_STEPS } from "../../../src/components/LoadingState";
 import { shareQaAnswer } from "../../../src/features/qa/shareAnswer";
 import {
   useScreenInsets,
@@ -39,6 +40,8 @@ export default function PreguntarChatScreen() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
+  const lastQuestionRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const contextLabel = book
     ? `${book}${chapter ? ` ${chapter}` : ""}${verse ? `:${verse}` : ""}`
@@ -58,24 +61,35 @@ export default function PreguntarChatScreen() {
     [thread],
   );
 
-  const onSend = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || busy) {
-      return;
-    }
-    setDraft("");
+  const sendQuestion = async (trimmed: string) => {
+    const requestId = ++requestIdRef.current;
+    lastQuestionRef.current = trimmed;
     setBusy(true);
     try {
       const passage = book
         ? { book, chapter: Number(chapter), verse: verse ? Number(verse) : undefined }
         : undefined;
       const result = await ask({ question: trimmed, passage });
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       if (result.status === "limit_reached") {
         setLimitReached(true);
       }
     } finally {
-      setBusy(false);
+      if (requestId === requestIdRef.current) {
+        setBusy(false);
+      }
     }
+  };
+
+  const onSend = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || busy) {
+      return;
+    }
+    setDraft("");
+    await sendQuestion(trimmed);
   };
 
   const atLimit = limitReached || (quota !== undefined && !quota.isPro && quota.remaining === 0);
@@ -183,7 +197,20 @@ export default function PreguntarChatScreen() {
               </View>
             </View>
           ))}
-          {busy ? <Text style={[styles.typing, { color: color.inkFaint }]}>Buscando en el texto…</Text> : null}
+          {busy ? (
+            <LoadingState
+              onRetry={() => {
+                const last = lastQuestionRef.current;
+                if (!last) {
+                  return;
+                }
+                void sendQuestion(last);
+              }}
+              steps={QA_ANSWER_STEPS}
+              testID="qa-loading"
+              variant="inline"
+            />
+          ) : null}
         </ScrollView>
 
         <View style={[styles.composer, { borderTopColor: color.border, backgroundColor: color.surface }]}>
@@ -280,7 +307,6 @@ const styles = StyleSheet.create({
   shareIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
   shareLabel: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.disclaimer.size },
   disclaimer: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.disclaimer.size },
-  typing: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size },
   composer: { borderTopWidth: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.md },
   suggestions: { gap: tokens.space.sm, paddingBottom: tokens.space.md },
   suggestion: {

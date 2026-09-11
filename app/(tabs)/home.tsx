@@ -7,6 +7,7 @@ import type { FunctionReturnType } from "convex/server";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
+import { LoadingState } from "../../src/components/LoadingState";
 import { buildDevotionalShareText } from "../../src/features/home/shareDevotional";
 import { shareContent } from "../../src/lib/share";
 import { api } from "../../convex/_generated/api";
@@ -123,26 +124,32 @@ export default function HomeScreen() {
       <Pressable
         accessibilityHint={state.status === "error" ? "Vuelve a intentar cargar el devocional." : "Abre o cierra el devocional completo."}
         accessibilityRole="button"
-        accessibilityState={{ disabled: state.status === "loading", expanded: isDevotionalOpen }}
-        disabled={state.status === "loading"}
+        accessibilityState={{ expanded: isDevotionalOpen }}
         onPress={onDevotionalPress}
         style={({ pressed }) => [
           styles.verseCard,
           { backgroundColor: color.surface, borderColor: color.border },
-          pressed && styles.pressed,
+          pressed && state.status !== "loading" && styles.pressed,
         ]}
         testID="home-devotional-toggle"
       >
         <Text style={[styles.overline, { color: color.accent }]}>VERSÍCULO DEL DÍA</Text>
-        <Text style={[styles.verse, { color: color.ink }]}>
-          {state.status === "loading"
-            ? "Preparando la lectura de hoy…"
-            : state.status === "error"
+        {state.status === "loading" ? (
+          <LoadingState
+            message="Preparando la lectura de hoy…"
+            onRetry={retry}
+            testID="home-devotional-loading"
+            variant="inline"
+          />
+        ) : (
+          <Text style={[styles.verse, { color: color.ink }]}>
+            {state.status === "error"
               ? "No pudimos preparar tu lectura. Tocá para intentarlo de nuevo."
               : verseText
                 ? `“${verseText}”`
                 : devotional?.verseRef}
-        </Text>
+          </Text>
+        )}
         {devotional ? (
           <Text style={[styles.reference, { color: color.inkMuted }]}>
             {verseText ? `${devotional.verseRef} · ${bibleVersion}` : bibleVersion}
