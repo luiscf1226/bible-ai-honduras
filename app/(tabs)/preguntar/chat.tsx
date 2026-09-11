@@ -1,6 +1,6 @@
 import { useAction, useQuery } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +16,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../../../convex/_generated/api";
 import { LimitReached } from "../../../src/components/LimitReached";
 import { shareQaAnswer } from "../../../src/features/qa/shareAnswer";
+import {
+  useScreenInsets,
+  useScrollToEndOnKeyboard,
+} from "../../../src/hooks/useKeyboardAvoidance";
+import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../../src/lib/keyboardAvoidance";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -23,6 +28,9 @@ const QA_SUGGESTIONS = ["¿Quién lo escribió?", "¿Cómo lo aplico hoy?", "Exp
 
 export default function PreguntarChatScreen() {
   const { color } = useTheme();
+  const insets = useScreenInsets();
+  const threadRef = useRef<ScrollView>(null);
+  useScrollToEndOnKeyboard(threadRef);
   const { book, chapter, verse } = useLocalSearchParams<{ book?: string; chapter?: string; verse?: string }>();
   const thread = useQuery(api.qa.thread, {});
   const currentUser = useQuery(api.users.current);
@@ -78,7 +86,11 @@ export default function PreguntarChatScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+      <KeyboardAvoidingView
+        behavior={keyboardBehaviorFor(Platform.OS)}
+        keyboardVerticalOffset={keyboardVerticalOffsetFor({ insets, platform: Platform.OS })}
+        style={styles.flex}
+      >
         <View style={[styles.header, { borderBottomColor: color.border, backgroundColor: color.surface }]}>
           <Pressable
             accessibilityRole="button"
@@ -93,7 +105,15 @@ export default function PreguntarChatScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.thread}>
+        <ScrollView
+          contentContainerStyle={styles.thread}
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          // Con el teclado abierto, el primer tap sobre "Compartir" solo lo
+          // cerraría en vez de compartir.
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => threadRef.current?.scrollToEnd({ animated: true })}
+          ref={threadRef}
+        >
           {messages.length === 0 ? (
             <Text style={[styles.empty, { color: color.inkSoft }]}>
               Preguntá lo que quieras sobre el texto. Las respuestas siempre citan un versículo.
@@ -167,7 +187,14 @@ export default function PreguntarChatScreen() {
         </ScrollView>
 
         <View style={[styles.composer, { borderTopColor: color.border, backgroundColor: color.surface }]}>
-          <ScrollView horizontal contentContainerStyle={styles.suggestions} showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.suggestions}
+            horizontal
+            // Chips tocables al lado del input: sin esto el primer tap con el
+            // teclado abierto solo lo cierra y se traga la sugerencia.
+            keyboardShouldPersistTaps="handled"
+            showsHorizontalScrollIndicator={false}
+          >
             {QA_SUGGESTIONS.map((suggestion) => (
               <Pressable
                 accessibilityRole="button"
