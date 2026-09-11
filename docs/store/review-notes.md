@@ -39,6 +39,41 @@ Bible AI Honduras no entrena modelos propios con ese historial. La política
 publicada explica el tratamiento separado de cada proveedor de IA:
 `https://luiscf1226.github.io/bible-ai-honduras/privacidad/`.
 
+### Ruta exacta para cerrar sesión y eliminar la cuenta (guideline 5.1.1(v))
+
+La eliminación de cuenta está **dentro de la app**, sin salir al navegador:
+
+**Cerrar sesión**
+
+1. Iniciar sesión con la cuenta de revisión.
+2. En el Home (pestaña Hoy), tocar el ícono de engranaje ⚙ arriba a la derecha:
+   abre **Ajustes**.
+3. Bajar hasta la sección **Cuenta** (es la última de la pantalla).
+4. Tocar **Cerrar sesión** → confirmar **Cerrar sesión** en el diálogo.
+5. La app vuelve a la pantalla de bienvenida y la siguiente apertura pide login.
+
+**Eliminar mi cuenta** — `Ajustes → Cuenta → Eliminar mi cuenta → escribir ELIMINAR`
+
+1. Iniciar sesión con la cuenta de revisión.
+2. Tocar el engranaje ⚙ del Home para abrir **Ajustes**.
+3. Bajar hasta la sección **Cuenta**.
+4. Tocar **Eliminar mi cuenta** (en rojo).
+5. Paso 1 de la confirmación: el diálogo enumera qué se borra, dice que es
+   irreversible y avisa que **eliminar la cuenta no cancela la suscripción de la
+   tienda** (eso se hace en App Store / Google Play). Tocar **Continuar**.
+6. Paso 2 de la confirmación: escribir la palabra **ELIMINAR** en el campo y
+   tocar **Eliminar mi cuenta para siempre**.
+7. El borrado es en cascada y definitivo: perfil, conversaciones y mensajes,
+   contadores de uso, plan dentro de la app, historias y las imágenes generadas
+   (los archivos, no solo la referencia), más el usuario de identidad en Clerk.
+   Después la app cierra la sesión, cancela el recordatorio diario y vuelve a la
+   pantalla de bienvenida. Volver a registrarse con el mismo correo crea una
+   cuenta limpia.
+
+También existe la página web que exige Google Play
+(`https://luiscf1226.github.io/bible-ai-honduras/eliminar-cuenta/`), pero no es
+necesaria para la revisión de App Store: el flujo in-app es completo.
+
 ### Compras
 
 La app ofrece un plan Pro mediante compras dentro de la app. El código integra
@@ -92,6 +127,38 @@ Bible AI Honduras does not train its own models with that history. The published
 policy explains each AI provider's separate data handling:
 `https://luiscf1226.github.io/bible-ai-honduras/privacidad/`.
 
+### Exact in-app account-deletion path (guideline 5.1.1(v))
+
+Account deletion is fully in-app; the reviewer never leaves the app.
+
+**Sign out:** `Ajustes (Settings) → Cuenta (Account) → Cerrar sesión (Sign out)
+→ confirm`. The app returns to the welcome screen and the next launch asks for
+login again.
+
+**Delete account:** `Ajustes (Settings) → Cuenta (Account) → Eliminar mi cuenta
+(Delete my account) → Continuar (Continue) → type ELIMINAR → Eliminar mi cuenta
+para siempre (Delete my account forever)`.
+
+1. Sign in with the review account.
+2. Tap the ⚙ gear icon at the top right of the Home screen to open **Ajustes**
+   (Settings).
+3. Scroll to the **Cuenta** (Account) section — it is the last section.
+4. Tap **Eliminar mi cuenta** (red row).
+5. Confirmation step 1: the dialog lists what is deleted, states that it cannot
+   be undone, and states that **deleting the account does not cancel the store
+   subscription** (that is done in App Store / Google Play). Tap **Continuar**.
+6. Confirmation step 2: type the word **ELIMINAR** and tap **Eliminar mi cuenta
+   para siempre**.
+7. Deletion cascades and is permanent: profile row, conversations and messages,
+   usage counters, in-app plan row, stories and their generated image files (the
+   blobs, not just the references), plus the Clerk identity user. The app then
+   signs out, cancels the scheduled daily reminder, and returns to the welcome
+   screen. Signing up again with the same email creates a clean account.
+
+The Google Play web form
+(`https://luiscf1226.github.io/bible-ai-honduras/eliminar-cuenta/`) still
+exists, but it is not needed for App Store review: the in-app flow is complete.
+
 ### Suggested review path
 
 1. Sign in with the review account.
@@ -101,6 +168,9 @@ policy explains each AI provider's separate data handling:
 4. Open **Sentir** and generate a devotional from a feeling.
 5. Open **Historias** to see the AI-illustrated biblical story.
 6. Open **Ajustes → Privacidad** to view the policy and hard-delete history.
+7. Open **Ajustes → Cuenta** to see the signed-in email, **Cerrar sesión**
+   (sign out), and **Eliminar mi cuenta** (delete account, two-step
+   confirmation). Full path in "Exact in-app account-deletion path" above.
 
 ### Purchases
 

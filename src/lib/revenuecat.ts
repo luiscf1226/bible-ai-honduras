@@ -48,6 +48,9 @@ export class RevenueCatDevBuildRequiredError extends Error {
 export type RevenueCatNative = {
   configure: (config: { apiKey: string; appUserID?: string }) => unknown;
   logIn: (appUserID: string) => Promise<unknown>;
+  // Opcional: no todas las versiones del binding lo exponen, y los fakes de
+  // los tests que solo prueban compra no tienen por qué implementarlo.
+  logOut?: () => Promise<unknown>;
   getOfferings: () => Promise<{ current?: { monthly?: unknown } | null }>;
   purchasePackage: (pkg: unknown) => Promise<unknown>;
   restorePurchases: () => Promise<unknown>;
@@ -153,6 +156,31 @@ export async function logIn(clerkUserId: string): Promise<PurchaseResult> {
   await ensureConfigured(native, clerkUserId);
   await native.logIn(clerkUserId);
   return { ok: true };
+}
+
+/**
+ * Cierra la sesión de RevenueCat al cerrar sesión en la app (#107). Sin esto,
+ * el próximo usuario que entre en el mismo dispositivo hereda el App User ID
+ * anterior y sus compras se le atribuyen a la cuenta equivocada.
+ *
+ * Nunca lanza: cerrar sesión en Clerk no puede quedar bloqueado porque el SDK
+ * de compras se queje (por ejemplo, si el usuario actual ya era anónimo).
+ */
+export async function logOut(): Promise<PurchaseResult> {
+  if (!purchasesConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
+  const native = await loadNative();
+  if (!native?.logOut) {
+    return { ok: false, reason: "dev_build_required" };
+  }
+  try {
+    await ensureConfigured(native);
+    await native.logOut();
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "purchase_failed" };
+  }
 }
 
 export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseResult> {
