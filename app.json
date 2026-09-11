@@ -19,7 +19,8 @@
       "bundleIdentifier": "com.bibleaihonduras.app"
     },
     "android": {
-      "package": "com.bibleaihonduras.app"
+      "package": "com.bibleaihonduras.app",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "extra": {
       "router": {},

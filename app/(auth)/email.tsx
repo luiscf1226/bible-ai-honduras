@@ -1,24 +1,32 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { useSignIn, useSignUp } from "@clerk/expo";
 
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import {
+  authErrorMessage,
+  canResend,
+  classifySendError,
+  classifyVerifyError,
+  resendCooldownRemaining,
+  resendLabel,
+  sendEmailCode,
+  type AuthErrorKind,
+  type SendCodeDeps,
+} from "../../src/features/auth/emailCodeFlow";
 import { tokens } from "../../src/theme/tokens";
 
 type Step = "email" | "code";
 
-const GENERIC_ERROR = "No pudimos enviarte el código. Revisá el correo e intentá de nuevo.";
-const BAD_CODE_ERROR = "Código incorrecto o vencido. Probá de nuevo.";
-const UNSUPPORTED_ERROR = "Esa cuenta usa otro método de acceso — probá con Google o Apple.";
-const MORE_STEPS_ERROR = "Tu cuenta necesita un paso adicional que todavía no soportamos acá.";
-
-// Clerk no tiene una sola API para "entrar o registrarse con este correo": hay
-// que intentar sign-in primero y, si el correo no existe todavía, caer a
-// sign-up. Los dos flujos comparten la misma pantalla de código porque ambos
-// usan la estrategia email_code. `finalize()` reemplaza al viejo `setActive`:
-// activa la sesión apenas el status pasa a "complete".
+// `@clerk/expo@4.5.0` reexporta los hooks de `@clerk/react@6.14.4`: `useSignIn()`
+// devuelve `{ signIn, errors, fetchStatus }` y `signIn` es un SignInFutureResource.
+// Los métodos devuelven `{ error }` (no lanzan) y `finalize()` activa la sesión —
+// no hay `setActive` en el hook. Clerk no tiene una sola API para "entrar o
+// registrarse con este correo", así que se intenta sign-in y solo si el
+// identificador no existe se cae a sign-up; los dos comparten la pantalla de
+// código porque ambos usan la estrategia email_code.
 export default function EmailScreen() {
   const { signIn } = useSignIn();
   const { signUp } = useSignUp();
@@ -27,106 +35,137 @@ export default function EmailScreen() {
   const [code, setCode] = useState("");
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AuthErrorKind | null>(null);
+  const [lastSentAt, setLastSentAt] = useState<number | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  // El guard del doble envío vive en un ref y no en el state: `pending` se lee
+  // de la closure del render y dos taps seguidos en el mismo frame verían el
+  // valor viejo. El ref es la misma caja en todos los renders.
+  const inFlight = useRef(false);
+
+  // El contador se recalcula contra el reloj en cada tick en vez de descontar,
+  // así un render perdido o un tick atrasado no acortan el cooldown.
+  useEffect(() => {
+    if (lastSentAt === null) {
+      setCooldown(0);
+      return;
+    }
+    setCooldown(resendCooldownRemaining(lastSentAt, Date.now()));
+    const timer = setInterval(() => {
+      const remaining = resendCooldownRemaining(lastSentAt, Date.now());
+      setCooldown(remaining);
+      if (remaining === 0) {
+        clearInterval(timer);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lastSentAt]);
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/login");
+  }, []);
 
   const useDifferentEmail = useCallback(() => {
     setStep("email");
     setCode("");
     setError(null);
+    setLastSentAt(null);
   }, []);
 
-  const sendCode = useCallback(async () => {
-    if (pending) {
-      return;
-    }
-    setError(null);
-    setPending(true);
-    try {
-      const created = await signIn.create({ identifier: email });
-      if (!created.error) {
-        const sent = await signIn.emailCode.sendCode();
-        if (!sent.error) {
-          setMode("signIn");
-          setStep("code");
+  const requestCode = useCallback(
+    async (isResend: boolean) => {
+      if (inFlight.current) {
+        return;
+      }
+      if (isResend && !canResend(lastSentAt, Date.now())) {
+        return;
+      }
+      inFlight.current = true;
+      setError(null);
+      setPending(true);
+      try {
+        // Un reenvío no vuelve a crear nada: el intento ya existe en el cliente
+        // de Clerk, así que se re-prepara el mismo factor.
+        if (isResend) {
+          const { error: resendError } =
+            mode === "signIn" ? await signIn.emailCode.sendCode() : await signUp.verifications.sendEmailCode();
+          if (resendError) {
+            console.error("No se pudo reenviar el código", resendError);
+            setError(classifySendError(resendError));
+            return;
+          }
+          setLastSentAt(Date.now());
           return;
         }
-        // El identificador existe pero email_code no es un primer factor válido
-        // para esta cuenta (p. ej. se registró por Google) — no es "no existe".
-        console.error("No se pudo enviar el código de sign-in", sent.error);
-        setError(UNSUPPORTED_ERROR);
-        return;
-      }
 
-      if (created.error.code !== "form_identifier_not_found") {
-        console.error("signIn.create falló con un correo existente", created.error);
-        setError(GENERIC_ERROR);
-        return;
+        const deps: SendCodeDeps = {
+          sendSignInCode: (emailAddress) => signIn.emailCode.sendCode({ emailAddress }),
+          createSignUp: (emailAddress) => signUp.create({ emailAddress }),
+          sendSignUpCode: () => signUp.verifications.sendEmailCode(),
+        };
+        const result = await sendEmailCode(email.trim(), deps);
+        if (!result.ok) {
+          console.error("No se pudo enviar el código", result.error, result.cause);
+          setError(result.error);
+          return;
+        }
+        setMode(result.mode);
+        setStep("code");
+        setLastSentAt(Date.now());
+      } finally {
+        inFlight.current = false;
+        setPending(false);
       }
+    },
+    [email, lastSentAt, mode, signIn, signUp]
+  );
 
-      const signedUp = await signUp.create({ emailAddress: email });
-      if (signedUp.error) {
-        console.error("signUp.create falló", signedUp.error);
-        setError(GENERIC_ERROR);
-        return;
-      }
-      const sentSignUp = await signUp.verifications.sendEmailCode();
-      if (sentSignUp.error) {
-        console.error("No se pudo enviar el código de sign-up", sentSignUp.error);
-        setError(GENERIC_ERROR);
-        return;
-      }
-      setMode("signUp");
-      setStep("code");
-    } catch (unexpected) {
-      console.error("sendCode falló de forma inesperada", unexpected);
-      setError(GENERIC_ERROR);
-    } finally {
-      setPending(false);
-    }
-  }, [email, pending, signIn, signUp]);
+  const sendCode = useCallback(() => requestCode(false), [requestCode]);
+  const resendCode = useCallback(() => requestCode(true), [requestCode]);
 
   const confirmCode = useCallback(async () => {
-    if (pending) {
+    if (inFlight.current) {
       return;
     }
+    inFlight.current = true;
     setError(null);
     setPending(true);
     try {
-      if (mode === "signIn") {
-        const verified = await signIn.emailCode.verifyCode({ code });
-        if (verified.error) {
-          console.error("signIn.emailCode.verifyCode falló", verified.error);
-          setError(BAD_CODE_ERROR);
-          return;
-        }
-        if (signIn.status !== "complete") {
-          console.error("signIn quedó en estado inesperado tras verificar el código", signIn.status);
-          setError(MORE_STEPS_ERROR);
-          return;
-        }
-        await signIn.finalize();
-      } else {
-        const verified = await signUp.verifications.verifyEmailCode({ code });
-        if (verified.error) {
-          console.error("signUp.verifications.verifyEmailCode falló", verified.error);
-          setError(BAD_CODE_ERROR);
-          return;
-        }
-        if (signUp.status !== "complete") {
-          console.error("signUp quedó en estado inesperado tras verificar el código", signUp.status);
-          setError(MORE_STEPS_ERROR);
-          return;
-        }
-        await signUp.finalize();
+      const { error: verifyError } =
+        mode === "signIn"
+          ? await signIn.emailCode.verifyCode({ code })
+          : await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) {
+        console.error("La verificación del código falló", verifyError);
+        setError(classifyVerifyError(verifyError));
+        return;
+      }
+
+      const status = mode === "signIn" ? signIn.status : signUp.status;
+      if (status !== "complete") {
+        console.error("El intento quedó en un estado inesperado tras verificar el código", status);
+        setError("moreSteps");
+        return;
+      }
+
+      // `finalize()` es lo que activa la sesión; si falla, no navegamos.
+      const { error: finalizeError } = mode === "signIn" ? await signIn.finalize() : await signUp.finalize();
+      if (finalizeError) {
+        console.error("No se pudo activar la sesión", finalizeError);
+        setError(classifySendError(finalizeError));
+        return;
       }
       router.replace("/onboarding");
-    } catch (unexpected) {
-      console.error("confirmCode falló de forma inesperada", unexpected);
-      setError(BAD_CODE_ERROR);
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
-  }, [code, mode, signIn, signUp, pending]);
+  }, [code, mode, signIn, signUp]);
 
   return (
     <AppScreen contentStyle={styles.content} style={styles.screen}>
@@ -135,11 +174,11 @@ export default function EmailScreen() {
         <Text style={styles.description}>
           {step === "email"
             ? "Te enviamos un código de un solo uso, sin contraseña que recordar."
-            : `Escribí el código de 6 dígitos que enviamos a ${email}.`}
+            : `Escribí el código de 6 dígitos que enviamos a ${email.trim()}.`}
         </Text>
       </View>
       <View style={styles.actions}>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{authErrorMessage(error)}</Text> : null}
         {step === "email" ? (
           <>
             <TextInput
@@ -153,8 +192,11 @@ export default function EmailScreen() {
               style={styles.input}
               value={email}
             />
-            <AppButton disabled={pending || email.length === 0} onPress={sendCode}>
+            <AppButton disabled={pending || email.trim().length === 0} onPress={sendCode}>
               {pending ? "Enviando…" : "Enviar código"}
+            </AppButton>
+            <AppButton disabled={pending} onPress={goBack} variant="quiet">
+              Volver
             </AppButton>
           </>
         ) : (
@@ -171,6 +213,9 @@ export default function EmailScreen() {
             />
             <AppButton disabled={pending || code.length < 6} onPress={confirmCode}>
               {pending ? "Verificando…" : "Confirmar"}
+            </AppButton>
+            <AppButton disabled={pending || cooldown > 0} onPress={resendCode} variant="quiet">
+              {resendLabel(cooldown)}
             </AppButton>
             <AppButton disabled={pending} onPress={useDifferentEmail} variant="quiet">
               Usar otro correo
