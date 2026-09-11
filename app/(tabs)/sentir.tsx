@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { useAction, useQuery } from "convex/react";
@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingState";
 import { LimitReached } from "../../src/components/LimitReached";
 import { api } from "../../convex/_generated/api";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -65,6 +66,7 @@ export default function SentirScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const generateRequestIdRef = useRef(0);
   const historicalConversation = useQuery(
     getHistoryConversation,
     selectedHistoryId ? { conversationId: selectedHistoryId } : "skip",
@@ -81,21 +83,30 @@ export default function SentirScreen() {
 
   const canGenerate = selectedFeelings.length > 0 || freeText.trim().length > 0;
 
-  const generateDevotional = async () => {
-    if (!canGenerate || isGenerating) return;
+  const generateDevotional = async (options?: { force?: boolean }) => {
+    if (!canGenerate || (isGenerating && !options?.force)) return;
+    const requestId = ++generateRequestIdRef.current;
     setError(null);
     setIsGenerating(true);
     try {
       const result = await generate({ feelings: selectedFeelings, note: freeText });
+      if (requestId !== generateRequestIdRef.current) {
+        return;
+      }
       if (!result.allowed) {
         setLimitReached(true);
         return;
       }
       setDevotional(result.devotional);
     } catch (cause) {
+      if (requestId !== generateRequestIdRef.current) {
+        return;
+      }
       setError(cause instanceof Error ? cause.message : "No pudimos preparar tu devocional. Intentá de nuevo.");
     } finally {
-      setIsGenerating(false);
+      if (requestId === generateRequestIdRef.current) {
+        setIsGenerating(false);
+      }
     }
   };
 
@@ -107,18 +118,30 @@ export default function SentirScreen() {
   if (isGenerating) {
     return (
       <AppScreen contentStyle={styles.generatingContent} style={{ backgroundColor: color.bg }}>
-        <View style={styles.generatingCard}>
-          <Text style={[styles.generatingTitle, { color: color.ink }]}>Buscando un pasaje que hable de esto…</Text>
-          <Text style={[styles.generatingDescription, { color: color.inkSoft }]}>Tomá un respiro mientras tanto.</Text>
-        </View>
+        <LoadingState
+          detail="Tomá un respiro mientras tanto."
+          onRetry={() => void generateDevotional({ force: true })}
+          showBrand
+          steps={FEELING_GEN_STEPS}
+          testID="sentir-generating"
+        />
       </AppScreen>
     );
   }
 
   if (selectedHistoryId && historicalConversation === undefined) {
+    const historyId = selectedHistoryId;
     return (
       <AppScreen contentStyle={styles.generatingContent} style={{ backgroundColor: color.bg }}>
-        <Text style={[styles.generatingTitle, { color: color.ink }]}>Abriendo tu devocional…</Text>
+        <LoadingState
+          message="Abriendo tu devocional…"
+          onRetry={() => {
+            // Re-suscribe la query: skip → id (Convex no expone invalidate).
+            setSelectedHistoryId(null);
+            requestAnimationFrame(() => setSelectedHistoryId(historyId));
+          }}
+          testID="sentir-history-loading"
+        />
       </AppScreen>
     );
   }
@@ -338,20 +361,7 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.bodySm.lineHeight,
     textAlign: "center",
   },
-  generatingContent: { flex: 1, justifyContent: "center" },
-  generatingCard: { alignItems: "center", gap: tokens.space.lg },
-  generatingTitle: {
-    fontFamily: tokens.font.serif,
-    fontSize: tokens.type.subtitle.size,
-    lineHeight: tokens.type.subtitle.lineHeight,
-    textAlign: "center",
-  },
-  generatingDescription: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.bodySm.size,
-    lineHeight: tokens.type.bodySm.lineHeight,
-    textAlign: "center",
-  },
+  generatingContent: { flex: 1, justifyContent: "center", paddingHorizontal: 0 },
   resultContent: { gap: tokens.space.lg },
   resultImage: { borderRadius: tokens.radius.xl, height: tokens.size.logoLarge, width: "100%" },
   resultKicker: {
