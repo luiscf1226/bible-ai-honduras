@@ -24,11 +24,23 @@ describe("shareQaAnswer", () => {
   });
 
   it("invoca shareContent con la pregunta+cita y el referralCode del usuario", async () => {
+    vi.mocked(shareContent).mockResolvedValue({ status: "shared" });
+
     await shareQaAnswer({ question: "¿Quién es mi pastor?", citation: CITATION, referralCode: "BAH-TEST01" });
 
     expect(shareContent).toHaveBeenCalledWith({
       referralCode: "BAH-TEST01",
       text: buildQaShareText("¿Quién es mi pastor?", CITATION),
     });
+  });
+
+  // #103: shareQaAnswer ya no se traga el resultado de shareContent — lo devuelve
+  // tal cual para que quien la invoque pueda distinguir cancelación de error real.
+  it("devuelve el resultado de shareContent sin envolverlo ni tragárselo", async () => {
+    vi.mocked(shareContent).mockResolvedValue({ status: "dismissed" });
+
+    const result = await shareQaAnswer({ question: "¿Quién es mi pastor?", citation: CITATION, referralCode: "BAH-TEST01" });
+
+    expect(result).toEqual({ status: "dismissed" });
   });
 });

@@ -1,4 +1,4 @@
-import { shareContent } from "../../lib/share";
+import { shareContent, type ShareResult } from "../../lib/share";
 
 export type QaCitation = {
   book: string;
@@ -16,12 +16,14 @@ export function buildQaShareText(question: string, citation: QaCitation): string
   return `Pregunta: ${question}\n\n"${citation.text}"\n— ${formatCitation(citation)}`;
 }
 
-export async function shareQaAnswer(params: {
+// Devuelve el resultado en vez de tragárselo (#103) para que quien la invoque
+// pueda distinguir cancelación de error real y mostrar un error suave.
+export function shareQaAnswer(params: {
   question: string;
   citation: QaCitation;
   referralCode: string;
-}): Promise<void> {
-  await shareContent({
+}): Promise<ShareResult> {
+  return shareContent({
     referralCode: params.referralCode,
     text: buildQaShareText(params.question, params.citation),
   });
