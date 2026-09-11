@@ -318,6 +318,10 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.body.size,
     lineHeight: tokens.type.body.lineHeight,
+    // El campo crece con el texto, pero topa al doble de su alto inicial: de ahí
+    // en adelante scrollea adentro en vez de empujar el CTA fuera de pantalla
+    // (issue #105). Los dos valores salen del mismo token, no hay medida nueva.
+    maxHeight: tokens.size.logoLarge * 2,
     minHeight: tokens.size.logoLarge,
     paddingHorizontal: tokens.space.xl,
     paddingVertical: tokens.space.xl,
