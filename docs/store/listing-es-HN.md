@@ -23,7 +23,7 @@ Bible AI Honduras reúne en un solo lugar:
 • devocionales según cómo te sentís;  
 • historias bíblicas ilustradas con inteligencia artificial;  
 • recordatorios y preferencias de lectura;  
-• controles para revisar y borrar tu historial.
+• controles para revisar y borrar tu historial, cerrar sesión o eliminar tu cuenta.
 
 Las respuestas se apoyan en contexto bíblico, pero la inteligencia artificial
 puede equivocarse. La app acompaña tu lectura personal y no sustituye consejo
