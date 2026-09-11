@@ -7,6 +7,7 @@ import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from "re
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
+import { ScreenHeader } from "../src/components/ScreenHeader";
 import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
 import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
 import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
@@ -141,16 +142,11 @@ export default function AjustesScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.back()}
-          style={[styles.backButton, { borderColor: color.border }]}
-        >
-          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: color.ink }]}>Ajustes</Text>
-      </View>
+      <ScreenHeader
+        accessibilityLabel="Volver"
+        style={styles.header}
+        title="Ajustes"
+      />
 
       <Pressable
         accessibilityRole="button"
@@ -401,10 +397,7 @@ export default function AjustesScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 0 },
-  header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.xxl },
-  backButton: { alignItems: "center", borderRadius: tokens.radius.pill, borderWidth: 1, height: tokens.size.dotActive + tokens.space.md, justifyContent: "center", width: tokens.size.dotActive + tokens.space.md },
-  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
-  title: { fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight },
+  header: { marginBottom: tokens.space.xxl },
   planCard: {
     alignItems: "center",
     borderRadius: tokens.radius.xl,

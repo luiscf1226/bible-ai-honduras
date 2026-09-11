@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 
 import { AppScreen } from "../../src/components/AppScreen";
 import { LoadingState } from "../../src/components/LoadingState";
+import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { storiesApi, type StoryCatalogItem } from "../../src/features/stories/contracts";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
@@ -25,6 +26,11 @@ export default function HistoriasScreen() {
 
   return (
     <AppScreen scroll>
+      <ScreenHeader
+        accessibilityLabel="Volver al inicio"
+        style={styles.header}
+        testID="historias-back"
+      />
       <Text style={[styles.title, { color: color.ink }]}>Historias ilustradas</Text>
       <Text style={[styles.subtitle, { color: color.inkMuted }]}>
         Elige una historia bíblica para ver sus escenas ilustradas.
@@ -114,6 +120,7 @@ function StoryList({
 }
 
 const styles = StyleSheet.create({
+  header: { marginBottom: tokens.space.xl },
   title: {
     fontFamily: tokens.font.serif,
     fontSize: tokens.type.title.size,
