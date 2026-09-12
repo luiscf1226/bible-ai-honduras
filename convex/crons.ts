@@ -12,4 +12,14 @@ crons.daily(
   internal.devotional.ensureWindow,
 );
 
+// Siembra la copia servible del plan de lectura anual (#114) si todavía no
+// existe. Es un no-op después de la primera corrida — no pisa contenido ya
+// sembrado, así que correrla a diario es inofensivo y evita depender de un
+// paso manual de deploy.
+crons.daily(
+  "sembrar plan de lectura canónico",
+  { hourUTC: 6, minuteUTC: 10 },
+  internal.readingPlans.ensurePlanSeeded,
+);
+
 export default crons;

@@ -10,7 +10,11 @@ const DAYS_TO_PREPARE = 28;
 
 type Devotional = DevotionalCatalogItem & { date: string };
 
-function parseDateKey(date: string): number {
+// Exportadas para que otros módulos (p. ej. `readingPlans.ts`) hagan la misma
+// aritmética de fechas en vez de reimplementarla — el plan de lectura anual
+// necesita "cuántos días pasaron desde el inicio" con la misma noción de día
+// que ya usa el devocional.
+export function parseDateKey(date: string): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new ConvexError("date debe tener formato YYYY-MM-DD");
   }
@@ -28,7 +32,7 @@ function parseDateKey(date: string): number {
   return timestamp;
 }
 
-function addDays(date: string, days: number): string {
+export function addDays(date: string, days: number): string {
   const result = new Date(parseDateKey(date) + days * DAY_MS);
   return result.toISOString().slice(0, 10);
 }

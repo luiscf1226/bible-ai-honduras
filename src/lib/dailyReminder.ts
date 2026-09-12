@@ -6,6 +6,16 @@ const DAILY_REMINDER_KIND = "daily-devotional";
 
 export type ScheduledDevotional = { date: string; verseRef: string };
 
+// TODO(#114): si hay un plan de lectura activo (`api.readingPlans.myProgress`),
+// el aviso diario debería mencionar la lectura del día del plan
+// (`formatReadingsLabel(progress.todayReadings)`) en vez del versículo
+// genérico del devocional. Queda anotado y sin implementar por alcance del
+// issue #114 — el body de la notificación se arma en
+// `app/(auth)/notifications.tsx` (`activateReminder`), que hoy solo consulta
+// `api.devotional.byDate`. Hacerlo bien requiere resolver, por cada fecha
+// futura de `upcomingReminderDates`, qué día del plan le corresponde
+// (`currentPlanDay`) y traer sus lecturas — no es un cambio de una línea.
+
 type DailyReminderResult = "scheduled" | "permission-denied" | "unsupported";
 
 function isDailyReminder(notification: Notifications.NotificationRequest) {
