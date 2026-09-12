@@ -37,17 +37,17 @@ function AppNavigator() {
 }
 
 export default function RootLayout() {
-  const [dmSansLoaded] = useDMSans({ DMSans_300Light, DMSans_400Regular, DMSans_500Medium });
-  const [ebGaramondLoaded] = useEBGaramond({ EBGaramond_400Regular });
-  const fontsLoaded = dmSansLoaded && ebGaramondLoaded;
+  const [dmSansLoaded, dmSansError] = useDMSans({ DMSans_300Light, DMSans_400Regular, DMSans_500Medium });
+  const [ebGaramondLoaded, ebGaramondError] = useEBGaramond({ EBGaramond_400Regular });
+  const fontsReady = (dmSansLoaded || dmSansError != null) && (ebGaramondLoaded || ebGaramondError != null);
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsReady]);
 
-  if (!fontsLoaded) {
+  if (!fontsReady) {
     return null;
   }
 
