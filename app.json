@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "bibleai",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#E9E1D5"
-    },
     "plugins": [
       "expo-router",
       "expo-font",
@@ -22,6 +17,14 @@
           "ios": {
             "deploymentTarget": "17.0"
           }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#E9E1D5"
         }
       ]
     ],
