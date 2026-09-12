@@ -6,11 +6,12 @@ import type { Id } from "./_generated/dataModel";
 import schema from "./schema";
 
 // Todos los módulos que el registro de funciones necesita para correr
-// users.deleteAccount (users → history → voicesCatalog).
+// users.deleteAccount (users → history → reading → voicesCatalog).
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./users.ts": () => import("./users"),
   "./history.ts": () => import("./history"),
+  "./reading.ts": () => import("./reading"),
   "./bibleVersions.ts": () => import("./bibleVersions"),
   "./voicesCatalog.ts": () => import("./voicesCatalog"),
 };
@@ -74,6 +75,25 @@ async function seedEverything(
       source: "revenuecat_webhook",
       updatedAt: Date.now(),
     });
+    await ctx.db.insert("readingProgress", {
+      userId,
+      book: "Juan",
+      chapter: 3,
+      updatedAt: Date.now(),
+    });
+    await ctx.db.insert("readingRecents", {
+      userId,
+      book: "Juan",
+      chapter: 3,
+      openedAt: Date.now(),
+    });
+    await ctx.db.insert("readingBookmarks", {
+      userId,
+      book: "Juan",
+      chapter: 3,
+      verse: 16,
+      createdAt: Date.now(),
+    });
 
     const storageId = await ctx.storage.store(
       new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
@@ -117,6 +137,9 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     usage: await ctx.db.query("usage").collect(),
     entitlements: await ctx.db.query("entitlements").collect(),
     stories: await ctx.db.query("stories").collect(),
+    readingProgress: await ctx.db.query("readingProgress").collect(),
+    readingRecents: await ctx.db.query("readingRecents").collect(),
+    readingBookmarks: await ctx.db.query("readingBookmarks").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
 }
@@ -147,6 +170,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.usage).toHaveLength(2);
     expect(before.entitlements).toHaveLength(1);
     expect(before.stories).toHaveLength(1);
+    expect(before.readingProgress).toHaveLength(1);
+    expect(before.readingRecents).toHaveLength(1);
+    expect(before.readingBookmarks).toHaveLength(1);
     expect(before.storage).toHaveLength(1);
 
     stubClerkDelete();
@@ -160,6 +186,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       entitlements: 1,
       stories: 1,
       storyImages: 1,
+      readingProgress: 1,
+      readingRecents: 1,
+      readingBookmarks: 1,
       users: 1,
     });
 
@@ -171,6 +200,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.usage).toHaveLength(0);
     expect(after.entitlements).toHaveLength(0);
     expect(after.stories).toHaveLength(0);
+    expect(after.readingProgress).toHaveLength(0);
+    expect(after.readingRecents).toHaveLength(0);
+    expect(after.readingBookmarks).toHaveLength(0);
 
     // El blob no queda huérfano.
     expect(after.storage).toHaveLength(0);
@@ -202,6 +234,12 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.entitlements[0]?.userId).toBe(betoId);
     expect(after.stories).toHaveLength(1);
     expect(after.stories[0]?.userId).toBe(betoId);
+    expect(after.readingProgress).toHaveLength(1);
+    expect(after.readingProgress[0]?.userId).toBe(betoId);
+    expect(after.readingRecents).toHaveLength(1);
+    expect(after.readingRecents[0]?.userId).toBe(betoId);
+    expect(after.readingBookmarks).toHaveLength(1);
+    expect(after.readingBookmarks[0]?.userId).toBe(betoId);
 
     // El blob de Beto sobrevive; el de Ana no.
     expect(after.storage).toHaveLength(1);
@@ -283,6 +321,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.users).toHaveLength(0);
     expect(after.stories).toHaveLength(0);
     expect(after.storage).toHaveLength(0);
+    expect(after.readingProgress).toHaveLength(0);
+    expect(after.readingRecents).toHaveLength(0);
+    expect(after.readingBookmarks).toHaveLength(0);
   });
 
   it("sin CLERK_SECRET_KEY no deja el borrado a medias: purga y devuelve not_configured", async () => {
@@ -307,6 +348,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.entitlements).toHaveLength(0);
     expect(after.stories).toHaveLength(0);
     expect(after.storage).toHaveLength(0);
+    expect(after.readingProgress).toHaveLength(0);
+    expect(after.readingRecents).toHaveLength(0);
+    expect(after.readingBookmarks).toHaveLength(0);
   });
 
   it("un 404 de Clerk cuenta como borrado: la identidad ya no existía", async () => {
@@ -347,6 +391,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       entitlements: 0,
       stories: 0,
       storyImages: 0,
+      readingProgress: 0,
+      readingRecents: 0,
+      readingBookmarks: 0,
       users: 0,
     });
     const after = await tableDump(t);

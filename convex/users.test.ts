@@ -114,6 +114,28 @@ describe("users.updatePreferences", () => {
     expect(user).toMatchObject({ bibleVersion: "RV1909", reminderHour: 6 });
   });
 
+  it("persiste los controles de letra e interlineado del lector", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_reading_preferences");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    await authed.mutation(api.users.updatePreferences, { readingFontStep: 3, readingSpacingStep: 2 });
+
+    expect(await t.run((ctx) => ctx.db.get(userId))).toMatchObject({
+      readingFontStep: 3,
+      readingSpacingStep: 2,
+    });
+  });
+
+  it("rechaza pasos de lectura fuera del rango permitido", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_bad_reading_preferences");
+    await authed.mutation(api.users.upsert, {});
+
+    await expect(authed.mutation(api.users.updatePreferences, { readingFontStep: -1 })).rejects.toThrow("readingFontStep");
+    await expect(authed.mutation(api.users.updatePreferences, { readingSpacingStep: 10 })).rejects.toThrow("readingSpacingStep");
+  });
+
   it("persiste las horas de aviso del prototipo (6, 12, 21) para que #10 las consuma", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_hours");

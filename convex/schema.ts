@@ -17,6 +17,11 @@ export default defineSchema({
     // consultaba nada, y se repetía en cada inicio de sesión.
     onboardedAt: v.optional(v.number()),
     referralCode: v.string(),
+    // Controles de lectura (#113). Son índices dentro de
+    // READING_FONT_SCALES / READING_LINE_SPACINGS, no tamaños en px: el
+    // tamaño sale siempre del token (regla dura #1).
+    readingFontStep: v.optional(v.number()),
+    readingSpacingStep: v.optional(v.number()),
   }).index("by_clerk_id", ["clerkId"]),
 
   // ── RAG (#5) ────────────────────────────────────────────
@@ -29,6 +34,13 @@ export default defineSchema({
     embedding: v.array(v.float64()), // text-embedding-3-small reducido a 1024 dims
   })
     .index("by_ref", ["version", "book", "chapter", "verse"])
+    // Búsqueda de texto del buscador (#112). Full-text, no semántica: es
+    // instantánea y no cuesta un embedding por consulta. El índice vectorial
+    // de abajo sigue siendo el del RAG y no se toca.
+    .searchIndex("by_text", {
+      searchField: "text",
+      filterFields: ["version", "book"],
+    })
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1024,
@@ -63,6 +75,37 @@ export default defineSchema({
     imageAlt: v.string(),
     imageAttributionUrl: v.string(),
   }).index("by_date", ["date"]),
+
+  // Marcador "seguí leyendo" del lector (#113). Una fila por usuario: el
+  // lector no guarda un historial de lectura, guarda dónde quedó.
+  readingProgress: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Referencias abiertas recientemente y guardadas desde el lector (#112/#113).
+  // Se guardan por separado del progreso: una persona puede retomar Génesis 4,
+  // conservar Juan 3:16 y seguir viendo ambos en sus listas.
+  readingRecents: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    openedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_chapter", ["userId", "book", "chapter"]),
+
+  readingBookmarks: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
 
   // ── Transversales (#4 / quotas) ─────────────────────────
   usage: defineTable({
