@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import { LimitReached } from "../../../src/components/LimitReached";
+import { ScreenHeader } from "../../../src/components/ScreenHeader";
 import { shareVoiceReply } from "../../../src/features/voices/shareVoice";
 import {
   useScreenInsets,
@@ -105,13 +106,11 @@ export default function VocesChatScreen() {
         style={styles.flex}
       >
         <View style={[styles.header, { borderBottomColor: color.border }]}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={[styles.back, { borderColor: color.border }]}
-          >
-            <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-          </Pressable>
+          <ScreenHeader
+            accessibilityLabel="Volver"
+            onBack={() => router.back()}
+            testID="voces-chat-back"
+          />
           <LinearGradient colors={[character.gradientFrom, character.gradientTo]} style={styles.avatar}>
             <Text style={[styles.avatarInitial, { color: color.avatarInitial }]}>{character.name[0]}</Text>
           </LinearGradient>
@@ -247,15 +246,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.cardPadding.horizontal,
     paddingVertical: tokens.space.lg,
   },
-  back: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    height: tokens.size.backButton,
-    justifyContent: "center",
-    width: tokens.size.backButton,
-  },
-  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
   avatar: {
     alignItems: "center",
     borderRadius: tokens.radius.pill,
