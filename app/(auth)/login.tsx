@@ -24,7 +24,10 @@ export default function LoginScreen() {
       try {
         const { createdSessionId } = await startSSOFlow({ strategy });
         if (createdSessionId) {
-          router.replace("/onboarding");
+          // #124: NO enrutamos desde acá. Mandar siempre a /onboarding hacía que
+          // el onboarding reapareciera en cada login. El destino lo decide
+          // `app/index.tsx` con la cascada onboarding → consentimiento → home.
+          router.replace("/");
         }
       } catch (ssoError) {
         console.error("SSO sign-in falló", ssoError);

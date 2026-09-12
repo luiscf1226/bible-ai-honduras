@@ -11,6 +11,7 @@ import {
   classifySendError,
   classifyVerifyError,
   resendCooldownRemaining,
+  resendEmailCode,
   resendLabel,
   sendEmailCode,
   type AuthErrorKind,
@@ -89,14 +90,20 @@ export default function EmailScreen() {
       setError(null);
       setPending(true);
       try {
-        // Un reenvío no vuelve a crear nada: el intento ya existe en el cliente
-        // de Clerk, así que se re-prepara el mismo factor.
+        // Un reenvío normalmente no vuelve a crear nada: el intento ya existe en
+        // el cliente de Clerk y se re-prepara el mismo factor. `resendEmailCode`
+        // cubre el caso en que ese intento se perdió — y, sobre todo, captura la
+        // excepción que Clerk lanza ahí en vez de devolverla (#124).
         if (isResend) {
-          const { error: resendError } =
-            mode === "signIn" ? await signIn.emailCode.sendCode() : await signUp.verifications.sendEmailCode();
-          if (resendError) {
-            console.error("No se pudo reenviar el código", resendError);
-            setError(classifySendError(resendError));
+          const resent = await resendEmailCode(mode, email.trim(), {
+            hasSignInAttempt: () => Boolean(signIn.id),
+            resendSignInCode: (emailAddress) =>
+              emailAddress ? signIn.emailCode.sendCode({ emailAddress }) : signIn.emailCode.sendCode(),
+            resendSignUpCode: () => signUp.verifications.sendEmailCode(),
+          });
+          if (!resent.ok) {
+            console.error("No se pudo reenviar el código", resent.error, resent.cause);
+            setError(resent.error);
             return;
           }
           setLastSentAt(Date.now());
@@ -117,6 +124,12 @@ export default function EmailScreen() {
         setMode(result.mode);
         setStep("code");
         setLastSentAt(Date.now());
+      } catch (thrown) {
+        // Red de seguridad: la API de signals devuelve `{ error }`, pero sus
+        // guards de precondición lanzan Error a secas. Sin este catch la
+        // excepción salía como unhandled rejection y el botón quedaba mudo.
+        console.error("El envío del código lanzó una excepción", thrown);
+        setError(classifySendError(thrown));
       } finally {
         inFlight.current = false;
         setPending(false);
@@ -160,7 +173,11 @@ export default function EmailScreen() {
         setError(classifySendError(finalizeError));
         return;
       }
-      router.replace("/onboarding");
+      // #124: igual que en login.tsx — el destino lo decide `app/index.tsx`.
+      router.replace("/");
+    } catch (thrown) {
+      console.error("La verificación del código lanzó una excepción", thrown);
+      setError(classifyVerifyError(thrown));
     } finally {
       inFlight.current = false;
       setPending(false);
