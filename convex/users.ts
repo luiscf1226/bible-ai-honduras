@@ -10,7 +10,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
-import { deleteReadingProgressForUser } from "./reading";
+import { deleteReadingDataForUser } from "./reading";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
 
@@ -287,7 +287,7 @@ export const updatePreferences = mutation({
 //   usage          → contadores de cuota (transversal #15/#20/#24/#29)
 //   entitlements   → fila de Pro; NO cancela la suscripción de la tienda
 //   stories        → la fila y además cada blob de `_storage` de sus escenas
-//   readingProgress→ el marcador "seguí leyendo" del lector (#113)
+//   reading*       → marcador, recientes y guardados del lector (#112/#113)
 // `verses`, `commentaries` y `dailyDevotionals` son contenido editorial global:
 // no tienen userId y no se tocan.
 
@@ -302,6 +302,8 @@ export type PurgeCounts = {
   stories: number;
   storyImages: number;
   readingProgress: number;
+  readingRecents: number;
+  readingBookmarks: number;
   users: number;
 };
 
@@ -329,6 +331,8 @@ function emptyPurgeCounts(): PurgeCounts {
     stories: 0,
     storyImages: 0,
     readingProgress: 0,
+    readingRecents: 0,
+    readingBookmarks: 0,
     users: 0,
   };
 }
@@ -446,8 +450,10 @@ export const purgeAccountData = internalMutation({
     const entitlements = await deleteEntitlementsForUser(ctx, user._id, PURGE_BUDGET);
     deleted.entitlements = entitlements.deleted;
 
-    const reading = await deleteReadingProgressForUser(ctx, user._id, PURGE_BUDGET);
-    deleted.readingProgress = reading.deleted;
+    const reading = await deleteReadingDataForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.readingProgress = reading.deleted.progress;
+    deleted.readingRecents = reading.deleted.recents;
+    deleted.readingBookmarks = reading.deleted.bookmarks;
 
     const childrenDone =
       conversations.done && stories.done && usage.done && entitlements.done && reading.done;
@@ -530,6 +536,8 @@ export const deleteAccount = action({
       deleted.stories += result.deleted.stories;
       deleted.storyImages += result.deleted.storyImages;
       deleted.readingProgress += result.deleted.readingProgress;
+      deleted.readingRecents += result.deleted.readingRecents;
+      deleted.readingBookmarks += result.deleted.readingBookmarks;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

@@ -74,31 +74,126 @@ export const saveProgress = mutation({
   },
 });
 
-/**
- * Borrado en cascada de "Eliminar mi cuenta" (#107). Vive acá para que el
- * dueño de la tabla sea el dueño de su purga; `convex/users.ts` la invoca.
- */
-export async function deleteReadingProgressForUser(
+/** Capítulos abiertos recientemente, del más nuevo al más antiguo. */
+export const recents = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("readingRecents")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    return rows
+      .sort((a, b) => b.openedAt - a.openedAt)
+      .slice(0, 6)
+      .map((row) => ({ book: row.book, chapter: row.chapter, openedAt: row.openedAt }));
+  },
+});
+
+/** Versículos guardados, del último guardado al primero. */
+export const bookmarks = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("readingBookmarks")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    return rows
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((row) => ({ book: row.book, chapter: row.chapter, verse: row.verse, createdAt: row.createdAt }));
+  },
+});
+
+/** Registra un capítulo en Recientes sin crear filas duplicadas. */
+export const recordRecent = mutation({
+  args: { book: v.string(), chapter: v.number() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    if (!Number.isInteger(args.chapter) || args.chapter < 1) {
+      throw new ConvexError("chapter debe ser un entero mayor o igual a 1");
+    }
+    const existing = await ctx.db
+      .query("readingRecents")
+      .withIndex("by_user_chapter", (q) => q.eq("userId", user._id).eq("book", args.book).eq("chapter", args.chapter))
+      .unique();
+    const openedAt = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, { openedAt });
+      return existing._id;
+    }
+    return await ctx.db.insert("readingRecents", { userId: user._id, ...args, openedAt });
+  },
+});
+
+/** Alterna un versículo guardado, siempre dentro de la identidad autenticada. */
+export const toggleBookmark = mutation({
+  args: { book: v.string(), chapter: v.number(), verse: v.number() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    if (!Number.isInteger(args.chapter) || args.chapter < 1 || !Number.isInteger(args.verse) || args.verse < 1) {
+      throw new ConvexError("chapter y verse deben ser enteros mayores o iguales a 1");
+    }
+    const existing = await ctx.db
+      .query("readingBookmarks")
+      .withIndex("by_user_verse", (q) =>
+        q.eq("userId", user._id).eq("book", args.book).eq("chapter", args.chapter).eq("verse", args.verse),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      return { saved: false };
+    }
+    await ctx.db.insert("readingBookmarks", { userId: user._id, ...args, createdAt: Date.now() });
+    return { saved: true };
+  },
+});
+
+/** Borra cada tabla personal que pertenece al módulo de Lectura. */
+export async function deleteReadingDataForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   budget: number,
-): Promise<{ deleted: number; done: boolean }> {
-  const rowsOf = (limit: number) =>
-    ctx.db
-      .query("readingProgress")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .take(limit);
+): Promise<{ deleted: { progress: number; recents: number; bookmarks: number }; done: boolean }> {
+  const deleteRows = async (table: "readingProgress" | "readingRecents" | "readingBookmarks") => {
+    const rowsOf = (limit: number) =>
+      ctx.db
+        .query(table)
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .take(limit);
+    let deleted = 0;
+    while (deleted < budget) {
+      const page = await rowsOf(Math.min(budget - deleted, 128));
+      if (page.length === 0) {
+        return { deleted, done: true };
+      }
+      for (const row of page) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    }
+    return { deleted, done: (await rowsOf(1)).length === 0 };
+  };
 
-  let deleted = 0;
-  while (deleted < budget) {
-    const page = await rowsOf(Math.min(budget - deleted, 128));
-    if (page.length === 0) {
-      return { deleted, done: true };
-    }
-    for (const row of page) {
-      await ctx.db.delete(row._id);
-      deleted += 1;
-    }
-  }
-  return { deleted, done: (await rowsOf(1)).length === 0 };
+  // El contexto de mutación de Convex se consume de forma secuencial: no se
+  // paralelizan deletes que comparten la misma transacción.
+  const progress = await deleteRows("readingProgress");
+  const recents = await deleteRows("readingRecents");
+  const bookmarks = await deleteRows("readingBookmarks");
+  return {
+    deleted: { progress: progress.deleted, recents: recents.deleted, bookmarks: bookmarks.deleted },
+    done: progress.done && recents.done && bookmarks.done,
+  };
 }

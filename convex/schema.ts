@@ -85,6 +85,28 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  // Referencias abiertas recientemente y guardadas desde el lector (#112/#113).
+  // Se guardan por separado del progreso: una persona puede retomar Génesis 4,
+  // conservar Juan 3:16 y seguir viendo ambos en sus listas.
+  readingRecents: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    openedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_chapter", ["userId", "book", "chapter"]),
+
+  readingBookmarks: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
+
   // ── Transversales (#4 / quotas) ─────────────────────────
   usage: defineTable({
     userId: v.id("users"),

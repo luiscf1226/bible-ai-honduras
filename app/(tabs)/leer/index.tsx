@@ -33,6 +33,8 @@ export default function LeerScreen() {
   const [book, setBook] = useState<string | null>(null);
   const currentUser = useQuery(api.users.current);
   const progress = useQuery(api.reading.progress, {});
+  const recents = useQuery(api.reading.recents, {});
+  const bookmarks = useQuery(api.reading.bookmarks, {});
   const version = currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
 
   const back = () => {
@@ -77,6 +79,40 @@ export default function LeerScreen() {
             </Pressable>
           ) : null}
 
+          {recents && recents.length > 0 ? (
+            <View style={styles.savedSection}>
+              <Text style={[styles.savedTitle, { color: color.inkSoft }]}>RECIENTES</Text>
+              {recents.map((recent) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={`${recent.book}-${recent.chapter}`}
+                  onPress={() => openChapter(recent)}
+                  style={[styles.savedRow, { borderColor: color.border }]}
+                >
+                  <Text style={[styles.savedLabel, { color: color.ink }]}>{recent.book} {recent.chapter}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {bookmarks && bookmarks.length > 0 ? (
+            <View style={styles.savedSection}>
+              <Text style={[styles.savedTitle, { color: color.inkSoft }]}>GUARDADOS</Text>
+              {bookmarks.map((bookmark) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={`${bookmark.book}-${bookmark.chapter}-${bookmark.verse}`}
+                  onPress={() => openChapter(bookmark)}
+                  style={[styles.savedRow, { borderColor: color.border }]}
+                >
+                  <Text style={[styles.savedLabel, { color: color.ink }]}>
+                    {bookmark.book} {bookmark.chapter}:{bookmark.verse}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
           <PassageSearch
             onSelectBook={setBook}
             onSelectPassage={openChapter}
@@ -116,4 +152,13 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.subtitle.lineHeight,
     marginTop: tokens.space.xs,
   },
+  savedSection: { gap: tokens.space.sm },
+  savedTitle: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+  },
+  savedRow: { borderBottomWidth: 1, paddingVertical: tokens.space.sm },
+  savedLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
 });
