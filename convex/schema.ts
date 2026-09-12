@@ -107,6 +107,47 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
 
+  // Plan de lectura anual (#114). Contenido curado versionado en el repo
+  // (docs/content/planes/canonico.json, cargado y validado por
+  // convex/readingPlanCatalog.ts) — esta tabla es la copia servible, sembrada
+  // una vez por `readingPlans.ensurePlanSeeded` (mismo patrón que
+  // `dailyDevotionals`). Leer el plan es gratis: no pasa por `convex/quotas.ts`.
+  readingPlans: defineTable({
+    planId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    totalDays: v.number(),
+    days: v.array(
+      v.object({
+        day: v.number(),
+        // Puede ser más de una lectura por día (p. ej. 3-4 capítulos en el plan
+        // canónico repartidos parejo a lo largo del año).
+        readings: v.array(v.object({ book: v.string(), chapter: v.number() })),
+      }),
+    ),
+  }).index("by_plan_id", ["planId"]),
+
+  // Progreso de un usuario en un plan. Una fila por usuario (como
+  // `readingProgress`): en v1 solo hay un plan activo a la vez, no historial de
+  // planes abandonados.
+  userPlanProgress: defineTable({
+    userId: v.id("users"),
+    planId: v.string(),
+    // Fecha de inicio en el calendario de Honduras (YYYY-MM-DD) — el día 1 del
+    // plan corresponde a esta fecha, igual criterio que `dailyDevotionals`.
+    startedAt: v.string(),
+    // Números de día (1-indexado) que el usuario marcó como leídos. No
+    // necesariamente consecutivos: "ponerme al día" permite marcar días
+    // salteados sin re-ordenar nada.
+    completedDays: v.array(v.number()),
+    currentStreak: v.number(),
+    longestStreak: v.number(),
+    // Fecha (Honduras) de la última vez que se marcó un día como leído — la
+    // racha se calcula contra el calendario real, no contra el día del plan,
+    // para que ponerse al día en una sola sesión no infle la racha.
+    lastCompletedDate: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+
   // ── Transversales (#4 / quotas) ─────────────────────────
   usage: defineTable({
     userId: v.id("users"),

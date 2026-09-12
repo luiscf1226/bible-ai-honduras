@@ -11,6 +11,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
 import { deleteReadingDataForUser } from "./reading";
+import { deleteReadingPlanDataForUser } from "./readingPlans";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
 
@@ -288,8 +289,9 @@ export const updatePreferences = mutation({
 //   entitlements   → fila de Pro; NO cancela la suscripción de la tienda
 //   stories        → la fila y además cada blob de `_storage` de sus escenas
 //   reading*       → marcador, recientes y guardados del lector (#112/#113)
-// `verses`, `commentaries` y `dailyDevotionals` son contenido editorial global:
-// no tienen userId y no se tocan.
+//   userPlanProgress → progreso del plan de lectura anual (#114)
+// `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
+// editorial global: no tienen userId y no se tocan.
 
 const PURGE_BUDGET = 256; // filas por transacción
 const PURGE_MAX_PASSES = 200; // techo duro: 200 × 256 ≈ 51k filas
@@ -304,6 +306,7 @@ export type PurgeCounts = {
   readingProgress: number;
   readingRecents: number;
   readingBookmarks: number;
+  readingPlanProgress: number;
   users: number;
 };
 
@@ -333,6 +336,7 @@ function emptyPurgeCounts(): PurgeCounts {
     readingProgress: 0,
     readingRecents: 0,
     readingBookmarks: 0,
+    readingPlanProgress: 0,
     users: 0,
   };
 }
@@ -455,6 +459,9 @@ export const purgeAccountData = internalMutation({
     deleted.readingRecents = reading.deleted.recents;
     deleted.readingBookmarks = reading.deleted.bookmarks;
 
+    const readingPlan = await deleteReadingPlanDataForUser(ctx, user._id);
+    deleted.readingPlanProgress = readingPlan.deleted;
+
     const childrenDone =
       conversations.done && stories.done && usage.done && entitlements.done && reading.done;
     if (!childrenDone) {
@@ -538,6 +545,7 @@ export const deleteAccount = action({
       deleted.readingProgress += result.deleted.readingProgress;
       deleted.readingRecents += result.deleted.readingRecents;
       deleted.readingBookmarks += result.deleted.readingBookmarks;
+      deleted.readingPlanProgress += result.deleted.readingPlanProgress;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

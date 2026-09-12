@@ -61,6 +61,20 @@ export default function LeerScreen() {
         <ChapterGrid book={book} onSelect={(chapter) => openChapter({ book, chapter })} />
       ) : (
         <>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/leer/plan")}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-plan-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>PLAN DE LECTURA</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Génesis a Apocalipsis en 365 días</Text>
+          </Pressable>
+
           {progress ? (
             <Pressable
               accessibilityRole="button"
@@ -152,6 +166,19 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.subtitle.lineHeight,
     marginTop: tokens.space.xs,
   },
+  planCard: {
+    borderRadius: tokens.radius.xl,
+    borderWidth: 1,
+    paddingHorizontal: tokens.cardPadding.horizontal,
+    paddingVertical: tokens.cardPadding.vertical,
+  },
+  planOverline: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+  },
+  planLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight, marginTop: tokens.space.xs },
   savedSection: { gap: tokens.space.sm },
   savedTitle: {
     fontFamily: tokens.font.sansLight,

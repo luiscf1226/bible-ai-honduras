@@ -12,6 +12,7 @@ const modules = {
   "./users.ts": () => import("./users"),
   "./history.ts": () => import("./history"),
   "./reading.ts": () => import("./reading"),
+  "./readingPlans.ts": () => import("./readingPlans"),
   "./bibleVersions.ts": () => import("./bibleVersions"),
   "./voicesCatalog.ts": () => import("./voicesCatalog"),
 };
@@ -94,6 +95,15 @@ async function seedEverything(
       verse: 16,
       createdAt: Date.now(),
     });
+    await ctx.db.insert("userPlanProgress", {
+      userId,
+      planId: "canonico",
+      startedAt: "2026-01-01",
+      completedDays: [1, 2],
+      currentStreak: 2,
+      longestStreak: 2,
+      lastCompletedDate: "2026-01-02",
+    });
 
     const storageId = await ctx.storage.store(
       new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
@@ -140,6 +150,7 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     readingProgress: await ctx.db.query("readingProgress").collect(),
     readingRecents: await ctx.db.query("readingRecents").collect(),
     readingBookmarks: await ctx.db.query("readingBookmarks").collect(),
+    userPlanProgress: await ctx.db.query("userPlanProgress").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
 }
@@ -173,6 +184,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingProgress).toHaveLength(1);
     expect(before.readingRecents).toHaveLength(1);
     expect(before.readingBookmarks).toHaveLength(1);
+    expect(before.userPlanProgress).toHaveLength(1);
     expect(before.storage).toHaveLength(1);
 
     stubClerkDelete();
@@ -189,6 +201,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingProgress: 1,
       readingRecents: 1,
       readingBookmarks: 1,
+      readingPlanProgress: 1,
       users: 1,
     });
 
@@ -203,6 +216,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingProgress).toHaveLength(0);
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
+    expect(after.userPlanProgress).toHaveLength(0);
 
     // El blob no queda huérfano.
     expect(after.storage).toHaveLength(0);
@@ -240,6 +254,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents[0]?.userId).toBe(betoId);
     expect(after.readingBookmarks).toHaveLength(1);
     expect(after.readingBookmarks[0]?.userId).toBe(betoId);
+    expect(after.userPlanProgress).toHaveLength(1);
+    expect(after.userPlanProgress[0]?.userId).toBe(betoId);
 
     // El blob de Beto sobrevive; el de Ana no.
     expect(after.storage).toHaveLength(1);
@@ -324,6 +340,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingProgress).toHaveLength(0);
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
+    expect(after.userPlanProgress).toHaveLength(0);
   });
 
   it("sin CLERK_SECRET_KEY no deja el borrado a medias: purga y devuelve not_configured", async () => {
@@ -351,6 +368,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingProgress).toHaveLength(0);
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
+    expect(after.userPlanProgress).toHaveLength(0);
   });
 
   it("un 404 de Clerk cuenta como borrado: la identidad ya no existía", async () => {
@@ -394,6 +412,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingProgress: 0,
       readingRecents: 0,
       readingBookmarks: 0,
+      readingPlanProgress: 0,
       users: 0,
     });
     const after = await tableDump(t);
@@ -403,7 +422,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 });
 
 describe("purgeAccountData", () => {
-  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals)", async () => {
+  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans)", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_editorial_107");
     const userId = await authed.mutation(api.users.upsert, {});
@@ -434,6 +453,13 @@ describe("purgeAccountData", () => {
         imageAlt: "mar",
         imageAttributionUrl: "https://example.com",
       });
+      await ctx.db.insert("readingPlans", {
+        planId: "canonico",
+        name: "Plan canónico",
+        description: "Génesis a Apocalipsis en 365 días",
+        totalDays: 1,
+        days: [{ day: 1, readings: [{ book: "Génesis", chapter: 1 }] }],
+      });
     });
 
     await t.mutation(internal.users.purgeAccountData, { clerkId: "user_editorial_107" });
@@ -442,10 +468,12 @@ describe("purgeAccountData", () => {
       verses: await ctx.db.query("verses").collect(),
       commentaries: await ctx.db.query("commentaries").collect(),
       dailyDevotionals: await ctx.db.query("dailyDevotionals").collect(),
+      readingPlans: await ctx.db.query("readingPlans").collect(),
     }));
     expect(editorial.verses).toHaveLength(1);
     expect(editorial.commentaries).toHaveLength(1);
     expect(editorial.dailyDevotionals).toHaveLength(1);
+    expect(editorial.readingPlans).toHaveLength(1);
   });
 
   it("con un clerkId inexistente devuelve done sin borrar nada", async () => {
