@@ -1,13 +1,13 @@
 import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
+import { goBackOrHome } from "../src/components/ScreenHeader";
 import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
 import { purchasesConfigured, purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
@@ -24,25 +24,17 @@ export default function PaywallScreen() {
   // IAP funcional.
   const canPurchase = purchasesConfigured();
 
-  const close = () => {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace("/home");
-  };
-
   useEffect(() => {
     if (!awaitingUnlock || !isPro) {
       return;
     }
     setAwaitingUnlock(false);
-    close();
+    goBackOrHome();
   }, [awaitingUnlock, isPro]);
 
   const onSubscribe = async () => {
     if (isPro) {
-      close();
+      goBackOrHome();
       return;
     }
     setBusy(true);
@@ -100,7 +92,7 @@ export default function PaywallScreen() {
           <Pressable
             accessibilityLabel="Cerrar"
             accessibilityRole="button"
-            onPress={close}
+            onPress={goBackOrHome}
             style={styles.close}
             testID="paywall-close"
           >
@@ -149,7 +141,7 @@ export default function PaywallScreen() {
             </Text>
           )}
 
-          <Pressable accessibilityRole="button" onPress={close} style={styles.skip}>
+          <Pressable accessibilityRole="button" onPress={goBackOrHome} style={styles.skip}>
             <Text style={styles.skipLabel}>Seguir en la versión gratis</Text>
           </Pressable>
 
