@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppScreen } from "../../../src/components/AppScreen";
 import { LoadingState } from "../../../src/components/LoadingState";
+import { ScreenHeader } from "../../../src/components/ScreenHeader";
 import { StoryViewer } from "../../../src/features/stories/StoryPanels";
 import { shareStory } from "../../../src/features/stories/storyShare";
 import { storiesApi } from "../../../src/features/stories/contracts";
@@ -53,21 +54,14 @@ export default function StoryViewerScreen() {
 
   return (
     <AppScreen scroll style={{ backgroundColor: color.surfaceAlt }}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Volver a historias"
-          accessibilityRole="button"
-          onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.backButton,
-            { backgroundColor: color.surface, borderColor: color.borderStrong },
-            pressed && { backgroundColor: color.surfaceAlt },
-          ]}
-        >
-          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: color.ink }]}>{story.title}</Text>
-      </View>
+      <ScreenHeader
+        accessibilityLabel="Volver a historias"
+        onBack={() => router.back()}
+        style={styles.header}
+        testID="historias-viewer-back"
+        title={story.title}
+        titleStyle={styles.title}
+      />
       <Pressable
         accessibilityHint={
           currentUser?.referralCode
@@ -133,19 +127,7 @@ function ViewerState({ detail, title }: { detail: string; title: string }) {
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: "center", flexDirection: "row", gap: tokens.space.md, marginBottom: tokens.space.xl },
-  backButton: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    justifyContent: "center",
-    padding: tokens.space.sm,
-  },
-  backIcon: {
-    fontFamily: tokens.font.serif,
-    fontSize: tokens.type.verse.size,
-    lineHeight: tokens.type.verse.lineHeight,
-  },
+  header: { marginBottom: tokens.space.xl },
   title: {
     flex: 1,
     fontFamily: tokens.font.serif,

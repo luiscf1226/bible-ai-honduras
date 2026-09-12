@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../../../convex/_generated/api";
 import { LimitReached } from "../../../src/components/LimitReached";
 import { LoadingState, QA_ANSWER_STEPS } from "../../../src/components/LoadingState";
+import { ScreenHeader } from "../../../src/components/ScreenHeader";
 import { shareQaAnswer } from "../../../src/features/qa/shareAnswer";
 import {
   useScreenInsets,
@@ -106,13 +107,11 @@ export default function PreguntarChatScreen() {
         style={styles.flex}
       >
         <View style={[styles.header, { borderBottomColor: color.border, backgroundColor: color.surface }]}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={[styles.back, { borderColor: color.border }]}
-          >
-            <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-          </Pressable>
+          <ScreenHeader
+            accessibilityLabel="Volver"
+            onBack={() => router.back()}
+            testID="preguntar-chat-back"
+          />
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: color.ink }]}>{contextLabel}</Text>
             {quotaLabel ? <Text style={[styles.quota, { color: color.inkSoft }]}>{quotaLabel}</Text> : null}
@@ -268,15 +267,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.cardPadding.horizontal,
     paddingVertical: tokens.space.lg,
   },
-  back: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    height: tokens.size.backButton,
-    justifyContent: "center",
-    width: tokens.size.backButton,
-  },
-  backIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
   headerText: { flex: 1 },
   title: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size },
   quota: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, marginTop: tokens.space.xxs },

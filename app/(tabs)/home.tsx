@@ -16,6 +16,7 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
 const modules = [
+  { description: "Busca un pasaje y leé el capítulo completo", href: "/leer", title: "Leer la Biblia" },
   { description: "Elige un pasaje", href: "/preguntar", title: "Pregunta al texto" },
   { description: "Habla con Moisés, Ester…", href: "/voces", title: "Voces" },
   { description: "Mira una historia bíblica en imágenes", href: "/historias", title: "Historias ilustradas" }

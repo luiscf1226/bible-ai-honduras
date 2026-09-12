@@ -10,6 +10,7 @@ import { AppScreen } from "../../src/components/AppScreen";
 import { BottomPanel } from "../../src/components/BottomPanel";
 import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingState";
 import { LimitReached } from "../../src/components/LimitReached";
+import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { api } from "../../convex/_generated/api";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
@@ -151,17 +152,14 @@ export default function SentirScreen() {
     const reference = `${activeDevotional.citation.book} ${activeDevotional.citation.chapter}:${activeDevotional.citation.verse} · ${activeDevotional.citation.version}`;
     return (
       <AppScreen scroll contentStyle={styles.resultContent}>
-        <Pressable
+        <ScreenHeader
           accessibilityLabel="Volver a sentimiento"
-          accessibilityRole="button"
-          onPress={() => {
+          onBack={() => {
             setDevotional(null);
             setSelectedHistoryId(null);
           }}
-          style={[styles.backButton, { borderColor: color.border }]}
-        >
-          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-        </Pressable>
+          testID="sentir-result-back"
+        />
         <LinearGradient colors={[color.surfaceSunk, color.sage]} style={styles.resultImage} />
         <Text style={[styles.resultKicker, { color: color.accent }]}>{activeDevotional.title}</Text>
         <Text style={[styles.resultTitle, { color: color.ink }]}>Un momento con Dios</Text>
@@ -200,14 +198,11 @@ export default function SentirScreen() {
         keyboardShouldPersistTaps="handled"
         style={styles.introScroll}
       >
-        <Pressable
+        <ScreenHeader
           accessibilityLabel="Volver al inicio"
-          accessibilityRole="button"
-          onPress={() => router.replace("/home")}
-          style={[styles.backButton, { borderColor: color.border }]}
-        >
-          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-        </Pressable>
+          onBack={() => router.replace("/home")}
+          testID="sentir-back"
+        />
 
         <View>
           <Text style={[styles.title, { color: color.ink }]}>¿Qué llevas encima hoy?</Text>
@@ -345,19 +340,6 @@ const styles = StyleSheet.create({
   selection: {
     fontSize: tokens.type.bodySm.size,
     lineHeight: tokens.type.bodySm.lineHeight,
-  },
-  backButton: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    height: tokens.size.logoSmall,
-    justifyContent: "center",
-    width: tokens.size.logoSmall,
-  },
-  backIcon: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.label.size,
-    lineHeight: tokens.type.label.lineHeight,
   },
   title: {
     fontFamily: tokens.font.serif,

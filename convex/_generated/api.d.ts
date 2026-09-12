@@ -27,6 +27,7 @@ import type * as rag_llm from "../rag/llm.js";
 import type * as rag_prompts_qa from "../rag/prompts/qa.js";
 import type * as rag_retrieve from "../rag/retrieve.js";
 import type * as rag_verses from "../rag/verses.js";
+import type * as reading from "../reading.js";
 import type * as stories from "../stories.js";
 import type * as users from "../users.js";
 import type * as voices from "../voices.js";
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   "rag/prompts/qa": typeof rag_prompts_qa;
   "rag/retrieve": typeof rag_retrieve;
   "rag/verses": typeof rag_verses;
+  reading: typeof reading;
   stories: typeof stories;
   users: typeof users;
   voices: typeof voices;

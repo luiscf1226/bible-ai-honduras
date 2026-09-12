@@ -1,4 +1,5 @@
 import { DEFAULT_BIBLE_VERSION, resolveBibleVersion } from "../bibleVersions";
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
@@ -94,6 +95,51 @@ export const listByChapter = query({
     return rows
       .map((row) => ({ book: row.book, chapter: row.chapter, verse: row.verse, version: row.version, text: row.text }))
       .sort((a, b) => a.verse - b.verse);
+  },
+});
+
+/**
+ * Búsqueda de texto dentro de la Biblia (#112) — full-text sobre el índice
+ * `verses.by_text`, no semántica. Es literal e instantánea y **no consume
+ * cuota ni embeddings**: leer y buscar son gratis (la decisión de producto de
+ * la épica #111 deja Pro para lo que cuesta IA).
+ *
+ * Paginada: el corpus RV1909 son 31.102 versículos y "amor" trae cientos.
+ * Una búsqueda vacía devuelve una página vacía en vez de barrer la tabla.
+ */
+export const searchText = query({
+  args: {
+    term: v.string(),
+    version: v.optional(v.string()),
+    book: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const term = args.term.trim();
+    const version = resolveBibleVersion(args.version);
+    if (term.length === 0) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    const result = await ctx.db
+      .query("verses")
+      .withSearchIndex("by_text", (q) => {
+        const search = q.search("text", term).eq("version", version);
+        return args.book ? search.eq("book", args.book) : search;
+      })
+      .paginate(args.paginationOpts);
+
+    return {
+      ...result,
+      page: result.page.map((row) => ({
+        _id: row._id,
+        book: row.book,
+        chapter: row.chapter,
+        verse: row.verse,
+        version: row.version,
+        text: row.text,
+      })),
+    };
   },
 });
 

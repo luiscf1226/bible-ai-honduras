@@ -10,6 +10,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
+import { deleteReadingDataForUser } from "./reading";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
 
@@ -209,11 +210,22 @@ export const migrateUnavailableBibleVersions = internalMutation({
   },
 });
 
+/**
+ * Techo de los pasos de lectura. El cliente ya los clampea
+ * (`clampFontStep` / `clampSpacingStep`), pero el servidor no confía en el
+ * cliente: un paso absurdo se rechaza en vez de guardarse.
+ */
+const MAX_READING_STEP = 9;
+
 export const updatePreferences = mutation({
   args: {
     bibleVersion: v.optional(v.union(v.literal("RV1909"), v.literal("RVR1960"), v.literal("NVI"))),
     reminderHour: v.optional(v.number()),
     darkMode: v.optional(v.boolean()),
+    // Controles del lector (#113). Son índices de paso, no tamaños: el px
+    // sale del token en src/features/reading/readingSettings.ts.
+    readingFontStep: v.optional(v.number()),
+    readingSpacingStep: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
@@ -228,7 +240,22 @@ export const updatePreferences = mutation({
       throw new ConvexError("reminderHour debe ser un entero entre 0 y 23");
     }
 
-    const patch: Partial<{ bibleVersion: BibleVersion; reminderHour: number; darkMode: boolean }> = {};
+    for (const [name, step] of [
+      ["readingFontStep", args.readingFontStep],
+      ["readingSpacingStep", args.readingSpacingStep],
+    ] as const) {
+      if (step !== undefined && (!Number.isInteger(step) || step < 0 || step > MAX_READING_STEP)) {
+        throw new ConvexError(`${name} debe ser un entero entre 0 y ${MAX_READING_STEP}`);
+      }
+    }
+
+    const patch: Partial<{
+      bibleVersion: BibleVersion;
+      reminderHour: number;
+      darkMode: boolean;
+      readingFontStep: number;
+      readingSpacingStep: number;
+    }> = {};
     if (args.bibleVersion !== undefined) {
       // #93 §4b: el schema sigue aceptando NVI (hay filas viejas que la tienen),
       // pero sin corpus ingerido no se puede guardar como preferencia nueva.
@@ -240,6 +267,12 @@ export const updatePreferences = mutation({
     }
     if (args.darkMode !== undefined) {
       patch.darkMode = args.darkMode;
+    }
+    if (args.readingFontStep !== undefined) {
+      patch.readingFontStep = args.readingFontStep;
+    }
+    if (args.readingSpacingStep !== undefined) {
+      patch.readingSpacingStep = args.readingSpacingStep;
     }
     await ctx.db.patch(existing._id, patch);
   },
@@ -254,6 +287,7 @@ export const updatePreferences = mutation({
 //   usage          → contadores de cuota (transversal #15/#20/#24/#29)
 //   entitlements   → fila de Pro; NO cancela la suscripción de la tienda
 //   stories        → la fila y además cada blob de `_storage` de sus escenas
+//   reading*       → marcador, recientes y guardados del lector (#112/#113)
 // `verses`, `commentaries` y `dailyDevotionals` son contenido editorial global:
 // no tienen userId y no se tocan.
 
@@ -267,6 +301,9 @@ export type PurgeCounts = {
   entitlements: number;
   stories: number;
   storyImages: number;
+  readingProgress: number;
+  readingRecents: number;
+  readingBookmarks: number;
   users: number;
 };
 
@@ -293,6 +330,9 @@ function emptyPurgeCounts(): PurgeCounts {
     entitlements: 0,
     stories: 0,
     storyImages: 0,
+    readingProgress: 0,
+    readingRecents: 0,
+    readingBookmarks: 0,
     users: 0,
   };
 }
@@ -410,7 +450,13 @@ export const purgeAccountData = internalMutation({
     const entitlements = await deleteEntitlementsForUser(ctx, user._id, PURGE_BUDGET);
     deleted.entitlements = entitlements.deleted;
 
-    const childrenDone = conversations.done && stories.done && usage.done && entitlements.done;
+    const reading = await deleteReadingDataForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.readingProgress = reading.deleted.progress;
+    deleted.readingRecents = reading.deleted.recents;
+    deleted.readingBookmarks = reading.deleted.bookmarks;
+
+    const childrenDone =
+      conversations.done && stories.done && usage.done && entitlements.done && reading.done;
     if (!childrenDone) {
       return { done: false, deleted };
     }
@@ -489,6 +535,9 @@ export const deleteAccount = action({
       deleted.entitlements += result.deleted.entitlements;
       deleted.stories += result.deleted.stories;
       deleted.storyImages += result.deleted.storyImages;
+      deleted.readingProgress += result.deleted.readingProgress;
+      deleted.readingRecents += result.deleted.readingRecents;
+      deleted.readingBookmarks += result.deleted.readingBookmarks;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }
