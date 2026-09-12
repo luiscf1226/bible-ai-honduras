@@ -2,8 +2,10 @@ import { DMSans_300Light, DMSans_400Regular, DMSans_500Medium, useFonts as useDM
 import { EBGaramond_400Regular, useFonts as useEBGaramond } from "@expo-google-fonts/eb-garamond";
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
@@ -13,6 +15,7 @@ import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
 import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 
 configureDailyReminderNotifications();
+SplashScreen.preventAutoHideAsync();
 
 if (!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
   throw new Error(
@@ -36,8 +39,15 @@ function AppNavigator() {
 export default function RootLayout() {
   const [dmSansLoaded] = useDMSans({ DMSans_300Light, DMSans_400Regular, DMSans_500Medium });
   const [ebGaramondLoaded] = useEBGaramond({ EBGaramond_400Regular });
+  const fontsLoaded = dmSansLoaded && ebGaramondLoaded;
 
-  if (!dmSansLoaded || !ebGaramondLoaded) {
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
     return null;
   }
 
