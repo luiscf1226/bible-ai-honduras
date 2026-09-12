@@ -4,8 +4,14 @@
     "slug": "bible-ai-honduras",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "bibleai",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#E9E1D5"
+    },
     "plugins": [
       "expo-router",
       "expo-font",
@@ -31,7 +37,19 @@
     },
     "android": {
       "package": "com.bibleaihonduras.app",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#E9E1D5"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#E9E1D5"
+      }
     },
     "extra": {
       "router": {},

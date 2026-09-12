@@ -10,6 +10,8 @@ producción (#102).
 1. Usar una build candidata en un dispositivo físico de cada plataforma, no
    Expo Go ni una captura del navegador. El ícono visible en springboard /
    launcher debe ser el de #102, no el default de Expo.
+   **Hoy ese ícono todavía es provisional** (ver "Ícono y splash" abajo): no
+   tomar capturas de tienda hasta que llegue el arte definitivo.
 2. Completar el flujo de email/Clerk con una cuenta de prueba controlada por el
    responsable de la tienda. No incluir credenciales en este repositorio ni en
    las imágenes.
@@ -20,6 +22,34 @@ producción (#102).
    No presentar una compra de prueba como una compra de producción.
 5. Ocultar notificaciones del sistema, barras con datos personales y cualquier
    correo/código de autenticación antes de tomar la captura.
+
+## Ícono y splash
+
+`app.json` ya declara `expo.icon`, `expo.android.adaptiveIcon`, `expo.web.favicon`
+y el `backgroundColor` del splash con el token `bg` (`#E9E1D5` en
+`design/tokens.json`). Los PNG viven en `assets/`:
+
+| Archivo | Tamaño | Alfa | Destino |
+| --- | --- | --- | --- |
+| `assets/icon.png` | 1024×1024 | **no** | Ícono de App Store y Play; el mismo que se sube como ícono de ficha |
+| `assets/adaptive-icon.png` | 1024×1024 | sí | Foreground adaptativo de Android |
+| `assets/splash-icon.png` | 1024×1024 | sí | Splash |
+| `assets/favicon.png` | 48×48 | sí | Web |
+
+**Estos archivos son provisionales.** `design/logo.png` mide 232×232, muy por
+debajo de los 1024×1024 que exigen las tiendas, y ya trae las esquinas
+redondeadas dibujadas en el arte. No se amplió: el logo va a resolución nativa
+centrado en el lienzo, así que el ícono se ve claramente como un placeholder.
+
+Antes de subir la ficha hace falta:
+
+- el arte definitivo de ícono en **1024×1024 o vectorial**, cuadrado a sangre,
+  sin redondeo ni canal alfa (detalle y regeneración en `assets/README.md`);
+- instalar `expo-splash-screen`, porque en Expo SDK 57 la clave raíz
+  `expo.splash` quedó inerte y el splash nativo lo aplica ese config plugin.
+
+El ícono que se suba al portal debe ser byte por byte el mismo `assets/icon.png`
+de la build capturada, para que la ficha y el springboard no se contradigan.
 
 ## Destinos y nomenclatura
 
