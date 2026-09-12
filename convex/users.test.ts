@@ -229,3 +229,109 @@ describe("bibleVersion sin corpus (#93 §4b)", () => {
     });
   });
 });
+
+// ── Onboarding persistido (#124) ────────────────────────────
+
+describe("users.completeOnboarding", () => {
+  it("marca onboardedAt la primera vez", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_onb");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    const antes = await t.run((ctx) => ctx.db.get(userId));
+    expect(antes?.onboardedAt).toBeUndefined();
+
+    const { onboardedAt } = await authed.mutation(api.users.completeOnboarding, {});
+    expect(onboardedAt).toBeGreaterThan(0);
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBe(onboardedAt);
+  });
+
+  it("es idempotente y conserva la fecha original", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_onb2");
+    await authed.mutation(api.users.upsert, {});
+
+    const primera = await authed.mutation(api.users.completeOnboarding, {});
+    const segunda = await authed.mutation(api.users.completeOnboarding, {});
+    expect(segunda.onboardedAt).toBe(primera.onboardedAt);
+  });
+
+  it("exige sesión", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.mutation(api.users.completeOnboarding, {})).rejects.toThrow();
+  });
+
+  it("falla si el espejo local no existe todavía", async () => {
+    const t = convexTest(schema, modules);
+    await expect(asUser(t, "user_sin_fila").mutation(api.users.completeOnboarding, {})).rejects.toThrow();
+  });
+});
+
+describe("users.migrateOnboardedFromConsent", () => {
+  it("da por onboardeado a quien ya aceptó el consentimiento, copiando esa fecha", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_viejo");
+    const userId = await authed.mutation(api.users.upsert, {});
+    const { acceptedAt } = await authed.mutation(api.users.acceptAiConsent, {});
+    // Simula una fila anterior al campo: el consentimiento existe, la marca no.
+    await t.run((ctx) => ctx.db.patch(userId, { onboardedAt: undefined }));
+
+    const resultado = await t.mutation(internal.users.migrateOnboardedFromConsent, {});
+
+    expect(resultado).toEqual({ scanned: 1, migrated: 1 });
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBe(acceptedAt);
+  });
+
+  it("no toca a quien nunca aceptó el consentimiento: ése sí debe ver el onboarding", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await asUser(t, "user_nuevo").mutation(api.users.upsert, {});
+
+    expect(await t.mutation(internal.users.migrateOnboardedFromConsent, {})).toEqual({ scanned: 1, migrated: 0 });
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBeUndefined();
+  });
+
+  it("es idempotente: correrla dos veces no reescribe nada", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_idem");
+    const userId = await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
+    await t.run((ctx) => ctx.db.patch(userId, { onboardedAt: undefined }));
+
+    await t.mutation(internal.users.migrateOnboardedFromConsent, {});
+    const primeraPasada = (await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt;
+
+    expect(await t.mutation(internal.users.migrateOnboardedFromConsent, {})).toEqual({ scanned: 1, migrated: 0 });
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBe(primeraPasada);
+  });
+});
+
+describe("users.upsert — red de seguridad de la migración (#124)", () => {
+  it("rellena onboardedAt desde aiConsentAt si la migración no se corrió", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_backfill");
+    const userId = await authed.mutation(api.users.upsert, {});
+    const { acceptedAt } = await authed.mutation(api.users.acceptAiConsent, {});
+    await t.run((ctx) => ctx.db.patch(userId, { onboardedAt: undefined }));
+
+    await authed.mutation(api.users.upsert, {});
+
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBe(acceptedAt);
+  });
+
+  it("no pisa un onboardedAt ya escrito", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_no_pisa");
+    const userId = await authed.mutation(api.users.upsert, {});
+    await t.run((ctx) => ctx.db.patch(userId, { onboardedAt: 111, aiConsentAt: 999 }));
+
+    await authed.mutation(api.users.upsert, {});
+
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBe(111);
+  });
+
+  it("el usuario nuevo nace sin onboardedAt: tiene que ver el onboarding", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await asUser(t, "user_recien").mutation(api.users.upsert, {});
+    expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBeUndefined();
+  });
+});

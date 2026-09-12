@@ -146,6 +146,70 @@ export async function sendEmailCode(emailAddress: string, deps: SendCodeDeps): P
   return { ok: true, mode: "signUp" };
 }
 
+export type ResendCodeDeps = {
+  /**
+   * `true` si el intento de sign-in sigue vivo en el cliente de Clerk
+   * (`signIn.id`). Ver el comentario de `resendEmailCode`.
+   */
+  hasSignInAttempt: () => boolean;
+  /**
+   * `signIn.emailCode.sendCode(emailAddress ? { emailAddress } : undefined)`.
+   */
+  resendSignInCode: (emailAddress?: string) => Promise<ClerkAttempt>;
+  /** `signUp.verifications.sendEmailCode()`. */
+  resendSignUpCode: () => Promise<ClerkAttempt>;
+};
+
+/**
+ * Reenviar el código (#124, tercer punto del reporte: "fix the regular gmail
+ * resend"). Dos defectos concretos del botón que agregó #104:
+ *
+ * 1. **`signIn.emailCode.sendCode()` sin argumentos LANZA** — no devuelve
+ *    `{ error }` — si el intento de sign-in ya no existe en el cliente. El
+ *    guard está fuera del wrapper que Clerk usa para convertir errores en
+ *    `{ error }`:
+ *
+ *    ```js
+ *    async sendEmailCode(e = {}) {
+ *      let { emailAddress: t } = e;
+ *      if (!this.#G.id && !t) throw Error("signIn.emailCode.sendCode() cannot be called without an emailAddress …");
+ *      return nW(this.#G, async () => { … });   // ← recién acá se capturan errores
+ *    }
+ *    ```
+ *    (`node_modules/@clerk/clerk-js/dist/clerk.native.js`)
+ *
+ *    El código de #104 solo miraba el `error` devuelto, así que esa excepción
+ *    escapaba como unhandled rejection: el botón se "apagaba" y volvía a estar
+ *    disponible sin enviar nada ni mostrar un mensaje. Desde afuera: no
+ *    funciona. Acá se captura y se clasifica como cualquier otro error.
+ *
+ * 2. Cuando el intento se perdió, reenviar sin identificador es imposible por
+ *    definición. Se vuelve a mandar el correo para que Clerk re-cree el intento
+ *    en vez de quedarse sin salida.
+ *
+ * El camino de sign-up no tiene ninguno de los dos problemas
+ * (`signUp.verifications.sendEmailCode()` no tiene guards y nunca lanza), pero
+ * pasa por la misma función para que haya un solo lugar que reenvía.
+ */
+export async function resendEmailCode(
+  mode: "signIn" | "signUp",
+  emailAddress: string,
+  deps: ResendCodeDeps,
+): Promise<SendCodeResult> {
+  try {
+    const attempt =
+      mode === "signUp"
+        ? await deps.resendSignUpCode()
+        : await deps.resendSignInCode(deps.hasSignInAttempt() ? undefined : emailAddress);
+    if (attempt.error) {
+      return { ok: false, error: classifySendError(attempt.error), cause: attempt.error };
+    }
+    return { ok: true, mode };
+  } catch (thrown) {
+    return { ok: false, error: classifySendError(thrown), cause: thrown };
+  }
+}
+
 /**
  * Segundos que faltan para poder reenviar. Se calcula contra el reloj y no
  * descontando un contador, así que ni un re-render ni un intervalo perdido
