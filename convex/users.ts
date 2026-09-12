@@ -56,12 +56,20 @@ export const upsert = mutation({
     const existing = await findByClerkId(ctx, identity.subject);
 
     if (existing) {
-      const patch: Partial<{ email: string; name: string }> = {};
+      const patch: Partial<{ email: string; name: string; onboardedAt: number }> = {};
       if (identity.email && identity.email !== existing.email) {
         patch.email = identity.email;
       }
       if (identity.name && identity.name !== existing.name) {
         patch.name = identity.name;
+      }
+      // Red de seguridad de la migración de #124: quien ya aceptó el consentimiento
+      // de IA obviamente pasó por el onboarding, aunque su fila sea anterior al
+      // campo. Si `migrateOnboardedFromConsent` no se corrió en el deploy, esto lo
+      // cubre igual en el primer arranque — es idempotente y no pisa un valor ya
+      // escrito.
+      if (existing.onboardedAt === undefined && existing.aiConsentAt !== undefined) {
+        patch.onboardedAt = existing.aiConsentAt;
       }
       if (Object.keys(patch).length > 0) {
         await ctx.db.patch(existing._id, patch);
@@ -89,6 +97,62 @@ export const current = query({
       return null;
     }
     return await findByClerkId(ctx, identity.subject);
+  },
+});
+
+/**
+ * Marca que el usuario ya vio el onboarding — #124.
+ *
+ * La llaman las DOS salidas de `app/(auth)/onboarding.tsx`: terminar el último
+ * paso y "Saltar". Saltar también cuenta: el usuario decidió no verlo, y
+ * volvérselo a mostrar en el próximo login es exactamente el bug reportado.
+ *
+ * Idempotente y no regresiva: si ya había marca, se conserva la original para
+ * que la fecha siga significando "la primera vez que lo vio".
+ */
+export const completeOnboarding = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await requireIdentity(ctx);
+    const existing = await findByClerkId(ctx, identity.subject);
+    if (!existing) {
+      throw new ConvexError("Usuario no encontrado — llamá a users.upsert primero");
+    }
+    if (existing.onboardedAt !== undefined) {
+      return { onboardedAt: existing.onboardedAt };
+    }
+    const onboardedAt = Date.now();
+    await ctx.db.patch(existing._id, { onboardedAt });
+    return { onboardedAt };
+  },
+});
+
+/**
+ * Migración de #124. `onboardedAt` no existía: sin esto, todo usuario ya
+ * registrado vería el onboarding una vez más al actualizar, que es justo el
+ * síntoma que el issue arregla.
+ *
+ * Haber aceptado el consentimiento de IA (`aiConsentAt`) implica haber pasado
+ * por el onboarding, porque esa pantalla es la única que lleva a
+ * `/consentimiento-ia`. Se copia esa fecha en vez de usar `Date.now()` para no
+ * inventar una marca temporal que nunca ocurrió.
+ *
+ * Correr una vez, ANTES de publicar el build:
+ *   npx convex run users:migrateOnboardedFromConsent '{}'
+ */
+export const migrateOnboardedFromConsent = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    let migrated = 0;
+    for (const user of users) {
+      if (user.onboardedAt !== undefined || user.aiConsentAt === undefined) {
+        continue;
+      }
+      await ctx.db.patch(user._id, { onboardedAt: user.aiConsentAt });
+      migrated += 1;
+    }
+    return { scanned: users.length, migrated };
   },
 });
 

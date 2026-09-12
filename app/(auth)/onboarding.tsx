@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import { useMutation } from "convex/react";
 
+import { api } from "../../convex/_generated/api";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
@@ -15,8 +17,32 @@ const steps = [
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
+  const completeOnboarding = useMutation(api.users.completeOnboarding);
   const current = steps[step];
-  const next = () => step < steps.length - 1 ? setStep(step + 1) : router.replace("/consentimiento-ia");
+
+  // #124: las dos salidas del onboarding (terminarlo y saltarlo) persisten la
+  // marca. Saltar también cuenta — si no, el usuario que lo salta lo vuelve a
+  // ver en el próximo login, que es el bug reportado.
+  //
+  // Si la mutation falla (sin red), navegamos igual: dejar al usuario clavado
+  // en el onboarding es peor que arriesgarse a mostrárselo otra vez. El
+  // siguiente arranque con red lo vuelve a intentar.
+  const leave = useCallback(async () => {
+    try {
+      await completeOnboarding({});
+    } catch (error) {
+      console.error("No se pudo marcar el onboarding como visto", error);
+    }
+    router.replace("/consentimiento-ia");
+  }, [completeOnboarding]);
+
+  const next = useCallback(() => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+      return;
+    }
+    void leave();
+  }, [leave, step]);
 
   return (
     <AppScreen contentStyle={styles.content} style={styles.screen}>
@@ -31,7 +57,7 @@ export default function OnboardingScreen() {
         </View>
         <View style={styles.actions}>
           <AppButton onPress={next}>{current.cta}</AppButton>
-          <AppButton onPress={() => router.replace("/consentimiento-ia")} variant="quiet">Saltar</AppButton>
+          <AppButton onPress={() => void leave()} variant="quiet">Saltar</AppButton>
         </View>
       </View>
     </AppScreen>

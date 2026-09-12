@@ -12,6 +12,10 @@ export default defineSchema({
     darkMode: v.optional(v.boolean()),
     aiConsentAt: v.optional(v.number()),
     aiConsentVersion: v.optional(v.string()),
+    // Marca de que el usuario ya pasó por el onboarding (#124). Sin esto el
+    // onboarding solo era alcanzable por el redirect post-login, que no
+    // consultaba nada, y se repetía en cada inicio de sesión.
+    onboardedAt: v.optional(v.number()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
 
