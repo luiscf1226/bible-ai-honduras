@@ -88,3 +88,18 @@ npx convex run users:migrateUnavailableBibleVersions '{}'
 
 Devuelve `{ scanned, migrated }`. Es idempotente: correrlo dos veces da
 `migrated: 0` la segunda vez. Correlo una vez sobre el deployment de la beta.
+
+## Después de cada deploy — migraciones y siembra
+
+Idempotentes; correrlas de nuevo no rompe nada. En test sin flag, en producción con `--prod`.
+
+```bash
+# #124: quien ya aceptó el consentimiento no vuelve a ver el onboarding
+npx convex run users:migrateOnboardedFromConsent '{}'
+
+# #114/#115: siembra el plan anual y los recorridos que falten
+# (también lo hace el cron diario `sembrar-planes-lectura`)
+npx convex run readingPlans:ensurePlanSeeded '{}'
+```
+
+Estado al 2026-09-12: corridas en test y en producción.
