@@ -49,9 +49,32 @@ npx convex env set --prod ANTHROPIC_API_KEY sk-ant-...
 npx convex env set --prod OPENAI_API_KEY sk-...
 ```
 
-> Ningún deployment tiene funciones desplegadas todavía: el push falla con
-> `CLERK_JWT_ISSUER_DOMAIN is used in auth config file but its value was not
-> set`. Es lo primero que hay que resolver.
+## Estado de los deployments — 2026-09-12
+
+| | Test (`neighborly-kudu-508`) | Producción (`optimistic-labrador-439`) |
+|---|---|---|
+| Funciones e índices de `master` | ✅ publicadas | ✅ publicadas |
+| Variables (`CLERK_JWT_ISSUER_DOMAIN`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) | ✅ | ✅ |
+| Corpus RV1909 (`verses`, 31.102) | ✅ ingerido | ❌ **vacío** |
+| Migraciones `migrateUnavailableBibleVersions` y `migrateOnboardedFromConsent` | ✅ corridas | ✅ corridas (0 usuarios) |
+| Planes de lectura sembrados (anual + 6 recorridos) | ✅ | ✅ |
+| Key de Clerk en `eas.json` | ✅ `pk_test_…` | ❌ `pk_live_REEMPLAZAR` |
+
+**La beta sale contra test**, que está completo. Producción no está lista para el
+lanzamiento real (#39) por dos cosas:
+
+1. **Corpus vacío.** Sin versículos no funcionan lector, buscador, Preguntar, Voces
+   ni Sentir. No se copió desde test a propósito: Convex avisa que el proyecto
+   **supera los límites del plan gratis**, y duplicar el corpus con embeddings
+   puede cortar el servicio. Antes: pasar a plan pago, y después ingerir con
+   `npm run rag:ingest -- --kind verses --file <rv1909.json> --prod`
+   (ver `docs/rag-ingestion.md`).
+2. **Clerk de producción.** Crear la instancia live en Clerk, poner su
+   `CLERK_JWT_ISSUER_DOMAIN` en Convex prod y la `pk_live_…` en el perfil
+   `production` de `eas.json`.
+
+> Nombres de cron: **solo ASCII**. Un identificador con tildes hace fallar el push
+> completo con `InvalidModules` (PR #135) y los tests no lo detectan.
 
 ## Perfiles
 
@@ -93,11 +116,8 @@ Play Console → *Users and permissions*.
 
 ## iOS — TestFlight
 
-Completar antes en `eas.json`:
-
-- `appleId` — el email de la cuenta de desarrollador
-- `ascAppId` — el número en la URL de la app en App Store Connect
-- `appleTeamId` — developer.apple.com → Membership
+`appleId`, `ascAppId`, `appleTeamId` y la API key de App Store Connect ya están en
+`eas.json` (PR #125). El `.p8` va en `.secrets/`, que está ignorado.
 
 ```bash
 eas build -p ios --profile testflight
@@ -114,5 +134,5 @@ vez publicada la primera build.
 |---|---|
 | App abre en blanco | Faltan las `EXPO_PUBLIC_*` en el perfil de `eas.json` |
 | Todas las respuestas dicen "no encontré contenido relevante" | El corpus no está ingerido (`npm run rag:ingest`) |
-| `eas submit -p ios` rechaza | Falta el ícono 1024 o el cuestionario App Privacy |
+| `eas submit -p ios` rechaza | Falta el cuestionario App Privacy (el ícono 1024 ya está, PR #136) |
 | Play rechaza el AAB | Falta completar *App content* (política, clasificación, data safety) |
