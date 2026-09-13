@@ -60,9 +60,24 @@ if [[ "$PLATFORM" == "ios" ]]; then
     exit 1
   }
 elif [[ "$PLATFORM" == "android" ]]; then
-  if [[ -z "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ]]; then
-    echo "ANDROID_HOME (o ANDROID_SDK_ROOT) no está seteado. Instalá el Android SDK." >&2
-    exit 1
+  # Android Studio instala el SDK acá por defecto, pero no siempre exporta
+  # ANDROID_HOME en el shell (típico si se instaló desde la GUI, no con
+  # brew). Antes de fallar, probamos la ruta por defecto de cada SO.
+  DEFAULT_SDK_PATH=""
+  case "$(uname -s)" in
+    Darwin) DEFAULT_SDK_PATH="$HOME/Library/Android/sdk" ;;
+    Linux) DEFAULT_SDK_PATH="$HOME/Android/Sdk" ;;
+  esac
+
+  if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
+    if [[ -n "$DEFAULT_SDK_PATH" && -d "$DEFAULT_SDK_PATH" ]]; then
+      echo "ANDROID_HOME no estaba seteada — encontré el SDK en $DEFAULT_SDK_PATH y lo uso para este build." >&2
+      export ANDROID_HOME="$DEFAULT_SDK_PATH"
+      export ANDROID_SDK_ROOT="$DEFAULT_SDK_PATH"
+    else
+      echo "ANDROID_HOME (o ANDROID_SDK_ROOT) no está seteado y no encontré el SDK en $DEFAULT_SDK_PATH. Instalá el Android SDK." >&2
+      exit 1
+    fi
   fi
   command -v java >/dev/null 2>&1 || {
     echo "No se encontró \`java\`. Un build local de Android necesita el JDK." >&2
