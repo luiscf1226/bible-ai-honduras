@@ -17,7 +17,7 @@ crons.daily(
 // sembrado, así que correrla a diario es inofensivo y evita depender de un
 // paso manual de deploy.
 crons.daily(
-  "sembrar plan de lectura canónico",
+  "sembrar-plan-lectura-canonico",
   { hourUTC: 6, minuteUTC: 10 },
   internal.readingPlans.ensurePlanSeeded,
 );
