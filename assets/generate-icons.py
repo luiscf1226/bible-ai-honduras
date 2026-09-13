@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Genera los assets de icono/splash a partir de `design/logo.png`.
+"""Genera los assets de icono/splash a partir de `assets/logo-source.png`.
 
-PROVISIONAL — ver `assets/README.md`. El arte fuente mide 232x232, muy por
-debajo de los 1024x1024 que exigen App Store y Play. Este script **nunca
-escala hacia arriba**: compone el logo a su tamaño nativo sobre un lienzo de
-1024x1024. Cuando llegue el arte definitivo (>=1024x1024 o vectorial), cambiar
-SOURCE y volver a correr:
+`logo-source.png` (1024x1024, sin alfa) es el logo final de #102: una
+reinterpretación en alta resolución de `design/logo.png` (232x232) hecha con
+GPT Image 2, conservando el concepto del prototipo (Biblia abierta, cruz con
+halo, ramas de olivo, paleta crema/marrón/salvia). `design/` no se toca: es el
+export de Claude Design.
 
     python3 assets/generate-icons.py
 
@@ -13,44 +13,51 @@ Colores: `bg` = #E9E1D5, tomado de `design/tokens.json` (regla dura #1).
 """
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "design" / "logo.png"
+SOURCE = ROOT / "assets" / "logo-source.png"
 OUT = ROOT / "assets"
 
-# Token `bg` de design/tokens.json (tema claro). No es un hex improvisado.
+# Token `bg` de design/tokens.json (tema claro).
 BG = (0xE9, 0xE1, 0xD5)
 CANVAS = 1024
 FAVICON = 48
 
 
-def centered(size: int, background) -> Image.Image:
-    """Lienzo `size`x`size` con el logo centrado a resolucion nativa."""
-    logo = Image.open(SOURCE).convert("RGBA")
-    mode = "RGB" if len(background) == 3 else "RGBA"
-    canvas = Image.new(mode, (size, size), background)
-    canvas.paste(logo, ((size - logo.width) // 2, (size - logo.height) // 2), logo)
+def blended(source: Image.Image, scale: float) -> Image.Image:
+    """Logo a `scale` del lienzo, con borde circular difuminado sobre `bg`.
+
+    El fondo crema del logo no es exactamente el token `bg`; sin el
+    difuminado se vería un cuadrado en la splash y en el adaptive icon.
+    """
+    size = int(CANVAS * scale)
+    logo = source.resize((size, size), Image.LANCZOS)
+    mask = Image.new("L", (size, size), 0)
+    inset = int(size * 0.13)
+    ImageDraw.Draw(mask).ellipse((inset, inset, size - inset, size - inset), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(size * 0.045))
+    canvas = Image.new("RGB", (CANVAS, CANVAS), BG)
+    offset = (CANVAS - size) // 2
+    canvas.paste(logo, (offset, offset), mask)
     return canvas
 
 
 def main() -> None:
-    OUT.mkdir(exist_ok=True)
+    source = Image.open(SOURCE).convert("RGB")
 
-    # icon.png — Apple rechaza canal alfa y esquinas redondeadas: RGB plano.
-    centered(CANVAS, BG).save(OUT / "icon.png")
+    # icon.png — App Store / Play: full-bleed, RGB sin alfa, sin esquinas
+    # redondeadas (iOS aplica su propia máscara).
+    source.resize((CANVAS, CANVAS), Image.LANCZOS).save(OUT / "icon.png")
 
-    # adaptive-icon.png — foreground con alfa; Android lo recorta en circulo,
-    # squircle, etc. El logo ocupa 232/1024 = 23%, dentro de la zona segura
-    # del 66% (676 px), asi que ninguna mascara lo corta.
-    centered(CANVAS, (0, 0, 0, 0)).save(OUT / "adaptive-icon.png")
+    # adaptive-icon.png — Android recorta en círculo/squircle; el 80% con
+    # borde difuminado deja lo esencial dentro de la zona segura.
+    blended(source, 0.80).save(OUT / "adaptive-icon.png")
 
-    # splash-icon.png — con alfa; `resizeMode: contain` lo ajusta al ancho.
-    centered(CANVAS, (0, 0, 0, 0)).save(OUT / "splash-icon.png")
+    # splash-icon.png — lo muestra el plugin expo-splash-screen sobre `bg`.
+    blended(source, 1.0).save(OUT / "splash-icon.png")
 
-    # favicon.png — web. Reducir si es valido; ampliar no.
-    logo = Image.open(SOURCE).convert("RGBA")
-    logo.resize((FAVICON, FAVICON), Image.LANCZOS).save(OUT / "favicon.png")
+    source.resize((FAVICON, FAVICON), Image.LANCZOS).save(OUT / "favicon.png")
 
 
 if __name__ == "__main__":
