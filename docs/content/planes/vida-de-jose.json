@@ -1,0 +1,21 @@
+{
+  "id": "vida-de-jose",
+  "name": "La vida de José",
+  "description": "La historia de José en Génesis, capítulo por capítulo.",
+  "totalDays": 13,
+  "days": [
+    { "day": 1, "readings": [{ "book": "Génesis", "chapter": 37 }] },
+    { "day": 2, "readings": [{ "book": "Génesis", "chapter": 39 }] },
+    { "day": 3, "readings": [{ "book": "Génesis", "chapter": 40 }] },
+    { "day": 4, "readings": [{ "book": "Génesis", "chapter": 41 }] },
+    { "day": 5, "readings": [{ "book": "Génesis", "chapter": 42 }] },
+    { "day": 6, "readings": [{ "book": "Génesis", "chapter": 43 }] },
+    { "day": 7, "readings": [{ "book": "Génesis", "chapter": 44 }] },
+    { "day": 8, "readings": [{ "book": "Génesis", "chapter": 45 }] },
+    { "day": 9, "readings": [{ "book": "Génesis", "chapter": 46 }] },
+    { "day": 10, "readings": [{ "book": "Génesis", "chapter": 47 }] },
+    { "day": 11, "readings": [{ "book": "Génesis", "chapter": 48 }] },
+    { "day": 12, "readings": [{ "book": "Génesis", "chapter": 49 }] },
+    { "day": 13, "readings": [{ "book": "Génesis", "chapter": 50 }] }
+  ]
+}

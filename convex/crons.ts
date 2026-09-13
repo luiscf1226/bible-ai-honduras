@@ -12,12 +12,14 @@ crons.daily(
   internal.devotional.ensureWindow,
 );
 
-// Siembra la copia servible del plan de lectura anual (#114) si todavía no
-// existe. Es un no-op después de la primera corrida — no pisa contenido ya
-// sembrado, así que correrla a diario es inofensivo y evita depender de un
-// paso manual de deploy.
+// Siembra la copia servible de cada plan de lectura (anual #114 y recorridos
+// #115) que todavía no exista. Es un no-op para los ya sembrados — no pisa
+// contenido existente, así que correrla a diario es inofensivo, evita depender
+// de un paso manual de deploy y siembra sola un recorrido nuevo del catálogo.
 crons.daily(
-  "sembrar-plan-lectura-canonico",
+  // Solo ASCII: Convex rechaza el push completo si el identificador tiene
+  // tildes (#135).
+  "sembrar-planes-lectura",
   { hourUTC: 6, minuteUTC: 10 },
   internal.readingPlans.ensurePlanSeeded,
 );

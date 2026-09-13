@@ -1,0 +1,15 @@
+{
+  "id": "salmos-para-dormir",
+  "name": "Salmos para dormir",
+  "description": "Siete salmos cortos para leer antes de descansar.",
+  "totalDays": 7,
+  "days": [
+    { "day": 1, "readings": [{ "book": "Salmos", "chapter": 4 }] },
+    { "day": 2, "readings": [{ "book": "Salmos", "chapter": 3 }] },
+    { "day": 3, "readings": [{ "book": "Salmos", "chapter": 63 }] },
+    { "day": 4, "readings": [{ "book": "Salmos", "chapter": 91 }] },
+    { "day": 5, "readings": [{ "book": "Salmos", "chapter": 121 }] },
+    { "day": 6, "readings": [{ "book": "Salmos", "chapter": 127 }] },
+    { "day": 7, "readings": [{ "book": "Salmos", "chapter": 131 }] }
+  ]
+}

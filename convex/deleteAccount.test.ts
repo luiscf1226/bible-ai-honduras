@@ -104,6 +104,17 @@ async function seedEverything(
       longestStreak: 2,
       lastCompletedDate: "2026-01-02",
     });
+    // Desde #115 hay una fila por plan: un recorrido corto a la par del anual.
+    // Con dos filas, un `.unique()` en el borrado reventaría la cascada.
+    await ctx.db.insert("userPlanProgress", {
+      userId,
+      planId: "ansiedad",
+      startedAt: "2026-01-05",
+      completedDays: [1],
+      currentStreak: 1,
+      longestStreak: 1,
+      lastCompletedDate: "2026-01-05",
+    });
 
     const storageId = await ctx.storage.store(
       new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
@@ -184,7 +195,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingProgress).toHaveLength(1);
     expect(before.readingRecents).toHaveLength(1);
     expect(before.readingBookmarks).toHaveLength(1);
-    expect(before.userPlanProgress).toHaveLength(1);
+    expect(before.userPlanProgress).toHaveLength(2);
     expect(before.storage).toHaveLength(1);
 
     stubClerkDelete();
@@ -201,7 +212,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingProgress: 1,
       readingRecents: 1,
       readingBookmarks: 1,
-      readingPlanProgress: 1,
+      readingPlanProgress: 2,
       users: 1,
     });
 
@@ -254,8 +265,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents[0]?.userId).toBe(betoId);
     expect(after.readingBookmarks).toHaveLength(1);
     expect(after.readingBookmarks[0]?.userId).toBe(betoId);
-    expect(after.userPlanProgress).toHaveLength(1);
-    expect(after.userPlanProgress[0]?.userId).toBe(betoId);
+    expect(after.userPlanProgress).toHaveLength(2);
+    expect(after.userPlanProgress.every((row) => row.userId === betoId)).toBe(true);
 
     // El blob de Beto sobrevive; el de Ana no.
     expect(after.storage).toHaveLength(1);

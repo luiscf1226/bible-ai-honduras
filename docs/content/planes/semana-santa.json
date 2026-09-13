@@ -1,0 +1,16 @@
+{
+  "id": "semana-santa",
+  "name": "Semana Santa",
+  "description": "De la entrada a Jerusalén a la resurrección, en ocho días.",
+  "totalDays": 8,
+  "days": [
+    { "day": 1, "readings": [{ "book": "Mateo", "chapter": 21, "verseStart": 1, "verseEnd": 17 }] },
+    { "day": 2, "readings": [{ "book": "Mateo", "chapter": 26, "verseStart": 1, "verseEnd": 16 }] },
+    { "day": 3, "readings": [{ "book": "Juan", "chapter": 13, "verseStart": 1, "verseEnd": 17 }] },
+    { "day": 4, "readings": [{ "book": "Mateo", "chapter": 26, "verseStart": 17, "verseEnd": 30 }] },
+    { "day": 5, "readings": [{ "book": "Mateo", "chapter": 26, "verseStart": 36, "verseEnd": 56 }] },
+    { "day": 6, "readings": [{ "book": "Mateo", "chapter": 27, "verseStart": 1, "verseEnd": 31 }] },
+    { "day": 7, "readings": [{ "book": "Mateo", "chapter": 27, "verseStart": 32, "verseEnd": 66 }] },
+    { "day": 8, "readings": [{ "book": "Mateo", "chapter": 28 }] }
+  ]
+}

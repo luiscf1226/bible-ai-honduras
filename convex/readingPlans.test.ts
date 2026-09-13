@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 
 import { api, internal } from "./_generated/api";
-import { canonicalReadingPlan } from "./readingPlanCatalog";
+import { canonicalReadingPlan, JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS } from "./readingPlanCatalog";
 import { currentPlanDay, nextStreakState } from "./readingPlans";
 import schema from "./schema";
 
@@ -182,7 +182,7 @@ describe("readingPlans.start / myProgress / markDayRead", () => {
     await expect(ana.mutation(api.readingPlans.markDayRead, { day: 366 })).rejects.toThrow("day");
   });
 
-  it("rechaza un plan desconocido (v1 solo soporta el canónico)", async () => {
+  it("rechaza un plan desconocido", async () => {
     const t = convexTest(schema, modules);
     const ana = asUser(t, "user_ana_plan_raro");
     await ana.mutation(api.users.upsert, {});
@@ -280,23 +280,51 @@ describe("ponerme al día — catch-up sin culpar", () => {
 });
 
 describe("ensurePlanSeeded", () => {
-  it("siembra la tabla readingPlans una sola vez y es idempotente", async () => {
+  it("siembra el canónico y cada recorrido una sola vez, y es idempotente", async () => {
     const t = convexTest(schema, modules);
 
     const first = await t.mutation(internal.readingPlans.ensurePlanSeeded, {});
     const second = await t.mutation(internal.readingPlans.ensurePlanSeeded, {});
     const rows = await t.run((ctx) => ctx.db.query("readingPlans").collect());
 
-    expect(first.seeded).toBe(true);
-    expect(second.seeded).toBe(false);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].planId).toBe("canonico");
-    expect(rows[0].days).toHaveLength(365);
+    expect(first.seeded).toEqual(SUPPORTED_READING_PLANS.map((plan) => plan.id));
+    expect(second.seeded).toEqual([]);
+    expect(rows).toHaveLength(SUPPORTED_READING_PLANS.length);
+    expect(rows.find((row) => row.planId === "canonico")?.days).toHaveLength(365);
+    // Los pasajes (verseStart/verseEnd) sobreviven la siembra tal cual.
+    expect(rows.find((row) => row.planId === "ansiedad")?.days[0].readings[0]).toEqual({
+      book: "Mateo",
+      chapter: 6,
+      verseStart: 25,
+      verseEnd: 34,
+    });
+  });
+
+  it("siembra solo lo que falta: un recorrido nuevo entra aunque el canónico ya exista", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("readingPlans", {
+        planId: "canonico",
+        name: "Curado a mano",
+        description: "No se pisa",
+        totalDays: 365,
+        days: canonicalReadingPlan.days,
+      });
+    });
+
+    const result = await t.mutation(internal.readingPlans.ensurePlanSeeded, {});
+    const canonical = await t.run((ctx) =>
+      ctx.db.query("readingPlans").withIndex("by_plan_id", (q) => q.eq("planId", "canonico")).unique(),
+    );
+
+    expect(result.seeded).not.toContain("canonico");
+    expect(result.seeded).toEqual(JOURNEY_READING_PLANS.map((plan) => plan.id));
+    expect(canonical?.name).toBe("Curado a mano");
   });
 });
 
-describe("readingPlans.catalog", () => {
-  it("expone los metadatos del plan canónico sin necesitar sesión", async () => {
+describe("readingPlans.catalog / journeys", () => {
+  it("sin planId expone los metadatos del plan canónico sin necesitar sesión", async () => {
     const t = convexTest(schema, modules);
     const info = await t.query(api.readingPlans.catalog, {});
     expect(info).toEqual({
@@ -305,5 +333,143 @@ describe("readingPlans.catalog", () => {
       description: canonicalReadingPlan.description,
       totalDays: 365,
     });
+  });
+
+  it("con planId expone los metadatos de ese recorrido, y null si no existe", async () => {
+    const t = convexTest(schema, modules);
+    expect(await t.query(api.readingPlans.catalog, { planId: "ansiedad" })).toEqual({
+      id: "ansiedad",
+      name: "Ansiedad",
+      description: expect.any(String),
+      totalDays: 7,
+    });
+    expect(await t.query(api.readingPlans.catalog, { planId: "cronologico" })).toBeNull();
+  });
+
+  it("journeys lista los recorridos cortos sin el plan anual", async () => {
+    const t = convexTest(schema, modules);
+    const journeys = await t.query(api.readingPlans.journeys, {});
+    expect(journeys.map((journey) => journey.id)).toEqual(JOURNEY_READING_PLANS.map((plan) => plan.id));
+    expect(journeys.some((journey) => journey.id === "canonico")).toBe(false);
+  });
+});
+
+describe("recorridos a la par del plan anual (#115)", () => {
+  async function userWithTwoPlans(t: ReturnType<typeof convexTest>, clerkId: string) {
+    const user = asUser(t, clerkId);
+    await user.mutation(api.users.upsert, {});
+    await user.mutation(api.readingPlans.start, { planId: "canonico" });
+    await user.mutation(api.readingPlans.start, { planId: "ansiedad" });
+    return user;
+  }
+
+  it("dos planes en paralelo llevan progreso independiente: marcar uno no toca el otro", async () => {
+    const t = convexTest(schema, modules);
+    const ana = await userWithTwoPlans(t, "user_ana_dos_planes");
+
+    await ana.mutation(api.readingPlans.markDayRead, { planId: "ansiedad", day: 1 });
+
+    const journey = await ana.query(api.readingPlans.myProgress, { planId: "ansiedad" });
+    const annual = await ana.query(api.readingPlans.myProgress, { planId: "canonico" });
+
+    expect(journey?.plan.id).toBe("ansiedad");
+    expect(journey?.completedCount).toBe(1);
+    expect(journey?.todayCompleted).toBe(true);
+    expect(journey?.todayReadings).toEqual([{ book: "Mateo", chapter: 6, verseStart: 25, verseEnd: 34 }]);
+
+    expect(annual?.plan.id).toBe("canonico");
+    expect(annual?.completedCount).toBe(0);
+    expect(annual?.todayCompleted).toBe(false);
+    expect(annual?.currentStreak).toBe(0);
+  });
+
+  it("myProgress sin planId sigue devolviendo el canónico aunque haya un recorrido activo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = await userWithTwoPlans(t, "user_ana_default_canonico");
+
+    expect((await ana.query(api.readingPlans.myProgress, {}))?.plan.id).toBe("canonico");
+  });
+
+  it("empezar solo un recorrido no crea progreso en el anual", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_solo_recorrido");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.readingPlans.start, { planId: "duelo" });
+
+    expect(await ana.query(api.readingPlans.myProgress, {})).toBeNull();
+    expect((await ana.query(api.readingPlans.myProgress, { planId: "duelo" }))?.plan.totalDays).toBe(7);
+  });
+
+  it("start de un plan reinicia solo ese plan y no toca el otro", async () => {
+    const t = convexTest(schema, modules);
+    const ana = await userWithTwoPlans(t, "user_ana_reinicia_uno");
+    await ana.mutation(api.readingPlans.markDayRead, { planId: "canonico", day: 1 });
+    await ana.mutation(api.readingPlans.markDayRead, { planId: "ansiedad", day: 1 });
+
+    await ana.mutation(api.readingPlans.start, { planId: "ansiedad" });
+
+    expect((await ana.query(api.readingPlans.myProgress, { planId: "ansiedad" }))?.completedCount).toBe(0);
+    const annual = await ana.query(api.readingPlans.myProgress, { planId: "canonico" });
+    expect(annual?.completedCount).toBe(1);
+    expect(annual?.currentStreak).toBe(1);
+
+    const rows = await t.run((ctx) => ctx.db.query("userPlanProgress").collect());
+    expect(rows.map((row) => row.planId).sort()).toEqual(["ansiedad", "canonico"]);
+  });
+
+  it("myPlans lista los planes empezados en orden de catálogo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_mis_planes");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.readingPlans.start, { planId: "semana-santa" });
+    await ana.mutation(api.readingPlans.start, { planId: "canonico" });
+
+    const plans = await ana.query(api.readingPlans.myPlans, {});
+    expect(plans.map((plan) => plan.plan.id)).toEqual(["canonico", "semana-santa"]);
+    expect(plans[1].currentDay).toBe(1);
+  });
+
+  it("myPlans omite una fila de un plan que ya no está en el catálogo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_plan_retirado");
+    const userId = await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.readingPlans.start, { planId: "perdon" });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("userPlanProgress", {
+        userId,
+        planId: "retirado",
+        startedAt: "2026-01-01",
+        completedDays: [],
+        currentStreak: 0,
+        longestStreak: 0,
+      });
+    });
+
+    expect((await ana.query(api.readingPlans.myPlans, {})).map((plan) => plan.plan.id)).toEqual(["perdon"]);
+  });
+
+  it("myPlans sin sesión devuelve una lista vacía", async () => {
+    const t = convexTest(schema, modules);
+    expect(await t.query(api.readingPlans.myPlans, {})).toEqual([]);
+  });
+
+  it("markDayRead de un plan no empezado falla aunque haya otro activo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_marca_ajeno");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.readingPlans.start, { planId: "canonico" });
+
+    await expect(ana.mutation(api.readingPlans.markDayRead, { planId: "perdon", day: 1 })).rejects.toThrow("no está empezado");
+    await expect(ana.mutation(api.readingPlans.markDayRead, { planId: "cronologico", day: 1 })).rejects.toThrow(
+      "Plan desconocido",
+    );
+  });
+
+  it("el rango de días se valida contra el plan marcado, no contra el anual", async () => {
+    const t = convexTest(schema, modules);
+    const ana = await userWithTwoPlans(t, "user_ana_rango_recorrido");
+
+    await expect(ana.mutation(api.readingPlans.markDayRead, { planId: "ansiedad", day: 8 })).rejects.toThrow("day");
+    await expect(ana.mutation(api.readingPlans.markDayRead, { planId: "canonico", day: 8 })).resolves.toBeDefined();
   });
 });

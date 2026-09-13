@@ -289,7 +289,7 @@ export const updatePreferences = mutation({
 //   entitlements   → fila de Pro; NO cancela la suscripción de la tienda
 //   stories        → la fila y además cada blob de `_storage` de sus escenas
 //   reading*       → marcador, recientes y guardados del lector (#112/#113)
-//   userPlanProgress → progreso del plan de lectura anual (#114)
+//   userPlanProgress → progreso en planes de lectura, una fila por plan (#114/#115)
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 

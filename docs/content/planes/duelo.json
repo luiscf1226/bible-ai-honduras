@@ -1,0 +1,15 @@
+{
+  "id": "duelo",
+  "name": "Duelo",
+  "description": "Siete pasajes de consuelo para cuando se pierde a alguien.",
+  "totalDays": 7,
+  "days": [
+    { "day": 1, "readings": [{ "book": "Salmos", "chapter": 34 }] },
+    { "day": 2, "readings": [{ "book": "Juan", "chapter": 11, "verseStart": 17, "verseEnd": 44 }] },
+    { "day": 3, "readings": [{ "book": "Lamentaciones", "chapter": 3, "verseStart": 19, "verseEnd": 33 }] },
+    { "day": 4, "readings": [{ "book": "2 Corintios", "chapter": 1, "verseStart": 3, "verseEnd": 7 }] },
+    { "day": 5, "readings": [{ "book": "1 Tesalonicenses", "chapter": 4, "verseStart": 13, "verseEnd": 18 }] },
+    { "day": 6, "readings": [{ "book": "1 Corintios", "chapter": 15, "verseStart": 50, "verseEnd": 58 }] },
+    { "day": 7, "readings": [{ "book": "Apocalipsis", "chapter": 21, "verseStart": 1, "verseEnd": 7 }] }
+  ]
+}

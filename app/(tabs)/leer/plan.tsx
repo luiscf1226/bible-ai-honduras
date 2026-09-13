@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
-import { router } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -7,13 +7,16 @@ import { api } from "../../../convex/_generated/api";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppScreen } from "../../../src/components/AppScreen";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
-import { formatReadingsLabel, type PlanReading } from "../../../src/features/reading/planReadingsLabel";
+import { formatReadingsLabel, readingTarget, type PlanReading } from "../../../src/features/reading/planReadingsLabel";
+import { openPassage } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
 /**
- * Plan de lectura anual (#114). Leer es gratis: esta pantalla no consulta
- * cuotas ni muestra paywall (mismo criterio que #112/#113).
+ * Pantalla de un plan de lectura: el anual (#114) sin parámetros, o un
+ * recorrido corto (#115) con `?planId=`. Es el mismo motor, así que es la misma
+ * pantalla. Leer es gratis: no consulta cuotas ni muestra paywall (mismo
+ * criterio que #112/#113).
  *
  * No hay prototipo de Claude Design para esta pantalla (regla dura #1 del
  * issue) — se construyó reusando los tokens y las convenciones visuales de
@@ -22,16 +25,20 @@ import { tokens } from "../../../src/theme/tokens";
  */
 
 function openReading(reading: PlanReading) {
-  router.push({
-    pathname: "/leer/[book]/[chapter]",
-    params: { book: reading.book, chapter: String(reading.chapter) },
-  });
+  // Un pasaje de recorrido abre el lector en su primer versículo.
+  openPassage(readingTarget(reading));
 }
+
+const CANONICAL_PLAN_ID = "canonico";
 
 export default function PlanScreen() {
   const { color } = useTheme();
-  const catalog = useQuery(api.readingPlans.catalog, {});
-  const progress = useQuery(api.readingPlans.myProgress, {});
+  const params = useLocalSearchParams<{ planId?: string | string[] }>();
+  const requestedPlanId = Array.isArray(params.planId) ? params.planId[0] : params.planId;
+  const planArgs = requestedPlanId ? { planId: requestedPlanId } : {};
+  const isJourney = requestedPlanId !== undefined && requestedPlanId !== CANONICAL_PLAN_ID;
+  const catalog = useQuery(api.readingPlans.catalog, planArgs);
+  const progress = useQuery(api.readingPlans.myProgress, planArgs);
   const startPlan = useMutation(api.readingPlans.start);
   const markDayRead = useMutation(api.readingPlans.markDayRead);
   const [isStarting, setIsStarting] = useState(false);
@@ -48,10 +55,10 @@ export default function PlanScreen() {
   };
 
   const markDay = async (day: number) => {
-    if (markingDay !== null) return;
+    if (!catalog || markingDay !== null) return;
     setMarkingDay(day);
     try {
-      await markDayRead({ day });
+      await markDayRead({ planId: catalog.id, day });
     } finally {
       setMarkingDay(null);
     }
@@ -59,27 +66,32 @@ export default function PlanScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.content}>
-      <ScreenHeader accessibilityLabel="Volver" onBack={goBackOrHome} title="Plan de lectura" />
+      <ScreenHeader accessibilityLabel="Volver" onBack={goBackOrHome} title={isJourney ? "Recorrido" : "Plan de lectura"} />
 
-      {progress === undefined ? (
+      {catalog === null ? (
+        <Text style={[styles.status, { color: color.inkSoft }]} testID="plan-unknown">
+          Este recorrido ya no está disponible.
+        </Text>
+      ) : progress === undefined ? (
         <Text style={[styles.status, { color: color.inkSoft }]}>Preparando tu plan…</Text>
       ) : progress === null ? (
         <View style={[styles.introCard, { backgroundColor: color.surface, borderColor: color.border }]} testID="plan-intro">
-          <Text style={[styles.overline, { color: color.accent }]}>PLAN CANÓNICO</Text>
+          <Text style={[styles.overline, { color: color.accent }]}>{isJourney ? "RECORRIDO" : "PLAN CANÓNICO"}</Text>
           <Text style={[styles.introTitle, { color: color.ink }]}>{catalog?.name ?? "Plan de lectura"}</Text>
           <Text style={[styles.introDescription, { color: color.inkMuted }]}>
-            {catalog?.description ?? "Génesis a Apocalipsis en 365 días."}
+            {catalog?.description ?? ""}
           </Text>
           {catalog ? (
             <Text style={[styles.introMeta, { color: color.inkSoft }]}>{catalog.totalDays} días · una lectura diaria</Text>
           ) : null}
           <AppButton disabled={!catalog || isStarting} onPress={() => void begin()} style={styles.introButton} testID="plan-start">
-            {isStarting ? "Empezando…" : "Empezar el plan"}
+            {isStarting ? "Empezando…" : isJourney ? "Empezar el recorrido" : "Empezar el plan"}
           </AppButton>
         </View>
       ) : (
         <>
           <View style={[styles.todayCard, { backgroundColor: color.surface, borderColor: color.border }]} testID="plan-today">
+            {isJourney ? <Text style={[styles.introTitle, { color: color.ink }]}>{progress.plan.name}</Text> : null}
             <Text style={[styles.overline, { color: color.accent }]}>
               HOY · DÍA {progress.currentDay} DE {progress.plan.totalDays}
             </Text>
@@ -127,6 +139,17 @@ export default function PlanScreen() {
               />
             </View>
           </View>
+
+          {progress.completedCount === progress.plan.totalDays ? (
+            <View style={styles.catchUpSection} testID="plan-finished">
+              <Text style={[styles.sectionTitle, { color: color.ink }]}>
+                {isJourney ? "Terminaste este recorrido" : "Terminaste el plan"}
+              </Text>
+              <AppButton disabled={isStarting} onPress={() => void begin()} testID="plan-restart" variant="secondary">
+                {isStarting ? "Empezando…" : "Empezar de nuevo"}
+              </AppButton>
+            </View>
+          ) : null}
 
           {progress.pendingDays.length > 0 ? (
             <View style={styles.catchUpSection} testID="plan-catch-up">

@@ -1,0 +1,15 @@
+{
+  "id": "ansiedad",
+  "name": "Ansiedad",
+  "description": "Siete pasajes para llevar las preocupaciones a Dios.",
+  "totalDays": 7,
+  "days": [
+    { "day": 1, "readings": [{ "book": "Mateo", "chapter": 6, "verseStart": 25, "verseEnd": 34 }] },
+    { "day": 2, "readings": [{ "book": "Filipenses", "chapter": 4, "verseStart": 4, "verseEnd": 9 }] },
+    { "day": 3, "readings": [{ "book": "Salmos", "chapter": 23 }] },
+    { "day": 4, "readings": [{ "book": "1 Pedro", "chapter": 5, "verseStart": 6, "verseEnd": 11 }] },
+    { "day": 5, "readings": [{ "book": "Isaías", "chapter": 41, "verseStart": 8, "verseEnd": 13 }] },
+    { "day": 6, "readings": [{ "book": "Salmos", "chapter": 46 }] },
+    { "day": 7, "readings": [{ "book": "Juan", "chapter": 14, "verseStart": 1, "verseEnd": 27 }] }
+  ]
+}
