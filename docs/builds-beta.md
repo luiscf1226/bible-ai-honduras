@@ -33,21 +33,28 @@ reemplazar `pk_REEMPLAZAR` en los perfiles de beta y `pk_live_REEMPLAZAR` en
 Las claves privadas (Anthropic, OpenAI, Clerk issuer) no van acá: viven en el
 deployment de Convex.
 
-En el deployment de **test** (el que usa la beta):
+### `CLERK_JWT_ISSUER_DOMAIN` — vía GitHub Actions, no a mano
 
-```bash
-npx convex env set CLERK_JWT_ISSUER_DOMAIN https://tu-instancia.clerk.accounts.dev
-npx convex env set ANTHROPIC_API_KEY sk-ant-...
-npx convex env set OPENAI_API_KEY sk-...
-```
+`.github/workflows/sync-clerk-env.yml` (workflow_dispatch) corre
+`npx convex env set CLERK_JWT_ISSUER_DOMAIN ...` en el deployment de test, en
+el de producción, o en los dos. Actions → *Sync Clerk env a Convex* → *Run
+workflow* → elegir "test", "produccion" o "ambos".
 
-Y en **producción**, cuando llegue el momento:
+Necesita, por única vez, dos **GitHub Environments** (Settings → Environments)
+con estos secrets — mismo nombre en los dos, valor distinto:
 
-```bash
-npx convex env set --prod CLERK_JWT_ISSUER_DOMAIN https://...
-npx convex env set --prod ANTHROPIC_API_KEY sk-ant-...
-npx convex env set --prod OPENAI_API_KEY sk-...
-```
+| Environment | `CONVEX_DEPLOY_KEY` | `CLERK_JWT_ISSUER_DOMAIN` |
+|---|---|---|
+| `convex-test` | Deploy key de `neighborly-kudu-508` (dashboard de Convex → ese deployment → Settings) | Issuer de la instancia de Clerk de desarrollo |
+| `convex-production` | Deploy key de `optimistic-labrador-439` | Issuer de la instancia de Clerk **live** |
+
+Ponerle "Required reviewers" al environment `convex-production` obliga a que
+alguien apruebe antes de tocar el deployment real — es la manera de no
+mandar el issuer equivocado a producción sin querer.
+
+`ANTHROPIC_API_KEY` y `OPENAI_API_KEY` siguen siendo manuales (`npx convex env
+set [--prod] NOMBRE valor`): son secretos de proveedor, no de Clerk, y no
+entran en el alcance de este workflow.
 
 ## Estado de los deployments — 2026-09-12
 
@@ -69,9 +76,10 @@ lanzamiento real (#39) por dos cosas:
    puede cortar el servicio. Antes: pasar a plan pago, y después ingerir con
    `npm run rag:ingest -- --kind verses --file <rv1909.json> --prod`
    (ver `docs/rag-ingestion.md`).
-2. **Clerk de producción.** Crear la instancia live en Clerk, poner su
-   `CLERK_JWT_ISSUER_DOMAIN` en Convex prod y la `pk_live_…` en el perfil
-   `production` de `eas.json`.
+2. **Clerk de producción.** Crear la instancia live en Clerk, correr el
+   workflow *Sync Clerk env a Convex* con objetivo "produccion" (pone
+   `CLERK_JWT_ISSUER_DOMAIN`) y pegar la `pk_live_…` en el perfil `production`
+   de `eas.json` a mano — es una key pública, no un secreto.
 
 > Nombres de cron: **solo ASCII**. Un identificador con tildes hace fallar el push
 > completo con `InvalidModules` (PR #135) y los tests no lo detectan.
@@ -88,45 +96,53 @@ lanzamiento real (#39) por dos cosas:
 `autoIncrement` + `appVersionSource: remote` hacen que EAS lleve el número de
 build. No hay que tocar `version` en `app.json` a mano entre builds.
 
-## Android — APK directo
+## Build local — `scripts/build-local.sh`
+
+```bash
+npm run build:local -- android apk          # APK instalable por link
+npm run build:local -- android play         # AAB para Play Internal testing
+npm run build:local -- ios testflight       # IPA para TestFlight
+npm run build:local -- <android|ios> production
+```
+
+Compila en esta máquina con `eas build --local` en vez de encolarse en la nube
+de EAS. El script valida la combinación plataforma/perfil contra `eas.json`,
+chequea las herramientas nativas necesarias (Xcode + CocoaPods para iOS;
+`ANDROID_HOME` + JDK para Android) y la sesión de `eas-cli`, y falla rápido con
+un mensaje claro si falta algo — antes de una compilación que puede tardar
+varios minutos.
+
+Requiere macOS para iOS (Xcode no corre en Linux/CI). Android sí puede
+compilarse local en cualquier SO con el SDK instalado.
+
+El artefacto queda en el directorio actual. Para subirlo:
+
+```bash
+npx eas-cli submit -p android --profile play --path build.aab       # Play
+npx eas-cli submit -p ios --profile testflight --path build.ipa     # TestFlight
+```
+
+- **Android — primer APK**: la primera vez pide keystore, **dejá que EAS lo
+  genere** y guardalo — sin él no se puede actualizar la app en Play después.
+- **Android — Play Internal testing**: la **primera** subida hay que hacerla a
+  mano en Play Console (Google no acepta el primer AAB por API). El submit
+  necesita `play-service-account.json` en la raíz (gitignored) — se crea en
+  Google Cloud Console y se le da acceso desde Play Console → *Users and
+  permissions*.
+- **iOS — TestFlight**: `appleId`, `ascAppId`, `appleTeamId` y la API key de
+  App Store Connect ya están en `eas.json` (PR #125); el `.p8` va en
+  `.secrets/`, que está ignorado. EAS crea certificado y provisioning solo. El
+  bundle id (`com.bibleaihonduras.app`) ya está en `app.json` y **no se puede
+  cambiar** una vez publicada la primera build.
+
+## Build en la nube (alternativa)
+
+Sin instalar nada nativo, a costa de la cola de EAS:
 
 ```bash
 eas build -p android --profile apk
-```
-
-La primera vez pide keystore: **dejá que EAS lo genere**. Guardalo — sin ese
-keystore no se puede actualizar la app en Play más adelante.
-
-## Android — Google Play Internal testing
-
-```bash
-eas build -p android --profile play
-```
-
-La **primera** subida hay que hacerla a mano en Play Console (Google no acepta
-el primer AAB por API). Las siguientes:
-
-```bash
-eas submit -p android --latest
-```
-
-Eso necesita `play-service-account.json` en la raíz — está en `.gitignore`,
-nunca se commitea. Se crea en Google Cloud Console y se le da acceso desde
-Play Console → *Users and permissions*.
-
-## iOS — TestFlight
-
-`appleId`, `ascAppId`, `appleTeamId` y la API key de App Store Connect ya están en
-`eas.json` (PR #125). El `.p8` va en `.secrets/`, que está ignorado.
-
-```bash
 eas build -p ios --profile testflight
-eas submit -p ios --latest
 ```
-
-EAS crea certificado y provisioning solo. El bundle id
-(`com.bibleaihonduras.app`) ya está en `app.json` y **no se puede cambiar** una
-vez publicada la primera build.
 
 ## Qué revisar si algo falla
 

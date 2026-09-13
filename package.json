@@ -15,7 +15,8 @@
     "convex:once": "convex dev --once",
     "rag:ingest": "node scripts/ingest-rag-corpus.mjs",
     "rag:evaluate": "node scripts/evaluate-rag-retrieval.mjs",
-    "spike:images": "node scripts/benchmark-image-providers.mjs"
+    "spike:images": "node scripts/benchmark-image-providers.mjs",
+    "build:local": "bash scripts/build-local.sh"
   },
   "dependencies": {
     "@clerk/expo": "^4.5.0",

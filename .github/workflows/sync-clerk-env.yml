@@ -1,0 +1,79 @@
+name: Sync Clerk env a Convex
+
+# Reemplaza los comandos manuales de docs/builds-beta.md
+# ("npx convex env set CLERK_JWT_ISSUER_DOMAIN ...", con y sin --prod).
+# Solo se dispara a mano: toca estado externo (el deployment de Convex), no
+# algo que deba correr en cada push.
+#
+# Secrets requeridos, uno por cada GitHub Environment ("convex-test" y
+# "convex-production"), mismo nombre en las dos, valor distinto:
+#   CONVEX_DEPLOY_KEY        → dashboard de Convex → deployment → Settings →
+#                               "Deploy Key" (uno por deployment, no el mismo
+#                               para test y para producción)
+#   CLERK_JWT_ISSUER_DOMAIN  → dashboard de Clerk → esa instancia → API Keys
+#                               → "Issuer" (test usa la instancia de
+#                               desarrollo; producción, la instancia live)
+#
+# Configurar los Environments en GitHub: Settings → Environments → New
+# environment → "convex-test" / "convex-production" → Environment secrets.
+# Ponerle "Required reviewers" a "convex-production" es la manera de exigir
+# una aprobación humana antes de tocar el deployment real (#39).
+on:
+  workflow_dispatch:
+    inputs:
+      objetivo:
+        description: "Qué deployment de Convex actualizar"
+        required: true
+        type: choice
+        default: ambos
+        options:
+          - ambos
+          - test
+          - produccion
+
+concurrency:
+  group: sync-clerk-env
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: ${{ inputs.objetivo == 'ambos' || inputs.objetivo == 'test' }}
+    name: Convex test (neighborly-kudu-508)
+    runs-on: ubuntu-latest
+    environment: convex-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: convex env set CLERK_JWT_ISSUER_DOMAIN
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex env set CLERK_JWT_ISSUER_DOMAIN "${{ secrets.CLERK_JWT_ISSUER_DOMAIN }}"
+      - name: Verificar (sin imprimir el valor)
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex env list --names-only | grep -qx CLERK_JWT_ISSUER_DOMAIN
+
+  produccion:
+    if: ${{ inputs.objetivo == 'ambos' || inputs.objetivo == 'produccion' }}
+    name: Convex producción (optimistic-labrador-439)
+    runs-on: ubuntu-latest
+    environment: convex-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: convex env set CLERK_JWT_ISSUER_DOMAIN
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex env set CLERK_JWT_ISSUER_DOMAIN "${{ secrets.CLERK_JWT_ISSUER_DOMAIN }}"
+      - name: Verificar (sin imprimir el valor)
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex env list --names-only | grep -qx CLERK_JWT_ISSUER_DOMAIN
