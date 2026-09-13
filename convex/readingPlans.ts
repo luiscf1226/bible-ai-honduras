@@ -7,15 +7,22 @@ import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 import {
   canonicalReadingPlan,
   findReadingPlan,
+  JOURNEY_READING_PLANS,
   readingsForDay,
+  SUPPORTED_READING_PLANS,
   type ReadingPlanDay,
+  type ReadingPlanDefinition,
 } from "./readingPlanCatalog";
 
 /**
- * Plan de lectura anual (#114): gratis, sin cuota (no llama a
- * `convex/quotas.ts` — mismo criterio que el lector, #113) y anclado al único
- * plan soportado en v1, el canónico (Génesis → Apocalipsis). Cronológico,
- * M'Cheyne y "NT + Salmos" quedaron fuera de esta primera versión a propósito.
+ * Planes de lectura: el anual canónico (#114) y los recorridos cortos por tema,
+ * historia y sentimiento (#115). Gratis, sin cuota (no llama a
+ * `convex/quotas.ts` — mismo criterio que el lector, #113). Cronológico,
+ * M'Cheyne y "NT + Salmos" quedaron fuera a propósito.
+ *
+ * Un recorrido es un plan con menos días: mismo motor, mismas tablas. El
+ * progreso es una fila por (usuario, plan), así que un recorrido se sigue a la
+ * par del anual sin pisarlo.
  *
  * El "día de hoy" se calcula en America/Tegucigalpa reusando
  * `hondurasDateKey`/`parseDateKey`/`addDays` de `convex/devotional.ts` — no se
@@ -86,40 +93,58 @@ export function nextStreakState(state: StreakState, today: string): StreakState 
   };
 }
 
-/** Metadatos del plan canónico — hoy es el único soportado (v1). */
+export type ReadingPlanSummary = { id: string; name: string; description: string; totalDays: number };
+
+function summarize(plan: ReadingPlanDefinition): ReadingPlanSummary {
+  return { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays };
+}
+
+/**
+ * Metadatos de un plan, sin sesión. Sin `planId` devuelve el canónico (así lo
+ * llamaba la pantalla del plan anual antes de #115). null si el plan no existe.
+ */
 export const catalog = query({
-  args: {},
-  handler: async () => {
-    const plan = canonicalReadingPlan;
-    return { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays };
+  args: { planId: v.optional(v.string()) },
+  handler: async (_ctx, args): Promise<ReadingPlanSummary | null> => {
+    const plan = findReadingPlan(args.planId ?? canonicalReadingPlan.id);
+    return plan ? summarize(plan) : null;
   },
 });
 
+/** Catálogo de recorridos cortos (#115), en orden de presentación. Sin sesión. */
+export const journeys = query({
+  args: {},
+  handler: async (): Promise<ReadingPlanSummary[]> => JOURNEY_READING_PLANS.map(summarize),
+});
+
 /**
- * Siembra la copia servible del plan en la tabla `readingPlans` — idempotente,
- * igual patrón que `devotional.ensureWindow`. No pisa una fila existente: dejar
- * espacio para que el contenido se cure a mano en la base sin que un redeploy
- * lo revierta.
+ * Siembra la copia servible de cada plan soportado en la tabla `readingPlans`
+ * — idempotente, igual patrón que `devotional.ensureWindow`. No pisa una fila
+ * existente: dejar espacio para que el contenido se cure a mano en la base sin
+ * que un redeploy lo revierta. Devuelve los ids que sembró en esta corrida.
  */
 export const ensurePlanSeeded = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const plan = canonicalReadingPlan;
-    const existing = await ctx.db
-      .query("readingPlans")
-      .withIndex("by_plan_id", (q) => q.eq("planId", plan.id))
-      .unique();
-    if (existing) {
-      return { seeded: false };
+    const seeded: string[] = [];
+    for (const plan of SUPPORTED_READING_PLANS) {
+      const existing = await ctx.db
+        .query("readingPlans")
+        .withIndex("by_plan_id", (q) => q.eq("planId", plan.id))
+        .unique();
+      if (existing) {
+        continue;
+      }
+      await ctx.db.insert("readingPlans", {
+        planId: plan.id,
+        name: plan.name,
+        description: plan.description,
+        totalDays: plan.totalDays,
+        days: plan.days,
+      });
+      seeded.push(plan.id);
     }
-    await ctx.db.insert("readingPlans", {
-      planId: plan.id,
-      name: plan.name,
-      description: plan.description,
-      totalDays: plan.totalDays,
-      days: plan.days,
-    });
-    return { seeded: true };
+    return { seeded };
   },
 });
 
@@ -133,17 +158,17 @@ type ProgressRow = {
   lastCompletedDate?: string;
 };
 
-async function findProgress(ctx: QueryCtx, userId: Id<"users">): Promise<ProgressRow | null> {
+async function findProgress(ctx: QueryCtx, userId: Id<"users">, planId: string): Promise<ProgressRow | null> {
   return await ctx.db
     .query("userPlanProgress")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .withIndex("by_user_plan", (q) => q.eq("userId", userId).eq("planId", planId))
     .unique();
 }
 
 /**
- * Elige un plan y arranca desde el día 1 hoy. Si ya había progreso (en el
- * mismo plan u otro), se reemplaza — v1 no lleva historial de planes
- * abandonados, y "elegir un plan" siempre fija una fecha de inicio nueva.
+ * Elige un plan y arranca desde el día 1 hoy. Si ya había progreso en *ese*
+ * plan, se reemplaza (no se lleva historial de intentos abandonados). El
+ * progreso en otros planes no se toca: un recorrido corto no pisa el anual.
  */
 export const start = mutation({
   args: { planId: v.optional(v.string()) },
@@ -157,7 +182,7 @@ export const start = mutation({
       throw new ConvexError(`Plan desconocido: ${planId}`);
     }
 
-    const existing = await findProgress(ctx, user._id);
+    const existing = await findProgress(ctx, user._id, planId);
     if (existing) {
       await ctx.db.delete(existing._id);
     }
@@ -174,7 +199,7 @@ export const start = mutation({
 });
 
 export type MyPlanProgress = {
-  plan: { id: string; name: string; description: string; totalDays: number };
+  plan: ReadingPlanSummary;
   startedAt: string;
   currentDay: number;
   todayReadings: ReadingPlanDay["readings"];
@@ -191,63 +216,94 @@ export type MyPlanProgress = {
   pendingDays: ReadingPlanDay[];
 };
 
-/** null si no hay sesión o si el usuario todavía no eligió un plan. */
+function buildProgress(progress: ProgressRow, plan: ReadingPlanDefinition, today: string): MyPlanProgress {
+  const currentDay = currentPlanDay(progress.startedAt, today, plan.totalDays);
+  const completed = new Set(progress.completedDays);
+  const pendingDays = plan.days.filter((entry) => entry.day < currentDay && !completed.has(entry.day));
+
+  return {
+    plan: summarize(plan),
+    startedAt: progress.startedAt,
+    currentDay,
+    todayReadings: readingsForDay(plan, currentDay),
+    todayCompleted: completed.has(currentDay),
+    completedCount: progress.completedDays.length,
+    currentStreak: progress.currentStreak,
+    longestStreak: progress.longestStreak,
+    pendingDays,
+  };
+}
+
+/**
+ * Progreso en un plan (por defecto el canónico). null si no hay sesión o si el
+ * usuario todavía no empezó ese plan.
+ */
 export const myProgress = query({
-  args: {},
-  handler: async (ctx): Promise<MyPlanProgress | null> => {
+  args: { planId: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<MyPlanProgress | null> => {
     const user = await requireUser(ctx);
     if (!user) {
       return null;
     }
-    const progress = await findProgress(ctx, user._id);
+    const plan = findReadingPlan(args.planId ?? canonicalReadingPlan.id);
+    if (!plan) {
+      return null;
+    }
+    const progress = await findProgress(ctx, user._id, plan.id);
     if (!progress) {
       return null;
     }
-    const plan = findReadingPlan(progress.planId);
-    if (!plan) {
-      // No debería pasar en v1 (un solo plan soportado), pero si el plan activo
-      // de una fila vieja ya no existe, mejor decir "no hay plan" que reventar.
-      return null;
-    }
-
-    const today = hondurasDateKey();
-    const currentDay = currentPlanDay(progress.startedAt, today, plan.totalDays);
-    const completed = new Set(progress.completedDays);
-    const pendingDays = plan.days.filter((entry) => entry.day < currentDay && !completed.has(entry.day));
-
-    return {
-      plan: { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays },
-      startedAt: progress.startedAt,
-      currentDay,
-      todayReadings: readingsForDay(plan, currentDay),
-      todayCompleted: completed.has(currentDay),
-      completedCount: progress.completedDays.length,
-      currentStreak: progress.currentStreak,
-      longestStreak: progress.longestStreak,
-      pendingDays,
-    };
+    return buildProgress(progress, plan, hondurasDateKey());
   },
 });
 
 /**
- * Marca un día del plan como leído — puede ser el día de hoy o un día
+ * Todos los planes que el usuario tiene empezados (anual y recorridos), en el
+ * orden del catálogo. Vacío sin sesión. Una fila vieja de un plan que ya no
+ * existe en el catálogo se omite en vez de reventar.
+ */
+export const myPlans = query({
+  args: {},
+  handler: async (ctx): Promise<MyPlanProgress[]> => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("userPlanProgress")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const today = hondurasDateKey();
+    return SUPPORTED_READING_PLANS.flatMap((plan) => {
+      const row = rows.find((candidate) => candidate.planId === plan.id);
+      return row ? [buildProgress(row, plan, today)] : [];
+    });
+  },
+});
+
+/**
+ * Marca un día de un plan como leído — puede ser el día de hoy o un día
  * pendiente de atrás (ponerse al día). La racha se actualiza contra la fecha
  * real de hoy, no contra el día que se está marcando (ver `nextStreakState`).
+ *
+ * `planId` es opcional solo por compatibilidad con clientes de #114 (que
+ * únicamente conocían el canónico); las pantallas nuevas siempre lo mandan.
  */
 export const markDayRead = mutation({
-  args: { day: v.number() },
+  args: { planId: v.optional(v.string()), day: v.number() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
     if (!user) {
       throw new ConvexError("No autenticado");
     }
-    const progress = await findProgress(ctx, user._id);
-    if (!progress) {
-      throw new ConvexError("No hay un plan activo — elegí un plan primero");
-    }
-    const plan = findReadingPlan(progress.planId);
+    const planId = args.planId ?? canonicalReadingPlan.id;
+    const plan = findReadingPlan(planId);
     if (!plan) {
-      throw new ConvexError(`Plan desconocido: ${progress.planId}`);
+      throw new ConvexError(`Plan desconocido: ${planId}`);
+    }
+    const progress = await findProgress(ctx, user._id, plan.id);
+    if (!progress) {
+      throw new ConvexError("Ese plan no está empezado — empezalo primero");
     }
     if (!Number.isInteger(args.day) || args.day < 1 || args.day > plan.totalDays) {
       throw new ConvexError(`day debe ser un entero entre 1 y ${plan.totalDays}`);
@@ -271,18 +327,22 @@ export const markDayRead = mutation({
   },
 });
 
-/** Borra el progreso de plan del usuario — cascada de borrado de cuenta (#107). */
+/**
+ * Borra el progreso de todos los planes del usuario — cascada de borrado de
+ * cuenta (#107). Desde #115 hay una fila por plan empezado, así que no puede
+ * ser `.unique()`. Las filas están acotadas por el tamaño del catálogo (una
+ * por plan soportado), así que entran holgadas en una sola pasada.
+ */
 export async function deleteReadingPlanDataForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
 ): Promise<{ deleted: number }> {
-  const existing = await ctx.db
+  const rows = await ctx.db
     .query("userPlanProgress")
     .withIndex("by_user", (q) => q.eq("userId", userId))
-    .unique();
-  if (!existing) {
-    return { deleted: 0 };
+    .collect();
+  for (const row of rows) {
+    await ctx.db.delete(row._id);
   }
-  await ctx.db.delete(existing._id);
-  return { deleted: 1 };
+  return { deleted: rows.length };
 }

@@ -12,25 +12,11 @@ import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingSta
 import { LimitReached } from "../../src/components/LimitReached";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { api } from "../../convex/_generated/api";
+import { FEELINGS } from "../../src/features/feelings/feelings";
+import { journeyCtaLabel, journeyForFeelings } from "../../src/features/reading/feelingJourneys";
+import { openReadingPlan } from "../../src/lib/openPassage";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
-
-const feelings = [
-  "Ansiedad",
-  "Duelo",
-  "Gratitud",
-  "Decisión difícil",
-  "Cansancio",
-  "Miedo",
-  "Soledad",
-  "Necesito perdonar",
-  "Deudas",
-  "Enojo",
-  "Mi familia",
-  "Enfermedad",
-  "Sin trabajo",
-  "Lejos de casa",
-] as const;
 
 type FeelingDevotional = {
   citation: { book: string; chapter: number; verse: number; version: string; text: string };
@@ -76,6 +62,11 @@ export default function SentirScreen() {
   const historicalDevotional =
     historicalConversation?.messages.find((message) => message.devotional)?.devotional ?? null;
   const activeDevotional = devotional ?? historicalDevotional;
+  // Puente al recorrido del mismo tema (#115). Solo para un devocional recién
+  // generado: los del historial no guardan qué sentimientos se eligieron, y
+  // los chips seleccionados en pantalla podrían no ser los de ese devocional.
+  const journey = devotional ? journeyForFeelings(selectedFeelings) : null;
+  const journeyPlan = useQuery(api.readingPlans.catalog, journey ? { planId: journey.planId } : "skip");
 
   const toggleFeeling = (feeling: string) => {
     setSelectedFeelings((current) =>
@@ -172,6 +163,15 @@ export default function SentirScreen() {
           <Text style={[styles.prayerKicker, { color: color.accent }]}>UNA ORACIÓN CORTA</Text>
           <Text style={[styles.prayer, { color: color.ink }]}>{activeDevotional.prayer}</Text>
         </View>
+        {journey && journeyPlan ? (
+          <AppButton
+            onPress={() => openReadingPlan(journeyPlan.id)}
+            testID="sentir-journey-cta"
+            variant="secondary"
+          >
+            {journeyCtaLabel(journeyPlan.totalDays, journey.topic)}
+          </AppButton>
+        ) : null}
         <AppButton onPress={() => void generateDevotional()} variant="secondary">
           Dame otro enfoque
         </AppButton>
@@ -290,7 +290,7 @@ export default function SentirScreen() {
         testID="sentir-panel"
       >
         <View accessibilityLabel="Selecciona uno o más sentimientos" style={styles.chips}>
-          {feelings.map((feeling) => {
+          {FEELINGS.map((feeling) => {
             const isSelected = selectedFeelings.includes(feeling);
 
             return (

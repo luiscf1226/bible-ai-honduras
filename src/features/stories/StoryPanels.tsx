@@ -1,7 +1,9 @@
 // Paneles visuales del visor; los estados de imagen viven en storyViewer.ts.
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { openPassage } from "../../lib/openPassage";
 import type { StoryCatalogItem } from "./contracts";
+import { parseStoryReference } from "./storyReference";
 import { resolveSceneImage, type StorySceneImages } from "./storyViewer";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
@@ -18,6 +20,9 @@ export function StoryViewer({ images = {}, story }: StoryViewerProps) {
     <View style={styles.panels} testID="story-viewer">
       {story.scenes.map((scene) => {
         const image = resolveSceneImage(scene.id, images);
+        // Puente al lector (#115): si la referencia no resuelve a un capítulo
+        // real, no hay botón — nunca un link roto.
+        const passage = parseStoryReference(scene.reference);
 
         return (
           <View
@@ -30,6 +35,17 @@ export function StoryViewer({ images = {}, story }: StoryViewerProps) {
               <Text style={[styles.sceneNumber, { color: color.accent }]}>ESCENA {scene.order}</Text>
               <Text style={[styles.narration, { color: color.ink }]}>{scene.narration}</Text>
               <Text style={[styles.reference, { color: color.inkMuted }]}>{scene.reference}</Text>
+              {passage ? (
+                <Pressable
+                  accessibilityHint={`Abre ${scene.reference} en el lector.`}
+                  accessibilityRole="button"
+                  onPress={() => openPassage(passage)}
+                  style={({ pressed }) => [styles.readLink, pressed && styles.pressed]}
+                  testID={`story-scene-read-${scene.id}`}
+                >
+                  <Text style={[styles.readLinkLabel, { color: color.accent }]}>Leer en la Biblia</Text>
+                </Pressable>
+              ) : null}
             </View>
           </View>
         );
@@ -124,4 +140,12 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.caption.size,
     lineHeight: tokens.type.caption.lineHeight,
   },
+  readLink: { alignSelf: "flex-start" },
+  // Mismo estilo que el enlace "Compartir esta historia" del visor.
+  readLinkLabel: {
+    fontFamily: tokens.font.sans,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+  },
+  pressed: { opacity: tokens.opacity.pressed },
 });

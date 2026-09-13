@@ -121,15 +121,30 @@ export default defineSchema({
       v.object({
         day: v.number(),
         // Puede ser más de una lectura por día (p. ej. 3-4 capítulos en el plan
-        // canónico repartidos parejo a lo largo del año).
-        readings: v.array(v.object({ book: v.string(), chapter: v.number() })),
+        // canónico repartidos parejo a lo largo del año). `verseStart`/`verseEnd`
+        // acotan la lectura a un pasaje (recorridos temáticos, #115); sin ellos
+        // es el capítulo completo. Campos opcionales: las filas ya sembradas del
+        // canónico siguen siendo válidas sin migración.
+        readings: v.array(
+          v.object({
+            book: v.string(),
+            chapter: v.number(),
+            verseStart: v.optional(v.number()),
+            verseEnd: v.optional(v.number()),
+          }),
+        ),
       }),
     ),
   }).index("by_plan_id", ["planId"]),
 
-  // Progreso de un usuario en un plan. Una fila por usuario (como
-  // `readingProgress`): en v1 solo hay un plan activo a la vez, no historial de
-  // planes abandonados.
+  // Progreso de un usuario en un plan. Una fila por (usuario, plan) desde #115:
+  // un recorrido corto se sigue a la par del plan anual sin pisarlo. No hay
+  // historial de intentos abandonados — reiniciar un plan reemplaza solo la
+  // fila de ese plan.
+  //
+  // Migración desde #114 (una fila por usuario): no hace falta backfill. Cada
+  // fila existente ya tiene `planId`, así que ya es una fila (usuario, plan)
+  // válida y `by_user_plan` la encuentra tal cual.
   userPlanProgress: defineTable({
     userId: v.id("users"),
     planId: v.string(),
@@ -146,7 +161,9 @@ export default defineSchema({
     // racha se calcula contra el calendario real, no contra el día del plan,
     // para que ponerse al día en una sola sesión no infle la racha.
     lastCompletedDate: v.optional(v.string()),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_plan", ["userId", "planId"]),
 
   // ── Transversales (#4 / quotas) ─────────────────────────
   usage: defineTable({

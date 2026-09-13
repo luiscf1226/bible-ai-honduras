@@ -9,7 +9,7 @@ import { AppScreen } from "../../../src/components/AppScreen";
 import { ChapterGrid } from "../../../src/components/ChapterGrid";
 import { PassageSearch } from "../../../src/components/PassageSearch";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
-import type { PassageQuery } from "../../../src/features/reading/bookSearch";
+import { openPassage } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -17,17 +17,6 @@ import { tokens } from "../../../src/theme/tokens";
  * Entrada del módulo de Lectura (#112). Buscar y leer son gratis: esta
  * pantalla no consulta cuotas ni muestra paywall.
  */
-export function openChapter(passage: PassageQuery) {
-  router.push({
-    pathname: "/leer/[book]/[chapter]",
-    params: {
-      book: passage.book,
-      chapter: String(passage.chapter),
-      ...(passage.verse === undefined ? {} : { verse: String(passage.verse) }),
-    },
-  });
-}
-
 export default function LeerScreen() {
   const { color } = useTheme();
   const [book, setBook] = useState<string | null>(null);
@@ -58,7 +47,7 @@ export default function LeerScreen() {
       </Text>
 
       {book ? (
-        <ChapterGrid book={book} onSelect={(chapter) => openChapter({ book, chapter })} />
+        <ChapterGrid book={book} onSelect={(chapter) => openPassage({ book, chapter })} />
       ) : (
         <>
           <Pressable
@@ -75,10 +64,24 @@ export default function LeerScreen() {
             <Text style={[styles.planLabel, { color: color.ink }]}>Génesis a Apocalipsis en 365 días</Text>
           </Pressable>
 
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/leer/recorridos")}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-journeys-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>RECORRIDOS</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Lecturas cortas por tema e historia</Text>
+          </Pressable>
+
           {progress ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => openChapter({ book: progress.book, chapter: progress.chapter })}
+              onPress={() => openPassage({ book: progress.book, chapter: progress.chapter })}
               style={({ pressed }) => [
                 styles.resumeCard,
                 { backgroundColor: color.surfaceAlt, borderColor: color.border },
@@ -100,7 +103,7 @@ export default function LeerScreen() {
                 <Pressable
                   accessibilityRole="button"
                   key={`${recent.book}-${recent.chapter}`}
-                  onPress={() => openChapter(recent)}
+                  onPress={() => openPassage(recent)}
                   style={[styles.savedRow, { borderColor: color.border }]}
                 >
                   <Text style={[styles.savedLabel, { color: color.ink }]}>{recent.book} {recent.chapter}</Text>
@@ -116,7 +119,7 @@ export default function LeerScreen() {
                 <Pressable
                   accessibilityRole="button"
                   key={`${bookmark.book}-${bookmark.chapter}-${bookmark.verse}`}
-                  onPress={() => openChapter(bookmark)}
+                  onPress={() => openPassage(bookmark)}
                   style={[styles.savedRow, { borderColor: color.border }]}
                 >
                   <Text style={[styles.savedLabel, { color: color.ink }]}>
@@ -129,7 +132,7 @@ export default function LeerScreen() {
 
           <PassageSearch
             onSelectBook={setBook}
-            onSelectPassage={openChapter}
+            onSelectPassage={openPassage}
             version={version}
           />
         </>
