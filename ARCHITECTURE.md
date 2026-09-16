@@ -68,7 +68,7 @@ importa más que cualquier ventaja teórica de un stack más granular.
 |---|---|---|
 | **Clerk** | Auth: Google, Apple, email. Emite un JWT que Convex valida | publishable key en la app; secret en Clerk |
 | **Anthropic (Claude Sonnet 5)** | Q&A, Voces, Sentimiento — los 3 módulos conversacionales | `ANTHROPIC_API_KEY`, **solo** en Convex |
-| **OpenAI** | Embeddings del RVR1960/comentarios e imágenes | `OPENAI_API_KEY`, **solo** en Convex |
+| **OpenAI** | Embeddings del texto bíblico/comentarios e imágenes | `OPENAI_API_KEY`, **solo** en Convex |
 | **RevenueCat** | Compra IAP + webhook de estado | SDK en la app; secret del webhook en Convex |
 
 **Ninguna clave de IA toca la app.** Si `ANTHROPIC_API_KEY` aparece en un archivo bajo
@@ -87,7 +87,7 @@ bible-ai-honduras/
 │   │   ├── index.tsx           # Home — devocional diario          #8
 │   │   ├── preguntar/          # Q&A guiado                        #12 #14
 │   │   ├── voces/              # personajes bíblicos               #17
-│   │   ├── historias/          # historias ilustradas              #25
+│   │   ├── historias/          # historias ilustradas + texto      #25 #145
 │   │   └── sentir/             # devocional por sentimiento        #27
 │   ├── paywall.tsx             #                                   #30
 │   └── ajustes.tsx             #                                   #34
@@ -113,7 +113,7 @@ bible-ai-honduras/
 │   ├── users.ts                # upsert de perfil desde el JWT    #3
 │   ├── rag/
 │   │   ├── embed.ts            # cliente de embeddings OpenAI (único lugar)
-│   │   ├── ingest.ts           # RVR1960 → chunks → embeddings     #5
+│   │   ├── ingest.ts           # texto bíblico → chunks → embed.  #5
 │   │   ├── commentary.ts       # comentarios evangélicos           #6
 │   │   ├── retrieve.ts         # vectorSearch + hidratación        #7
 │   │   ├── answer.ts           # Claude + verificación de cita     #7
@@ -150,7 +150,8 @@ export default defineSchema({
     clerkId: v.string(),                       // identity.subject del JWT
     email: v.optional(v.string()),
     name: v.optional(v.string()),
-    bibleVersion: v.union(v.literal("RVR1960"), v.literal("NVI")),
+    // Cuáles están realmente vivas lo decide convex/bibleVersions.ts
+    bibleVersion: v.union(v.literal("RV1909"), v.literal("RVR1960"), v.literal("NVI")),
     reminderHour: v.optional(v.number()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
@@ -427,6 +428,14 @@ aplica en `quotas.checkAndConsume("stories")` **antes** de agendar la generació
 después. Las imágenes se guardan en Convex file storage, no se regeneran al volver a ver
 la historia.
 
+**El carril barato — historias en texto (#145):** el mismo tab sirve, por defecto, un
+catálogo curado de narrativas de 2–3 páginas (`convex/textStoriesCatalog.ts` sobre
+`docs/content/historias-texto.json`, mismo patrón versionado que los planes de lectura y
+el devocional). Sin IA en runtime, sin auth y **sin `quotas.checkAndConsume`**: leer la
+Biblia en narrativa es gratis. `textStories:list` devuelve solo metadatos — el cuerpo de
+las páginas lo sirve `textStories:getById`. Las ilustradas siguen con cuota y paywall
+exactamente como arriba.
+
 ---
 
 ## 6. El puente Claude Design → código
@@ -497,8 +506,9 @@ conversacionales; pantallas listas → enganche de cuotas; `#30` listo → `#31`
    convence en pruebas, subir a `claude-opus-5` es cambiar un string; si el costo aprieta,
    `claude-haiku-4-5` ($1/$5) sirve para rutas simples como el devocional por sentimiento.
    La arquitectura no cambia en ningún caso. **Decidilo con tráfico real, no estimando.**
-4. **NVI** — licencia sin resolver. El esquema ya lleva `version` en `verses` y en el
-   filtro del índice, así que agregarla después no rompe nada.
+4. **RVR1960 / NVI** — licencia comercial sin resolver; la beta sale con RV1909. El
+   esquema ya lleva `version` en `verses` y en el filtro del índice, así que agregarlas
+   después no rompe nada. Qué versión está viva lo decide `convex/bibleVersions.ts`.
 5. **Push** — Expo Notifications directo vs. servicio aparte. Se decide en `#10`.
 
 ---

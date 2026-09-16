@@ -26,9 +26,10 @@ Sin `QA_HARNESS=1`, `metro.config.js` no cambia nada del build normal.
 | `expo-notifications` | permisos siempre concedidos |
 
 Los catálogos que se ven en pantalla **son los reales del repo**:
-`convex/voicesCatalog.ts` (Voces) y `convex/stories.ts` (Historias, extraído a
-`mocks/story-catalog.json`). El texto bíblico y las ilustraciones de historias
-son placeholders del harness.
+`convex/voicesCatalog.ts` (Voces), `convex/stories.ts` (Historias ilustradas,
+extraído a `mocks/story-catalog.json`) y `convex/textStoriesCatalog.ts`
+(Historias en texto, con su narrativa completa). El texto bíblico del lector y
+las ilustraciones de historias son placeholders del harness.
 
 ## Generar el reporte
 

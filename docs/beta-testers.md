@@ -58,26 +58,25 @@ deployment. Un tester no puede auto-otorgarse Pro.
 
 ---
 
-# Versión de la Biblia en la beta — solo RVR1960
+# Versión de la Biblia en la beta — una sola
 
-Contexto: #93 §4b. La beta sale **solo con RVR1960**. NVI sigue en el schema
-(`bibleVersion: "RVR1960" | "NVI"`) para no romper filas viejas, pero no hay
-corpus NVI ingerido y la licencia sigue sin resolver (`PRD.md` §6).
+Contexto: #93 §4a/§4b. Qué versiones están vivas lo manda
+`convex/bibleVersions.ts` (`AVAILABLE_BIBLE_VERSIONS`) — hoy, una sola. Las
+demás siguen en el schema para no romper filas viejas, pero no tienen corpus
+ingerido y su licencia sigue sin resolver (`PRD.md` §6). Para habilitar otra
+cuando exista corpus, agregarla a esa constante: eso reactiva la píldora de
+Ajustes y la recuperación de una sola vez.
 
-`convex/bibleVersions.ts` es la única fuente de verdad. Para reactivar NVI
-cuando exista corpus, agregarla a `AVAILABLE_BIBLE_VERSIONS` — eso reactiva la
-píldora de Ajustes y la recuperación de una sola vez.
+## Qué pasa hoy con un usuario en una versión sin corpus
 
-## Qué pasa hoy con un usuario en NVI
-
-- **Ajustes** muestra la píldora NVI deshabilitada, con «NVI todavía no está
-  disponible. Estamos resolviendo la licencia.»
-- **Guardar** NVI se coerce a RVR1960 (`users.updatePreferences`). Se coerce en
-  vez de lanzar para no romper builds ya instaladas en la beta.
-- **Leer** una preferencia NVI vieja degrada a RVR1960 antes de tocar el índice
+- **Ajustes** muestra la píldora deshabilitada, con «RVR1960 y NVI todavía no
+  están disponibles: son de licencia comercial.»
+- **Guardar** se coerce a la versión disponible (`users.updatePreferences`). Se
+  coerce en vez de lanzar para no romper builds ya instaladas en la beta.
+- **Leer** una preferencia vieja degrada antes de tocar el índice
   (`resolveBibleVersion`), en Preguntar, Voces, Sentir y `verses.citedForUser`.
 
-Sin esa degradación, un usuario en NVI recibía cero citas en los tres módulos —
+Sin esa degradación, ese usuario recibía cero citas en los tres módulos —
 sin error, solo «no encontré contenido relevante» para siempre.
 
 ## Migrar filas viejas

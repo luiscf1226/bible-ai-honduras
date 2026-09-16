@@ -1,3 +1,5 @@
+import { compactText, normalizeText } from "./normalizeText";
+
 export type Testament = "antiguo" | "nuevo";
 
 export type BibleBook = {
@@ -34,7 +36,7 @@ export const BIBLE_BOOKS: readonly BibleBook[] = [
   { name: "Nehemías", chapters: 13, testament: "antiguo", abbreviations: ["neh"] },
   { name: "Ester", chapters: 10, testament: "antiguo", abbreviations: ["est"] },
   { name: "Job", chapters: 42, testament: "antiguo", abbreviations: ["job"] },
-  { name: "Salmos", chapters: 150, testament: "antiguo", abbreviations: ["sal", "sl"] },
+  { name: "Salmos", chapters: 150, testament: "antiguo", abbreviations: ["sal", "sl", "salmo"] },
   { name: "Proverbios", chapters: 31, testament: "antiguo", abbreviations: ["pr", "pro"] },
   { name: "Eclesiastés", chapters: 12, testament: "antiguo", abbreviations: ["ec", "ecl"] },
   { name: "Cantares", chapters: 8, testament: "antiguo", abbreviations: ["cnt", "cant"] },
@@ -91,4 +93,48 @@ export function chaptersFor(book: string): number {
 /** Posición del libro en el canon; -1 si el nombre no es un libro conocido. */
 export function indexOfBook(book: string): number {
   return BIBLE_BOOKS.findIndex((entry) => entry.name === book);
+}
+
+/**
+ * Libro del canon a partir de lo que se escribió, sin acentos y sin importar
+ * mayúsculas ("exodo", "Éxodo", "ex" → Éxodo). El match es exacto (nombre
+ * completo o abreviatura completa): resolver un libro no puede adivinar.
+ */
+export function findBook(input: string): BibleBook | null {
+  const normalized = normalizeText(input);
+  if (normalized.length === 0) {
+    return null;
+  }
+  const compact = compactText(input);
+
+  const byName = BIBLE_BOOKS.find(
+    (book) => normalizeText(book.name) === normalized || compactText(book.name) === compact,
+  );
+  if (byName) {
+    return byName;
+  }
+
+  return BIBLE_BOOKS.find((book) => book.abbreviations.includes(compact)) ?? null;
+}
+
+/**
+ * Libro de una referencia editorial ("Génesis 6–9", "1 Samuel 17", "Daniel 6"):
+ * se recorta el capítulo (o rango) del final probando prefijos cada vez más
+ * cortos. null si la referencia no nombra un libro del canon — quien la use
+ * debe tratar ese caso, nunca asumir un testamento por defecto.
+ */
+export function bookFromReference(reference: string): BibleBook | null {
+  const words = reference.trim().split(/\s+/);
+  for (let end = words.length; end > 0; end -= 1) {
+    const book = findBook(words.slice(0, end).join(" "));
+    if (book) {
+      return book;
+    }
+  }
+  return null;
+}
+
+/** Testamento de una referencia editorial; null si el libro no es del canon. */
+export function testamentForReference(reference: string): Testament | null {
+  return bookFromReference(reference)?.testament ?? null;
 }

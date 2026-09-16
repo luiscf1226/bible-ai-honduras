@@ -1,6 +1,6 @@
 # Ingesta y reindexado del RAG
 
-El repositorio no distribuye el texto completo de RVR1960 ni comentarios de terceros. Ambos deben obtenerse por una vía autorizada y revisarse con el titular de derechos antes de copiarlos al proyecto o a Convex. El archivo local usado para la carga no debe agregarse a git.
+El repositorio no distribuye el texto bíblico completo ni comentarios de terceros. Ambos deben obtenerse por una vía autorizada y, si la versión no es de dominio público, revisarse con el titular de derechos antes de copiarlos al proyecto o a Convex. El archivo local usado para la carga no debe agregarse a git. Qué versiones están habilitadas hoy lo manda `convex/bibleVersions.ts`.
 
 ## Formato
 
@@ -11,15 +11,15 @@ Versículos: un arreglo JSON de 31.102 objetos `{ "book", "chapter", "verse", "t
 1. Configurar el deployment de Convex y `OPENAI_API_KEY` en ese deployment.
 2. Validar sin enviar datos:
 
-   `npm run rag:ingest -- --kind verses --file /ruta/licenciada/rvr1960.json --dry-run`
+   `npm run rag:ingest -- --kind verses --file /ruta/local/biblia.json --dry-run`
 
 3. Reindexar todo el corpus (desarrollo por defecto; agregar `--prod` para producción):
 
-   `npm run rag:ingest -- --kind verses --file /ruta/licenciada/rvr1960.json --batch-size 64`
+   `npm run rag:ingest -- --kind verses --file /ruta/local/biblia.json --batch-size 64`
 
 4. Si una ejecución se interrumpe, reanudar desde el número de lote mostrado:
 
-   `npm run rag:ingest -- --kind verses --file /ruta/licenciada/rvr1960.json --start-batch 120`
+   `npm run rag:ingest -- --kind verses --file /ruta/local/biblia.json --start-batch 120`
 
 La acción hace upsert por referencia, así que volver a ejecutar un lote no duplica filas. OpenAI recibe los textos del lote en una sola solicitud y la salida final informa filas, tokens, segundos y costo estimado. La estimación usa USD 0,02 por millón de tokens, tarifa publicada para `text-embedding-3-small` al 25-08-2026; confirmar la tarifa vigente antes de presupuestar.
 

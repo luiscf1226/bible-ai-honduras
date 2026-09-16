@@ -1,4 +1,5 @@
-import { BIBLE_BOOKS, chaptersFor, type BibleBook, type Testament } from "../../lib/bibleBooks";
+import { BIBLE_BOOKS, chaptersFor, findBook, type BibleBook, type Testament } from "../../lib/bibleBooks";
+import { compactText, normalizeText } from "../../lib/normalizeText";
 import { parseVerseRef } from "../../lib/parseVerseRef";
 
 /**
@@ -7,19 +8,7 @@ import { parseVerseRef } from "../../lib/parseVerseRef";
  * ir al servidor, que es lo que exige el criterio de "<100 ms" del issue.
  */
 
-/** minúsculas + sin tildes, conservando espacios. */
-export function normalizeText(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
-}
-
-/** normalizeText además sin espacios: "1 co" y "1co" son la misma cosa. */
-export function compactText(value: string): string {
-  return normalizeText(value).replace(/\s+/g, "");
-}
+export { compactText, normalizeText } from "../../lib/normalizeText";
 
 /**
  * ¿Este libro entra en el filtro? Se acepta por nombre (subcadena, para que
@@ -72,25 +61,11 @@ export function searchBookSections(query: string): BookSection[] {
 
 /**
  * Resuelve el nombre canónico de un libro a partir de lo que escribió la
- * persona. A diferencia del filtro, acá el match es exacto (nombre completo o
- * abreviatura completa): un salto por referencia no puede adivinar.
+ * persona. A diferencia del filtro de arriba, acá el match es exacto: ver
+ * `findBook` en `src/lib/bibleBooks.ts`, que es quien manda sobre el canon.
  */
 export function resolveBookName(input: string): string | null {
-  const normalized = normalizeText(input);
-  const compact = compactText(input);
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  const byName = BIBLE_BOOKS.find(
-    (book) => normalizeText(book.name) === normalized || compactText(book.name) === compact,
-  );
-  if (byName) {
-    return byName.name;
-  }
-
-  const byAbbreviation = BIBLE_BOOKS.find((book) => book.abbreviations.includes(compact));
-  return byAbbreviation?.name ?? null;
+  return findBook(input)?.name ?? null;
 }
 
 export type PassageQuery = {

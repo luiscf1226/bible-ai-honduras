@@ -1,6 +1,6 @@
 import { usePaginatedQuery } from "convex/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import {
@@ -12,6 +12,7 @@ import {
 import { highlightSegments } from "../features/reading/highlight";
 import { useTheme } from "../theme/ThemeProvider";
 import { tokens } from "../theme/tokens";
+import { SearchField } from "./SearchField";
 
 /**
  * Buscador de pasajes (#112). **Una sola implementación** para las dos
@@ -78,22 +79,14 @@ export function PassageSearch({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.searchBar, { backgroundColor: color.surface, borderColor: color.borderStrong }]}>
-        <Text style={[styles.searchIcon, { color: color.inkFaint }]}>⌕</Text>
-        <TextInput
-          accessibilityLabel="Buscar un pasaje"
-          autoCapitalize="none"
-          autoCorrect={false}
-          clearButtonMode="while-editing"
-          onChangeText={setQuery}
-          placeholder={placeholder}
-          placeholderTextColor={color.inkFaint}
-          returnKeyType="search"
-          style={[styles.searchInput, { color: color.ink }]}
-          testID="passage-search-input"
-          value={query}
-        />
-      </View>
+      <SearchField
+        accessibilityLabel="Buscar un pasaje"
+        onChangeText={setQuery}
+        placeholder={placeholder}
+        returnKeyType="search"
+        testID="passage-search-input"
+        value={query}
+      />
 
       {passage ? (
         <Pressable
@@ -211,17 +204,6 @@ export function PassageSearch({
 const styles = StyleSheet.create({
   container: { gap: tokens.space.xl },
   pressed: { opacity: tokens.opacity.pressed },
-  searchBar: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: tokens.space.sm,
-    paddingHorizontal: tokens.cardPadding.horizontal,
-    paddingVertical: tokens.space.md,
-  },
-  searchIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
-  searchInput: { flex: 1, fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size },
   jumpCard: {
     borderRadius: tokens.radius.lg,
     borderWidth: 1,

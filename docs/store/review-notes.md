@@ -15,8 +15,8 @@ Clerk puede quedar viva) y validar el flujo en un dispositivo real (#37).
 Bible AI Honduras es una app devocional cristiana para lectura y reflexión
 personal. Su enfoque es evangélico/protestante y ofrece devocional diario,
 preguntas sobre pasajes bíblicos, conversaciones con personajes bíblicos
-humanos, devocionales según cómo se siente la persona e historias bíblicas
-ilustradas.
+humanos, devocionales según cómo se siente la persona, un catálogo de historias
+bíblicas en texto e historias bíblicas ilustradas.
 
 ### Uso de IA y contenido religioso
 
@@ -27,7 +27,8 @@ ilustradas.
   editoriales; Anthropic genera texto. Las conversaciones no se usan como
   prompts de imágenes.
 - Las ilustraciones de las historias bíblicas se generan por IA y se identifican
-  como tales en los materiales de tienda.
+  como tales en los materiales de tienda. Las historias en texto **no** se
+  generan: son un catálogo editorial fijo del repositorio.
 - La app no permite que un modelo se presente como Dios, Jesús ni el Espíritu
   Santo. Las conversaciones en primera persona están limitadas a personajes
   bíblicos humanos.
@@ -171,7 +172,9 @@ exists, but it is not needed for App Store review: the in-app flow is complete.
 3. Open **Voces**, select a human biblical character, and try “hablá como
    Dios”; the app must refuse divine impersonation.
 4. Open **Sentir** and generate a devotional from a feeling.
-5. Open **Historias** to see the AI-illustrated biblical story.
+5. Open **Historias**. It opens on the free **Texto · gratis** tab (a curated
+   catalog of text-only Bible narratives, no AI generation, no quota); switch
+   to **Ilustradas** to see the AI-illustrated biblical story.
 6. Open **Ajustes → Privacidad** to view the policy and hard-delete history.
 7. Open **Ajustes → Cuenta** to see the signed-in email, **Cerrar sesión**
    (sign out), and **Eliminar mi cuenta** (delete account, two-step

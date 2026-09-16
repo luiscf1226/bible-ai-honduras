@@ -43,7 +43,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 2. **Q&A bíblico guiado (RAG), híbrido.** Flujo principal: el usuario **elige libro → selecciona capítulo/versículo(s) → hace preguntas sobre ese pasaje específico**. También se permite pregunta libre sin seleccionar pasaje primero, para quien solo quiere preguntar directo. La IA responde citando el texto y comentarios verificados en ambos casos. Gratis: 3-5 preguntas/día. Pro: ilimitado.
 3. **Chat con personaje bíblico, con avatar.** El usuario **elige de una lista** con qué personaje quiere hablar. 1ra persona, **solo personajes humanos** (Moisés, David, Pablo, Ester, etc.), cada uno con un avatar/ilustración visual propio en el chat. **Excluido explícitamente:** Jesús, Dios, Espíritu Santo — de estos se habla en 3ra persona, nunca se encarnan. Línea de producto dura, no sugerencia de diseño. Gratis: limitado. Pro: ilimitado.
 4. **Devocional personalizado por sentimiento/problema o día de la persona.** El usuario indica cómo se siente, qué problema tiene, o cómo estuvo su día (ansiedad, duelo, decisión difícil, gratitud, etc.) y la IA genera un devocional a la medida (versículo + reflexión, ligado al mismo RAG del módulo 2, no opinión libre). **Freemium** — gratis con límite (mismo patrón que el módulo 2), Pro lo desbloquea ilimitado. Mecanismo de retención principal: la razón de que el usuario no necesite abrir otra app cuando algo le pasa, y por lo que vuelve.
-5. **Generador de historias bíblicas ilustradas (Pro, con muestra gratis).** Genera imágenes estáticas de una historia bíblica (tipo libro ilustrado). **Solo imágenes en v1, sin video** (queda para v2). Usuarios gratis reciben **un (1) ejemplo generado como muestra** (prueba-antes-de-pagar), no uso ilimitado — controla el costo de generación en el tier gratis mientras sigue funcionando como gancho de conversión a Pro.
+5. **Generador de historias bíblicas ilustradas (Pro, con muestra gratis).** Genera imágenes estáticas de una historia bíblica (tipo libro ilustrado). **Solo imágenes en v1, sin video** (queda para v2). Usuarios gratis reciben **un (1) ejemplo generado como muestra** (prueba-antes-de-pagar), no uso ilimitado — controla el costo de generación en el tier gratis mientras sigue funcionando como gancho de conversión a Pro. El mismo módulo abre, por defecto, en un **catálogo curado de historias bíblicas en texto (2–3 páginas, gratis y sin límite)**, con puentes al lector, a Preguntar y a Voces: da algo que leer a quien no paga y sostiene el módulo cuando la muestra ilustrada ya se consumió.
 
 ### Fuera de alcance para v1 (explícito)
 - Generación de video (solo imágenes estáticas en el módulo 5).
@@ -58,7 +58,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 
 - **Tradición doctrinal:** evangélica/protestante genérica. Canon de 66 libros.
 - **Modelo de IA:** RAG anclado — la IA no genera opinión teológica libre; responde citando versículos y comentarios de fuentes evangélicas de dominio público/licenciadas (ej. Matthew Henry).
-- **Versiones bíblicas soportadas:** RVR1960 y NVI, seleccionables por el usuario. (Nota: verificar licencia de uso de NVI antes de construir — RVR1960 es más seguro en términos de licencia.)
+- **Versiones bíblicas soportadas:** la lista real la manda `convex/bibleVersions.ts` (`AVAILABLE_BIBLE_VERSIONS`), no este documento. Hoy: solo **RV1909**, de dominio público. RVR1960 y NVI son de licencia comercial sin resolver y quedan fuera hasta que haya corpus ingerido.
 - **Revisión de contenido:** **sin revisor teológico externo.** Mitigación es solo vía system prompt/guías internas + disclaimers en la app ("esto no sustituye consejo pastoral", "la IA puede cometer errores"). **Riesgo aceptado conscientemente** — ver sección de riesgos.
 - **Límite duro en personajes:** solo humanos en 1ra persona (ver sección 4, punto 3). Esta regla existe específicamente para evitar el escenario de mayor daño reputacional (percepción de blasfemia).
 
@@ -74,6 +74,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 | Q&A bíblico guiado por pasaje | 3-5 preguntas/día | Ilimitado |
 | Chat con personajes bíblicos (avatar) | Limitado | Ilimitado |
 | Devocional por sentimiento/problema/día | Limitado (mismo patrón que Q&A) | Ilimitado |
+| Historias bíblicas en texto (catálogo curado) | Sin límite | Sin límite |
 | Generador de historias ilustradas | 1 ejemplo (muestra única) | Ilimitado |
 
 ### Pagos
@@ -88,7 +89,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 - **App:** Expo / React Native, iOS + Android.
 - **Constructor:** una persona, apoyada en agentes de IA (Claude Code y similares).
 - **Pagos:** RevenueCat.
-- **Contenido bíblico:** RVR1960 + NVI (confirmar licencias).
+- **Contenido bíblico:** versión única en la beta; el dueño del dato es `convex/bibleVersions.ts` (ver §5).
 - **LLM:** un solo proveedor de modelo de lenguaje cubre Q&A, chat de personajes y devocional por sentimiento (los 3 módulos conversacionales comparten el mismo RAG).
 - **Generación de imágenes (módulo 5):** proveedor a definir en fase de diseño/build. El límite de "1 ejemplo gratis" acota el costo de generación en el tier gratis; factorizar costo por generación en el margen de los usuarios Pro.
 
@@ -150,7 +151,7 @@ Visión confirmada por el fundador, **no descartada, solo pospuesta**: grupos p�
 | Comisión de tienda (IAP) | Aceptada a cambio de simplicidad de implementación (RevenueCat) | Reduce el ingreso neto real por debajo de $4.99 x 1,200. |
 | Baja penetración de tarjeta/cuenta de pago en Honduras | No resuelto — usar IAP igual en v1 | Puede limitar conversión real; monitorear tasa de fallo de pago post-lanzamiento. |
 | Alcance de 4 features completas en 8-10 semanas, un solo builder | Aceptado explícitamente por el fundador | Mayor riesgo de calendario; recortado ya a lo esencial dentro de cada feature (sin video, sin multi-denominación, sin revisor externo) para intentar caber en el plazo. |
-| Licencia de NVI | Pendiente de verificar | RVR1960 es la opción segura si NVI no es viable por licencia. |
+| Licencia de RVR1960 / NVI | Pendiente de verificar; la beta arranca con RV1909 | RV1909 es de dominio público y evita el bloqueo. Habilitar otra versión = ingerir corpus + agregarla a `convex/bibleVersions.ts`. |
 | Canal de adquisición 100% orgánico | Aceptado | Sin plan B de presupuesto confirmado si el ritmo orgánico no alcanza la meta. |
 
 ---
@@ -172,5 +173,5 @@ Visión confirmada por el fundador, **no descartada, solo pospuesta**: grupos p�
 
 1. Pasar este PRD a fase de diseño (Claude Design) para producir pantallas y sistema de diseño.
 2. Confirmar proveedor de generación de imágenes y modelar costo real por usuario Pro.
-3. Verificar licencia de uso de NVI (o confirmar RVR1960 como única fuente v1).
+3. Verificar licencia de uso de RVR1960 / NVI (RV1909 ya cubre v1 como única fuente).
 4. Definir el número exacto de meta de retención a mes 2 antes del lanzamiento.
