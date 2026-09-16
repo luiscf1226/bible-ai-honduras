@@ -189,9 +189,10 @@ export const requireAiConsent = query({
 });
 
 /**
- * Devuelve a RVR1960 a los usuarios que alcanzaron a elegir NVI antes de que
- * se desactivara — #93 §4b. Sin esto quedan con una preferencia que la lectura
- * degrada en cada request pero que sigue guardada como NVI.
+ * Devuelve a `DEFAULT_BIBLE_VERSION` a los usuarios que alcanzaron a elegir
+ * una versión sin corpus antes de que se desactivara — #93 §4b. Sin esto
+ * quedan con una preferencia que la lectura degrada en cada request pero que
+ * sigue guardada sin corpus.
  *
  *   npx convex run users:migrateUnavailableBibleVersions '{}'
  */

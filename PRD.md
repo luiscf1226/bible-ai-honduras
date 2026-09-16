@@ -58,7 +58,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 
 - **Tradición doctrinal:** evangélica/protestante genérica. Canon de 66 libros.
 - **Modelo de IA:** RAG anclado — la IA no genera opinión teológica libre; responde citando versículos y comentarios de fuentes evangélicas de dominio público/licenciadas (ej. Matthew Henry).
-- **Versiones bíblicas soportadas:** RVR1960 y NVI, seleccionables por el usuario. (Nota: verificar licencia de uso de NVI antes de construir — RVR1960 es más seguro en términos de licencia.)
+- **Versiones bíblicas soportadas:** la lista real la manda `convex/bibleVersions.ts` (`AVAILABLE_BIBLE_VERSIONS`), no este documento. Hoy: solo **RV1909**, de dominio público. RVR1960 y NVI son de licencia comercial sin resolver y quedan fuera hasta que haya corpus ingerido.
 - **Revisión de contenido:** **sin revisor teológico externo.** Mitigación es solo vía system prompt/guías internas + disclaimers en la app ("esto no sustituye consejo pastoral", "la IA puede cometer errores"). **Riesgo aceptado conscientemente** — ver sección de riesgos.
 - **Límite duro en personajes:** solo humanos en 1ra persona (ver sección 4, punto 3). Esta regla existe específicamente para evitar el escenario de mayor daño reputacional (percepción de blasfemia).
 
@@ -89,7 +89,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 - **App:** Expo / React Native, iOS + Android.
 - **Constructor:** una persona, apoyada en agentes de IA (Claude Code y similares).
 - **Pagos:** RevenueCat.
-- **Contenido bíblico:** RVR1960 + NVI (confirmar licencias).
+- **Contenido bíblico:** versión única en la beta; el dueño del dato es `convex/bibleVersions.ts` (ver §5).
 - **LLM:** un solo proveedor de modelo de lenguaje cubre Q&A, chat de personajes y devocional por sentimiento (los 3 módulos conversacionales comparten el mismo RAG).
 - **Generación de imágenes (módulo 5):** proveedor a definir en fase de diseño/build. El límite de "1 ejemplo gratis" acota el costo de generación en el tier gratis; factorizar costo por generación en el margen de los usuarios Pro.
 
@@ -151,7 +151,7 @@ Visión confirmada por el fundador, **no descartada, solo pospuesta**: grupos p�
 | Comisión de tienda (IAP) | Aceptada a cambio de simplicidad de implementación (RevenueCat) | Reduce el ingreso neto real por debajo de $4.99 x 1,200. |
 | Baja penetración de tarjeta/cuenta de pago en Honduras | No resuelto — usar IAP igual en v1 | Puede limitar conversión real; monitorear tasa de fallo de pago post-lanzamiento. |
 | Alcance de 4 features completas en 8-10 semanas, un solo builder | Aceptado explícitamente por el fundador | Mayor riesgo de calendario; recortado ya a lo esencial dentro de cada feature (sin video, sin multi-denominación, sin revisor externo) para intentar caber en el plazo. |
-| Licencia de NVI | Pendiente de verificar | RVR1960 es la opción segura si NVI no es viable por licencia. |
+| Licencia de RVR1960 / NVI | Pendiente de verificar; la beta arranca con RV1909 | RV1909 es de dominio público y evita el bloqueo. Habilitar otra versión = ingerir corpus + agregarla a `convex/bibleVersions.ts`. |
 | Canal de adquisición 100% orgánico | Aceptado | Sin plan B de presupuesto confirmado si el ritmo orgánico no alcanza la meta. |
 
 ---
@@ -173,5 +173,5 @@ Visión confirmada por el fundador, **no descartada, solo pospuesta**: grupos p�
 
 1. Pasar este PRD a fase de diseño (Claude Design) para producir pantallas y sistema de diseño.
 2. Confirmar proveedor de generación de imágenes y modelar costo real por usuario Pro.
-3. Verificar licencia de uso de NVI (o confirmar RVR1960 como única fuente v1).
+3. Verificar licencia de uso de RVR1960 / NVI (RV1909 ya cubre v1 como única fuente).
 4. Definir el número exacto de meta de retención a mes 2 antes del lanzamiento.

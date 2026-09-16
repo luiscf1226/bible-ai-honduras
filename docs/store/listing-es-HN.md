@@ -21,6 +21,7 @@ Bible AI Honduras reúne en un solo lugar:
 • preguntas sobre la Biblia con referencias visibles;  
 • conversaciones educativas con personajes bíblicos humanos;  
 • devocionales según cómo te sentís;  
+• historias bíblicas para leer, gratis y sin límite;  
 • historias bíblicas ilustradas con inteligencia artificial;  
 • recordatorios y preferencias de lectura;  
 • controles para revisar y borrar tu historial, cerrar sesión o eliminar tu cuenta.
@@ -33,7 +34,8 @@ La experiencia tiene un enfoque cristiano evangélico/protestante. Las
 conversaciones en primera persona se limitan a personajes bíblicos humanos: la
 IA no se presenta como Dios, Jesús ni el Espíritu Santo.
 
-Podés comenzar con el plan gratis. Bible AI Honduras Pro amplía el acceso a
+Podés comenzar con el plan gratis, que incluye el catálogo de historias
+bíblicas en texto sin límite. Bible AI Honduras Pro amplía el acceso a
 preguntas, conversaciones, devocionales e historias ilustradas mediante una
 suscripción dentro de la app. El precio y las condiciones se muestran antes de
 confirmar la compra; podés restaurar compras desde la app y administrar o
@@ -45,8 +47,8 @@ https://luiscf1226.github.io/bible-ai-honduras/privacidad/
 ## Google Play
 
 - **Nombre (17/30):** `Bible AI Honduras`
-- **Descripción corta (63/80):**
-  `Devocionales, preguntas bíblicas e historias ilustradas con IA.`
+- **Descripción corta (64/80):**
+  `Devocionales y preguntas bíblicas con IA, e historias para leer.`
 - **Descripción completa:** usar la misma descripción de App Store.
 
 Google Play no ofrece un campo de keywords separado. Usar el texto con
@@ -60,3 +62,5 @@ naturalidad, sin repetir palabras ni agregar afirmaciones no verificadas.
   en las dos tiendas.
 - No se promete exactitud teológica ni atención pastoral.
 - Se declara IA en texto e ilustraciones y se explica el límite de Voces.
+- Las historias en texto se anuncian como gratis y **sin** atribuirlas a IA: son
+  un catálogo curado (`docs/content/historias-texto.json`), no generación.

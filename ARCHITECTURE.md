@@ -68,7 +68,7 @@ importa más que cualquier ventaja teórica de un stack más granular.
 |---|---|---|
 | **Clerk** | Auth: Google, Apple, email. Emite un JWT que Convex valida | publishable key en la app; secret en Clerk |
 | **Anthropic (Claude Sonnet 5)** | Q&A, Voces, Sentimiento — los 3 módulos conversacionales | `ANTHROPIC_API_KEY`, **solo** en Convex |
-| **OpenAI** | Embeddings del RVR1960/comentarios e imágenes | `OPENAI_API_KEY`, **solo** en Convex |
+| **OpenAI** | Embeddings del texto bíblico/comentarios e imágenes | `OPENAI_API_KEY`, **solo** en Convex |
 | **RevenueCat** | Compra IAP + webhook de estado | SDK en la app; secret del webhook en Convex |
 
 **Ninguna clave de IA toca la app.** Si `ANTHROPIC_API_KEY` aparece en un archivo bajo
@@ -113,7 +113,7 @@ bible-ai-honduras/
 │   ├── users.ts                # upsert de perfil desde el JWT    #3
 │   ├── rag/
 │   │   ├── embed.ts            # cliente de embeddings OpenAI (único lugar)
-│   │   ├── ingest.ts           # RVR1960 → chunks → embeddings     #5
+│   │   ├── ingest.ts           # texto bíblico → chunks → embed.  #5
 │   │   ├── commentary.ts       # comentarios evangélicos           #6
 │   │   ├── retrieve.ts         # vectorSearch + hidratación        #7
 │   │   ├── answer.ts           # Claude + verificación de cita     #7
@@ -150,7 +150,8 @@ export default defineSchema({
     clerkId: v.string(),                       // identity.subject del JWT
     email: v.optional(v.string()),
     name: v.optional(v.string()),
-    bibleVersion: v.union(v.literal("RVR1960"), v.literal("NVI")),
+    // Cuáles están realmente vivas lo decide convex/bibleVersions.ts
+    bibleVersion: v.union(v.literal("RV1909"), v.literal("RVR1960"), v.literal("NVI")),
     reminderHour: v.optional(v.number()),
     referralCode: v.string(),
   }).index("by_clerk_id", ["clerkId"]),
@@ -505,8 +506,9 @@ conversacionales; pantallas listas → enganche de cuotas; `#30` listo → `#31`
    convence en pruebas, subir a `claude-opus-5` es cambiar un string; si el costo aprieta,
    `claude-haiku-4-5` ($1/$5) sirve para rutas simples como el devocional por sentimiento.
    La arquitectura no cambia en ningún caso. **Decidilo con tráfico real, no estimando.**
-4. **NVI** — licencia sin resolver. El esquema ya lleva `version` en `verses` y en el
-   filtro del índice, así que agregarla después no rompe nada.
+4. **RVR1960 / NVI** — licencia comercial sin resolver; la beta sale con RV1909. El
+   esquema ya lleva `version` en `verses` y en el filtro del índice, así que agregarlas
+   después no rompe nada. Qué versión está viva lo decide `convex/bibleVersions.ts`.
 5. **Push** — Expo Notifications directo vs. servicio aparte. Se decide en `#10`.
 
 ---
