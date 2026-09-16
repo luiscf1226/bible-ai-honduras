@@ -1,0 +1,769 @@
+{
+  "version": 1,
+  "description": "Catálogo curado de historias bíblicas en texto (2–3 páginas). Canon protestante; copy en español. No generado en runtime por IA.",
+  "stories": [
+    {
+      "id": "creacion",
+      "title": "La creación",
+      "summary": "Dios crea el cielo, la tierra y al ser humano a su imagen.",
+      "reference": "Génesis 1–2",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 1,
+      "pages": [
+        "Al principio, Dios creó los cielos y la tierra. Sobre un mundo vacío y en tinieblas, el Espíritu de Dios se movía. Dios habló: «Sea la luz», y hubo luz. Separó día y noche, aguas y firmamento, tierra seca y mares. Hizo brotar hierba, árboles y toda semilla según su especie (Génesis 1:1–13).",
+        "Creó el sol, la luna y las estrellas para señalar tiempos. Llenó las aguas de peces y el cielo de aves; la tierra, de animales. Al final formó al hombre y a la mujer a su imagen, y les dio cuidado sobre lo creado. Vio Dios todo lo que había hecho, y he aquí que era bueno en gran manera (Génesis 1:14–31).",
+        "En el jardín de Edén, Dios formó al hombre del polvo y sopló en su nariz aliento de vida. Plantó un huerto y puso allí al hombre para labrarlo y guardarlo. De la costilla formó a la mujer como ayuda idónea. Así quedó establecido el matrimonio: los dos serán una sola carne (Génesis 2:7–24)."
+      ]
+    },
+    {
+      "id": "la-caida",
+      "title": "La caída",
+      "summary": "Adán y Eva desobedecen y el pecado entra en el mundo.",
+      "reference": "Génesis 3",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 3,
+      "pages": [
+        "La serpiente engañó a la mujer: «¿Conque Dios os ha dicho…?» Eva vio que el fruto era bueno, lo tomó y comió; también dio a su marido, y él comió. Se abrieron los ojos de ambos y conocieron que estaban desnudos; se cosieron hojas de higuera (Génesis 3:1–7).",
+        "Oyeron la voz de Jehová que se paseaba en el huerto y se escondieron. Dios preguntó: «¿Dónde estás tú?» Adán culpó a Eva; Eva, a la serpiente. Dios pronunció juicio sobre la serpiente, sobre la mujer y sobre el hombre: dolor, trabajo y muerte entrarían al mundo (Génesis 3:8–19).",
+        "Jehová hizo túnicas de pieles y vistió a Adán y a su mujer. Los echó del Edén para que no tomaran del árbol de la vida. Querubines y una espada encendida guardaron el camino. Aun en el juicio, Dios proveyó cobertura (Génesis 3:21–24)."
+      ]
+    },
+    {
+      "id": "cain-y-abel",
+      "title": "Caín y Abel",
+      "summary": "El primer homicidio: el pecado crece entre hermanos.",
+      "reference": "Génesis 4",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 4,
+      "pages": [
+        "Eva dio a luz a Caín y luego a Abel. Abel era pastor; Caín, labrador. Con el tiempo, Caín trajo del fruto de la tierra; Abel, de los primogénitos de sus ovejas. Jehová miró con agrado a Abel y a su ofrenda, pero no a la de Caín (Génesis 4:1–5).",
+        "Caín se enojó. Dios le advirtió: «Si bien hicieres, ¿no serás enaltecido? Y si no… el pecado está a la puerta.» Caín habló con Abel y lo mató en el campo. Jehová preguntó: «¿Dónde está Abel tu hermano?» Caín respondió: «¿Soy yo guarda de mi hermano?» (Génesis 4:6–9).",
+        "La sangre de Abel clamaba desde la tierra. Caín quedó marcado y errante, pero Dios le puso señal para que nadie lo matara. Así se muestra lo temprano que el pecado destroza la familia (Génesis 4:10–15)."
+      ]
+    },
+    {
+      "id": "arca-de-noe",
+      "title": "El arca de Noé",
+      "summary": "Dios preserva a Noé y su familia en el diluvio.",
+      "reference": "Génesis 6–9",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 6,
+      "pages": [
+        "Vio Jehová que la maldad del hombre era mucha, y se arrepintió de haberlo hecho. Pero Noé halló gracia. Dios le mandó construir un arca de madera de gofer, con medidas precisas, porque traería un diluvio sobre la tierra (Génesis 6:5–22).",
+        "Noé, su familia y parejas de animales entraron al arca. Las fuentes del grande abismo y las ventanas de los cielos se abrieron. Las aguas crecieron y cubrieron los montes. Solo quedó lo que estaba en el arca (Génesis 7:1–24).",
+        "Dios se acordó de Noé. Las aguas menguaron; una paloma volvió con hoja de olivo. Salieron a tierra seca. Noé edificó altar; Dios puso el arco iris como señal de su pacto con toda criatura (Génesis 8–9)."
+      ]
+    },
+    {
+      "id": "torre-de-babel",
+      "title": "La torre de Babel",
+      "summary": "La humanidad unida en orgullo es dispersada por Dios.",
+      "reference": "Génesis 11",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 11,
+      "pages": [
+        "Toda la tierra era de una lengua. En Sinar dijeron: «Vamos, edifiquémonos una ciudad y una torre cuya cúspide llegue al cielo, y hagamos un nombre.» Usaron ladrillo y betún (Génesis 11:1–4).",
+        "Descendió Jehová a ver la ciudad y la torre. «He aquí el pueblo es uno… nada les retraerá.» Confundió su lengua para que no se entendieran, y los dispersó por toda la tierra. Por eso se llamó Babel (Génesis 11:5–9).",
+        "El relato advierte contra el orgullo colectivo que busca gloria propia en lugar de la de Dios. De esa dispersión saldrán las naciones entre las que Dios llamará a Abram."
+      ]
+    },
+    {
+      "id": "llamado-de-abram",
+      "title": "El llamado de Abram",
+      "summary": "Dios llama a Abram a salir y le promete una nación.",
+      "reference": "Génesis 12",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 12,
+      "pages": [
+        "Jehová dijo a Abram: «Vete de tu tierra y de tu parentela… a la tierra que te mostraré. Haré de ti una nación grande… y serán benditas en ti todas las familias de la tierra.» Abram salió como Jehová le dijo (Génesis 12:1–4).",
+        "Tenía setenta y cinco años cuando salió de Harán con Sarai, Lot y cuanto habían ganado. Pasaron a Canaán. Jehová se apareció: «A tu descendencia daré esta tierra.» Abram edificó altar (Génesis 12:4–7).",
+        "Hubo hambre y bajó a Egipto. Por miedo dijo que Sarai era su hermana. Faraón la tomó, pero Dios hirió su casa. Abram salió rico, y el incidente muestra tanto su fe como su debilidad (Génesis 12:10–20)."
+      ]
+    },
+    {
+      "id": "pacto-con-abraham",
+      "title": "El pacto con Abraham",
+      "summary": "Dios sella su promesa con Abram y cambia su nombre.",
+      "reference": "Génesis 15–17",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 15,
+      "pages": [
+        "Abram dijo: «Señor Jehová, ¿qué me has de dar, pues ando sin hijo?» Dios lo sacó fuera: «Mira ahora los cielos… así será tu descendencia.» Y creyó Abram a Jehová, y le fue contado por justicia (Génesis 15:1–6).",
+        "Dios hizo pacto: la tierra desde el río de Egipto hasta el Éufrates. Años después confirmó la promesa: Abram sería Abraham, padre de muchedumbre; Sarai sería Sara. La señal del pacto fue la circuncisión (Génesis 17:1–14).",
+        "Dios prometió un hijo de Sara: Isaac. Abraham se rió, pero creyó. El pacto no descansa en la fuerza de Abraham, sino en la fidelidad de Dios (Génesis 17:15–21)."
+      ]
+    },
+    {
+      "id": "isaac-en-el-monte",
+      "title": "Isaac en el monte",
+      "summary": "Abraham obedece hasta el límite; Dios provee el carnero.",
+      "reference": "Génesis 22",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 22,
+      "pages": [
+        "Dios probó a Abraham: «Toma ahora a tu hijo, tu único, Isaac… y ofrécelo en holocausto.» Abraham madrugó, tomó leña y fue al lugar que Dios le dijo (Génesis 22:1–3).",
+        "Isaac preguntó: «He aquí el fuego y la leña; mas ¿dónde está el cordero?» Abraham respondió: «Dios se proveerá de cordero.» Ató a Isaac sobre el altar y tomó el cuchillo (Génesis 22:6–10).",
+        "El ángel de Jehová lo detuvo. Abraham alzó los ojos y vio un carnero trabado en un zarzal. Lo ofreció en lugar de su hijo. Llamó al lugar Jehová-jireh: «En el monte de Jehová será proveído» (Génesis 22:11–14)."
+      ]
+    },
+    {
+      "id": "jacob-y-esau",
+      "title": "Jacob y Esaú",
+      "summary": "La primogenitura, el engaño y la reconciliación.",
+      "reference": "Génesis 25; 27; 33",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 25,
+      "pages": [
+        "Rebeca dio a luz mellizos: Esaú, cazador, y Jacob, hombre quieto. Esaú vendió su primogenitura por un plato de lentejas. Más tarde, con ayuda de Rebeca, Jacob engañó a Isaac y recibió la bendición (Génesis 25:19–34; 27).",
+        "Esaú juró matar a Jacob. Jacob huyó a Harán. En Bet-el soñó una escalera hasta el cielo y Dios renovó la promesa de Abraham. Jacob prometió: «Jehová será mi Dios» (Génesis 27:41–28:22).",
+        "Años después Jacob temió el encuentro con Esaú. Luchó con un varón hasta el alba y fue llamado Israel. Esaú corrió a abrazarlo. La gracia de Dios alcanzó también la reconciliación entre hermanos (Génesis 32–33)."
+      ]
+    },
+    {
+      "id": "jose-en-egipto",
+      "title": "José en Egipto",
+      "summary": "De la cisterna al palacio: Dios vuelve el mal en bien.",
+      "reference": "Génesis 37–50",
+      "testament": "antiguo",
+      "book": "Génesis",
+      "chapter": 37,
+      "pages": [
+        "Israel amaba a José más que a sus hermanos y le dio una túnica de diversos colores. José soñó que ellos se inclinaban ante él. Por envidia lo echaron a una cisterna y lo vendieron a mercaderes ismaelitas (Génesis 37).",
+        "En Egipto sirvió a Potifar; la mujer de su amo lo acusó en falso y lo echaron a la cárcel. Allí interpretó sueños. Faraón soñó vacas y espigas; José habló de siete años de abundancia y siete de hambre, y fue puesto sobre toda la tierra (Génesis 39–41).",
+        "Sus hermanos bajaron a comprar grano. José los probó, se dio a conocer y lloró. «Vosotros pensasteis mal… mas Dios lo encaminó a bien.» Jacob bajó a Egipto; la familia se preservó (Génesis 42–50)."
+      ]
+    },
+    {
+      "id": "nacimiento-de-moises",
+      "title": "El nacimiento de Moisés",
+      "summary": "Un bebé salvado del Nilo para liberar a un pueblo.",
+      "reference": "Éxodo 1–2",
+      "testament": "antiguo",
+      "book": "Éxodo",
+      "chapter": 2,
+      "voiceSlug": "moises",
+      "pages": [
+        "Un nuevo faraón que no conocía a José oprimió a Israel. Mandó echar al río a todo niño hebreo. Una mujer de Leví escondió a su hijo tres meses y luego lo puso en una arquilla entre los juncos (Éxodo 1–2:3).",
+        "La hija de Faraón lo halló y tuvo compasión. La hermana del niño ofreció una nodriza hebrea: la propia madre. El niño creció y fue llamado Moisés, porque «de las aguas lo saqué» (Éxodo 2:5–10).",
+        "Ya adulto, Moisés mató a un egipcio que golpeaba a un hebreo y huyó a Madián. Allí se casó y cuidó ovejas, mientras el pueblo gemía en Egipto y su clamor subió a Dios (Éxodo 2:11–25)."
+      ]
+    },
+    {
+      "id": "zarza-ardiente",
+      "title": "La zarza ardiente",
+      "summary": "Dios llama a Moisés desde el fuego que no se consume.",
+      "reference": "Éxodo 3–4",
+      "testament": "antiguo",
+      "book": "Éxodo",
+      "chapter": 3,
+      "voiceSlug": "moises",
+      "pages": [
+        "Moisés pastoreaba el rebaño de Jetro y llegó al monte de Dios, a Horeb. Vio una zarza que ardía y no se consumía. Se acercó y Dios lo llamó: «Moisés, Moisés… quita tu calzado, porque el lugar en que estás es tierra santa» (Éxodo 3:1–5).",
+        "«Yo soy el Dios de tu padre… he visto la aflicción de mi pueblo.» Lo envió a Faraón. Moisés preguntó el nombre; Dios dijo: «YO SOY EL QUE SOY.» También le dio señales: la vara, la mano leprosa, el agua en sangre (Éxodo 3:6–4:9).",
+        "Moisés se excusó por ser tardo en el habla. Dios le dio a Aarón por boca. Así comienza la misión de liberación: no por confianza en sí mismo, sino por la presencia de Jehová (Éxodo 4:10–17)."
+      ]
+    },
+    {
+      "id": "el-mar-rojo-se-abre",
+      "title": "El mar que se abrió",
+      "summary": "Dios abre camino entre el mar y el ejército egipcio.",
+      "reference": "Éxodo 14",
+      "testament": "antiguo",
+      "book": "Éxodo",
+      "chapter": 14,
+      "voiceSlug": "moises",
+      "pages": [
+        "Faraón persiguió a Israel hasta el mar. El pueblo tuvo miedo. Moisés dijo: «No temáis; estad firmes, y ved la salvación de Jehová… Jehová peleará por vosotros» (Éxodo 14:10–14).",
+        "Moisés extendió su mano y Jehová hizo retirarse el mar con un recio viento oriental. Las aguas se dividieron; Israel pasó en seco. Los egipcios entraron tras ellos (Éxodo 14:21–23).",
+        "Jehová turbó el ejército egipcio; las aguas volvieron. Israel vio a los egipcios muertos a la orilla. El pueblo temió a Jehová y creyó a Jehová y a Moisés (Éxodo 14:24–31)."
+      ]
+    },
+    {
+      "id": "los-diez-mandamientos",
+      "title": "Los diez mandamientos",
+      "summary": "Dios entrega su ley en el Sinaí.",
+      "reference": "Éxodo 19–20",
+      "testament": "antiguo",
+      "book": "Éxodo",
+      "chapter": 20,
+      "voiceSlug": "moises",
+      "pages": [
+        "Al tercer mes de la salida de Egipto, Israel acampó frente al Sinaí. Dios dijo: «Si diereis oído a mi voz… seréis mi especial tesoro.» El pueblo respondió: «Haremos.» El monte tembló con humo, fuego y trompeta (Éxodo 19).",
+        "Dios habló: no tendrás dioses ajenos; no te harás imagen; no tomarás el nombre de Jehová en vano; acuérdate del sábado; honra a padre y madre; no matarás; no cometerás adulterio; no hurtarás; no dirás falso testimonio; no codiciarás (Éxodo 20:1–17).",
+        "El pueblo temió y se alejó. Pidieron que Moisés hablara por ellos. La ley revela el carácter santo de Dios y la necesidad de un mediador (Éxodo 20:18–21)."
+      ]
+    },
+    {
+      "id": "el-becerro-de-oro",
+      "title": "El becerro de oro",
+      "summary": "Israel rompe el pacto; Moisés intercede.",
+      "reference": "Éxodo 32",
+      "testament": "antiguo",
+      "book": "Éxodo",
+      "chapter": 32,
+      "voiceSlug": "moises",
+      "pages": [
+        "Moisés tardaba en el monte. El pueblo dijo a Aarón: «Haznos dioses que vayan delante de nosotros.» Aarón juntó pendientes de oro e hizo un becerro de fundición. Dijeron: «Israel, estos son tus dioses» (Éxodo 32:1–4).",
+        "Jehová dijo a Moisés: «Tu pueblo se ha corrompido.» Quiso consumirlos. Moisés intercedió recordando el juramento a Abraham, Isaac y Jacob. Jehová se arrepintió del mal que dijo haría (Éxodo 32:7–14).",
+        "Moisés bajó, vio el becerro y quebró las tablas. Molió el ídolo y lo dio a beber. Preguntó: «¿Quién está por Jehová?» Los levitas se le unieron. Luego volvió a pedir perdón por el pueblo (Éxodo 32:15–32)."
+      ]
+    },
+    {
+      "id": "josue-y-jerico",
+      "title": "Josué y Jericó",
+      "summary": "Las murallas caen por obediencia, no por fuerza humana.",
+      "reference": "Josué 6",
+      "testament": "antiguo",
+      "book": "Josué",
+      "chapter": 6,
+      "pages": [
+        "Jericó estaba cerrada. Jehová dijo a Josué: «Yo he entregado en tu mano a Jericó.» Debían rodear la ciudad una vez al día durante seis días, con siete sacerdotes y trompetas de cuerno de carnero (Josué 6:1–5).",
+        "Al séptimo día rodearon la ciudad siete veces. Al sonar prolongado de la trompeta, el pueblo gritó y el muro cayó debajo de sí. Entraron y tomaron la ciudad, salvando a Rahab según la promesa (Josué 6:15–25).",
+        "La victoria no vino de ingenio militar, sino de confiar en la palabra de Dios. Josué mandó: maldito el que reedificare Jericó. La fama de Jehová se extendió por toda la tierra (Josué 6:26–27)."
+      ]
+    },
+    {
+      "id": "debora-y-barac",
+      "title": "Débora y Barac",
+      "summary": "Una profetisa guía a Israel a la victoria.",
+      "reference": "Jueces 4–5",
+      "testament": "antiguo",
+      "book": "Jueces",
+      "chapter": 4,
+      "pages": [
+        "Israel hizo lo malo y Jehová los vendió a Jabín de Canaán. Débora, profetisa, juzgaba a Israel bajo una palmera. Llamó a Barac: «¿No te ha mandado Jehová…?» Barac dijo que iría solo si ella iba (Jueces 4:1–8).",
+        "Débora fue. Sisara reunió novecientos carros de hierro. Jehová desbarató a Sisara delante de Barac. Sisara huyó a pie a la tienda de Jael, quien lo mató mientras dormía (Jueces 4:12–22).",
+        "Débora y Barac cantaron: «Enlístense los pueblos… yo cantaré a Jehová.» Celebraron a Dios, a los voluntarios y a Jael. La tierra reposó cuarenta años (Jueces 5)."
+      ]
+    },
+    {
+      "id": "gedeon",
+      "title": "Gedeón",
+      "summary": "Con trescientos hombres Dios vence a Madián.",
+      "reference": "Jueces 6–7",
+      "testament": "antiguo",
+      "book": "Jueces",
+      "chapter": 6,
+      "pages": [
+        "Madián oprimía a Israel. El ángel de Jehová halló a Gedeón trillando trigo en el lagar y dijo: «Jehová está contigo, varón esforzado.» Gedeón pidió señales; Dios las dio (Jueces 6:11–24).",
+        "Gedeón juntó un ejército. Dios lo redujo: primero los temerosos, luego los que bebían de cierto modo. Quedaron trescientos. «Con estos os salvaré» (Jueces 7:1–7).",
+        "De noche, con trompetas, cántaros y teas, gritó: «¡Por Jehová y por Gedeón!» El campamento madianita se turbó y se hirió a sí mismo. Así se ve que la salvación es de Jehová (Jueces 7:16–22)."
+      ]
+    },
+    {
+      "id": "sanson",
+      "title": "Sansón",
+      "summary": "Fuerza nazarea, debilidad humana y un final que glorifica a Dios.",
+      "reference": "Jueces 13–16",
+      "testament": "antiguo",
+      "book": "Jueces",
+      "chapter": 13,
+      "pages": [
+        "Un ángel anunció a Manoa y su mujer un hijo nazareo: Sansón. El Espíritu de Jehová comenzó a moverlo. Juzgó a Israel y pelearon contra los filisteos con fuerza sobrenatural (Jueces 13–15).",
+        "Dalila lo acosó hasta que reveló el secreto de su cabello. Lo raparon, lo prendieron y le sacaron los ojos. En la cárcel, el cabello comenzó a crecer (Jueces 16:4–22).",
+        "En una fiesta a Dagón, Sansón pidió a Dios fuerza una vez más. Empujó las columnas; la casa cayó sobre los príncipes. Mató más al morir que en vida. Aun en la derrota, Dios oye (Jueces 16:23–30)."
+      ]
+    },
+    {
+      "id": "rut-y-booz",
+      "title": "Rut y Booz",
+      "summary": "Una extranjera halla redención y entra en la línea del Mesías.",
+      "reference": "Rut 1–4",
+      "testament": "antiguo",
+      "book": "Rut",
+      "chapter": 1,
+      "voiceSlug": "rut",
+      "pages": [
+        "En los días de los jueces hubo hambre. Elimelec de Belén fue a Moab con Noemí y sus hijos. Los hombres murieron. Noemí volvió a Belén y Rut dijo: «Tu pueblo será mi pueblo, y tu Dios mi Dios» (Rut 1).",
+        "Rut espigó en el campo de Booz, pariente rico. Booz la protegió y le dio grano. Noemí vio la mano de Dios: Booz podía ser redentor (Rut 2–3).",
+        "Booz redimió la heredad y tomó a Rut por mujer. Nació Obed, padre de Isaí, padre de David. La fidelidad de una extranjera teje la historia de la salvación (Rut 4)."
+      ]
+    },
+    {
+      "id": "samuel-oye-a-dios",
+      "title": "Samuel oye a Dios",
+      "summary": "Un niño sirve en el tabernáculo y escucha la voz de Jehová.",
+      "reference": "1 Samuel 1–3",
+      "testament": "antiguo",
+      "book": "1 Samuel",
+      "chapter": 3,
+      "pages": [
+        "Ana pedía un hijo y prometió dedicarlo a Jehová. Nació Samuel; lo llevó a Elí en Silo. Ana cantó: «No hay santo como Jehová» (1 Samuel 1–2).",
+        "La palabra de Jehová escaseaba. Samuel dormía cerca del arca. Dios lo llamó tres veces; él corría a Elí. Elí entendió: «Di: Habla, Jehová, que tu siervo oye» (1 Samuel 3:1–10).",
+        "Dios anunció juicio sobre la casa de Elí. Samuel creció y Jehová estaba con él; ninguna de sus palabras cayó a tierra. Todo Israel lo reconoció como profeta (1 Samuel 3:11–21)."
+      ]
+    },
+    {
+      "id": "david-y-goliat",
+      "title": "David y Goliat",
+      "summary": "Un pastor confía en Dios frente al gigante.",
+      "reference": "1 Samuel 17",
+      "testament": "antiguo",
+      "book": "1 Samuel",
+      "chapter": 17,
+      "voiceSlug": "david",
+      "pages": [
+        "Los filisteos se juntaron en Soco. Goliat desafiaba a Israel mañana y tarde. David llegó con provisiones para sus hermanos y oyó el desafío. «¿Quién es este filisteo… para que desafíe a los escuadrones del Dios viviente?» (1 Samuel 17:1–26).",
+        "Saúl ofreció su armadura; David la rechazó. Tomó su cayado, cinco piedras lisas y su honda. Dijo a Goliat: «Yo vengo a ti en el nombre de Jehová de los ejércitos» (1 Samuel 17:38–47).",
+        "La piedra hirió la frente del filisteo y cayó. David lo venció. Israel persiguió a los filisteos. La batalla enseña que la victoria es del Señor (1 Samuel 17:48–53)."
+      ]
+    },
+    {
+      "id": "david-y-jonatan",
+      "title": "David y Jonatán",
+      "summary": "Una amistad del pacto en medio de la persecución.",
+      "reference": "1 Samuel 18–20",
+      "testament": "antiguo",
+      "book": "1 Samuel",
+      "chapter": 18,
+      "voiceSlug": "david",
+      "pages": [
+        "El alma de Jonatán se ligó con la de David; lo amó como a sí mismo. Hicieron pacto. Saúl puso a David sobre hombres de guerra, pero la envidia creció cuando las mujeres cantaron: «Saúl hirió a sus miles, y David a sus diez miles» (1 Samuel 18:1–9).",
+        "Saúl buscó matar a David. Jonatán advirtió a su amigo y habló bien de él al rey. Más tarde, con señales de flechas, confirmó el peligro. Se besaron y lloraron; David se fue (1 Samuel 19–20).",
+        "La amistad de Jonatán muestra lealtad al propósito de Dios por encima del trono propio. «Jehová sea entre mí y ti… perpetuamente» (1 Samuel 20:42)."
+      ]
+    },
+    {
+      "id": "david-rey-arrepentido",
+      "title": "David, rey arrepentido",
+      "summary": "Pecado con Betsabé, reprensión de Natán y salmo de misericordia.",
+      "reference": "2 Samuel 11–12; Salmo 51",
+      "testament": "antiguo",
+      "book": "2 Samuel",
+      "chapter": 11,
+      "voiceSlug": "david",
+      "pages": [
+        "En tiempo de guerra, David se quedó en Jerusalén. Vio a Betsabé, mujer de Urías, y pecó con ella. Para encubrirlo hizo matar a Urías en batalla. Pareció que nadie lo sabía (2 Samuel 11).",
+        "Natán contó la parábola de la corderita. David se indignó; Natán dijo: «Tú eres aquel hombre.» David confesó: «Pequé contra Jehová.» El niño murió; luego nació Salomón (2 Samuel 12).",
+        "En el Salmo 51 David ruega: «Crea en mí, oh Dios, un corazón limpio.» El rey poderoso se arrodilla. Dios no desprecia al corazón quebrantado (Salmo 51:10–17)."
+      ]
+    },
+    {
+      "id": "salomon-pide-sabiduria",
+      "title": "Salomón pide sabiduría",
+      "summary": "Un rey joven elige entender para gobernar al pueblo.",
+      "reference": "1 Reyes 3",
+      "testament": "antiguo",
+      "book": "1 Reyes",
+      "chapter": 3,
+      "pages": [
+        "Salomón amaba a Jehová. En Gabaón Jehová se le apareció en sueños: «Pide lo que quieras.» Salomón no pidió larga vida ni riquezas, sino corazón inteligente para juzgar al pueblo (1 Reyes 3:3–9).",
+        "Agradó a Dios. Le dio sabiduría y también riquezas y gloria. Salomón despertó y ofreció holocaustos en Jerusalén (1 Reyes 3:10–15).",
+        "Dos mujeres disputaban un niño. Salomón mandó dividirlo; la madre verdadera prefirió cederlo. Todo Israel temió al rey, viendo que tenía sabiduría de Dios (1 Reyes 3:16–28)."
+      ]
+    },
+    {
+      "id": "elias-en-el-carmelo",
+      "title": "Elías en el Carmelo",
+      "summary": "Fuego del cielo frente a los profetas de Baal.",
+      "reference": "1 Reyes 18",
+      "testament": "antiguo",
+      "book": "1 Reyes",
+      "chapter": 18,
+      "voiceSlug": "elias",
+      "pages": [
+        "En sequía, Elías confrontó a Acab y reunió a Israel en el Carmelo: «¿Hasta cuándo claudicaréis vosotros entre dos pensamientos?» Los profetas de Baal clamaron desde la mañana hasta el mediodía; no hubo voz (1 Reyes 18:17–29).",
+        "Elías reparó el altar de Jehová, puso el holocausto, hizo zanja y lo mojó tres veces. Oró: «Respóndeme, Jehová… para que sepa este pueblo que tú eres el Dios.» Cayó fuego y consumió todo (1 Reyes 18:30–38).",
+        "El pueblo cayó: «¡Jehová es el Dios!» Tomaron a los profetas de Baal. Elías oró; vino gran lluvia. Después del triunfo vendría el agotamiento bajo el enebro — Dios también cuida allí (1 Reyes 18:39–46; 19)."
+      ]
+    },
+    {
+      "id": "eliseo-y-la-sunamita",
+      "title": "Eliseo y la sunamita",
+      "summary": "Hospitalidad, un hijo prometido y vida restaurada.",
+      "reference": "2 Reyes 4",
+      "testament": "antiguo",
+      "book": "2 Reyes",
+      "chapter": 4,
+      "pages": [
+        "Una mujer sunamita hospedaba a Eliseo y le preparó un aposento. Eliseo quiso recompensarla. Su siervo notó que no tenía hijo y su marido era viejo. Eliseo prometió un hijo para el año siguiente (2 Reyes 4:8–17).",
+        "El niño creció y un día se quejó de dolor de cabeza en el campo; murió en el regazo de su madre. Ella lo puso sobre la cama del hombre de Dios y fue a buscar a Eliseo (2 Reyes 4:18–30).",
+        "Eliseo oró y se tendió sobre el niño. Estornudó siete veces y abrió los ojos. La madre se postró. Dios cuida a quien abre su casa al siervo del Señor (2 Reyes 4:32–37)."
+      ]
+    },
+    {
+      "id": "jonas-y-ninive",
+      "title": "Jonás y Nínive",
+      "summary": "Un profeta huye; Dios muestra misericordia a los gentiles.",
+      "reference": "Jonás 1–4",
+      "testament": "antiguo",
+      "book": "Jonás",
+      "chapter": 1,
+      "pages": [
+        "Vino palabra de Jehová a Jonás: ve a Nínive. Jonás huyó a Tarsis. Jehová levantó tempestad. La suerte cayó sobre Jonás; lo echaron al mar y la tempestad cesó. Un gran pez lo tragó tres días y tres noches (Jonás 1).",
+        "Desde el vientre del pez Jonás oró. Jehová habló al pez y lo vomitó en tierra. Otra vez: ve a Nínive. Jonás predicó: «De aquí a cuarenta días Nínive será destruida.» Creyeron a Dios, ayunaron y se vistieron de cilicio (Jonás 2–3).",
+        "Dios se arrepintió del mal. Jonás se enojó. Dios le dio una calabacera y luego un gusano; le enseñó: ¿y no tendré yo piedad de Nínive? La misericordia de Dios alcanza más allá de Israel (Jonás 4)."
+      ]
+    },
+    {
+      "id": "daniel-en-el-foso",
+      "title": "Daniel en el foso de los leones",
+      "summary": "Fidelidad en oración bajo amenaza de muerte.",
+      "reference": "Daniel 6",
+      "testament": "antiguo",
+      "book": "Daniel",
+      "chapter": 6,
+      "pages": [
+        "Darío pensó poner a Daniel sobre todo el reino. Los presidentes buscaron ocasión y lograron un edicto: quien orara a otro dios o hombre sería echado al foso de los leones (Daniel 6:1–9).",
+        "Daniel, sabiendo el edicto, oraba tres veces al día hacia Jerusalén. Lo acusaron. El rey se afligió, pero la ley de Medos y Persas no se revoca. Daniel fue echado al foso (Daniel 6:10–17).",
+        "Al alba, Darío corrió: «Daniel… ¿ha podido librarte tu Dios?» Daniel: el ángel cerró la boca de los leones. Salió ileso. El rey mandó honrar al Dios de Daniel (Daniel 6:19–27)."
+      ]
+    },
+    {
+      "id": "los-tres-en-el-horno",
+      "title": "Los tres en el horno",
+      "summary": "Sadrac, Mesac y Abed-nego no se inclinan ante el ídolo.",
+      "reference": "Daniel 3",
+      "testament": "antiguo",
+      "book": "Daniel",
+      "chapter": 3,
+      "pages": [
+        "Nabucodonosor hizo una estatua de oro y mandó que al son de la música todos se postraran. Quien no lo hiciera sería echado en un horno de fuego (Daniel 3:1–6).",
+        "Acusaron a Sadrac, Mesac y Abed-nego. Ellos dijeron: «Nuestro Dios… puede librarnos… Y si no, sepas… que no serviremos a tus dioses.» El rey los echó atados al horno siete veces más caliente (Daniel 3:8–23).",
+        "El rey se asombró: cuatro hombres sueltos, sin lesión, y el aspecto del cuarto «semejante al hijo de los dioses». Los sacaron; ni el olor del fuego había en ellos. El rey bendijo a su Dios (Daniel 3:24–28)."
+      ]
+    },
+    {
+      "id": "ester-ante-el-rey",
+      "title": "Ester ante el rey",
+      "summary": "Ester arriesga su vida para interceder por su pueblo.",
+      "reference": "Ester 4–8",
+      "testament": "antiguo",
+      "book": "Ester",
+      "chapter": 4,
+      "voiceSlug": "ester",
+      "pages": [
+        "Amán tramó destruir a los judíos. Mardoqueo vistió cilicio y mandó decir a Ester que intercediera. Ella recordó la ley: entrar sin ser llamada podía costar la vida (Ester 3–4:11).",
+        "Mardoqueo: «¿Quién sabe si para esta ocasión has llegado al reino?» Ester pidió ayuno y dijo: «Si perezco, que perezca.» Entró al patio; el rey extendió el cetro de oro (Ester 4:12–5:2).",
+        "En el banquete Ester reveló el plan de Amán. El rey lo colgó en la horca que Amán había preparado. Se dio decreto a favor de los judíos. El pueblo se alegró; nació Purim (Ester 7–9)."
+      ]
+    },
+    {
+      "id": "nehemias-reconstruye",
+      "title": "Nehemías reconstruye el muro",
+      "summary": "Oración, trabajo y vigilancia restauran Jerusalén.",
+      "reference": "Nehemías 1–6",
+      "testament": "antiguo",
+      "book": "Nehemías",
+      "chapter": 1,
+      "pages": [
+        "Nehemías, en Susa, oyó que el muro de Jerusalén estaba derribado. Lloró, ayunó y oró confesando el pecado del pueblo. Pidió favor delante del rey (Nehemías 1).",
+        "Artajerjes lo envió. Nehemías inspeccionó de noche y dijo al pueblo: «Venid, y edifiquemos el muro.» Cada familia tomó una sección. Sanbalat y Tobías se burlaron y conspiraron (Nehemías 2–4).",
+        "Edificaron con una mano y con la otra tenían la lanza. Nehemías no bajó al valle de Ono: «Yo hago una gran obra.» El muro se terminó en cincuenta y dos días (Nehemías 4–6)."
+      ]
+    },
+    {
+      "id": "nacimiento-de-jesus",
+      "title": "El nacimiento de Jesús",
+      "summary": "El Verbo se hace carne en Belén.",
+      "reference": "Lucas 2",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 2,
+      "pages": [
+        "Salió edicto de Augusto para empadronar el mundo. José subió de Nazaret a Belén con María, su esposa, que estaba encinta. Allí nació el niño; lo envolvió en pañales y lo acostó en un pesebre (Lucas 2:1–7).",
+        "Había pastores en el campo. Un ángel anunció: «Os ha nacido hoy… un Salvador, que es Cristo el Señor.» Una multitud celestial alabó: «Gloria a Dios en las alturas.» Los pastores fueron con prisa y hallaron a María, a José y al niño (Lucas 2:8–16).",
+        "Los pastores dieron a conocer lo dicho. María guardaba estas cosas, meditándolas en su corazón. A los ocho días lo circuncidaron y le pusieron por nombre Jesús (Lucas 2:17–21)."
+      ]
+    },
+    {
+      "id": "jesus-en-el-templo",
+      "title": "Jesús en el templo",
+      "summary": "A los doce años, en los negocios de su Padre.",
+      "reference": "Lucas 2:41–52",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 2,
+      "verse": 41,
+      "pages": [
+        "Sus padres iban cada año a Jerusalén en la fiesta de la Pascua. Cuando tuvo doce años, subieron según la costumbre. Al volverse, el niño Jesús se quedó en Jerusalén sin que ellos lo supieran (Lucas 2:41–43).",
+        "Lo buscaron entre los parientes. A los tres días lo hallaron en el templo, sentado en medio de los doctores, oyéndoles y preguntándoles. Todos se maravillaban de su inteligencia (Lucas 2:44–47).",
+        "María: «Hijo, ¿por qué nos has hecho así?» Él: «¿No sabíais que en los negocios de mi Padre me es necesario estar?» Bajó con ellos a Nazaret y les estaba sujeto. Crecía en sabiduría, en estatura y en gracia (Lucas 2:48–52)."
+      ]
+    },
+    {
+      "id": "bautismo-de-jesus",
+      "title": "El bautismo de Jesús",
+      "summary": "El cielo se abre; el Padre afirma al Hijo.",
+      "reference": "Mateo 3",
+      "testament": "nuevo",
+      "book": "Mateo",
+      "chapter": 3,
+      "pages": [
+        "Juan el Bautista predicaba en el desierto: «Arrepentíos, porque el reino de los cielos se ha acercado.» Bautizaba en el Jordán confesando pecados (Mateo 3:1–6).",
+        "Entonces Jesús vino de Galilea para ser bautizado. Juan resistía: «Yo necesito ser bautizado por ti.» Jesús: «Deja ahora, porque así conviene que cumplamos toda justicia» (Mateo 3:13–15).",
+        "Jesús fue bautizado; los cielos se le abrieron y vio al Espíritu de Dios que descendía como paloma. Una voz: «Este es mi Hijo amado, en quien tengo complacencia» (Mateo 3:16–17)."
+      ]
+    },
+    {
+      "id": "tentacion-en-el-desierto",
+      "title": "La tentación en el desierto",
+      "summary": "Jesús vence al diablo con la Escritura.",
+      "reference": "Mateo 4:1–11",
+      "testament": "nuevo",
+      "book": "Mateo",
+      "chapter": 4,
+      "pages": [
+        "Jesús fue llevado por el Espíritu al desierto para ser tentado. Después de cuarenta días y noches, tuvo hambre. El tentador: «Si eres Hijo de Dios, di que estas piedras se conviertan en pan.» Jesús: «No solo de pan vivirá el hombre…» (Mateo 4:1–4).",
+        "Lo llevó al pináculo del templo: «Échate abajo…» citando el Salmo. Jesús: «No tentarás al Señor tu Dios.» Luego le mostró los reinos del mundo a cambio de adoración. Jesús: «Al Señor tu Dios adorarás» (Mateo 4:5–10).",
+        "El diablo le dejó; vinieron ángeles y le servían. Donde Israel falló en el desierto, el Hijo fiel venció con la Palabra (Mateo 4:11)."
+      ]
+    },
+    {
+      "id": "sermon-del-monte",
+      "title": "El sermón del monte",
+      "summary": "Las bienaventuranzas y el reino anunciado.",
+      "reference": "Mateo 5–7",
+      "testament": "nuevo",
+      "book": "Mateo",
+      "chapter": 5,
+      "pages": [
+        "Viendo la multitud, Jesús subió al monte. Enseñó: bienaventurados los pobres en espíritu, los que lloran, los mansos, los que tienen hambre de justicia, los misericordiosos, los de limpio corazón, los pacificadores, los perseguidos (Mateo 5:1–12).",
+        "Vosotros sois la sal de la tierra y la luz del mundo. No vine a abrogar la ley, sino a cumplirla. Oyisteis… pero yo os digo: el enojo, la lujuria y el juramento se juzgan en el corazón (Mateo 5:13–37).",
+        "Orad así: Padre nuestro… Buscad primeramente el reino. La casa sobre la roca resiste la tormenta. La gente se admiraba: enseñaba como quien tiene autoridad (Mateo 6–7)."
+      ]
+    },
+    {
+      "id": "jesus-calma-la-tormenta",
+      "title": "Jesús calma la tormenta",
+      "summary": "Aun los vientos y el mar le obedecen.",
+      "reference": "Marcos 4:35–41",
+      "testament": "nuevo",
+      "book": "Marcos",
+      "chapter": 4,
+      "verse": 35,
+      "pages": [
+        "Aquella noche Jesús dijo: «Pasemos al otro lado.» En la barca se levantó una gran tempestad de viento; las olas entraban. Él dormía en la popa sobre una almohada (Marcos 4:35–38).",
+        "Le despertaron: «¿No tienes cuidado que perecemos?» Él se levantó, reprendió al viento y dijo al mar: «Calla, enmudece.» El viento cesó y se hizo grande bonanza (Marcos 4:38–39).",
+        "Les dijo: «¿Por qué estáis así amedrentados? ¿Cómo no tenéis fe?» Ellos temieron: «¿Quién es este, que aun el viento y el mar le obedecen?» (Marcos 4:40–41)."
+      ]
+    },
+    {
+      "id": "alimentacion-de-los-cinco-mil",
+      "title": "La alimentación de los cinco mil",
+      "summary": "Cinco panes y dos peces bastan en sus manos.",
+      "reference": "Juan 6:1–14",
+      "testament": "nuevo",
+      "book": "Juan",
+      "chapter": 6,
+      "pages": [
+        "Una gran multitud seguía a Jesús. Viendo la gente, preguntó a Felipe dónde comprar pan. Felipe calculó que doscientos denarios no bastaban. Andrés notó a un muchacho con cinco panes de cebada y dos pececillos (Juan 6:1–9).",
+        "Jesús: «Haced recostar la gente.» Tomó los panes, dio gracias y repartió. También de los peces. Comieron cuanto quisieron. Mandó recoger los pedazos: doce cestas de sobra (Juan 6:10–13).",
+        "Aquellos hombres dijeron: «Este verdaderamente es el profeta que había de venir al mundo.» La señal apunta al pan de vida que Él mismo es (Juan 6:14, 35)."
+      ]
+    },
+    {
+      "id": "el-buen-samaritano",
+      "title": "El buen samaritano",
+      "summary": "Amar al prójimo cruza fronteras de odio.",
+      "reference": "Lucas 10:25–37",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 10,
+      "verse": 25,
+      "pages": [
+        "Un intérprete de la ley preguntó: «¿Qué haré para heredar la vida eterna?» Jesús: «¿Qué está escrito?» Él citó amar a Dios y al prójimo. Jesús: «Haz esto, y vivirás.» Quiso justificarse: «¿Quién es mi prójimo?» (Lucas 10:25–29).",
+        "Jesús contó: un hombre bajaba de Jerusalén a Jericó y cayó en manos de ladrones. Un sacerdote y un levita pasaron de largo. Un samaritano, movido a misericordia, vendó sus heridas y lo llevó a un mesón (Lucas 10:30–35).",
+        "«¿Quién, pues, de estos tres te parece que fue el prójimo?» «El que usó de misericordia.» Jesús: «Ve, y haz tú lo mismo.» El amor no pregunta primero a quién debe amar (Lucas 10:36–37)."
+      ]
+    },
+    {
+      "id": "el-hijo-prodigo",
+      "title": "El hijo pródigo",
+      "summary": "El Padre corre al encuentro del que vuelve.",
+      "reference": "Lucas 15:11–32",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 15,
+      "verse": 11,
+      "pages": [
+        "Un hombre tenía dos hijos. El menor pidió su parte y se fue lejos; malgastó todo viviendo perdidamente. Vino una hambruna; deseaba hartarse de las algarrobas de los cerdos (Lucas 15:11–16).",
+        "Volviendo en sí, dijo: «Me levantaré e iré a mi padre.» Mientras aún estaba lejos, su padre lo vio, fue movido a misericordia, corrió, se echó sobre su cuello y le besó. Mandó el mejor vestido, anillo, calzado y el becerro grueso (Lucas 15:17–24).",
+        "El hijo mayor se enojó. El padre: «Hijo, tú siempre estás conmigo… Mas era necesario… porque este tu hermano era muerto, y ha revivido.» Así es el corazón del Padre (Lucas 15:25–32)."
+      ]
+    },
+    {
+      "id": "lazaro-resucitado",
+      "title": "Lázaro resucitado",
+      "summary": "Jesús es la resurrección y la vida.",
+      "reference": "Juan 11",
+      "testament": "nuevo",
+      "book": "Juan",
+      "chapter": 11,
+      "pages": [
+        "Lázaro de Betania estaba enfermo. Sus hermanas enviaron a decir a Jesús. Él dijo: «Esta enfermedad no es para muerte.» Se quedó dos días más. Luego: «Lázaro duerme; pero voy a despertarle» (Juan 11:1–11).",
+        "Cuando llegó, Lázaro llevaba cuatro días en el sepulcro. Marta: «Si hubieses estado aquí…» Jesús: «Yo soy la resurrección y la vida.» María lloró; Jesús también lloró (Juan 11:17–35).",
+        "Frente a la cueva: «Quitad la piedra.» Oró y clamó: «¡Lázaro, ven fuera!» El que había muerto salió. Muchos creyeron; otros fueron a los fariseos (Juan 11:38–46)."
+      ]
+    },
+    {
+      "id": "entrada-triunfal",
+      "title": "La entrada triunfal",
+      "summary": "El Rey humilde entra en Jerusalén.",
+      "reference": "Mateo 21:1–11",
+      "testament": "nuevo",
+      "book": "Mateo",
+      "chapter": 21,
+      "pages": [
+        "Cerca de Jerusalén, Jesús envió por un asna y un pollino. Esto fue para que se cumpliera: «He aquí, tu Rey viene a ti, manso…» Los discípulos pusieron sus mantos; la gente tendió ramas (Mateo 21:1–8).",
+        "Las multitudes gritaban: «¡Hosanna al Hijo de David! ¡Bendito el que viene en el nombre del Señor!» Al entrar en Jerusalén, toda la ciudad se conmovió: «¿Quién es este?» (Mateo 21:9–10).",
+        "La gente decía: «Este es Jesús el profeta, de Nazaret de Galilea.» El Rey no viene en carro de guerra, sino en paz, camino a la cruz (Mateo 21:11)."
+      ]
+    },
+    {
+      "id": "la-ultima-cena",
+      "title": "La última cena",
+      "summary": "El pan y la copa anuncian el nuevo pacto.",
+      "reference": "Lucas 22:7–23",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 22,
+      "pages": [
+        "Llegó el día de los panes sin levadura. Jesús envió a Pedro y a Juan a preparar la Pascua. En la cena dijo: «Deseado he deseado comer con vosotros esta Pascua antes que padezca» (Lucas 22:7–15).",
+        "Tomó el pan, dio gracias, lo partió y dijo: «Esto es mi cuerpo, que por vosotros es dado; haced esto en memoria de mí.» Asimismo la copa: «Esta copa es el nuevo pacto en mi sangre» (Lucas 22:19–20).",
+        "Anunció que la mano del que le entregaba estaba con él a la mesa. Los discípulos preguntaban quién sería. La mesa de comunión se vuelve también lugar de traición y de gracia (Lucas 22:21–23)."
+      ]
+    },
+    {
+      "id": "getsemani",
+      "title": "Getsemaní",
+      "summary": "Jesús ora en angustia y se somete a la voluntad del Padre.",
+      "reference": "Mateo 26:36–46",
+      "testament": "nuevo",
+      "book": "Mateo",
+      "chapter": 26,
+      "verse": 36,
+      "pages": [
+        "Fue Jesús con ellos a un lugar llamado Getsemaní. Dijo a los discípulos: «Sentaos aquí, entre tanto que voy allí y oro.» Tomó a Pedro y a los dos hijos de Zebedeo; comenzó a entristecerse y a angustiarse en gran manera (Mateo 26:36–37).",
+        "«Mi alma está muy triste, hasta la muerte.» Se adelantó y oró: «Padre mío, si es posible, pase de mí esta copa; pero no sea como yo quiero, sino como tú.» Halló a los discípulos durmiendo (Mateo 26:38–40).",
+        "Oró segunda y tercera vez las mismas palabras. Luego: «Levantáos, vamos; he aquí ha llegado la hora.» La obediencia perfecta se decide en la oración (Mateo 26:42–46)."
+      ]
+    },
+    {
+      "id": "la-cruz",
+      "title": "La cruz",
+      "summary": "Jesús muere por los pecadores.",
+      "reference": "Lucas 23",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 23,
+      "pages": [
+        "Lo llevaron a Pilato. La multitud pidió a Barrabás y que Jesús fuera crucificado. Lo entregaron a la voluntad de ellos. Simón de Cirene llevó la cruz detrás de Jesús (Lucas 23:1–26).",
+        "En el lugar llamado de la Calavera lo crucificaron con malhechores. Jesús: «Padre, perdónalos, porque no saben lo que hacen.» Uno de los malhechores dijo: «Acuérdate de mí.» Jesús: «Hoy estarás conmigo en el paraíso» (Lucas 23:33–43).",
+        "Desde la hora sexta hubo tinieblas. Jesús clamó: «Padre, en tus manos encomiendo mi espíritu.» Expiró. El centurión glorificó a Dios: «Verdaderamente este hombre era justo» (Lucas 23:44–47)."
+      ]
+    },
+    {
+      "id": "la-resurreccion",
+      "title": "La resurrección",
+      "summary": "Al tercer día, la tumba vacía.",
+      "reference": "Lucas 24:1–12",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 24,
+      "pages": [
+        "El primer día de la semana, muy de mañana, las mujeres fueron al sepulcro con especias. Hallaron removida la piedra y no hallaron el cuerpo del Señor Jesús (Lucas 24:1–3).",
+        "Dos varones en vestiduras resplandecientes dijeron: «¿Por qué buscáis entre los muertos al que vive? No está aquí, sino que ha resucitado.» Recordaron sus palabras (Lucas 24:4–8).",
+        "Volvieron y anunciaron estas cosas a los once. Pedro corrió al sepulcro, vio los lienzos y se fue maravillándose. La muerte no pudo retener al Hijo (Lucas 24:9–12)."
+      ]
+    },
+    {
+      "id": "el-camino-a-emaus",
+      "title": "El camino a Emaús",
+      "summary": "El Resucitado abre las Escrituras a dos discípulos.",
+      "reference": "Lucas 24:13–35",
+      "testament": "nuevo",
+      "book": "Lucas",
+      "chapter": 24,
+      "verse": 13,
+      "pages": [
+        "Dos de ellos iban a Emaús hablando de todo lo sucedido. Jesús se juntó con ellos, pero los ojos no le conocieron. Les preguntó de qué conversaban; ellos narraron la cruz y el reporte de las mujeres (Lucas 24:13–24).",
+        "Él les dijo: «¡Oh insensatos…!» Y comenzando desde Moisés y todos los profetas, les declaraba en todas las Escrituras lo que de él decían. Al llegar, le rogaron que se quedara (Lucas 24:25–29).",
+        "Sentado, tomó el pan, lo bendijo y lo partió; entonces fueron abiertos sus ojos y le reconocieron. Volvieron a Jerusalén: «Han visto al Señor.» El corazón les ardía cuando abría las Escrituras (Lucas 24:30–35)."
+      ]
+    },
+    {
+      "id": "pentecostes",
+      "title": "Pentecostés",
+      "summary": "El Espíritu Santo desciende sobre la iglesia.",
+      "reference": "Hechos 2",
+      "testament": "nuevo",
+      "book": "Hechos",
+      "chapter": 2,
+      "pages": [
+        "Cuando llegó el día de Pentecostés, estaban todos unánimes juntos. De pronto vino del cielo un viento recio; se les aparecieron lenguas como de fuego. Fueron todos llenos del Espíritu Santo y comenzaron a hablar en otras lenguas (Hechos 2:1–4).",
+        "La multitud se confundió: cada uno les oía hablar en su propia lengua. Pedro levantó la voz: esto es lo dicho por Joel. Predicó a Jesús crucificado y resucitado (Hechos 2:5–36).",
+        "Al oír esto, se compungieron. «¿Qué haremos?» «Arrepentíos, y bautícese cada uno…» Se añadieron como tres mil. Perseveraban en la doctrina, la comunión, el partimiento del pan y las oraciones (Hechos 2:37–42)."
+      ]
+    },
+    {
+      "id": "pedro-y-cornelio",
+      "title": "Pedro y Cornelio",
+      "summary": "El evangelio se abre a los gentiles.",
+      "reference": "Hechos 10",
+      "testament": "nuevo",
+      "book": "Hechos",
+      "chapter": 10,
+      "pages": [
+        "Cornelio, centurión en Cesarea, temeroso de Dios, vio un ángel que le mandó buscar a Pedro. Pedro, en el terrado, tuvo una visión: un gran lienzo con animales; una voz: «Mata y come.» «No, Señor.» «Lo que Dios limpió, no lo llames tú común» (Hechos 10:1–16).",
+        "Los enviados de Cornelio llegaron. Pedro fue a Cesarea. Cornelio se postró; Pedro lo levantó. Predicó a Jesús: paz por medio de Él, muerte y resurrección, perdón de pecados (Hechos 10:17–43).",
+        "Mientras aún hablaba, el Espíritu Santo cayó sobre todos los que oían. Los de la circuncisión se asombraron. Pedro mandó bautizarlos. Dios no hace acepción de personas (Hechos 10:44–48)."
+      ]
+    },
+    {
+      "id": "saulo-en-el-camino",
+      "title": "Saulo en el camino a Damasco",
+      "summary": "El perseguidor se encuentra con Jesús.",
+      "reference": "Hechos 9",
+      "testament": "nuevo",
+      "book": "Hechos",
+      "chapter": 9,
+      "voiceSlug": "pablo",
+      "pages": [
+        "Saulo respiraba amenazas contra los discípulos. Iba a Damasco con cartas. De pronto le rodeó un resplandor: «Saulo, Saulo, ¿por qué me persigues?» «¿Quién eres, Señor?» «Yo soy Jesús, a quien tú persigues» (Hechos 9:1–5).",
+        "Cayó a tierra; al levantarse no veía. Lo llevaron a Damasco. Tres días sin ver, sin comer ni beber. El Señor envió a Ananías: «Ve, porque instrumento escogido me es este» (Hechos 9:6–15).",
+        "Ananías le impuso las manos; cayeron de sus ojos como escamas. Fue bautizado. Enseguida predicaba a Jesús en las sinagogas: «Éste es el Hijo de Dios.» El perseguidor se volvió apóstol (Hechos 9:17–22)."
+      ]
+    },
+    {
+      "id": "pablo-y-silas-en-la-carcel",
+      "title": "Pablo y Silas en la cárcel",
+      "summary": "Cantan a medianoche; Dios abre las puertas.",
+      "reference": "Hechos 16:16–34",
+      "testament": "nuevo",
+      "book": "Hechos",
+      "chapter": 16,
+      "verse": 16,
+      "voiceSlug": "pablo",
+      "pages": [
+        "En Filipos, Pablo echó fuera un espíritu de adivinación. Los amos, sin ganancia, los arrastraron a la plaza. Los azotaron y echaron en la cárcel, con los pies en el cepo (Hechos 16:16–24).",
+        "A medianoche, Pablo y Silas oraban y cantaban himnos a Dios; los presos los oían. De pronto un gran terremoto: se abrieron las puertas y las cadenas se soltaron (Hechos 16:25–26).",
+        "El carcelero iba a matarse; Pablo gritó: «No te hagas ningún mal.» Temblando preguntó: «¿Qué debo hacer para ser salvo?» «Cree en el Señor Jesucristo.» Fue bautizado con toda su casa (Hechos 16:27–34)."
+      ]
+    },
+    {
+      "id": "naufragio-de-pablo",
+      "title": "El naufragio de Pablo",
+      "summary": "Dios cumple su promesa en medio de la tormenta.",
+      "reference": "Hechos 27",
+      "testament": "nuevo",
+      "book": "Hechos",
+      "chapter": 27,
+      "voiceSlug": "pablo",
+      "pages": [
+        "Cuando se decidió que fuésemos a Italia, entregaron a Pablo a un centurión. La navegación era peligrosa. Pablo advirtió; no le creyeron. Se levantó un viento euroclidón; el barco era zarandeado (Hechos 27:1–20).",
+        "Habiendo estado mucho sin comer, Pablo dijo: un ángel le había asegurado que debía comparecer ante César y que Dios le había dado todos los que navegaban con él. «Confortaos… porque yo confío en Dios» (Hechos 27:21–25).",
+        "Al acercarse a tierra, el barco encalló. Los soldados querían matar a los presos; el centurión, queriendo salvar a Pablo, lo impidió. Todos se salvaron a nado o en tablas, como se había dicho (Hechos 27:39–44)."
+      ]
+    }
+  ]
+}
