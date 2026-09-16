@@ -87,7 +87,7 @@ bible-ai-honduras/
 │   │   ├── index.tsx           # Home — devocional diario          #8
 │   │   ├── preguntar/          # Q&A guiado                        #12 #14
 │   │   ├── voces/              # personajes bíblicos               #17
-│   │   ├── historias/          # historias ilustradas              #25
+│   │   ├── historias/          # historias ilustradas + texto      #25 #145
 │   │   └── sentir/             # devocional por sentimiento        #27
 │   ├── paywall.tsx             #                                   #30
 │   └── ajustes.tsx             #                                   #34
@@ -426,6 +426,14 @@ convierten eso en un progreso visible escena por escena.
 aplica en `quotas.checkAndConsume("stories")` **antes** de agendar la generación, nunca
 después. Las imágenes se guardan en Convex file storage, no se regeneran al volver a ver
 la historia.
+
+**El carril barato — historias en texto (#145):** el mismo tab sirve, por defecto, un
+catálogo curado de narrativas de 2–3 páginas (`convex/textStoriesCatalog.ts` sobre
+`docs/content/historias-texto.json`, mismo patrón versionado que los planes de lectura y
+el devocional). Sin IA en runtime, sin auth y **sin `quotas.checkAndConsume`**: leer la
+Biblia en narrativa es gratis. `textStories:list` devuelve solo metadatos — el cuerpo de
+las páginas lo sirve `textStories:getById`. Las ilustradas siguen con cuota y paywall
+exactamente como arriba.
 
 ---
 

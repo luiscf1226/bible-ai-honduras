@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { getFunctionName } from "convex/server";
 
 import { voiceCharacters } from "../../convex/voicesCatalog";
+import {
+  findTextStoryById,
+  summarizeTextStory,
+  TEXT_STORY_CATALOG,
+} from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
 import { atLimit, isDark, isEmpty, isError, isLoading, isPro } from "./scenario";
 
@@ -161,6 +166,10 @@ const handlers = {
     return null;
   },
   "feelings:generate": () => (atLimit() ? { allowed: false, reason: "limit_reached", module: "feelings" } : { allowed: true, conversationId: "c9", devotional: FEELING_DEVOTIONAL }),
+  // Historias en texto (#145): catálogo real del repo, misma proyección que
+  // `textStories:list` en Convex — la lista no carga el cuerpo de las páginas.
+  "textStories:list": () => TEXT_STORY_CATALOG.map(summarizeTextStory),
+  "textStories:getById": (args) => findTextStoryById(args.storyId),
   "stories:list": () => STORY_CATALOG,
   "stories:getById": (args) => STORY_CATALOG.find((s) => s.id === args.storyId) ?? null,
   "stories:create": (args) => (atLimit() ? { allowed: false, reason: "limit_reached", module: "stories" } : { allowed: true, storyId: args.storyId }),

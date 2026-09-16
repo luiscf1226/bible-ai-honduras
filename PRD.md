@@ -43,7 +43,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 2. **Q&A bíblico guiado (RAG), híbrido.** Flujo principal: el usuario **elige libro → selecciona capítulo/versículo(s) → hace preguntas sobre ese pasaje específico**. También se permite pregunta libre sin seleccionar pasaje primero, para quien solo quiere preguntar directo. La IA responde citando el texto y comentarios verificados en ambos casos. Gratis: 3-5 preguntas/día. Pro: ilimitado.
 3. **Chat con personaje bíblico, con avatar.** El usuario **elige de una lista** con qué personaje quiere hablar. 1ra persona, **solo personajes humanos** (Moisés, David, Pablo, Ester, etc.), cada uno con un avatar/ilustración visual propio en el chat. **Excluido explícitamente:** Jesús, Dios, Espíritu Santo — de estos se habla en 3ra persona, nunca se encarnan. Línea de producto dura, no sugerencia de diseño. Gratis: limitado. Pro: ilimitado.
 4. **Devocional personalizado por sentimiento/problema o día de la persona.** El usuario indica cómo se siente, qué problema tiene, o cómo estuvo su día (ansiedad, duelo, decisión difícil, gratitud, etc.) y la IA genera un devocional a la medida (versículo + reflexión, ligado al mismo RAG del módulo 2, no opinión libre). **Freemium** — gratis con límite (mismo patrón que el módulo 2), Pro lo desbloquea ilimitado. Mecanismo de retención principal: la razón de que el usuario no necesite abrir otra app cuando algo le pasa, y por lo que vuelve.
-5. **Generador de historias bíblicas ilustradas (Pro, con muestra gratis).** Genera imágenes estáticas de una historia bíblica (tipo libro ilustrado). **Solo imágenes en v1, sin video** (queda para v2). Usuarios gratis reciben **un (1) ejemplo generado como muestra** (prueba-antes-de-pagar), no uso ilimitado — controla el costo de generación en el tier gratis mientras sigue funcionando como gancho de conversión a Pro.
+5. **Generador de historias bíblicas ilustradas (Pro, con muestra gratis).** Genera imágenes estáticas de una historia bíblica (tipo libro ilustrado). **Solo imágenes en v1, sin video** (queda para v2). Usuarios gratis reciben **un (1) ejemplo generado como muestra** (prueba-antes-de-pagar), no uso ilimitado — controla el costo de generación en el tier gratis mientras sigue funcionando como gancho de conversión a Pro. El mismo módulo abre, por defecto, en un **catálogo curado de historias bíblicas en texto (2–3 páginas, gratis y sin límite)**, con puentes al lector, a Preguntar y a Voces: da algo que leer a quien no paga y sostiene el módulo cuando la muestra ilustrada ya se consumió.
 
 ### Fuera de alcance para v1 (explícito)
 - Generación de video (solo imágenes estáticas en el módulo 5).
@@ -74,6 +74,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 | Q&A bíblico guiado por pasaje | 3-5 preguntas/día | Ilimitado |
 | Chat con personajes bíblicos (avatar) | Limitado | Ilimitado |
 | Devocional por sentimiento/problema/día | Limitado (mismo patrón que Q&A) | Ilimitado |
+| Historias bíblicas en texto (catálogo curado) | Sin límite | Sin límite |
 | Generador de historias ilustradas | 1 ejemplo (muestra única) | Ilimitado |
 
 ### Pagos

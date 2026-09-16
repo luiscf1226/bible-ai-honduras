@@ -61,8 +61,8 @@ export function searchBookSections(query: string): BookSection[] {
 
 /**
  * Resuelve el nombre canónico de un libro a partir de lo que escribió la
- * persona. A diferencia del filtro, acá el match es exacto (nombre completo o
- * abreviatura completa): un salto por referencia no puede adivinar.
+ * persona. A diferencia del filtro de arriba, acá el match es exacto: ver
+ * `findBook` en `src/lib/bibleBooks.ts`, que es quien manda sobre el canon.
  */
 export function resolveBookName(input: string): string | null {
   return findBook(input)?.name ?? null;
