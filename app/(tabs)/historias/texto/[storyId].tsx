@@ -72,7 +72,7 @@ export default function TextStoryViewerScreen() {
         title={story.title}
         titleStyle={styles.title}
       />
-      <Text style={[styles.reference, { color: color.inkMuted }]}>{story.reference} · RV1909</Text>
+      <Text style={[styles.reference, { color: color.inkMuted }]}>{story.reference} · Basado en RV1909</Text>
       <Text style={[styles.pageLabel, { color: color.accent }]}>
         PÁGINA {pageIndex + 1} DE {story.pages.length}
       </Text>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
@@ -7,6 +7,7 @@ import { makeFunctionReference } from "convex/server";
 import { AppScreen } from "../../src/components/AppScreen";
 import { LoadingState } from "../../src/components/LoadingState";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
+import { SearchField } from "../../src/components/SearchField";
 import { storiesApi, type StoryCatalogItem } from "../../src/features/stories/contracts";
 import {
   filterIllustratedStories,
@@ -14,11 +15,11 @@ import {
   type StoryModeFilter,
   type TestamentFilter,
 } from "../../src/features/stories/textStoryFilters";
-import type { TextStoryCatalogItem } from "../../convex/textStoriesCatalog";
+import type { TextStoryListItem } from "../../convex/textStoriesCatalog";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
-const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryCatalogItem[]>(
+const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryListItem[]>(
   "textStories:list",
 );
 
@@ -92,21 +93,15 @@ export default function HistoriasScreen() {
         onSelect={(value) => setTestament(value as TestamentFilter)}
       />
 
-      <View style={[styles.searchBar, { backgroundColor: color.surface, borderColor: color.borderStrong }]}>
-        <Text style={[styles.searchIcon, { color: color.inkFaint }]}>⌕</Text>
-        <TextInput
-          accessibilityLabel="Buscar una historia"
-          autoCapitalize="none"
-          autoCorrect={false}
-          clearButtonMode="while-editing"
-          onChangeText={setQuery}
-          placeholder="Buscá por título o pasaje"
-          placeholderTextColor={color.inkFaint}
-          style={[styles.searchInput, { color: color.ink }]}
-          testID="historias-search"
-          value={query}
-        />
-      </View>
+      <SearchField
+        accessibilityLabel="Buscar una historia"
+        onChangeText={setQuery}
+        placeholder="Buscá por título o pasaje"
+        returnKeyType="search"
+        style={styles.searchBar}
+        testID="historias-search"
+        value={query}
+      />
 
       {error ? <Text style={[styles.error, { color: color.accentDeep }]}>{error}</Text> : null}
 
@@ -180,7 +175,7 @@ function TextStoryList({
   stories,
 }: {
   color: ReturnType<typeof useTheme>["color"];
-  stories: readonly TextStoryCatalogItem[];
+  stories: readonly TextStoryListItem[];
 }) {
   if (stories.length === 0) {
     return (
@@ -212,7 +207,7 @@ function TextStoryList({
             <Text style={[styles.cardMeta, { color: color.inkSoft }]}>{story.reference}</Text>
           </View>
           <Text style={[styles.badge, { backgroundColor: color.surfaceSunk, color: color.sage }]}>
-            {`${story.pages.length} PÁGS · GRATIS`}
+            {`${story.pageCount} PÁGS · GRATIS`}
           </Text>
         </Pressable>
       ))}
@@ -324,27 +319,7 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.bodySm.size,
     textAlign: "center",
   },
-  searchBar: {
-    alignItems: "center",
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: tokens.space.sm,
-    marginTop: tokens.space.lg,
-    paddingHorizontal: tokens.space.md,
-    paddingVertical: tokens.space.sm,
-  },
-  searchIcon: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.body.size,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.bodySm.size,
-    lineHeight: tokens.type.bodySm.lineHeight,
-    paddingVertical: tokens.space.sm,
-  },
+  searchBar: { marginTop: tokens.space.lg },
   error: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,

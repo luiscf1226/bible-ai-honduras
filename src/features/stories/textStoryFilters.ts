@@ -1,5 +1,7 @@
 import type { StoryCatalogItem } from "../../../convex/stories";
-import type { TextStoryCatalogItem, TextStoryTestament } from "../../../convex/textStoriesCatalog";
+import type { TextStoryTestament } from "../../../convex/textStoriesCatalog";
+import { testamentForReference } from "../../lib/bibleBooks";
+import { normalizeText } from "../../lib/normalizeText";
 
 /**
  * Filtros puros del catálogo de Historias (#145).
@@ -9,27 +11,26 @@ import type { TextStoryCatalogItem, TextStoryTestament } from "../../../convex/t
 export type StoryModeFilter = "texto" | "ilustradas";
 export type TestamentFilter = "todos" | TextStoryTestament;
 
-/** Quita diacríticos para que “noe” encuentre “Noé” (filtro de producción). */
-function foldSpanish(value: string): string {
-  return value
-    .toLocaleLowerCase("es")
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "");
-}
+/** Lo mínimo que necesita el filtro: sirve tanto para el detalle como para la proyección de la lista. */
+export type TextStoryFilterable = {
+  title: string;
+  summary: string;
+  reference: string;
+  testament: TextStoryTestament;
+};
 
 export function matchesSearch(title: string, summary: string, reference: string, query: string): boolean {
-  const term = foldSpanish(query.trim());
+  const term = normalizeText(query);
   if (term.length === 0) {
     return true;
   }
-  const haystack = foldSpanish(`${title} ${summary} ${reference}`);
-  return haystack.includes(term);
+  return normalizeText(`${title} ${summary} ${reference}`).includes(term);
 }
 
-export function filterTextStories(
-  stories: readonly TextStoryCatalogItem[],
+export function filterTextStories<T extends TextStoryFilterable>(
+  stories: readonly T[],
   options: { testament: TestamentFilter; query: string },
-): TextStoryCatalogItem[] {
+): T[] {
   return stories.filter((story) => {
     if (options.testament !== "todos" && story.testament !== options.testament) {
       return false;
@@ -38,58 +39,14 @@ export function filterTextStories(
   });
 }
 
-/** Las ilustradas no traen `testament` en el catálogo; se infiere del libro en la referencia. */
-const OT_BOOK_PREFIXES = [
-  "génesis",
-  "éxodo",
-  "levítico",
-  "números",
-  "deuteronomio",
-  "josué",
-  "jueces",
-  "rut",
-  "1 samuel",
-  "2 samuel",
-  "1 reyes",
-  "2 reyes",
-  "1 crónicas",
-  "2 crónicas",
-  "esdras",
-  "nehemías",
-  "ester",
-  "job",
-  "salmos",
-  "salmo",
-  "proverbios",
-  "eclesiastés",
-  "cantares",
-  "isaías",
-  "jeremías",
-  "lamentaciones",
-  "ezequiel",
-  "daniel",
-  "oseas",
-  "joel",
-  "amós",
-  "abdías",
-  "jonás",
-  "miqueas",
-  "nahúm",
-  "habacuc",
-  "sofonías",
-  "hageo",
-  "zacarías",
-  "malaquías",
-] as const;
-
-export function testamentFromReference(reference: string): TextStoryTestament {
-  const normalized = reference.trim().toLocaleLowerCase("es");
-  for (const book of OT_BOOK_PREFIXES) {
-    if (normalized === book || normalized.startsWith(`${book} `) || normalized.startsWith(`${book}–`) || normalized.startsWith(`${book}-`)) {
-      return "antiguo";
-    }
-  }
-  return "nuevo";
+/**
+ * Las ilustradas no traen `testament` en el catálogo; se infiere del libro de
+ * la referencia contra `BIBLE_BOOKS`, que es quien ya es dueño de ese dato.
+ * Devuelve null si la referencia no nombra un libro del canon: una historia
+ * mal referenciada no se etiqueta con un testamento inventado.
+ */
+export function testamentFromReference(reference: string): TextStoryTestament | null {
+  return testamentForReference(reference);
 }
 
 export function filterIllustratedStories(

@@ -5,8 +5,10 @@ import { makeFunctionReference } from "convex/server";
 import schema from "./schema";
 import {
   findTextStoryById,
+  summarizeTextStory,
   TEXT_STORY_CATALOG,
   type TextStoryCatalogItem,
+  type TextStoryListItem,
 } from "./textStoriesCatalog";
 
 const modules = {
@@ -15,7 +17,7 @@ const modules = {
   "./textStoriesCatalog.ts": () => import("./textStoriesCatalog"),
 };
 
-const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryCatalogItem[]>(
+const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryListItem[]>(
   "textStories:list",
 );
 const getTextStory = makeFunctionReference<"query", { storyId: string }, TextStoryCatalogItem | null>(
@@ -55,9 +57,25 @@ describe("catálogo de historias en texto", () => {
 });
 
 describe("textStories.list / getById", () => {
-  it("expone el catálogo sin sesión", async () => {
+  it("expone el catálogo sin sesión, solo con metadatos", async () => {
     const t = convexTest(schema, modules);
-    await expect(t.query(listTextStories, {})).resolves.toEqual(TEXT_STORY_CATALOG);
+    const listed = await t.query(listTextStories, {});
+
+    expect(listed).toEqual(TEXT_STORY_CATALOG.map(summarizeTextStory));
+    expect(listed.map((story) => story.id)).toEqual(TEXT_STORY_CATALOG.map((story) => story.id));
+    for (const story of listed) {
+      expect(story).not.toHaveProperty("pages");
+      expect(story.pageCount).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("la lista es mucho más liviana que el catálogo completo", async () => {
+    const t = convexTest(schema, modules);
+    const listed = await t.query(listTextStories, {});
+
+    const listedBytes = JSON.stringify(listed).length;
+    const fullBytes = JSON.stringify(TEXT_STORY_CATALOG).length;
+    expect(listedBytes).toBeLessThan(fullBytes / 4);
   });
 
   it("devuelve detalle o null", async () => {

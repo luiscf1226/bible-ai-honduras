@@ -1,16 +1,22 @@
 import { v } from "convex/values";
 
 import { query } from "./_generated/server";
-import { findTextStoryById, TEXT_STORY_CATALOG } from "./textStoriesCatalog";
+import {
+  findTextStoryById,
+  summarizeTextStory,
+  TEXT_STORY_CATALOG,
+  type TextStoryListItem,
+} from "./textStoriesCatalog";
 
 /**
  * API pública del catálogo de historias en texto (#145).
  * Solo lectura, sin auth ni cuota: leer la Biblia en narrativa es gratis.
  */
 
+/** Solo metadatos: el cuerpo de las páginas lo sirve `getById`. */
 export const list = query({
   args: {},
-  handler: () => TEXT_STORY_CATALOG,
+  handler: (): TextStoryListItem[] => TEXT_STORY_CATALOG.map(summarizeTextStory),
 });
 
 export const getById = query({

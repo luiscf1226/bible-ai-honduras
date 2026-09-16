@@ -25,6 +25,31 @@ export type TextStoryCatalogItem = {
   pages: readonly string[];
 };
 
+/**
+ * Proyección para el índice de Historias: metadatos sin el cuerpo de las
+ * páginas. Mismo criterio que `readingPlans.summarize` — la lista no carga
+ * 51 KB de narrativa para dibujar títulos.
+ */
+export type TextStoryListItem = {
+  id: string;
+  title: string;
+  summary: string;
+  reference: string;
+  testament: TextStoryTestament;
+  pageCount: number;
+};
+
+export function summarizeTextStory(story: TextStoryCatalogItem): TextStoryListItem {
+  return {
+    id: story.id,
+    title: story.title,
+    summary: story.summary,
+    reference: story.reference,
+    testament: story.testament,
+    pageCount: story.pages.length,
+  };
+}
+
 type TextStoriesFile = {
   version: number;
   stories: TextStoryCatalogItem[];

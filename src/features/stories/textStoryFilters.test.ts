@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { STORY_CATALOG } from "../../../convex/stories";
 import {
   filterIllustratedStories,
   filterTextStories,
@@ -46,6 +47,34 @@ describe("textStoryFilters", () => {
     expect(testamentFromReference("Éxodo 14")).toBe("antiguo");
     expect(testamentFromReference("Mateo 5–7")).toBe("nuevo");
     expect(testamentFromReference("1 Samuel 17")).toBe("antiguo");
+  });
+
+  it("no depende de los acentos de la referencia", () => {
+    expect(testamentFromReference("Exodo 14")).toBe("antiguo");
+    expect(testamentFromReference("GENESIS 6–9")).toBe("antiguo");
+    expect(testamentFromReference("galatas 5")).toBe("nuevo");
+  });
+
+  it("devuelve null en vez de etiquetar un testamento inventado", () => {
+    expect(testamentFromReference("Macabeos 3")).toBeNull();
+    expect(testamentFromReference("")).toBeNull();
+  });
+
+  it("toda referencia del catálogo ilustrado resuelve a un libro del canon", () => {
+    for (const story of STORY_CATALOG) {
+      expect({ id: story.id, testament: testamentFromReference(story.reference) }).toEqual({
+        id: story.id,
+        testament: expect.stringMatching(/^(antiguo|nuevo)$/),
+      });
+    }
+  });
+
+  it("una referencia sin libro conocido no entra en ningún testamento", () => {
+    const stories = [{ id: "z", title: "Rara", summary: "", reference: "Macabeos 3", scenes: [] }] as const;
+
+    expect(filterIllustratedStories(stories, { testament: "antiguo", query: "" })).toHaveLength(0);
+    expect(filterIllustratedStories(stories, { testament: "nuevo", query: "" })).toHaveLength(0);
+    expect(filterIllustratedStories(stories, { testament: "todos", query: "" })).toHaveLength(1);
   });
 
   it("filtra ilustradas por testamento", () => {
