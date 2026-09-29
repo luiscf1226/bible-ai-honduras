@@ -41,8 +41,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-labrador-439.convex.cloud",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_REEMPLAZAR"
+        "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bW92ZWQtcmFtLTM2MzAuY2xlcmsuYWNjb3VudHMuZGV2JA"
       }
     }
   },

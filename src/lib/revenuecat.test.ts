@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getMonthlyOffering,
   logIn,
   logOut,
   purchasesConfigured,
@@ -86,6 +87,62 @@ describe("revenuecat purchase + identity", () => {
     await expect(restorePurchases("user_clerk_ana")).resolves.toEqual({ ok: true });
     expect(native.logIn).toHaveBeenCalledWith("user_clerk_ana");
     expect(native.restorePurchases).toHaveBeenCalledOnce();
+  });
+});
+
+describe("getMonthlyOffering — precio real sin hardcodear (#144)", () => {
+  beforeEach(() => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "test_public_key");
+  });
+
+  afterEach(() => {
+    resetRevenueCatForTests();
+    vi.unstubAllEnvs();
+  });
+
+  it("devuelve el priceString localizado del paquete monthly", async () => {
+    const native = mockNative({
+      getOfferings: vi.fn().mockResolvedValue({
+        current: { monthly: { product: { priceString: "L 129.00" } } },
+      }),
+    });
+    setRevenueCatNativeForTests(native);
+
+    await expect(getMonthlyOffering()).resolves.toEqual({
+      ok: true,
+      priceString: "L 129.00",
+    });
+  });
+
+  it("sin key pública devuelve not_configured", async () => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "");
+    setRevenueCatNativeForTests(mockNative());
+
+    await expect(getMonthlyOffering()).resolves.toEqual({
+      ok: false,
+      reason: "not_configured",
+    });
+  });
+
+  it("sin módulo nativo (Expo Go / web) pide development build", async () => {
+    setRevenueCatNativeForTests(null);
+
+    await expect(getMonthlyOffering()).resolves.toEqual({
+      ok: false,
+      reason: "dev_build_required",
+    });
+  });
+
+  it("sin offering monthly disponible no rompe: offering_unavailable", async () => {
+    const native = mockNative({
+      getOfferings: vi.fn().mockResolvedValue({ current: null }),
+    });
+    setRevenueCatNativeForTests(native);
+
+    await expect(getMonthlyOffering()).resolves.toEqual({
+      ok: false,
+      reason: "offering_unavailable",
+    });
   });
 });
 

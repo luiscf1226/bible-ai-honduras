@@ -2,15 +2,24 @@ import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
 import { goBackOrHome } from "../src/components/ScreenHeader";
-import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
-import { purchasesConfigured, purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
+import { PAYWALL_FEATURES } from "../src/lib/paywallCopy";
+import {
+  getMonthlyOffering,
+  purchasesConfigured,
+  purchaseMonthly,
+  restorePurchases,
+} from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
+
+const PRIVACY_POLICY_URL = "https://luiscf1226.github.io/bible-ai-honduras/privacidad/";
+// EULA estándar de Apple (#144): no se publicó una propia todavía.
+const TERMS_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 
 export default function PaywallScreen() {
   const { userId } = useAuth();
@@ -19,6 +28,7 @@ export default function PaywallScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [awaitingUnlock, setAwaitingUnlock] = useState(false);
+  const [priceString, setPriceString] = useState<string | null>(null);
   // Sin RevenueCat configurado (#93/#108): sin key no hay compra. Se oculta
   // precio y CTA en vez de dejarlos romper — Apple rechaza precio visible sin
   // IAP funcional.
@@ -31,6 +41,21 @@ export default function PaywallScreen() {
     setAwaitingUnlock(false);
     goBackOrHome();
   }, [awaitingUnlock, isPro]);
+
+  useEffect(() => {
+    if (!canPurchase) {
+      return;
+    }
+    let cancelled = false;
+    void getMonthlyOffering().then((result) => {
+      if (!cancelled && result.ok) {
+        setPriceString(result.priceString);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [canPurchase]);
 
   const onSubscribe = async () => {
     if (isPro) {
@@ -118,10 +143,10 @@ export default function PaywallScreen() {
             ))}
           </View>
 
-          {canPurchase ? (
+          {canPurchase && priceString ? (
             <View style={styles.priceCard}>
-              <Text style={styles.price}>{PAYWALL_DISPLAY_PRICE}</Text>
-              <Text style={styles.priceHint}>al mes · cancela cuando quieras</Text>
+              <Text style={styles.price}>{priceString}</Text>
+              <Text style={styles.priceHint}>al mes · se renueva automáticamente</Text>
             </View>
           ) : null}
 
@@ -160,9 +185,28 @@ export default function PaywallScreen() {
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
           {canPurchase ? (
-            <Text style={styles.legal}>
-              Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.
-            </Text>
+            <>
+              <Text style={styles.legal}>
+                Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.
+              </Text>
+              <View style={styles.legalLinks}>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+                  testID="paywall-privacy-link"
+                >
+                  <Text style={styles.legalLink}>Política de privacidad</Text>
+                </Pressable>
+                <Text style={styles.legal}> · </Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => void Linking.openURL(TERMS_URL)}
+                  testID="paywall-terms-link"
+                >
+                  <Text style={styles.legalLink}>Términos de uso</Text>
+                </Pressable>
+              </View>
+            </>
           ) : null}
         </ScrollView>
       </SafeAreaView>
@@ -289,5 +333,17 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
     marginTop: tokens.space.lg,
     textAlign: "center",
+  },
+  legalLinks: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: tokens.space.xs,
+  },
+  legalLink: {
+    color: tokens.paywall.color.check,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    textDecorationLine: "underline",
   },
 });

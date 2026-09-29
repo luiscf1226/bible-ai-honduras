@@ -3,28 +3,33 @@
 Contexto: #93. Perfiles en `eas.json`. La app es managed (no hay `android/` ni
 `ios/` en el repo); EAS hace el prebuild en la nube.
 
-## Dos entornos de Convex
+## Un solo entorno compartido (#142)
 
-Proyecto `luiscf1226/bible-ai-honduras`.
+Proyecto `luiscf1226/bible-ai-honduras`. Decisión temporal y consciente: hasta
+nuevo aviso, **los cuatro perfiles** (`apk`, `play`, `testflight`,
+`production`) usan el mismo backend y la misma autenticación:
 
-| Entorno | Deployment | URL | Lo usa |
-|---|---|---|---|
-| Test | `neighborly-kudu-508` | `https://neighborly-kudu-508.convex.cloud` | `apk`, `play`, `testflight` |
-| Producción | `optimistic-labrador-439` | `https://optimistic-labrador-439.convex.cloud` | `production` |
+| | Deployment / instancia | Lo usa |
+|---|---|---|
+| Convex | `neighborly-kudu-508` (`https://neighborly-kudu-508.convex.cloud`) | `apk`, `play`, `testflight`, `production` |
+| Clerk | instancia test `moved-ram-3630` (`pk_test_…`) | `apk`, `play`, `testflight`, `production` |
 
-La beta corre contra **test**: los testers pueden romper datos, agotar cuotas y
-recibir Pro de cortesía sin tocar producción.
+Esto significa que TestFlight, producción y testers **comparten usuarios,
+datos, cuotas y entitlements**. No es un descuido: no se creará Clerk live ni
+se migrará a otro deployment de Convex mientras esta decisión siga vigente.
+
+El deployment `optimistic-labrador-439` **no se usa** — se documenta acá para
+no borrarlo por error, no porque siga sirviendo producción.
 
 ## Antes de la primera build
 
-Las URLs de Convex ya están en `eas.json`. **Falta la key de Clerk** —
-reemplazar `pk_REEMPLAZAR` en los perfiles de beta y `pk_live_REEMPLAZAR` en
-`production`.
+Las URLs de Convex y la key de Clerk ya están en `eas.json`, iguales en los
+cuatro perfiles. No debería quedar ningún placeholder `REEMPLAZAR`.
 
 | Variable | De dónde sale |
 |---|---|
 | `EXPO_PUBLIC_CONVEX_URL` | Ya configurada (tabla de arriba) |
-| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk → API Keys |
+| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk → API Keys (instancia test) |
 
 > **Estas dos van dentro del perfil, no en `.env.local`.** `.env.local` no viaja
 > a los servidores de EAS. Si faltan, la build compila pero la app abre en
@@ -52,34 +57,29 @@ Ponerle "Required reviewers" al environment `convex-production` obliga a que
 alguien apruebe antes de tocar el deployment real — es la manera de no
 mandar el issuer equivocado a producción sin querer.
 
+> Mientras dure la decisión temporal de #142, el target "producción" de este
+> workflow apunta a un deployment (`optimistic-labrador-439`) que **ningún**
+> perfil de `eas.json` usa. No hace falta correrlo hasta que se retome la
+> migración a un Clerk live y un Convex de producción real.
+
 `ANTHROPIC_API_KEY` y `OPENAI_API_KEY` siguen siendo manuales (`npx convex env
 set [--prod] NOMBRE valor`): son secretos de proveedor, no de Clerk, y no
 entran en el alcance de este workflow.
 
-## Estado de los deployments — 2026-09-12
+## Estado del deployment canónico — 2026-09-15
 
-| | Test (`neighborly-kudu-508`) | Producción (`optimistic-labrador-439`) |
-|---|---|---|
-| Funciones e índices de `master` | ✅ publicadas | ✅ publicadas |
-| Variables (`CLERK_JWT_ISSUER_DOMAIN`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) | ✅ | ✅ |
-| Corpus RV1909 (`verses`, 31.102) | ✅ ingerido | ❌ **vacío** |
-| Migraciones `migrateUnavailableBibleVersions` y `migrateOnboardedFromConsent` | ✅ corridas | ✅ corridas (0 usuarios) |
-| Planes de lectura sembrados (anual + 6 recorridos) | ✅ | ✅ |
-| Key de Clerk en `eas.json` | ✅ `pk_test_…` | ❌ `pk_live_REEMPLAZAR` |
+| | `neighborly-kudu-508` (usado por los 4 perfiles) |
+|---|---|
+| Funciones e índices de `master` | ✅ publicadas |
+| Variables (`CLERK_JWT_ISSUER_DOMAIN`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) | ✅ |
+| `CLERK_SECRET_KEY` (borra la identidad de Clerk al eliminar cuenta, #142) | ⚠️ pendiente |
+| Corpus RV1909 (`verses`, 31.102) | ✅ ingerido |
+| Migraciones `migrateUnavailableBibleVersions` y `migrateOnboardedFromConsent` | ✅ corridas |
+| Planes de lectura sembrados (anual + 6 recorridos) | ✅ |
+| Key de Clerk en `eas.json` | ✅ `pk_test_…` en los 4 perfiles |
 
-**La beta sale contra test**, que está completo. Producción no está lista para el
-lanzamiento real (#39) por dos cosas:
-
-1. **Corpus vacío.** Sin versículos no funcionan lector, buscador, Preguntar, Voces
-   ni Sentir. No se copió desde test a propósito: Convex avisa que el proyecto
-   **supera los límites del plan gratis**, y duplicar el corpus con embeddings
-   puede cortar el servicio. Antes: pasar a plan pago, y después ingerir con
-   `npm run rag:ingest -- --kind verses --file <rv1909.json> --prod`
-   (ver `docs/rag-ingestion.md`).
-2. **Clerk de producción.** Crear la instancia live en Clerk, correr el
-   workflow *Sync Clerk env a Convex* con objetivo "produccion" (pone
-   `CLERK_JWT_ISSUER_DOMAIN`) y pegar la `pk_live_…` en el perfil `production`
-   de `eas.json` a mano — es una key pública, no un secreto.
+Migrar a un Clerk live y a un Convex de producción separado (`optimistic-labrador-439`,
+hoy sin usar) queda fuera de alcance mientras la decisión de #142 siga vigente.
 
 > Nombres de cron: **solo ASCII**. Un identificador con tildes hace fallar el push
 > completo con `InvalidModules` (PR #135) y los tests no lo detectan.

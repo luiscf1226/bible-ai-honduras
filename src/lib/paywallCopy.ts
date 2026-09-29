@@ -4,6 +4,3 @@ export const PAYWALL_FEATURES = [
   { subtitle: "Cada vez que lo necesites, no dos al día", title: "Devocionales para lo que estés viviendo" },
   { subtitle: "Cualquier pasaje, en imágenes", title: "Historias ilustradas ilimitadas" },
 ] as const;
-
-// Copy del prototipo. El precio de cobro lo localiza RevenueCat en #31.
-export const PAYWALL_DISPLAY_PRICE = "$4.99";

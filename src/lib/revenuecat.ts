@@ -216,6 +216,42 @@ export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseRes
   }
 }
 
+export type OfferingResult =
+  | { ok: true; priceString: string }
+  | {
+      ok: false;
+      reason: "not_configured" | "dev_build_required" | "offering_unavailable";
+    };
+
+/**
+ * Precio localizado real desde RevenueCat/Apple, para reemplazar cualquier
+ * precio hardcodeado en la UI (#144). No requiere login: se usa antes de que
+ * el usuario decida comprar.
+ */
+export async function getMonthlyOffering(): Promise<OfferingResult> {
+  if (!purchasesConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
+  const native = await loadNative();
+  if (!native) {
+    return { ok: false, reason: "dev_build_required" };
+  }
+  try {
+    await ensureConfigured(native);
+    const offerings = await native.getOfferings();
+    const monthly = offerings.current?.monthly as
+      | { product?: { priceString?: string } }
+      | undefined;
+    const priceString = monthly?.product?.priceString;
+    if (!priceString) {
+      return { ok: false, reason: "offering_unavailable" };
+    }
+    return { ok: true, priceString };
+  } catch {
+    return { ok: false, reason: "offering_unavailable" };
+  }
+}
+
 export async function restorePurchases(clerkUserId?: string): Promise<PurchaseResult> {
   if (!purchasesConfigured()) {
     return { ok: false, reason: "not_configured" };

@@ -31,6 +31,8 @@ import type * as reading from "../reading.js";
 import type * as readingPlanCatalog from "../readingPlanCatalog.js";
 import type * as readingPlans from "../readingPlans.js";
 import type * as stories from "../stories.js";
+import type * as textStories from "../textStories.js";
+import type * as textStoriesCatalog from "../textStoriesCatalog.js";
 import type * as users from "../users.js";
 import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
@@ -67,6 +69,8 @@ declare const fullApi: ApiFromModules<{
   readingPlanCatalog: typeof readingPlanCatalog;
   readingPlans: typeof readingPlans;
   stories: typeof stories;
+  textStories: typeof textStories;
+  textStoriesCatalog: typeof textStoriesCatalog;
   users: typeof users;
   voices: typeof voices;
   voicesCatalog: typeof voicesCatalog;
