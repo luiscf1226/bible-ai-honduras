@@ -12,6 +12,7 @@ import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleV
 import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
 import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
+import { useAppUpdate } from "../src/hooks/useAppUpdate";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -57,6 +58,7 @@ export default function AjustesScreen() {
   const storedVersion = user?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
   const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : DEFAULT_BIBLE_VERSION;
   const darkMode = user?.darkMode ?? false;
+  const appUpdate = useAppUpdate();
 
   // Cerrar sesión de verdad: Clerk, RevenueCat y el recordatorio local. Si el
   // aviso diario sobreviviera, seguirían llegando notificaciones de una cuenta
@@ -385,6 +387,40 @@ export default function AjustesScreen() {
               Cancelar
             </AppButton>
           </View>
+        ) : null}
+      </View>
+
+      {/* Versión visible para soporte: "¿qué build tenés?" se contesta desde acá. */}
+      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>App</Text>
+      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Versión instalada</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-version-app">
+              {appUpdate.label}
+            </Text>
+          </View>
+        </View>
+        {appUpdate.storeName ? (
+          <Pressable
+            accessibilityHint={`Abre ${appUpdate.storeName}`}
+            accessibilityRole="link"
+            onPress={() => void appUpdate.openStore()}
+            style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+            testID="ajustes-actualizar-app"
+          >
+            <View style={styles.rowText}>
+              <Text style={[styles.rowLabel, { color: appUpdate.updateAvailable ? color.accentDeep : color.ink }]}>
+                {appUpdate.updateAvailable ? "Hay una versión nueva" : "Buscar actualizaciones"}
+              </Text>
+              <Text style={[styles.rowHint, { color: color.inkSoft }]}>
+                {appUpdate.updateAvailable
+                  ? `Actualizá en ${appUpdate.storeName} para ver lo último`
+                  : `Abre ${appUpdate.storeName}`}
+              </Text>
+            </View>
+            <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
+          </Pressable>
         ) : null}
       </View>
 
