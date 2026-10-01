@@ -102,6 +102,14 @@ async function seedEverything(
       verse: 1,
       updatedAt: Date.now(),
     });
+    await ctx.db.insert("readingHighlights", {
+      userId,
+      book: "Salmos",
+      chapter: 23,
+      verse: 4,
+      color: "sage",
+      updatedAt: Date.now(),
+    });
     await ctx.db.insert("userPlanProgress", {
       userId,
       planId: "canonico",
@@ -169,6 +177,7 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     readingRecents: await ctx.db.query("readingRecents").collect(),
     readingBookmarks: await ctx.db.query("readingBookmarks").collect(),
     readingSeparators: await ctx.db.query("readingSeparators").collect(),
+    readingHighlights: await ctx.db.query("readingHighlights").collect(),
     userPlanProgress: await ctx.db.query("userPlanProgress").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
@@ -204,6 +213,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingRecents).toHaveLength(1);
     expect(before.readingBookmarks).toHaveLength(1);
     expect(before.readingSeparators).toHaveLength(1);
+    expect(before.readingHighlights).toHaveLength(1);
     expect(before.userPlanProgress).toHaveLength(2);
     expect(before.storage).toHaveLength(1);
 
@@ -222,6 +232,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingRecents: 1,
       readingBookmarks: 1,
       readingSeparators: 1,
+      readingHighlights: 1,
       readingPlanProgress: 2,
       users: 1,
     });
@@ -238,6 +249,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
     expect(after.readingSeparators).toHaveLength(0);
+    expect(after.readingHighlights).toHaveLength(0);
     expect(after.userPlanProgress).toHaveLength(0);
 
     // El blob no queda huérfano.
@@ -435,6 +447,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingRecents: 0,
       readingBookmarks: 0,
       readingSeparators: 0,
+      readingHighlights: 0,
       readingPlanProgress: 0,
       users: 0,
     });
