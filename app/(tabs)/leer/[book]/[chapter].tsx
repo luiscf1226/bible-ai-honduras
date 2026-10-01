@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { api } from "../../../../convex/_generated/api";
+import { AppButton } from "../../../../src/components/AppButton";
 import { AppScreen } from "../../../../src/components/AppScreen";
 import { BottomPanel } from "../../../../src/components/BottomPanel";
 import { ScreenHeader, goBackOrHome } from "../../../../src/components/ScreenHeader";
@@ -20,6 +21,7 @@ import {
   readingTypeStyle,
   stepTowards,
 } from "../../../../src/features/reading/readingSettings";
+import { NOTE_MAX_LENGTH, removeSavedCopy } from "../../../../src/features/reading/savedVerses";
 import { copyToClipboard } from "../../../../src/lib/clipboard";
 import { goToChat } from "../../../../src/lib/goToChat";
 import { openPassage } from "../../../../src/lib/openPassage";
@@ -44,6 +46,13 @@ export default function ReaderScreen() {
   const saveProgress = useMutation(api.reading.saveProgress);
   const recordRecent = useMutation(api.reading.recordRecent);
   const toggleBookmark = useMutation(api.reading.toggleBookmark);
+  const setBookmarkNote = useMutation(api.reading.setBookmarkNote);
+  // Guardados del capítulo desde el backend, no desde estado local: así quitar
+  // un guardado desde la lista de Leer se ve también acá (#166).
+  const chapterBookmarks = useQuery(
+    api.reading.chapterBookmarks,
+    ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+  );
   const separator = useQuery(api.reading.separator, currentUser?._id ? {} : "skip");
   const setSeparator = useMutation(api.reading.setSeparator);
   const clearSeparator = useMutation(api.reading.clearSeparator);
@@ -55,7 +64,10 @@ export default function ReaderScreen() {
   const clearHighlight = useMutation(api.reading.clearHighlight);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [selected, setSelected] = useState<ReadingVerse | null>(null);
-  const [saved, setSaved] = useState<boolean | null>(null);
+  // Borrador de la nota (#167). null = la hoja muestra las acciones; string =
+  // la hoja muestra el campo de nota.
+  const [noteDraft, setNoteDraft] = useState<string | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const openedVerse = useRef<string | null>(null);
 
   const fontStep = clampFontStep(currentUser?.readingFontStep);
@@ -102,8 +114,15 @@ export default function ReaderScreen() {
   };
   const selectVerse = (verse: ReadingVerse) => {
     setSelected(verse);
-    setSaved(null);
+    setNoteDraft(null);
+    setNoteError(null);
   };
+  const closeSheet = () => {
+    setSelected(null);
+    setNoteDraft(null);
+    setNoteError(null);
+  };
+  const selectedBookmark = selected ? chapterBookmarks?.find((item) => item.verse === selected.verse) : undefined;
   const askAboutSelected = () => {
     if (!selected) return;
     goToChat(selected);
@@ -146,10 +165,30 @@ export default function ReaderScreen() {
     if (!selected) return;
     void clearHighlight({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
   };
-  const saveSelected = async () => {
+  const saveSelected = () => {
     if (!selected) return;
-    const result = await toggleBookmark({ book: selected.book, chapter: selected.chapter, verse: selected.verse });
-    setSaved(result.saved);
+    const toggle = () =>
+      void toggleBookmark({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
+    // Quitar un guardado con nota borra la nota: se avisa antes (#167).
+    if (selectedBookmark?.note) {
+      const copy = removeSavedCopy(true);
+      Alert.alert(copy.title, copy.body, [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Quitar", style: "destructive", onPress: toggle },
+      ]);
+      return;
+    }
+    toggle();
+  };
+  const saveNote = async (note: string) => {
+    if (!selected) return;
+    try {
+      await setBookmarkNote({ book: selected.book, chapter: selected.chapter, verse: selected.verse, note });
+      setNoteDraft(null);
+      setNoteError(null);
+    } catch {
+      setNoteError("No pudimos guardar tu nota. Revisá tu conexión e intentá de nuevo.");
+    }
   };
 
   return (
@@ -227,14 +266,85 @@ export default function ReaderScreen() {
         <Pressable accessibilityRole="button" disabled={!next} onPress={() => next && openReaderChapter(next)} style={[styles.navButton, { borderColor: color.border }, !next && styles.disabled]}><Text style={[styles.navLabel, { color: color.ink }]}>Siguiente ›</Text></Pressable>
       </View>
 
-      {selected ? (
+      {selected && noteDraft !== null ? (
         <BottomPanel
-          header={<><Text style={[styles.panelTitle, { color: color.ink }]}>{formatVerseReference(selected)}</Text><Text style={[styles.panelQuote, { color: color.inkSoft }]}>{selected.text}</Text></>}
+          footer={
+            <>
+              <Text style={[styles.noteLabel, { color: color.accent }]}>TU NOTA · PRIVADA</Text>
+              <TextInput
+                accessibilityLabel={`Nota personal para ${formatVerseReference(selected)}`}
+                autoFocus
+                maxLength={NOTE_MAX_LENGTH}
+                multiline
+                onChangeText={setNoteDraft}
+                placeholder="Por ejemplo: “Lo predicó el pastor el domingo”."
+                placeholderTextColor={color.inkFaint}
+                style={[styles.noteInput, { backgroundColor: color.surface, borderColor: color.accent, color: color.ink }]}
+                testID="reading-note-input"
+                textAlignVertical="top"
+                value={noteDraft}
+              />
+              <Text style={[styles.noteCount, { color: color.inkFaint }]}>
+                {noteDraft.length}/{NOTE_MAX_LENGTH} · No se comparte ni se envía a la IA.
+              </Text>
+              {noteError ? (
+                <Text accessibilityRole="alert" style={[styles.noteCount, { color: color.accentDeep }]}>
+                  {noteError}
+                </Text>
+              ) : null}
+              <AppButton
+                disabled={noteDraft.trim().length === 0}
+                onPress={() => void saveNote(noteDraft)}
+                testID="reading-note-save"
+              >
+                Guardar nota
+              </AppButton>
+              {selectedBookmark?.note ? (
+                <AppButton onPress={() => void saveNote("")} testID="reading-note-delete" variant="quiet">
+                  Borrar nota
+                </AppButton>
+              ) : null}
+              <Pressable accessibilityRole="button" onPress={() => setNoteDraft(null)} style={styles.action}>
+                <Text style={[styles.actionLabel, styles.centered, { color: color.inkSoft }]}>Cancelar</Text>
+              </Pressable>
+            </>
+          }
+          header={
+            <>
+              <Text style={[styles.panelTitle, { color: color.ink }]}>{formatVerseReference(selected)}</Text>
+              <Text numberOfLines={2} style={[styles.panelQuote, { color: color.inkSoft }]}>{selected.text}</Text>
+            </>
+          }
+          testID="reading-note-editor"
+        />
+      ) : selected ? (
+        <BottomPanel
+          header={
+            <>
+              <Text style={[styles.panelTitle, { color: color.ink }]}>{formatVerseReference(selected)}</Text>
+              <Text style={[styles.panelQuote, { color: color.inkSoft }]}>{selected.text}</Text>
+              {selectedBookmark?.note ? (
+                <Text numberOfLines={3} style={[styles.panelNote, { backgroundColor: color.surfaceSunk, color: color.inkMuted }]}>
+                  {selectedBookmark.note}
+                </Text>
+              ) : null}
+            </>
+          }
           testID="reading-verse-actions"
         >
           <Pressable accessibilityRole="button" onPress={askAboutSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Preguntar sobre esto</Text></Pressable>
           <Pressable accessibilityRole="button" disabled={!currentUser?.referralCode} onPress={shareSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Compartir</Text></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => void saveSelected()} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>{saved ? "Guardado" : "Guardar"}</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={saveSelected} style={styles.action} testID="reading-save-toggle"><Text style={[styles.actionLabel, { color: color.ink }]}>{selectedBookmark ? "Guardado" : "Guardar"}</Text></Pressable>
+          {currentUser?._id ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setNoteDraft(selectedBookmark?.note ?? "")}
+              style={styles.action}
+              testID="reading-note-open"
+            >
+              <Text style={[styles.actionLabel, { color: color.ink }]}>{selectedBookmark?.note ? "Editar nota" : "Agregar nota"}</Text>
+            </Pressable>
+          ) : null}
           {currentUser?._id ? (
             <View style={[styles.action, styles.highlightRow]} testID="reading-highlight-picker">
               <Text style={[styles.actionLabel, { color: color.ink }]}>Subrayar</Text>
@@ -272,7 +382,7 @@ export default function ReaderScreen() {
             </Pressable>
           ) : null}
           <Pressable accessibilityRole="button" onPress={copySelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Copiar</Text></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.action}><Text style={[styles.actionLabel, { color: color.inkSoft }]}>Cancelar</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={closeSheet} style={styles.action}><Text style={[styles.actionLabel, { color: color.inkSoft }]}>Cancelar</Text></Pressable>
         </BottomPanel>
       ) : null}
     </AppScreen>
@@ -327,4 +437,32 @@ const styles = StyleSheet.create({
   swatches: { flexDirection: "row", gap: tokens.space.sm },
   swatchRing: { borderRadius: tokens.radius.pill, borderWidth: 1, padding: tokens.space.xxs },
   swatch: { borderRadius: tokens.radius.pill, height: tokens.size.dotActive, width: tokens.size.dotActive },
+  centered: { textAlign: "center" },
+  // Nota personal (#167): mismo campo que "Escríbelo con tus palabras" de
+  // Sentir y mismo fondo `surfaceSunk` que la nota en la tarjeta de guardados.
+  panelNote: {
+    borderRadius: tokens.radius.md,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+    overflow: "hidden",
+    padding: tokens.space.md,
+  },
+  noteLabel: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+  },
+  noteInput: {
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.body.size,
+    lineHeight: tokens.type.body.lineHeight,
+    maxHeight: tokens.size.logoLarge,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
+  },
+  noteCount: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },
 });

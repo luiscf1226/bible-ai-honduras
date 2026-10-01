@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { clearBookmarkNotesForUser } from "./reading";
 import { voiceCharacters } from "./voicesCatalog";
 
 type AuthedCtx = QueryCtx | MutationCtx;
@@ -176,13 +177,15 @@ export async function deleteConversationsForUser(
   };
 }
 
-// Hard delete: borra messages y después conversations del usuario actual.
-// No escribe `deleted: true`. Lo que no es tuyo no se toca.
+// Hard delete: borra messages y después conversations del usuario actual, y
+// las notas personales de los versículos guardados (#167) — los guardados en
+// sí se quedan. No escribe `deleted: true`. Lo que no es tuyo no se toca.
 export const deleteAll = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
     const { deletedConversations, deletedMessages } = await deleteConversationsForUser(ctx, user._id);
-    return { deletedConversations, deletedMessages };
+    const clearedNotes = await clearBookmarkNotesForUser(ctx, user._id);
+    return { deletedConversations, deletedMessages, clearedNotes };
   },
 });

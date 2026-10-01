@@ -11,6 +11,8 @@ import { PassageSearch } from "../../../src/components/PassageSearch";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
 import { BEGINNER_PLAN_ID } from "../../../src/features/reading/annualPlans";
 import { highlightSwatch } from "../../../src/features/reading/highlightColors";
+import { SavedVerseCard } from "../../../src/features/reading/SavedVerseCard";
+import { SAVED_PREVIEW_COUNT, seeAllLabel } from "../../../src/features/reading/savedVerses";
 import { openPassage, openReadingPlan } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
@@ -25,10 +27,11 @@ export default function LeerScreen() {
   const currentUser = useQuery(api.users.current);
   const progress = useQuery(api.reading.progress, {});
   const recents = useQuery(api.reading.recents, {});
-  const bookmarks = useQuery(api.reading.bookmarks, {});
+  const bookmarks = useQuery(api.reading.bookmarks, { limit: SAVED_PREVIEW_COUNT });
   const separator = useQuery(api.reading.separator, {});
   const highlights = useQuery(api.reading.highlights, {});
   const version = currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
+  const seeAll = bookmarks ? seeAllLabel(bookmarks.total) : null;
 
   const back = () => {
     if (book) {
@@ -158,20 +161,29 @@ export default function LeerScreen() {
             </View>
           ) : null}
 
-          {bookmarks && bookmarks.length > 0 ? (
+          {/* Solo los 3 más recientes: antes la lista crecía sin límite y
+              empujaba el buscador hacia abajo (#166). */}
+          {bookmarks && bookmarks.total > 0 ? (
             <View style={styles.savedSection}>
-              <Text style={[styles.savedTitle, { color: color.inkSoft }]}>GUARDADOS</Text>
-              {bookmarks.map((bookmark) => (
-                <Pressable
-                  accessibilityRole="button"
+              <View style={styles.savedHeader}>
+                <Text style={[styles.savedTitle, { color: color.inkSoft }]}>GUARDADOS</Text>
+                {seeAll ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={tokens.space.sm}
+                    onPress={() => router.push("/leer/guardados")}
+                    testID="leer-saved-see-all"
+                  >
+                    <Text style={[styles.seeAll, { color: color.accent }]}>{seeAll}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {bookmarks.items.map((bookmark) => (
+                <SavedVerseCard
+                  item={bookmark}
                   key={`${bookmark.book}-${bookmark.chapter}-${bookmark.verse}`}
-                  onPress={() => openPassage(bookmark)}
-                  style={[styles.savedRow, { borderColor: color.border }]}
-                >
-                  <Text style={[styles.savedLabel, { color: color.ink }]}>
-                    {bookmark.book} {bookmark.chapter}:{bookmark.verse}
-                  </Text>
-                </Pressable>
+                  referralCode={currentUser?.referralCode}
+                />
               ))}
             </View>
           ) : null}
@@ -258,6 +270,8 @@ const styles = StyleSheet.create({
   separatorRibbon: { borderRadius: tokens.radius.pill, height: tokens.space.lg, width: tokens.size.dot },
   planLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight, marginTop: tokens.space.xs },
   savedSection: { gap: tokens.space.sm },
+  savedHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  seeAll: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size },
   savedTitle: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.overline.size,

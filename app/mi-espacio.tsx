@@ -37,7 +37,7 @@ export default function MiEspacioScreen() {
 
   const sections = buildMySpaceSections({
     separator: separator ?? null,
-    bookmarks: bookmarks ?? [],
+    bookmarks: bookmarks?.items ?? [],
     highlights: highlights ?? [],
     history: history ?? [],
   });
