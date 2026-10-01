@@ -14,7 +14,10 @@ para poder ver y fotografiar **todas las pantallas** en un navegador.
 QA_HARNESS=1 npx expo start --web --port 8081
 ```
 
-Sin `QA_HARNESS=1`, `metro.config.js` no cambia nada del build normal.
+No hace falta `.env.local`: con `QA_HARNESS=1`, `metro.config.js` completa
+`EXPO_PUBLIC_CONVEX_URL` y `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` con valores
+ficticios si no están definidas. Sin `QA_HARNESS=1` no cambia nada del build
+normal.
 
 ## Qué está mockeado
 
@@ -57,10 +60,9 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 
 ## Limitaciones conocidas
 
-- `public/index.html` (la portada legal de GitHub Pages) también es la plantilla
-  HTML de Expo web: con ese archivo presente, `/home` sirve la portada legal en
-  vez de la app. Para correr el harness, movelo temporalmente fuera de `public/`
-  y devolvelo antes de commitear.
+- Las páginas legales de GitHub Pages viven en `site/`, no en `public/`: Expo
+  web usa `public/index.html` como plantilla y, si existiera, taparía la app
+  (#156). No crees `public/index.html`.
 - Lectura: `reading:*` y `readingPlans:*` tienen fixtures (separador en
   Salmos 46:1, "seguí leyendo" en Juan 3). Cualquier capítulo muestra los mismos
   4 versículos de Salmos 46 como placeholder.

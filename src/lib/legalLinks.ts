@@ -1,5 +1,5 @@
 /**
- * Páginas legales publicadas en GitHub Pages desde `public/`
+ * Páginas legales publicadas en GitHub Pages desde `site/`
  * (.github/workflows/pages.yml). App Store 3.1.2 exige enlazar términos y
  * privacidad desde el paywall de una suscripción auto-renovable; Ajustes los
  * enlaza también.
