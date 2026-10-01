@@ -8,7 +8,7 @@
 > Borrador preparado para la ficha de tienda (App Store 3.1.2 exige un enlace a
 > los términos de uso en toda app con suscripción auto-renovable). **Tiene que
 > pasar por revisión legal antes del lanzamiento público.** La versión HTML que
-> se publica vive en `public/terminos/index.html`; las dos se editan juntas.
+> se publica vive en `site/terminos/index.html`; las dos se editan juntas.
 
 ## 1. Qué es la app
 

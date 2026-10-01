@@ -29,7 +29,7 @@ URL de la política:
   Console, incluida la explicación de IA y contenido religioso, y la ruta
   exacta de cierre de sesión / eliminación de cuenta.
 - [terms-of-use.md](./terms-of-use.md): términos de uso (App Store 3.1.2),
-  publicados como HTML en `public/terminos/`.
+  publicados como HTML en `site/terminos/`.
 - [privacy-policy.md](./privacy-policy.md): copia editable de la política que
   se publica como HTML en GitHub Pages.
 - [listing-es-HN.md](./listing-es-HN.md): título, subtítulo, descripción y
