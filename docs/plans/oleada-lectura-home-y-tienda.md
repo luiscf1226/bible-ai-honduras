@@ -35,13 +35,13 @@ re-exportar `design/` (ticket T1).
 
 Orden sugerido. Todos en español, como el resto de los issues.
 
-### T1 — Ratificar en Claude Design los layouts de esta oleada · *bloquea el merge*
+### T1 — Ratificar en Claude Design los layouts de esta oleada · *bloquea el merge* · #150
 Diseñar en Claude Design: barra fija del inicio, tarjeta "¿Cómo estás hoy?" con atajos,
 cajón lateral de historial, chip "Otro", cinta del separador, tarjeta "Para empezar".
 Re-exportar `design/` y ajustar el código si el diseño cambia.
 **Criterio:** cada pantalla del PR tiene su par en el prototipo.
 
-### T2 — Versión de la Biblia: decidir licencia o corpus de dominio público
+### T2 — Versión de la Biblia: decidir licencia o corpus de dominio público · #151
 Hoy solo RV1909 tiene corpus (`convex/bibleVersions.ts`). RVR1960 (Sociedades Bíblicas
 Unidas) y NVI (Biblica) necesitan licencia comercial. Opciones:
 1. **Pedir licencia** de RVR1960 — la que más usa la iglesia evangélica hondureña.
@@ -50,24 +50,24 @@ Unidas) y NVI (Biblica) necesitan licencia comercial. Opciones:
 **Decisión de producto/legal, no de código.** Cuando haya corpus, alcanza con ingerirlo
 (`npm run rag:ingest`) y agregarlo a `AVAILABLE_BIBLE_VERSIONS`.
 
-### T3 — Revisión legal de Términos y Privacidad antes del lanzamiento
+### T3 — Revisión legal de Términos y Privacidad antes del lanzamiento · #152
 Los textos quedaron listos para la ficha, pero son un borrador técnico.
 **Criterio:** abogado revisa; URLs cargadas en App Store Connect (Términos/EULA,
 Privacidad, Soporte) y en Play Console (Privacidad, Eliminación de datos).
 
-### T4 — El recordatorio diario menciona la lectura del plan
+### T4 — El recordatorio diario menciona la lectura del plan · #153
 Ya está anotado como `TODO(#114)` en `src/lib/dailyReminder.ts`. Con dos planes anuales
 hay que decidir cuál se menciona (el último abierto).
 
-### T5 — El lector abre en el versículo del separador
+### T5 — El lector abre en el versículo del separador · #154
 Hoy abre el capítulo con la hoja de acciones del versículo; falta hacer scroll hasta él
 en capítulos largos (Salmos 119).
 
-### T6 — Revisión pastoral del plan "para empezar"
+### T6 — Revisión pastoral del plan "para empezar" · #155
 Igual que los recorridos (#115): el reparto es aritmético; un pastor confirma que el orden
 (AT + NT + Salmos/Proverbios) es el que se quiere recomendar.
 
-### T7 — Arreglos del harness de QA
+### T7 — Arreglos del harness de QA · #156
 En este PR se arreglaron tres (`useConvex` estable, `usePaginatedQuery`, fixtures de
 Lectura y RV1909). Queda: `public/index.html` choca con la plantilla de Expo web; mover
 la portada legal a `public/legal/` o configurar el harness para ignorarla.
@@ -79,31 +79,31 @@ la portada legal a `public/legal/` o configurar el harness para ignorarla.
 Cada una con su ticket propuesto. Ninguna rompe las reglas duras: todo contenido bíblico
 sigue anclado al RAG (#4) y los límites pasan por el servicio de cuotas existente (#3).
 
-### I1 — Escuchar el capítulo (audio de la Biblia)
+### I1 — Escuchar el capítulo (audio de la Biblia) · #157
 Botón "Escuchar" en el lector con texto a voz del RV1909. Mucha gente escucha en el bus o
 mientras trabaja, y ayuda a quien lee con dificultad. Gratis (leer es gratis).
 **Ticket:** TTS del sistema (`expo-speech`) primero; voz grabada después si funciona.
 
-### I2 — Versículos para memorizar
+### I2 — Versículos para memorizar · #158
 Desde la hoja del versículo: "Memorizar". Tarjetas con repaso espaciado (hoy, en 3 días,
 en una semana) y un ejercicio de completar palabras. Encaja con los guardados que ya
 existen.
 
-### I3 — Diario de oración
+### I3 — Diario de oración · #159
 Peticiones privadas con fecha, que se pueden marcar como **respondidas**. Al cerrar un
 devocional de Sentir: "Guardar como petición". Mismo criterio de privacidad que Sentir
 (nada se comparte ni se publica) y entra en el borrado de cuenta.
 
-### I4 — Biblia sin conexión
+### I4 — Biblia sin conexión · #160
 Descargar el RV1909 en el teléfono para leer sin datos. En Honduras los datos móviles son
 caros y la señal se cae fuera de las ciudades. Solo el lector y los planes funcionan
 offline; la IA sigue necesitando conexión.
 
-### I5 — Imagen del versículo para el estado de WhatsApp
+### I5 — Imagen del versículo para el estado de WhatsApp · #161
 Además del texto que ya se comparte (#36), generar una imagen vertical con el versículo del
 día y el fondo del devocional, lista para el estado. Usa el componente de compartir
 existente — no una variante nueva.
 
-### I6 (para v1.1) — Plan en familia o en grupo
+### I6 (para v1.1) — Plan en familia o en grupo · #162
 Leer el mismo plan con la familia o la célula de la iglesia y ver quién va al día. Depende
 de la comunidad (PRD §9c), por eso queda para después.
