@@ -22,6 +22,11 @@ export default defineSchema({
     // tamaño sale siempre del token (regla dura #1).
     readingFontStep: v.optional(v.number()),
     readingSpacingStep: v.optional(v.number()),
+    // "Hace un año guardaste…" en el inicio (#172). Sin valor = encendido;
+    // se apaga en Ajustes. `savedMemoryDismissedWeek` es el lunes (YYYY-MM-DD,
+    // hora de Honduras) de la semana en que la persona la cerró.
+    savedMemoryEnabled: v.optional(v.boolean()),
+    savedMemoryDismissedWeek: v.optional(v.string()),
   }).index("by_clerk_id", ["clerkId"]),
 
   // ── RAG (#5) ────────────────────────────────────────────
@@ -103,6 +108,9 @@ export default defineSchema({
     chapter: v.number(),
     verse: v.number(),
     createdAt: v.number(),
+    // Nota personal (#167): privada, nunca se comparte ni se manda a la IA.
+    // Entra en "Borrar mi historial" y en el borrado de cuenta.
+    note: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),

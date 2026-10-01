@@ -228,6 +228,8 @@ export const updatePreferences = mutation({
     // sale del token en src/features/reading/readingSettings.ts.
     readingFontStep: v.optional(v.number()),
     readingSpacingStep: v.optional(v.number()),
+    // "Hace un año guardaste…" en el inicio (#172).
+    savedMemoryEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
@@ -257,6 +259,7 @@ export const updatePreferences = mutation({
       darkMode: boolean;
       readingFontStep: number;
       readingSpacingStep: number;
+      savedMemoryEnabled: boolean;
     }> = {};
     if (args.bibleVersion !== undefined) {
       // #93 §4b: el schema sigue aceptando NVI (hay filas viejas que la tienen),
@@ -275,6 +278,9 @@ export const updatePreferences = mutation({
     }
     if (args.readingSpacingStep !== undefined) {
       patch.readingSpacingStep = args.readingSpacingStep;
+    }
+    if (args.savedMemoryEnabled !== undefined) {
+      patch.savedMemoryEnabled = args.savedMemoryEnabled;
     }
     await ctx.db.patch(existing._id, patch);
   },
