@@ -17,9 +17,14 @@ recibir Pro de cortesía sin tocar producción.
 
 ## Antes de la primera build
 
-Las URLs de Convex ya están en `eas.json`. **Falta la key de Clerk** —
-reemplazar `pk_REEMPLAZAR` en los perfiles de beta y `pk_live_REEMPLAZAR` en
-`production`.
+Las URLs de Convex y la key de Clerk de test (`pk_test_…`) ya están en los
+perfiles de beta de `eas.json`. **Solo falta la key live** — reemplazar
+`pk_live_REEMPLAZAR` en `production` (ver la tabla de estado más abajo).
+
+Para `eas submit` hacen falta dos archivos que no están en git (ver
+`.gitignore`): `.secrets/AuthKey_5ZPPKU47L8.p8` (API key de App Store Connect) y
+`play-service-account.json` (cuenta de servicio de Google Play). Pedírselos al
+dueño de las cuentas.
 
 | Variable | De dónde sale |
 |---|---|
