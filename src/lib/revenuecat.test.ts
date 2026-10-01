@@ -7,6 +7,7 @@ import {
   purchaseMonthly,
   resetRevenueCatForTests,
   restorePurchases,
+  setReferralAttribute,
   setRevenueCatNativeForTests,
   type RevenueCatNative,
 } from "./revenuecat";
@@ -163,5 +164,32 @@ describe("logOut al cerrar sesión (#107)", () => {
 
     await expect(logOut()).resolves.toEqual({ ok: false, reason: "not_configured" });
     expect(native.logOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("setReferralAttribute (PRD §9b)", () => {
+  afterEach(() => {
+    resetRevenueCatForTests();
+    vi.unstubAllEnvs();
+  });
+
+  it("deja el código de quien invitó como atributo referred_by", async () => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "test_public_key");
+    const setAttributes = vi.fn().mockResolvedValue(undefined);
+    setRevenueCatNativeForTests(mockNative({ setAttributes }));
+
+    await setReferralAttribute("BAH-12AB34C");
+    expect(setAttributes).toHaveBeenCalledWith({ referred_by: "BAH-12AB34C" });
+  });
+
+  it("nunca lanza: sin key, sin binding o si el SDK falla", async () => {
+    await expect(setReferralAttribute("BAH-12AB34C")).resolves.toBeUndefined();
+
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "test_public_key");
+    setRevenueCatNativeForTests(mockNative({ setAttributes: vi.fn().mockRejectedValue(new Error("sdk")) }));
+    await expect(setReferralAttribute("BAH-12AB34C")).resolves.toBeUndefined();
+
+    setRevenueCatNativeForTests(mockNative());
+    await expect(setReferralAttribute("BAH-12AB34C")).resolves.toBeUndefined();
   });
 });

@@ -195,6 +195,18 @@ npx convex run telemetry:funnel '{"days": 7}'      # instalaciones por paso
 npx convex run telemetry:recentErrors '{"limit": 20}'
 ```
 
+Invitaciones (PRD §9b): cuántos registros y cuántos Pro vienen de un link
+compartido, por canal y por quien invitó:
+
+```bash
+npx convex run referrals:summary
+```
+
+El código llega por el install referrer de Google Play (botón del sitio), por
+el link `bibleai://home?ref=…` ("abrila desde acá" en el sitio) o escrito a
+mano en Ajustes → ¿Te invitó alguien? (los primeros 30 días). En RevenueCat
+queda como atributo `referred_by`.
+
 Los cierres nativos (fuera de JS) siguen en TestFlight → Crashes y Play Console
 → Android vitals. Las filas se borran a los 90 días (cron `purgar-diagnostico`).
 

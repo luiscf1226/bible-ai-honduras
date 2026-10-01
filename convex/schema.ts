@@ -27,7 +27,16 @@ export default defineSchema({
     // hora de Honduras) de la semana en que la persona la cerró.
     savedMemoryEnabled: v.optional(v.boolean()),
     savedMemoryDismissedWeek: v.optional(v.string()),
-  }).index("by_clerk_id", ["clerkId"]),
+    // Quién invitó a esta persona (PRD §9b): el `referralCode` de quien
+    // compartió el link. Sirve solo para medir cuántos registros y pagos vienen
+    // de compartir; no da premios ni se le muestra a nadie. Vive en la fila del
+    // usuario, así que el borrado de cuenta ya lo cubre.
+    referredBy: v.optional(v.string()),
+    referredVia: v.optional(v.union(v.literal("link"), v.literal("play"), v.literal("manual"))),
+    referredAt: v.optional(v.number()),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_referral_code", ["referralCode"]),
 
   // ── RAG (#5) ────────────────────────────────────────────
   verses: defineTable({

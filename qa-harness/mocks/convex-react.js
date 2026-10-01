@@ -132,10 +132,23 @@ const handlers = {
     _id: "u1",
     clerkId: "user_qa",
     referralCode: "HN4QA7",
+    // Cuenta de hace 3 días: Ajustes muestra "¿Te invitó alguien?".
+    _creationTime: Date.now() - 3 * 24 * 3600e3,
+    referredBy: db.referredBy,
     bibleVersion: db.bibleVersion,
     darkMode: db.darkMode,
     reminderHour: db.reminderHour,
   }),
+  // Invitaciones: BAH-QA00001 existe; el resto no.
+  "referrals:claim": (args) => {
+    if (db.referredBy) return { status: "already" };
+    const code = String(args.code).trim().toUpperCase();
+    if (!/^BAH-?[0-9A-Z]{7}$/.test(code)) return { status: "invalid" };
+    if (code.replace("BAH", "BAH-").replace("--", "-") !== "BAH-QA00001") return { status: "not_found" };
+    db.referredBy = "BAH-QA00001";
+    notify();
+    return { status: "ok" };
+  },
   "users:updatePreferences": (args) => {
     if (args.darkMode !== undefined) db.darkMode = args.darkMode;
     if (args.bibleVersion) db.bibleVersion = args.bibleVersion;
