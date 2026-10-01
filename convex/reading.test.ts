@@ -98,3 +98,64 @@ describe("reading — progreso, recientes y guardados", () => {
     await expect(t.mutation(api.reading.saveProgress, { book: "Juan", chapter: 3 })).rejects.toThrow("No autenticado");
   });
 });
+
+describe("reading — subrayados (#168)", () => {
+  it("subrayar, cambiar de color y quitar; el subrayado sigue ahí al volver al capítulo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "reading_highlight");
+    await ana.mutation(api.users.upsert, {});
+
+    await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 23, verse: 1, color: "amber" });
+    await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 23, verse: 4, color: "sage" });
+    await expect(ana.query(api.reading.highlightsForChapter, { book: "Salmos", chapter: 23 })).resolves.toEqual(
+      expect.arrayContaining([
+        { verse: 1, color: "amber" },
+        { verse: 4, color: "sage" },
+      ]),
+    );
+
+    // Cambiar de color parchea la misma fila, no agrega otra.
+    await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 23, verse: 1, color: "clay" });
+    expect(await t.run((ctx) => ctx.db.query("readingHighlights").collect())).toHaveLength(2);
+    await expect(ana.query(api.reading.highlights, {})).resolves.toMatchObject([
+      { book: "Salmos", chapter: 23, verse: 1, color: "clay" },
+      { book: "Salmos", chapter: 23, verse: 4, color: "sage" },
+    ]);
+
+    await ana.mutation(api.reading.clearHighlight, { book: "Salmos", chapter: 23, verse: 1 });
+    await expect(ana.query(api.reading.highlightsForChapter, { book: "Salmos", chapter: 23 })).resolves.toEqual([
+      { verse: 4, color: "sage" },
+    ]);
+    await expect(ana.mutation(api.reading.clearHighlight, { book: "Salmos", chapter: 23, verse: 1 })).resolves.toBeNull();
+  });
+
+  it("no mezcla capítulos y cada persona ve solo sus subrayados", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "reading_highlight_ana");
+    const beto = asUser(t, "reading_highlight_beto");
+    await ana.mutation(api.users.upsert, {});
+    await beto.mutation(api.users.upsert, {});
+
+    await ana.mutation(api.reading.setHighlight, { book: "Juan", chapter: 3, verse: 16, color: "amber" });
+    await expect(ana.query(api.reading.highlightsForChapter, { book: "Juan", chapter: 4 })).resolves.toEqual([]);
+    await expect(beto.query(api.reading.highlightsForChapter, { book: "Juan", chapter: 3 })).resolves.toEqual([]);
+    await expect(t.query(api.reading.highlights, {})).resolves.toEqual([]);
+    await expect(
+      t.mutation(api.reading.setHighlight, { book: "Juan", chapter: 3, verse: 16, color: "amber" }),
+    ).rejects.toThrow("No autenticado");
+    await expect(
+      ana.mutation(api.reading.setHighlight, { book: "Juan", chapter: 3, verse: 0, color: "amber" }),
+    ).rejects.toThrow("enteros");
+  });
+
+  it("subrayar es gratis: no cuenta uso", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "reading_highlight_free");
+    await ana.mutation(api.users.upsert, {});
+
+    for (let verse = 1; verse <= 10; verse += 1) {
+      await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 119, verse, color: "sand" });
+    }
+    expect(await t.run((ctx) => ctx.db.query("usage").collect())).toEqual([]);
+  });
+});

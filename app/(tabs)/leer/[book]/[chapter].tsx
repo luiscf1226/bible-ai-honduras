@@ -8,6 +8,7 @@ import { AppScreen } from "../../../../src/components/AppScreen";
 import { BottomPanel } from "../../../../src/components/BottomPanel";
 import { ScreenHeader, goBackOrHome } from "../../../../src/components/ScreenHeader";
 import { nextChapter, parseChapterParams, previousChapter } from "../../../../src/features/reading/chapterNavigation";
+import { HIGHLIGHT_SWATCHES, highlightFill, type HighlightColor } from "../../../../src/features/reading/highlightColors";
 import { buildVerseCopyText, formatVerseReference, shareVerse, type ReadingVerse } from "../../../../src/features/reading/shareVerse";
 import {
   clampFontStep,
@@ -46,6 +47,12 @@ export default function ReaderScreen() {
   const separator = useQuery(api.reading.separator, currentUser?._id ? {} : "skip");
   const setSeparator = useMutation(api.reading.setSeparator);
   const clearSeparator = useMutation(api.reading.clearSeparator);
+  const highlights = useQuery(
+    api.reading.highlightsForChapter,
+    ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+  );
+  const setHighlight = useMutation(api.reading.setHighlight);
+  const clearHighlight = useMutation(api.reading.clearHighlight);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [selected, setSelected] = useState<ReadingVerse | null>(null);
   const [saved, setSaved] = useState<boolean | null>(null);
@@ -124,6 +131,21 @@ export default function ReaderScreen() {
     }
     setSelected(null);
   };
+  // Subrayado (#168): como el resaltador de una Biblia de papel. Es gratis y
+  // vive aparte del resaltado de búsqueda (`highlight.ts`), que solo marca
+  // términos en los resultados del buscador.
+  const highlightOf = (verse: number): HighlightColor | null =>
+    highlights?.find((item) => item.verse === verse)?.color ?? null;
+  const selectedHighlight = selected ? highlightOf(selected.verse) : null;
+  const chooseHighlight = (key: HighlightColor) => {
+    if (!selected) return;
+    const target = { book: selected.book, chapter: selected.chapter, verse: selected.verse };
+    void (selectedHighlight === key ? clearHighlight(target) : setHighlight({ ...target, color: key })).catch(() => undefined);
+  };
+  const removeHighlight = () => {
+    if (!selected) return;
+    void clearHighlight({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
+  };
   const saveSelected = async () => {
     if (!selected) return;
     const result = await toggleBookmark({ book: selected.book, chapter: selected.chapter, verse: selected.verse });
@@ -168,6 +190,7 @@ export default function ReaderScreen() {
         {verses?.length === 0 ? <Text style={[styles.status, { color: color.inkSoft }]}>Todavía no tenemos este capítulo en el corpus. Volvé a intentar cuando se haya indexado.</Text> : null}
         {verses?.map((verse) => {
           const marked = separatorHere(verse);
+          const highlight = highlightOf(verse.verse);
           return (
             <View key={verse.verse}>
               {marked ? (
@@ -177,13 +200,22 @@ export default function ReaderScreen() {
                 </View>
               ) : null}
               <Pressable
-                accessibilityHint={marked ? "Acá está tu separador." : undefined}
+                accessibilityHint={marked ? "Acá está tu separador." : highlight ? "Versículo subrayado." : undefined}
                 accessibilityRole="button"
                 onPress={() => selectVerse(verse)}
                 style={({ pressed }) => [styles.verseRow, pressed && styles.pressed]}
               >
                 <Text style={[styles.verseNumber, { color: color.accent }]}>{verse.verse}</Text>
-                <Text style={[styles.verseText, typeStyle, { color: color.ink }]}>{verse.text}</Text>
+                <Text style={[styles.verseText, typeStyle, { color: color.ink }]}>
+                  {/* Texto anidado: el fondo sigue cada renglón como un resaltador, no un bloque. */}
+                  {highlight ? (
+                    <Text style={{ backgroundColor: highlightFill(color, highlight) }} testID={`reading-highlighted-verse-${verse.verse}`}>
+                      {verse.text}
+                    </Text>
+                  ) : (
+                    verse.text
+                  )}
+                </Text>
               </Pressable>
             </View>
           );
@@ -203,6 +235,35 @@ export default function ReaderScreen() {
           <Pressable accessibilityRole="button" onPress={askAboutSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Preguntar sobre esto</Text></Pressable>
           <Pressable accessibilityRole="button" disabled={!currentUser?.referralCode} onPress={shareSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Compartir</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={() => void saveSelected()} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>{saved ? "Guardado" : "Guardar"}</Text></Pressable>
+          {currentUser?._id ? (
+            <View style={[styles.action, styles.highlightRow]} testID="reading-highlight-picker">
+              <Text style={[styles.actionLabel, { color: color.ink }]}>Subrayar</Text>
+              <View style={styles.swatches}>
+                {HIGHLIGHT_SWATCHES.map((swatch) => {
+                  const active = selectedHighlight === swatch.key;
+                  return (
+                    <Pressable
+                      accessibilityLabel={active ? `Quitar subrayado ${swatch.label}` : `Subrayar en ${swatch.label}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      hitSlop={tokens.space.xs}
+                      key={swatch.key}
+                      onPress={() => chooseHighlight(swatch.key)}
+                      style={[styles.swatchRing, { borderColor: active ? color.ink : color.surface }]}
+                      testID={`reading-highlight-${swatch.key}`}
+                    >
+                      <View style={[styles.swatch, { backgroundColor: color[swatch.swatch] }]} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {selectedHighlight ? (
+                <Pressable accessibilityRole="button" onPress={removeHighlight} testID="reading-highlight-clear">
+                  <Text style={[styles.controlLabel, { color: color.inkSoft }]}>Quitar</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
           {currentUser?._id ? (
             <Pressable accessibilityRole="button" onPress={() => void toggleSeparator()} style={styles.action} testID="reading-separator-toggle">
               <Text style={[styles.actionLabel, { color: color.ink }]}>
@@ -260,4 +321,10 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.space.xs,
   },
   actionLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
+  // Selector de subrayado: puntos del ancho del indicador de página activa,
+  // con un anillo del grosor del borde de las tarjetas para el color activo.
+  highlightRow: { alignItems: "center", flexDirection: "row", gap: tokens.space.md },
+  swatches: { flexDirection: "row", gap: tokens.space.sm },
+  swatchRing: { borderRadius: tokens.radius.pill, borderWidth: 1, padding: tokens.space.xxs },
+  swatch: { borderRadius: tokens.radius.pill, height: tokens.size.dotActive, width: tokens.size.dotActive },
 });

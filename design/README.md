@@ -45,6 +45,14 @@ Paleta dominante medida sobre el prototipo:
 
 Tipografía: **EB Garamond** (serif, títulos y versículos) + **DM Sans** (300/400/500, UI).
 
+### Subrayado del lector (#168) — pendiente de confirmar en Claude Design
+
+El prototipo no tiene subrayado. Los cuatro tonos (`highlightAmber`, `highlightSage`,
+`highlightClay`, `highlightSand`, en día y noche) **no son colores nuevos**: son
+`accent`, `sage`, `danger` e `inkFaint` de la propia paleta con transparencia, para
+que el texto `ink` se siga leyendo encima. Cuando se diseñe el subrayado en Claude
+Design y se re-exporte, estos valores se re-miden y se reemplazan.
+
 > La lista completa de hex está en el HTML. La tabla de arriba es el punto de partida
 > de #2, no el resultado final — Dev B la consolida en el sistema de tokens.
 

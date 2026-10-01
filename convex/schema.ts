@@ -127,6 +127,21 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  // Subrayados del lector (#168): el resaltador de una Biblia de papel. Una
+  // fila por versículo subrayado; cambiar de color parchea la fila. `color` es
+  // una llave de la paleta `highlight` de design/tokens.json, nunca un hex:
+  // el tono real lo decide el tema (claro u oscuro) al pintar.
+  readingHighlights: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    color: v.union(v.literal("amber"), v.literal("sage"), v.literal("clay"), v.literal("sand")),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
+
   // Plan de lectura anual (#114). Contenido curado versionado en el repo
   // (docs/content/planes/canonico.json, cargado y validado por
   // convex/readingPlanCatalog.ts) — esta tabla es la copia servible, sembrada

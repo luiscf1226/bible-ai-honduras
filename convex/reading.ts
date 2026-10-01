@@ -231,17 +231,115 @@ export const clearSeparator = mutation({
   },
 });
 
+/**
+ * Colores del subrayado (#168). Son llaves de la paleta `highlight` de
+ * design/tokens.json; el hex lo resuelve el tema al pintar.
+ */
+export const HIGHLIGHT_COLORS = ["amber", "sage", "clay", "sand"] as const;
+export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
+
+const highlightColor = v.union(v.literal("amber"), v.literal("sage"), v.literal("clay"), v.literal("sand"));
+
+function assertVerseRef(args: { chapter: number; verse: number }) {
+  if (!Number.isInteger(args.chapter) || args.chapter < 1 || !Number.isInteger(args.verse) || args.verse < 1) {
+    throw new ConvexError("chapter y verse deben ser enteros mayores o iguales a 1");
+  }
+}
+
+/** Subrayados de un capítulo, para pintarlos en el lector. */
+export const highlightsForChapter = query({
+  args: { book: v.string(), chapter: v.number() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("readingHighlights")
+      .withIndex("by_user_verse", (q) => q.eq("userId", user._id).eq("book", args.book).eq("chapter", args.chapter))
+      .collect();
+    return rows.map((row) => ({ verse: row.verse, color: row.color }));
+  },
+});
+
+/** Todos los subrayados, del último tocado al primero (Leer y Mi espacio). */
+export const highlights = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("readingHighlights")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    return rows
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .map((row) => ({ book: row.book, chapter: row.chapter, verse: row.verse, color: row.color, updatedAt: row.updatedAt }));
+  },
+});
+
+/**
+ * Subraya un versículo, o le cambia el color si ya estaba subrayado. Subrayar
+ * es gratis: no pasa por `convex/quotas.ts`.
+ */
+export const setHighlight = mutation({
+  args: { book: v.string(), chapter: v.number(), verse: v.number(), color: highlightColor },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    assertVerseRef(args);
+    const existing = await ctx.db
+      .query("readingHighlights")
+      .withIndex("by_user_verse", (q) =>
+        q.eq("userId", user._id).eq("book", args.book).eq("chapter", args.chapter).eq("verse", args.verse),
+      )
+      .unique();
+    const updatedAt = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, { color: args.color, updatedAt });
+      return existing._id;
+    }
+    return await ctx.db.insert("readingHighlights", { userId: user._id, ...args, updatedAt });
+  },
+});
+
+/** Quita el subrayado de un versículo. Sin subrayado es un no-op. */
+export const clearHighlight = mutation({
+  args: { book: v.string(), chapter: v.number(), verse: v.number() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    assertVerseRef(args);
+    const existing = await ctx.db
+      .query("readingHighlights")
+      .withIndex("by_user_verse", (q) =>
+        q.eq("userId", user._id).eq("book", args.book).eq("chapter", args.chapter).eq("verse", args.verse),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    }
+    return null;
+  },
+});
+
 /** Borra cada tabla personal que pertenece al módulo de Lectura. */
 export async function deleteReadingDataForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   budget: number,
 ): Promise<{
-  deleted: { progress: number; recents: number; bookmarks: number; separators: number };
+  deleted: { progress: number; recents: number; bookmarks: number; separators: number; highlights: number };
   done: boolean;
 }> {
   const deleteRows = async (
-    table: "readingProgress" | "readingRecents" | "readingBookmarks" | "readingSeparators",
+    table: "readingProgress" | "readingRecents" | "readingBookmarks" | "readingSeparators" | "readingHighlights",
   ) => {
     const rowsOf = (limit: number) =>
       ctx.db
@@ -268,13 +366,15 @@ export async function deleteReadingDataForUser(
   const recents = await deleteRows("readingRecents");
   const bookmarks = await deleteRows("readingBookmarks");
   const separators = await deleteRows("readingSeparators");
+  const highlights = await deleteRows("readingHighlights");
   return {
     deleted: {
       progress: progress.deleted,
       recents: recents.deleted,
       bookmarks: bookmarks.deleted,
       separators: separators.deleted,
+      highlights: highlights.deleted,
     },
-    done: progress.done && recents.done && bookmarks.done && separators.done,
+    done: progress.done && recents.done && bookmarks.done && separators.done && highlights.done,
   };
 }

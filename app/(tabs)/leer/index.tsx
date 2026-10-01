@@ -10,6 +10,7 @@ import { ChapterGrid } from "../../../src/components/ChapterGrid";
 import { PassageSearch } from "../../../src/components/PassageSearch";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
 import { BEGINNER_PLAN_ID } from "../../../src/features/reading/annualPlans";
+import { highlightSwatch } from "../../../src/features/reading/highlightColors";
 import { openPassage, openReadingPlan } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
@@ -26,6 +27,7 @@ export default function LeerScreen() {
   const recents = useQuery(api.reading.recents, {});
   const bookmarks = useQuery(api.reading.bookmarks, {});
   const separator = useQuery(api.reading.separator, {});
+  const highlights = useQuery(api.reading.highlights, {});
   const version = currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
 
   const back = () => {
@@ -174,6 +176,25 @@ export default function LeerScreen() {
             </View>
           ) : null}
 
+          {highlights && highlights.length > 0 ? (
+            <View style={styles.savedSection} testID="leer-highlights">
+              <Text style={[styles.savedTitle, { color: color.inkSoft }]}>SUBRAYADOS</Text>
+              {highlights.map((highlight) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={`${highlight.book}-${highlight.chapter}-${highlight.verse}`}
+                  onPress={() => openPassage(highlight)}
+                  style={[styles.savedRow, styles.highlightRow, { borderColor: color.border }]}
+                >
+                  <View style={[styles.highlightDot, { backgroundColor: highlightSwatch(color, highlight.color) }]} />
+                  <Text style={[styles.savedLabel, { color: color.ink }]}>
+                    {highlight.book} {highlight.chapter}:{highlight.verse}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
           <PassageSearch
             onSelectBook={setBook}
             onSelectPassage={openPassage}
@@ -245,4 +266,7 @@ const styles = StyleSheet.create({
   },
   savedRow: { borderBottomWidth: 1, paddingVertical: tokens.space.sm },
   savedLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
+  // Subrayados: mismo renglón que Guardados con el punto del color elegido.
+  highlightRow: { alignItems: "center", flexDirection: "row", gap: tokens.space.sm },
+  highlightDot: { borderRadius: tokens.radius.pill, height: tokens.size.dot, width: tokens.size.dot },
 });
