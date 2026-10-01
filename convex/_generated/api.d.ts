@@ -31,6 +31,7 @@ import type * as rag_verses from "../rag/verses.js";
 import type * as reading from "../reading.js";
 import type * as readingPlanCatalog from "../readingPlanCatalog.js";
 import type * as readingPlans from "../readingPlans.js";
+import type * as savedMemory from "../savedMemory.js";
 import type * as stories from "../stories.js";
 import type * as users from "../users.js";
 import type * as voices from "../voices.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   reading: typeof reading;
   readingPlanCatalog: typeof readingPlanCatalog;
   readingPlans: typeof readingPlans;
+  savedMemory: typeof savedMemory;
   stories: typeof stories;
   users: typeof users;
   voices: typeof voices;
