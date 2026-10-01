@@ -10,6 +10,7 @@ import {
   TEXT_STORY_CATALOG,
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
+import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
 import { atLimit, isDark, isEmpty, isError, isLoading, isPro } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
@@ -20,7 +21,7 @@ const notify = () => listeners.forEach((l) => l());
 
 const db = {
   darkMode: isDark(),
-  bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RVR1960",
+  bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
   qaThread: isEmpty()
     ? []
@@ -35,13 +36,16 @@ const db = {
               book: "Salmos",
               chapter: 46,
               verse: 1,
-              version: "RVR1960",
+              version: "RV1909",
               text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones.",
             },
           ],
         },
       ],
   voiceThreads: {},
+  // Lectura (#112–#115 y separador): fixtures para ver el módulo en el harness.
+  separator: isEmpty() ? null : { book: "Salmos", chapter: 46, verse: 1, updatedAt: Date.now() },
+  readingProgress: isEmpty() ? null : { book: "Juan", chapter: 3, updatedAt: Date.now() },
   history: isEmpty()
     ? []
     : [
@@ -60,7 +64,7 @@ const FEELING_DEVOTIONAL = {
     book: "Mateo",
     chapter: 11,
     verse: 28,
-    version: "RVR1960",
+    version: "RV1909",
     text: "Venid a mí todos los que estáis trabajados y cargados, y yo os haré descansar.",
   },
 };
@@ -109,13 +113,40 @@ const handlers = {
   },
   "devotional:today": () => DEVOTIONAL,
   "devotional:byDate": (args) => ({ ...DEVOTIONAL, date: args.date }),
-  // Solo RVR1960 tiene corpus ingerido; con NVI el backend real devuelve
+  // Solo RV1909 tiene corpus ingerido (convex/bibleVersions.ts); con NVI el backend real devuelve
   // verse: null y [] — el harness reproduce ese comportamiento.
   "rag/verses:citedForUser": () => ({
     version: db.bibleVersion,
-    verse: db.bibleVersion === "RVR1960" ? { book: "Salmos", chapter: 46, verse: 1, text: VERSES[0].text } : null,
+    verse: db.bibleVersion === "RV1909" ? { book: "Salmos", chapter: 46, verse: 1, text: VERSES[0].text } : null,
   }),
-  "rag/verses:listByChapter": (args) => (isEmpty() || args.version !== "RVR1960" ? [] : VERSES),
+  "rag/verses:listByChapter": (args) =>
+    isEmpty() || args.version !== "RV1909"
+      ? []
+      : VERSES.map((v) => ({ ...v, book: args.book, chapter: args.chapter, version: args.version })),
+  "reading:progress": () => db.readingProgress,
+  "reading:recents": () => (isEmpty() ? [] : [{ book: "Juan", chapter: 3, openedAt: Date.now() }]),
+  "reading:bookmarks": () => (isEmpty() ? [] : [{ book: "Romanos", chapter: 8, verse: 28, createdAt: Date.now() }]),
+  "reading:separator": () => db.separator,
+  "reading:setSeparator": (args) => {
+    db.separator = { ...args, updatedAt: Date.now() };
+    notify();
+    return "sep1";
+  },
+  "reading:clearSeparator": () => {
+    db.separator = null;
+    notify();
+    return null;
+  },
+  "reading:saveProgress": () => null,
+  "reading:recordRecent": () => null,
+  "reading:toggleBookmark": () => ({ saved: true }),
+  "readingPlans:catalog": (args) => {
+    const plan = ALL_PLANS.find((p) => p.id === (args.planId ?? "canonico"));
+    return plan ? { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays } : null;
+  },
+  "readingPlans:journeys": () => JOURNEY_READING_PLANS.map((p) => ({ id: p.id, name: p.name, description: p.description, totalDays: p.totalDays })),
+  "readingPlans:myProgress": () => null,
+  "readingPlans:myPlans": () => [],
   "voices:list": () => voiceCharacters,
   "voices:thread": (args) => db.voiceThreads[args.slug] ?? [],
   "voices:sendMessage": (args) => {
@@ -227,8 +258,11 @@ export function ConvexProvider({ children }) {
   return children;
 }
 
+// Una sola instancia: el cliente real es estable entre renders, y una nueva
+// en cada render disparaba un loop en los efectos que dependen de él (home).
+const qaClient = new ConvexReactClient("qa");
 export function useConvex() {
-  return new ConvexReactClient("qa");
+  return qaClient;
 }
 
 export function useConvexAuth() {
@@ -249,6 +283,14 @@ export function useQuery(ref, args) {
   if (args === "skip") return undefined;
   if (isLoading()) return undefined;
   return run(ref, args);
+}
+
+// El buscador de pasajes (#112) pagina resultados; en el harness la búsqueda
+// no tiene corpus, así que siempre devuelve una página vacía y agotada.
+export function usePaginatedQuery(ref, args) {
+  useTick();
+  if (args === "skip") return { results: [], status: "LoadingFirstPage", isLoading: true, loadMore() {} };
+  return { results: [], status: "Exhausted", isLoading: false, loadMore() {} };
 }
 
 export function useMutation(ref) {

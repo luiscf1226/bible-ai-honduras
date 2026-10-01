@@ -107,6 +107,18 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
 
+  // Separador del lector: la cinta que uno deja a propósito en una página, como
+  // en una Biblia de papel. No es `readingProgress` (que se mueve solo con cada
+  // capítulo abierto): el separador se queda donde la persona lo puso hasta que
+  // lo mueve o lo quita. Una sola fila por usuario.
+  readingSeparators: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   // Plan de lectura anual (#114). Contenido curado versionado en el repo
   // (docs/content/planes/canonico.json, cargado y validado por
   // convex/readingPlanCatalog.ts) — esta tabla es la copia servible, sembrada

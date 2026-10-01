@@ -161,13 +161,88 @@ export const toggleBookmark = mutation({
   },
 });
 
+/**
+ * Separador del lector: la cinta que la persona deja a propósito, como en una
+ * Biblia de papel. A diferencia de `progress` (que se mueve solo con cada
+ * capítulo que se abre), el separador solo cambia cuando la persona lo mueve.
+ * null si no hay sesión o si todavía no puso ninguno.
+ */
+export const separator = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return null;
+    }
+    const row = await ctx.db
+      .query("readingSeparators")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (!row) {
+      return null;
+    }
+    return { book: row.book, chapter: row.chapter, verse: row.verse, updatedAt: row.updatedAt };
+  },
+});
+
+/**
+ * Pone (o mueve) el separador. Hay uno solo, igual que la cinta de una Biblia:
+ * ponerlo en otro versículo lo saca del anterior.
+ */
+export const setSeparator = mutation({
+  args: { book: v.string(), chapter: v.number(), verse: v.number() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    if (!Number.isInteger(args.chapter) || args.chapter < 1 || !Number.isInteger(args.verse) || args.verse < 1) {
+      throw new ConvexError("chapter y verse deben ser enteros mayores o iguales a 1");
+    }
+    const existing = await ctx.db
+      .query("readingSeparators")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    const patch = { book: args.book, chapter: args.chapter, verse: args.verse, updatedAt: Date.now() };
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+      return existing._id;
+    }
+    return await ctx.db.insert("readingSeparators", { userId: user._id, ...patch });
+  },
+});
+
+/** Saca el separador. Sin separador puesto es un no-op. */
+export const clearSeparator = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    const existing = await ctx.db
+      .query("readingSeparators")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    }
+    return null;
+  },
+});
+
 /** Borra cada tabla personal que pertenece al módulo de Lectura. */
 export async function deleteReadingDataForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   budget: number,
-): Promise<{ deleted: { progress: number; recents: number; bookmarks: number }; done: boolean }> {
-  const deleteRows = async (table: "readingProgress" | "readingRecents" | "readingBookmarks") => {
+): Promise<{
+  deleted: { progress: number; recents: number; bookmarks: number; separators: number };
+  done: boolean;
+}> {
+  const deleteRows = async (
+    table: "readingProgress" | "readingRecents" | "readingBookmarks" | "readingSeparators",
+  ) => {
     const rowsOf = (limit: number) =>
       ctx.db
         .query(table)
@@ -192,8 +267,14 @@ export async function deleteReadingDataForUser(
   const progress = await deleteRows("readingProgress");
   const recents = await deleteRows("readingRecents");
   const bookmarks = await deleteRows("readingBookmarks");
+  const separators = await deleteRows("readingSeparators");
   return {
-    deleted: { progress: progress.deleted, recents: recents.deleted, bookmarks: bookmarks.deleted },
-    done: progress.done && recents.done && bookmarks.done,
+    deleted: {
+      progress: progress.deleted,
+      recents: recents.deleted,
+      bookmarks: bookmarks.deleted,
+      separators: separators.deleted,
+    },
+    done: progress.done && recents.done && bookmarks.done && separators.done,
   };
 }

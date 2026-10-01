@@ -95,6 +95,13 @@ async function seedEverything(
       verse: 16,
       createdAt: Date.now(),
     });
+    await ctx.db.insert("readingSeparators", {
+      userId,
+      book: "Salmos",
+      chapter: 23,
+      verse: 1,
+      updatedAt: Date.now(),
+    });
     await ctx.db.insert("userPlanProgress", {
       userId,
       planId: "canonico",
@@ -161,6 +168,7 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     readingProgress: await ctx.db.query("readingProgress").collect(),
     readingRecents: await ctx.db.query("readingRecents").collect(),
     readingBookmarks: await ctx.db.query("readingBookmarks").collect(),
+    readingSeparators: await ctx.db.query("readingSeparators").collect(),
     userPlanProgress: await ctx.db.query("userPlanProgress").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
@@ -195,6 +203,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingProgress).toHaveLength(1);
     expect(before.readingRecents).toHaveLength(1);
     expect(before.readingBookmarks).toHaveLength(1);
+    expect(before.readingSeparators).toHaveLength(1);
     expect(before.userPlanProgress).toHaveLength(2);
     expect(before.storage).toHaveLength(1);
 
@@ -212,6 +221,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingProgress: 1,
       readingRecents: 1,
       readingBookmarks: 1,
+      readingSeparators: 1,
       readingPlanProgress: 2,
       users: 1,
     });
@@ -227,6 +237,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingProgress).toHaveLength(0);
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
+    expect(after.readingSeparators).toHaveLength(0);
     expect(after.userPlanProgress).toHaveLength(0);
 
     // El blob no queda huérfano.
@@ -423,6 +434,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingProgress: 0,
       readingRecents: 0,
       readingBookmarks: 0,
+      readingSeparators: 0,
       readingPlanProgress: 0,
       users: 0,
     });

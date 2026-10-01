@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { BIBLE_BOOKS, chaptersFor, indexOfBook } from "../src/lib/bibleBooks";
 import {
+  ANNUAL_READING_PLANS,
+  beginnerReadingPlan,
   canonicalReadingPlan,
   findReadingPlan,
   JOURNEY_READING_PLANS,
@@ -59,6 +61,64 @@ describe("canonicalReadingPlan", () => {
   it("reparte los capítulos lo más parejo posible (3 o 4 por día)", () => {
     const counts = new Set(canonicalReadingPlan.days.map((day) => day.readings.length));
     expect([...counts].every((count) => count === 3 || count === 4)).toBe(true);
+  });
+});
+
+describe("beginnerReadingPlan — la Biblia en un año para empezar", () => {
+  const key = (reading: { book: string; chapter: number }) => `${reading.book} ${reading.chapter}`;
+
+  it("dura 365 días numerados 1..365 sin huecos", () => {
+    expect(beginnerReadingPlan.totalDays).toBe(365);
+    expect(beginnerReadingPlan.days.map((day) => day.day)).toEqual(Array.from({ length: 365 }, (_, index) => index + 1));
+  });
+
+  it("cubre cada capítulo del canon exactamente una vez", () => {
+    const flattened = beginnerReadingPlan.days.flatMap((day) => day.readings).map(key);
+    const expected = BIBLE_BOOKS.flatMap((book) =>
+      Array.from({ length: book.chapters }, (_, index) => key({ book: book.name, chapter: index + 1 })),
+    );
+    expect(flattened).toHaveLength(expected.length);
+    expect([...flattened].sort()).toEqual([...expected].sort());
+  });
+
+  it("el día 1 arranca con las tres partes: Génesis 1, Mateo 1 y Salmos 1", () => {
+    expect(beginnerReadingPlan.days[0].readings.map(key)).toEqual(expect.arrayContaining(["Génesis 1", "Mateo 1", "Salmos 1"]));
+  });
+
+  it("las tres partes terminan en la última semana del año", () => {
+    const dayOf = (reference: string) =>
+      beginnerReadingPlan.days.find((day) => day.readings.some((reading) => key(reading) === reference))?.day ?? 0;
+    expect(dayOf("Malaquías 4")).toBe(365);
+    expect(dayOf("Apocalipsis 22")).toBeGreaterThanOrEqual(359);
+    expect(dayOf("Proverbios 31")).toBeGreaterThanOrEqual(359);
+  });
+
+  it("cada día trae Antiguo Testamento y una carga liviana (2 a 5 capítulos)", () => {
+    for (const day of beginnerReadingPlan.days) {
+      expect(day.readings.length).toBeGreaterThanOrEqual(2);
+      expect(day.readings.length).toBeLessThanOrEqual(5);
+      expect(day.readings.some((reading) => BIBLE_BOOKS[indexOfBook(reading.book)].testament === "antiguo")).toBe(true);
+    }
+  });
+
+  it("cada parte avanza en orden: ningún capítulo se lee antes que el anterior de su libro", () => {
+    const seen = new Map<string, number>();
+    for (const reading of beginnerReadingPlan.days.flatMap((day) => day.readings)) {
+      expect(reading.chapter).toBe((seen.get(reading.book) ?? 0) + 1);
+      seen.set(reading.book, reading.chapter);
+    }
+  });
+
+  it("solo trae nombre, descripción y referencias a capítulos completos (regla dura #4)", () => {
+    expect(Object.keys(beginnerReadingPlan).sort()).toEqual(["days", "description", "id", "name", "totalDays"]);
+    for (const reading of beginnerReadingPlan.days.flatMap((day) => day.readings)) {
+      expect(Object.keys(reading).sort()).toEqual(["book", "chapter"]);
+    }
+  });
+
+  it("es uno de los planes anuales y se encuentra por id", () => {
+    expect(ANNUAL_READING_PLANS).toEqual([canonicalReadingPlan, beginnerReadingPlan]);
+    expect(findReadingPlan("anual-para-empezar")).toBe(beginnerReadingPlan);
   });
 });
 

@@ -9,6 +9,7 @@ portales de Apple o Google.
 | Entregable | Estado | Dependencia |
 | --- | --- | --- |
 | Política de privacidad (repo + Pages) | Publicada; copy actualizado con borrado in-app | Redeploy de Pages al fusionar este PR |
+| Términos de uso (repo + Pages) | Borrador publicado en `/terminos/`; enlazado desde paywall y Ajustes | Revisión legal antes del lanzamiento |
 | Página externa de eliminación | Publicada; apunta también al flujo in-app | Google Play Data deletion |
 | Ficha de tienda (es-HN) | Lista para copiar | Precio localizado final (#37) |
 | Notas de revisión (ES + EN) | Listas; incluyen ruta 5.1.1(v) in-app | Cuenta de revisor en el portal |
@@ -27,6 +28,8 @@ URL de la política:
 - [review-notes.md](./review-notes.md): texto bilingüe para App Review y Play
   Console, incluida la explicación de IA y contenido religioso, y la ruta
   exacta de cierre de sesión / eliminación de cuenta.
+- [terms-of-use.md](./terms-of-use.md): términos de uso (App Store 3.1.2),
+  publicados como HTML en `public/terminos/`.
 - [privacy-policy.md](./privacy-policy.md): copia editable de la política que
   se publica como HTML en GitHub Pages.
 - [listing-es-HN.md](./listing-es-HN.md): título, subtítulo, descripción y

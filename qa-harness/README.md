@@ -57,6 +57,13 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 
 ## Limitaciones conocidas
 
+- `public/index.html` (la portada legal de GitHub Pages) también es la plantilla
+  HTML de Expo web: con ese archivo presente, `/home` sirve la portada legal en
+  vez de la app. Para correr el harness, movelo temporalmente fuera de `public/`
+  y devolvelo antes de commitear.
+- Lectura: `reading:*` y `readingPlans:*` tienen fixtures (separador en
+  Salmos 46:1, "seguí leyendo" en Juan 3). Cualquier capítulo muestra los mismos
+  4 versículos de Salmos 46 como placeholder.
 - Las cuotas no decrementan al consumir: `quotas:remaining` es un fixture fijo,
   no una query reactiva. Usá `?qa=limit` para ver el estado agotado.
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi

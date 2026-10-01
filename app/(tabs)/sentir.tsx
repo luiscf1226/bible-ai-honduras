@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useAction, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,8 +11,9 @@ import { BottomPanel } from "../../src/components/BottomPanel";
 import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingState";
 import { LimitReached } from "../../src/components/LimitReached";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
+import { SideDrawer } from "../../src/components/SideDrawer";
 import { api } from "../../convex/_generated/api";
-import { FEELINGS } from "../../src/features/feelings/feelings";
+import { FEELINGS, OWN_WORDS_CHIP, feelingFromParam } from "../../src/features/feelings/feelings";
 import { journeyCtaLabel, journeyForFeelings } from "../../src/features/reading/feelingJourneys";
 import { openReadingPlan } from "../../src/lib/openPassage";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -54,6 +55,28 @@ export default function SentirScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [writingOwn, setWritingOwn] = useState(false);
+  const freeTextRef = useRef<TextInput>(null);
+  // Desde el inicio se puede llegar con un sentimiento ya elegido
+  // (`?feeling=Ansiedad`) o directo a escribir (`?escribir=1`).
+  const params = useLocalSearchParams<{ feeling?: string | string[]; escribir?: string | string[] }>();
+  const paramFeeling = feelingFromParam(params.feeling);
+  const paramWrite = (Array.isArray(params.escribir) ? params.escribir[0] : params.escribir) === "1";
+  useEffect(() => {
+    if (paramFeeling) setSelectedFeelings((current) => (current.includes(paramFeeling) ? current : [...current, paramFeeling]));
+  }, [paramFeeling]);
+  useEffect(() => {
+    if (!paramWrite) return;
+    setWritingOwn(true);
+    // Espera a que el panel monte el campo antes de enfocarlo.
+    const timer = setTimeout(() => freeTextRef.current?.focus(), 300);
+    return () => clearTimeout(timer);
+  }, [paramWrite]);
+  const startWritingOwn = () => {
+    setWritingOwn(true);
+    freeTextRef.current?.focus();
+  };
   const generateRequestIdRef = useRef(0);
   const historicalConversation = useQuery(
     getHistoryConversation,
@@ -188,7 +211,9 @@ export default function SentirScreen() {
   const hasSelection = selectedFeelings.length > 0;
   const selectionSummary = hasSelection
     ? `Escogiste: ${selectedFeelings.join(" · ")}`
-    : "Todavía no escoges nada. También puedes escribirlo abajo.";
+    : freeText.trim().length > 0
+      ? "Con tus palabras. También puedes sumar un sentimiento."
+      : "Toca uno o más, o escribe el tuyo abajo.";
 
   return (
     <AppScreen contentStyle={styles.selectContent}>
@@ -198,11 +223,33 @@ export default function SentirScreen() {
         keyboardShouldPersistTaps="handled"
         style={styles.introScroll}
       >
-        <ScreenHeader
-          accessibilityLabel="Volver al inicio"
-          onBack={() => router.replace("/home")}
-          testID="sentir-back"
-        />
+        <View style={styles.topRow}>
+          <ScreenHeader
+            accessibilityLabel="Volver al inicio"
+            onBack={() => router.replace("/home")}
+            testID="sentir-back"
+          />
+          {/* El historial vive en un cajón a la izquierda (pedido de la beta):
+              arriba de la pantalla empujaba los sentimientos hacia abajo. */}
+          {pastDevotionals.length > 0 ? (
+            <Pressable
+              accessibilityHint="Abre tus devocionales anteriores en un panel a la izquierda."
+              accessibilityRole="button"
+              onPress={() => setIsHistoryOpen(true)}
+              style={({ pressed }) => [
+                styles.historyButton,
+                { backgroundColor: color.surface, borderColor: color.border },
+                pressed && styles.pressed,
+              ]}
+              testID="sentir-history-open"
+            >
+              <View style={[styles.historyDot, { backgroundColor: color.sage }]} />
+              <Text style={[styles.historyButtonLabel, { color: color.ink }]}>
+                Los de antes · {pastDevotionals.length}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         <View>
           <Text style={[styles.title, { color: color.ink }]}>¿Qué llevas encima hoy?</Text>
@@ -211,45 +258,56 @@ export default function SentirScreen() {
           </Text>
         </View>
 
-        {pastDevotionals.length > 0 ? (
-          <View style={styles.historySection}>
-            <Text style={[styles.historyKicker, { color: color.inkSoft }]}>LOS DE ANTES</Text>
-            {pastDevotionals.map((item) => (
-              <Pressable
-                accessibilityHint="Abre este devocional anterior."
-                accessibilityRole="button"
-                key={item.id}
-                onPress={() => setSelectedHistoryId(item.id)}
-                style={[styles.historyItem, { backgroundColor: color.surface, borderColor: color.border }]}
-              >
-                <View style={[styles.historyDot, { backgroundColor: color.sage }]} />
-                <View style={styles.historyCopy}>
-                  <Text numberOfLines={1} style={[styles.historyTitle, { color: color.ink }]}>
-                    {item.preview}
-                  </Text>
-                  <Text style={[styles.historyMeta, { color: color.inkSoft }]}>{item.title}</Text>
-                </View>
-                <Text style={[styles.historyArrow, { color: color.borderStrong }]}>›</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
       </ScrollView>
+
+      <SideDrawer onClose={() => setIsHistoryOpen(false)} testID="sentir-history" title="Los de antes" visible={isHistoryOpen}>
+        {pastDevotionals.map((item) => (
+          <Pressable
+            accessibilityHint="Abre este devocional anterior."
+            accessibilityRole="button"
+            key={item.id}
+            onPress={() => {
+              setIsHistoryOpen(false);
+              setSelectedHistoryId(item.id);
+            }}
+            style={[styles.historyItem, { backgroundColor: color.surface, borderColor: color.border }]}
+          >
+            <View style={[styles.historyDot, { backgroundColor: color.sage }]} />
+            <View style={styles.historyCopy}>
+              <Text numberOfLines={1} style={[styles.historyTitle, { color: color.ink }]}>
+                {item.preview}
+              </Text>
+              <Text style={[styles.historyMeta, { color: color.inkSoft }]}>{item.title}</Text>
+            </View>
+            <Text style={[styles.historyArrow, { color: color.borderStrong }]}>›</Text>
+          </Pressable>
+        ))}
+      </SideDrawer>
 
       <BottomPanel
         bodyStyle={styles.panelBody}
         footer={
           <>
+            <Text style={[styles.inputLabel, { color: writingOwn ? color.accent : color.inkSoft }]}>
+              {writingOwn ? "ESCRÍBELO CON TUS PALABRAS" : "O ESCRÍBELO CON TUS PALABRAS"}
+            </Text>
             <TextInput
-              accessibilityLabel="Cuéntanos cómo estuvo tu día"
+              accessibilityLabel="Escribe cómo te sientes con tus palabras"
               multiline
               onChangeText={setFreeText}
-              placeholder="Cuéntame en una o dos líneas cómo estuvo tu día. Opcional."
+              onFocus={() => setWritingOwn(true)}
+              placeholder={
+                writingOwn
+                  ? "Por ejemplo: “Me siento solo desde que me mudé”."
+                  : "Si ninguno se parece, cuéntame aquí cómo te sientes."
+              }
               placeholderTextColor={color.inkFaint}
               style={[
                 styles.input,
-                { backgroundColor: color.surface, borderColor: color.border, color: color.ink },
+                { backgroundColor: color.surface, borderColor: writingOwn ? color.accent : color.border, color: color.ink },
               ]}
+              ref={freeTextRef}
+              testID="sentir-free-text"
               textAlignVertical="top"
               value={freeText}
             />
@@ -290,6 +348,21 @@ export default function SentirScreen() {
         testID="sentir-panel"
       >
         <View accessibilityLabel="Selecciona uno o más sentimientos" style={styles.chips}>
+          {/* Primero, para que se vea sin scrollear: "mi sentimiento no está". */}
+          <Pressable
+            accessibilityHint="Lleva al campo para escribir lo que sientes con tus palabras."
+            accessibilityRole="button"
+            onPress={startWritingOwn}
+            style={[
+              styles.chip,
+              styles.ownChip,
+              { borderColor: color.accent },
+              writingOwn && { backgroundColor: color.surfaceSunk },
+            ]}
+            testID="sentir-own-words"
+          >
+            <Text style={[styles.chipLabel, { color: color.accentDeep }]}>{OWN_WORDS_CHIP}</Text>
+          </Pressable>
           {FEELINGS.map((feeling) => {
             const isSelected = selectedFeelings.includes(feeling);
 
@@ -456,8 +529,24 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
     textAlign: "center",
   },
-  historySection: { gap: tokens.space.sm, marginTop: tokens.space.xl },
-  historyKicker: {
+  topRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  pressed: { opacity: tokens.opacity.pressed },
+  historyButton: {
+    alignItems: "center",
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.sm,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.sm,
+  },
+  historyButtonLabel: {
+    fontFamily: tokens.font.sans,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+  },
+  ownChip: { borderStyle: "dashed" },
+  inputLabel: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.overline.size,
     letterSpacing: tokens.type.overline.letterSpacing,
