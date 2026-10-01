@@ -170,6 +170,22 @@ export default function AjustesScreen() {
         <Text style={[styles.planChevron, { color: color.accent }]}>›</Text>
       </Pressable>
 
+      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lo tuyo</Text>
+      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/mi-espacio")}
+          style={styles.row}
+          testID="ajustes-mi-espacio"
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Mi espacio</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Separador, guardados, subrayados y conversaciones</Text>
+          </View>
+          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
+        </Pressable>
+      </View>
+
       <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lectura</Text>
       <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
         <View style={styles.versionBlock}>
