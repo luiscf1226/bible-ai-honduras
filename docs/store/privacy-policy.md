@@ -26,6 +26,10 @@ y elimina información cuando usás la aplicación móvil.
   es gratis y estos datos no se envían a proveedores de IA.
 - **Historias:** historia elegida, estado de generación, escenas e imágenes
   creadas.
+- **Invitaciones:** si llegaste por el link de otra persona (o escribiste su
+  código), guardamos ese código en tu cuenta y se lo pasamos a RevenueCat, para
+  saber cuánta gente llega y se suscribe por invitación. No le avisamos a quien
+  te invitó ni le mostramos nada tuyo, y no hay premios por invitar.
 - **Diagnóstico:** cuando la app falla, el mensaje técnico del error; y pasos
   sueltos de uso (por ejemplo, "abrió la app", "hizo una pregunta", "vio la
   pantalla Pro"), con la plataforma y el número de build. Van con un

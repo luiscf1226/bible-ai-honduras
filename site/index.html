@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Información legal y de privacidad de Bible AI Honduras.">
-  <title>Bible AI Honduras — Privacidad</title>
+  <meta name="description" content="Devocional diario, lectura de la Biblia y preguntas con citas. Descargá Bible AI Honduras.">
+  <title>Bible AI Honduras</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -19,7 +19,20 @@
         <h1>Tu fe es personal. Tus datos también.</h1>
         <p class="lede">Conocé qué información usa la app y cómo podés borrar tu historial, cerrar sesión o eliminar tu cuenta (desde la app o por solicitud externa).</p>
       </section>
-      <section class="content" aria-label="Opciones de privacidad">
+      <section class="content" aria-label="Descargar la app y opciones de privacidad">
+        <h2>Descargá la app</h2>
+        <p>Devocional diario, la Biblia RV1909 para leer gratis, y preguntas sobre el texto con la cita al lado.</p>
+        <div class="actions">
+          <a class="button" id="play-link" href="https://play.google.com/store/apps/details?id=com.bibleaihonduras.app">Google Play</a>
+          <a class="button" id="ios-link" href="https://apps.apple.com/app/id6807627270">App Store</a>
+        </div>
+        <!-- Solo con ?ref=: quien compartió el link. Play recibe el código solo;
+             en iPhone hay que abrir la app desde acá o escribirlo en Ajustes. -->
+        <div class="notice" id="invite" hidden>
+          <p>Te invitaron con el código <strong id="invite-code"></strong>.</p>
+          <p>En Android, instalá desde el botón de Google Play y listo. En iPhone, cuando la tengás instalada, <a id="open-app" href="bibleai://home">abrila desde acá</a> o escribí el código en Ajustes → ¿Te invitó alguien?</p>
+        </div>
+
         <h2>Información disponible</h2>
         <p>Publicamos estas páginas para que las podás consultar dentro o fuera de la app.</p>
         <div class="actions">
@@ -31,5 +44,19 @@
       </section>
     </div>
   </main>
+  <script>
+    // Atribución de invitaciones (PRD §9b). El código se valida antes de
+    // tocar la página: nada de la URL entra al DOM sin pasar por el patrón.
+    (function () {
+      var raw = new URLSearchParams(window.location.search).get("ref") || "";
+      var code = raw.trim().toUpperCase();
+      if (!/^BAH-[0-9A-Z]{7}$/.test(code)) return;
+      var play = document.getElementById("play-link");
+      play.href = play.href + "&referrer=" + encodeURIComponent("ref=" + code);
+      document.getElementById("open-app").href = "bibleai://home?ref=" + code;
+      document.getElementById("invite-code").textContent = code;
+      document.getElementById("invite").hidden = false;
+    })();
+  </script>
 </body>
 </html>
