@@ -9,6 +9,7 @@ import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
 import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
 import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
@@ -25,7 +26,6 @@ const VERSIONS = [
   { label: "NVI", value: "NVI" as const },
 ];
 
-const PRIVACY_POLICY_URL = "https://luiscf1226.github.io/bible-ai-honduras/privacidad/";
 
 // Eliminar cuenta (#107 · App Store 5.1.1(v)): confirmación de dos pasos.
 // Paso 1 el diálogo destructivo; paso 2 escribir esta palabra exacta.
@@ -289,6 +289,16 @@ export default function AjustesScreen() {
           testID="ajustes-politica-privacidad"
         >
           <Text style={[styles.rowLabel, { color: color.ink }]}>Política de privacidad</Text>
+          <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
+        </Pressable>
+        <Pressable
+          accessibilityHint="Abre los términos en el navegador"
+          accessibilityRole="link"
+          onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
+          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+          testID="ajustes-terminos"
+        >
+          <Text style={[styles.rowLabel, { color: color.ink }]}>Términos de uso</Text>
           <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
         </Pressable>
         <Pressable

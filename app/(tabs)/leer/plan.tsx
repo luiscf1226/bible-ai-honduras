@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppScreen } from "../../../src/components/AppScreen";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
+import { isAnnualPlan, planOverline } from "../../../src/features/reading/annualPlans";
 import { formatReadingsLabel, readingTarget, type PlanReading } from "../../../src/features/reading/planReadingsLabel";
 import { openPassage } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
@@ -29,14 +30,15 @@ function openReading(reading: PlanReading) {
   openPassage(readingTarget(reading));
 }
 
-const CANONICAL_PLAN_ID = "canonico";
-
 export default function PlanScreen() {
   const { color } = useTheme();
   const params = useLocalSearchParams<{ planId?: string | string[] }>();
   const requestedPlanId = Array.isArray(params.planId) ? params.planId[0] : params.planId;
   const planArgs = requestedPlanId ? { planId: requestedPlanId } : {};
-  const isJourney = requestedPlanId !== undefined && requestedPlanId !== CANONICAL_PLAN_ID;
+  const isJourney = !isAnnualPlan(requestedPlanId);
+  // El canónico no muestra su nombre en "hoy" (#114); el plan para empezar sí,
+  // para que se distinga cuál de los dos anuales está abierto.
+  const showsPlanName = isJourney || (requestedPlanId !== undefined && requestedPlanId !== "canonico");
   const catalog = useQuery(api.readingPlans.catalog, planArgs);
   const progress = useQuery(api.readingPlans.myProgress, planArgs);
   const startPlan = useMutation(api.readingPlans.start);
@@ -76,7 +78,7 @@ export default function PlanScreen() {
         <Text style={[styles.status, { color: color.inkSoft }]}>Preparando tu plan…</Text>
       ) : progress === null ? (
         <View style={[styles.introCard, { backgroundColor: color.surface, borderColor: color.border }]} testID="plan-intro">
-          <Text style={[styles.overline, { color: color.accent }]}>{isJourney ? "RECORRIDO" : "PLAN CANÓNICO"}</Text>
+          <Text style={[styles.overline, { color: color.accent }]}>{planOverline(requestedPlanId)}</Text>
           <Text style={[styles.introTitle, { color: color.ink }]}>{catalog?.name ?? "Plan de lectura"}</Text>
           <Text style={[styles.introDescription, { color: color.inkMuted }]}>
             {catalog?.description ?? ""}
@@ -91,7 +93,7 @@ export default function PlanScreen() {
       ) : (
         <>
           <View style={[styles.todayCard, { backgroundColor: color.surface, borderColor: color.border }]} testID="plan-today">
-            {isJourney ? <Text style={[styles.introTitle, { color: color.ink }]}>{progress.plan.name}</Text> : null}
+            {showsPlanName ? <Text style={[styles.introTitle, { color: color.ink }]}>{progress.plan.name}</Text> : null}
             <Text style={[styles.overline, { color: color.accent }]}>
               HOY · DÍA {progress.currentDay} DE {progress.plan.totalDays}
             </Text>

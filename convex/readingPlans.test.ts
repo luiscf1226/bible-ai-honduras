@@ -318,7 +318,9 @@ describe("ensurePlanSeeded", () => {
     );
 
     expect(result.seeded).not.toContain("canonico");
-    expect(result.seeded).toEqual(JOURNEY_READING_PLANS.map((plan) => plan.id));
+    expect(result.seeded).toEqual(
+      SUPPORTED_READING_PLANS.filter((plan) => plan.id !== "canonico").map((plan) => plan.id),
+    );
     expect(canonical?.name).toBe("Curado a mano");
   });
 });

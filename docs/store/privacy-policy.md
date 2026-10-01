@@ -1,6 +1,6 @@
 # Política de privacidad — Bible AI Honduras
 
-**Vigente desde:** 10 de septiembre de 2026  
+**Vigente desde:** 30 de septiembre de 2026  
 **Responsable:** Bible AI Honduras  
 **Contacto de privacidad:** [luiscf1226@gmail.com](mailto:luiscf1226@gmail.com)  
 **URL pública:** <https://luiscf1226.github.io/bible-ai-honduras/privacidad/>
@@ -21,6 +21,9 @@ y elimina información cuando usás la aplicación móvil.
   de vencimiento. Apple, Google y RevenueCat procesan la información necesaria
   para compras y restauraciones; Bible AI Honduras no recibe el número completo
   de tu tarjeta.
+- **Lectura:** el último capítulo que abriste, capítulos recientes, versículos
+  guardados, tu separador y el avance en planes de lectura y recorridos. Leer
+  es gratis y estos datos no se envían a proveedores de IA.
 - **Historias:** historia elegida, estado de generación, escenas e imágenes
   creadas.
 - **Notificaciones:** la app solicita permiso y programa el recordatorio diario
@@ -79,8 +82,9 @@ durante el plazo aplicable.
 Podés eliminar la cuenta **desde la app** en
 **Ajustes → Cuenta → Eliminar mi cuenta**. El flujo pide confirmación en dos
 pasos (incluido escribir la palabra ELIMINAR). Borra en cascada el perfil, las
-conversaciones y mensajes, los conteos de uso, el plan dentro de la app, las
-historias e imágenes generadas que controlemos, y la identidad asociada en
+conversaciones y mensajes, los conteos de uso, el plan dentro de la app, los
+datos de lectura (progreso, guardados, separador y planes), las historias e
+imágenes generadas que controlemos, y la identidad asociada en
 Clerk. **Eliminar la cuenta no cancela la suscripción de la tienda**; eso se
 administra en App Store o Google Play. También podés cerrar sesión sin borrar
 datos en **Ajustes → Cuenta → Cerrar sesión**.

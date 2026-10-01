@@ -1,0 +1,6589 @@
+{
+  "id": "anual-para-empezar",
+  "name": "La Biblia en un año · para empezar",
+  "description": "Cada día un poco del Antiguo Testamento, del Nuevo y de Salmos o Proverbios.",
+  "totalDays": 365,
+  "days": [
+    {
+      "day": 1,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 1
+        },
+        {
+          "book": "Génesis",
+          "chapter": 2
+        },
+        {
+          "book": "Génesis",
+          "chapter": 3
+        },
+        {
+          "book": "Mateo",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 4
+        },
+        {
+          "book": "Génesis",
+          "chapter": 5
+        },
+        {
+          "book": "Mateo",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 6
+        },
+        {
+          "book": "Génesis",
+          "chapter": 7
+        },
+        {
+          "book": "Mateo",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 8
+        },
+        {
+          "book": "Génesis",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 10
+        },
+        {
+          "book": "Génesis",
+          "chapter": 11
+        },
+        {
+          "book": "Mateo",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 12
+        },
+        {
+          "book": "Génesis",
+          "chapter": 13
+        },
+        {
+          "book": "Mateo",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 14
+        },
+        {
+          "book": "Génesis",
+          "chapter": 15
+        },
+        {
+          "book": "Salmos",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 16
+        },
+        {
+          "book": "Génesis",
+          "chapter": 17
+        },
+        {
+          "book": "Mateo",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 18
+        },
+        {
+          "book": "Génesis",
+          "chapter": 19
+        },
+        {
+          "book": "Mateo",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 20
+        },
+        {
+          "book": "Génesis",
+          "chapter": 21
+        },
+        {
+          "book": "Mateo",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 22
+        },
+        {
+          "book": "Génesis",
+          "chapter": 23
+        },
+        {
+          "book": "Salmos",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 24
+        },
+        {
+          "book": "Génesis",
+          "chapter": 25
+        },
+        {
+          "book": "Mateo",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 26
+        },
+        {
+          "book": "Génesis",
+          "chapter": 27
+        },
+        {
+          "book": "Mateo",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 7
+        }
+      ]
+    },
+    {
+      "day": 14,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 28
+        },
+        {
+          "book": "Génesis",
+          "chapter": 29
+        }
+      ]
+    },
+    {
+      "day": 15,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 30
+        },
+        {
+          "book": "Génesis",
+          "chapter": 31
+        },
+        {
+          "book": "Mateo",
+          "chapter": 11
+        },
+        {
+          "book": "Salmos",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 16,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 32
+        },
+        {
+          "book": "Génesis",
+          "chapter": 33
+        },
+        {
+          "book": "Mateo",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 17,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 34
+        },
+        {
+          "book": "Génesis",
+          "chapter": 35
+        },
+        {
+          "book": "Mateo",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 18,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 36
+        },
+        {
+          "book": "Génesis",
+          "chapter": 37
+        }
+      ]
+    },
+    {
+      "day": 19,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 38
+        },
+        {
+          "book": "Génesis",
+          "chapter": 39
+        },
+        {
+          "book": "Mateo",
+          "chapter": 14
+        },
+        {
+          "book": "Salmos",
+          "chapter": 10
+        }
+      ]
+    },
+    {
+      "day": 20,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 40
+        },
+        {
+          "book": "Génesis",
+          "chapter": 41
+        },
+        {
+          "book": "Mateo",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 21,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 42
+        },
+        {
+          "book": "Génesis",
+          "chapter": 43
+        },
+        {
+          "book": "Génesis",
+          "chapter": 44
+        },
+        {
+          "book": "Salmos",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 22,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 45
+        },
+        {
+          "book": "Génesis",
+          "chapter": 46
+        },
+        {
+          "book": "Mateo",
+          "chapter": 16
+        }
+      ]
+    },
+    {
+      "day": 23,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 47
+        },
+        {
+          "book": "Génesis",
+          "chapter": 48
+        },
+        {
+          "book": "Mateo",
+          "chapter": 17
+        },
+        {
+          "book": "Salmos",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 24,
+      "readings": [
+        {
+          "book": "Génesis",
+          "chapter": 49
+        },
+        {
+          "book": "Génesis",
+          "chapter": 50
+        },
+        {
+          "book": "Mateo",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 25,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 1
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 26,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 3
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 4
+        },
+        {
+          "book": "Mateo",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 27,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 5
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 6
+        },
+        {
+          "book": "Mateo",
+          "chapter": 20
+        },
+        {
+          "book": "Salmos",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 28,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 7
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 29,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 9
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 10
+        },
+        {
+          "book": "Mateo",
+          "chapter": 21
+        },
+        {
+          "book": "Salmos",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 30,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 11
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 12
+        },
+        {
+          "book": "Mateo",
+          "chapter": 22
+        }
+      ]
+    },
+    {
+      "day": 31,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 13
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 14
+        },
+        {
+          "book": "Mateo",
+          "chapter": 23
+        },
+        {
+          "book": "Salmos",
+          "chapter": 16
+        }
+      ]
+    },
+    {
+      "day": 32,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 15
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 16
+        }
+      ]
+    },
+    {
+      "day": 33,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 17
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 18
+        },
+        {
+          "book": "Mateo",
+          "chapter": 24
+        },
+        {
+          "book": "Salmos",
+          "chapter": 17
+        }
+      ]
+    },
+    {
+      "day": 34,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 19
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 20
+        },
+        {
+          "book": "Mateo",
+          "chapter": 25
+        }
+      ]
+    },
+    {
+      "day": 35,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 21
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 22
+        },
+        {
+          "book": "Salmos",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 36,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 23
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 24
+        },
+        {
+          "book": "Mateo",
+          "chapter": 26
+        }
+      ]
+    },
+    {
+      "day": 37,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 25
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 26
+        },
+        {
+          "book": "Mateo",
+          "chapter": 27
+        },
+        {
+          "book": "Salmos",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 38,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 27
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 28
+        },
+        {
+          "book": "Mateo",
+          "chapter": 28
+        }
+      ]
+    },
+    {
+      "day": 39,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 29
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 30
+        },
+        {
+          "book": "Salmos",
+          "chapter": 20
+        }
+      ]
+    },
+    {
+      "day": 40,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 31
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 32
+        },
+        {
+          "book": "Marcos",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 41,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 33
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 34
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 35
+        },
+        {
+          "book": "Marcos",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 21
+        }
+      ]
+    },
+    {
+      "day": 42,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 36
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 37
+        }
+      ]
+    },
+    {
+      "day": 43,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 38
+        },
+        {
+          "book": "Éxodo",
+          "chapter": 39
+        },
+        {
+          "book": "Marcos",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 22
+        }
+      ]
+    },
+    {
+      "day": 44,
+      "readings": [
+        {
+          "book": "Éxodo",
+          "chapter": 40
+        },
+        {
+          "book": "Levítico",
+          "chapter": 1
+        },
+        {
+          "book": "Marcos",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 45,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 2
+        },
+        {
+          "book": "Levítico",
+          "chapter": 3
+        },
+        {
+          "book": "Marcos",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 23
+        }
+      ]
+    },
+    {
+      "day": 46,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 4
+        },
+        {
+          "book": "Levítico",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 47,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 6
+        },
+        {
+          "book": "Levítico",
+          "chapter": 7
+        },
+        {
+          "book": "Marcos",
+          "chapter": 6
+        },
+        {
+          "book": "Salmos",
+          "chapter": 24
+        }
+      ]
+    },
+    {
+      "day": 48,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 8
+        },
+        {
+          "book": "Levítico",
+          "chapter": 9
+        },
+        {
+          "book": "Marcos",
+          "chapter": 7
+        }
+      ]
+    },
+    {
+      "day": 49,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 10
+        },
+        {
+          "book": "Levítico",
+          "chapter": 11
+        },
+        {
+          "book": "Salmos",
+          "chapter": 25
+        }
+      ]
+    },
+    {
+      "day": 50,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 12
+        },
+        {
+          "book": "Levítico",
+          "chapter": 13
+        },
+        {
+          "book": "Marcos",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 51,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 14
+        },
+        {
+          "book": "Levítico",
+          "chapter": 15
+        },
+        {
+          "book": "Marcos",
+          "chapter": 9
+        },
+        {
+          "book": "Salmos",
+          "chapter": 26
+        }
+      ]
+    },
+    {
+      "day": 52,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 16
+        },
+        {
+          "book": "Levítico",
+          "chapter": 17
+        },
+        {
+          "book": "Marcos",
+          "chapter": 10
+        }
+      ]
+    },
+    {
+      "day": 53,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 18
+        },
+        {
+          "book": "Levítico",
+          "chapter": 19
+        },
+        {
+          "book": "Salmos",
+          "chapter": 27
+        }
+      ]
+    },
+    {
+      "day": 54,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 20
+        },
+        {
+          "book": "Levítico",
+          "chapter": 21
+        },
+        {
+          "book": "Marcos",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 55,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 22
+        },
+        {
+          "book": "Levítico",
+          "chapter": 23
+        },
+        {
+          "book": "Marcos",
+          "chapter": 12
+        },
+        {
+          "book": "Salmos",
+          "chapter": 28
+        }
+      ]
+    },
+    {
+      "day": 56,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 24
+        },
+        {
+          "book": "Levítico",
+          "chapter": 25
+        }
+      ]
+    },
+    {
+      "day": 57,
+      "readings": [
+        {
+          "book": "Levítico",
+          "chapter": 26
+        },
+        {
+          "book": "Levítico",
+          "chapter": 27
+        },
+        {
+          "book": "Marcos",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 29
+        }
+      ]
+    },
+    {
+      "day": 58,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 1
+        },
+        {
+          "book": "Números",
+          "chapter": 2
+        },
+        {
+          "book": "Marcos",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 59,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 3
+        },
+        {
+          "book": "Números",
+          "chapter": 4
+        },
+        {
+          "book": "Marcos",
+          "chapter": 15
+        },
+        {
+          "book": "Salmos",
+          "chapter": 30
+        }
+      ]
+    },
+    {
+      "day": 60,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 5
+        },
+        {
+          "book": "Números",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 61,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 7
+        },
+        {
+          "book": "Números",
+          "chapter": 8
+        },
+        {
+          "book": "Números",
+          "chapter": 9
+        },
+        {
+          "book": "Marcos",
+          "chapter": 16
+        },
+        {
+          "book": "Salmos",
+          "chapter": 31
+        }
+      ]
+    },
+    {
+      "day": 62,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 10
+        },
+        {
+          "book": "Números",
+          "chapter": 11
+        },
+        {
+          "book": "Lucas",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 63,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 12
+        },
+        {
+          "book": "Números",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 32
+        }
+      ]
+    },
+    {
+      "day": 64,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 14
+        },
+        {
+          "book": "Números",
+          "chapter": 15
+        },
+        {
+          "book": "Lucas",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 65,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 16
+        },
+        {
+          "book": "Números",
+          "chapter": 17
+        },
+        {
+          "book": "Lucas",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 33
+        }
+      ]
+    },
+    {
+      "day": 66,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 18
+        },
+        {
+          "book": "Números",
+          "chapter": 19
+        },
+        {
+          "book": "Lucas",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 67,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 20
+        },
+        {
+          "book": "Números",
+          "chapter": 21
+        },
+        {
+          "book": "Salmos",
+          "chapter": 34
+        }
+      ]
+    },
+    {
+      "day": 68,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 22
+        },
+        {
+          "book": "Números",
+          "chapter": 23
+        },
+        {
+          "book": "Lucas",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 69,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 24
+        },
+        {
+          "book": "Números",
+          "chapter": 25
+        },
+        {
+          "book": "Lucas",
+          "chapter": 6
+        },
+        {
+          "book": "Salmos",
+          "chapter": 35
+        }
+      ]
+    },
+    {
+      "day": 70,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 26
+        },
+        {
+          "book": "Números",
+          "chapter": 27
+        }
+      ]
+    },
+    {
+      "day": 71,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 28
+        },
+        {
+          "book": "Números",
+          "chapter": 29
+        },
+        {
+          "book": "Lucas",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 36
+        }
+      ]
+    },
+    {
+      "day": 72,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 30
+        },
+        {
+          "book": "Números",
+          "chapter": 31
+        },
+        {
+          "book": "Lucas",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 73,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 32
+        },
+        {
+          "book": "Números",
+          "chapter": 33
+        },
+        {
+          "book": "Salmos",
+          "chapter": 37
+        }
+      ]
+    },
+    {
+      "day": 74,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 34
+        },
+        {
+          "book": "Números",
+          "chapter": 35
+        },
+        {
+          "book": "Lucas",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 75,
+      "readings": [
+        {
+          "book": "Números",
+          "chapter": 36
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 1
+        },
+        {
+          "book": "Lucas",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 38
+        }
+      ]
+    },
+    {
+      "day": 76,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 2
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 3
+        },
+        {
+          "book": "Lucas",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 77,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 4
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 39
+        }
+      ]
+    },
+    {
+      "day": 78,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 6
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 7
+        },
+        {
+          "book": "Lucas",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 79,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 8
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 9
+        },
+        {
+          "book": "Lucas",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 40
+        }
+      ]
+    },
+    {
+      "day": 80,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 10
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 81,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 12
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 13
+        },
+        {
+          "book": "Lucas",
+          "chapter": 14
+        },
+        {
+          "book": "Salmos",
+          "chapter": 41
+        }
+      ]
+    },
+    {
+      "day": 82,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 14
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 15
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 16
+        },
+        {
+          "book": "Lucas",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 83,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 17
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 18
+        },
+        {
+          "book": "Lucas",
+          "chapter": 16
+        },
+        {
+          "book": "Salmos",
+          "chapter": 42
+        }
+      ]
+    },
+    {
+      "day": 84,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 19
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 20
+        }
+      ]
+    },
+    {
+      "day": 85,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 21
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 22
+        },
+        {
+          "book": "Lucas",
+          "chapter": 17
+        },
+        {
+          "book": "Salmos",
+          "chapter": 43
+        }
+      ]
+    },
+    {
+      "day": 86,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 23
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 24
+        },
+        {
+          "book": "Lucas",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 87,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 25
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 26
+        },
+        {
+          "book": "Salmos",
+          "chapter": 44
+        }
+      ]
+    },
+    {
+      "day": 88,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 27
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 28
+        },
+        {
+          "book": "Lucas",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 89,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 29
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 30
+        },
+        {
+          "book": "Lucas",
+          "chapter": 20
+        },
+        {
+          "book": "Salmos",
+          "chapter": 45
+        }
+      ]
+    },
+    {
+      "day": 90,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 31
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 32
+        },
+        {
+          "book": "Lucas",
+          "chapter": 21
+        }
+      ]
+    },
+    {
+      "day": 91,
+      "readings": [
+        {
+          "book": "Deuteronomio",
+          "chapter": 33
+        },
+        {
+          "book": "Deuteronomio",
+          "chapter": 34
+        },
+        {
+          "book": "Salmos",
+          "chapter": 46
+        }
+      ]
+    },
+    {
+      "day": 92,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 1
+        },
+        {
+          "book": "Josué",
+          "chapter": 2
+        },
+        {
+          "book": "Lucas",
+          "chapter": 22
+        }
+      ]
+    },
+    {
+      "day": 93,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 3
+        },
+        {
+          "book": "Josué",
+          "chapter": 4
+        },
+        {
+          "book": "Lucas",
+          "chapter": 23
+        },
+        {
+          "book": "Salmos",
+          "chapter": 47
+        }
+      ]
+    },
+    {
+      "day": 94,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 5
+        },
+        {
+          "book": "Josué",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 95,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 7
+        },
+        {
+          "book": "Josué",
+          "chapter": 8
+        },
+        {
+          "book": "Lucas",
+          "chapter": 24
+        },
+        {
+          "book": "Salmos",
+          "chapter": 48
+        }
+      ]
+    },
+    {
+      "day": 96,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 9
+        },
+        {
+          "book": "Josué",
+          "chapter": 10
+        },
+        {
+          "book": "Juan",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 97,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 11
+        },
+        {
+          "book": "Josué",
+          "chapter": 12
+        },
+        {
+          "book": "Juan",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 49
+        }
+      ]
+    },
+    {
+      "day": 98,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 13
+        },
+        {
+          "book": "Josué",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 99,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 15
+        },
+        {
+          "book": "Josué",
+          "chapter": 16
+        },
+        {
+          "book": "Juan",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 50
+        }
+      ]
+    },
+    {
+      "day": 100,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 17
+        },
+        {
+          "book": "Josué",
+          "chapter": 18
+        },
+        {
+          "book": "Juan",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 101,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 19
+        },
+        {
+          "book": "Josué",
+          "chapter": 20
+        },
+        {
+          "book": "Salmos",
+          "chapter": 51
+        }
+      ]
+    },
+    {
+      "day": 102,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 21
+        },
+        {
+          "book": "Josué",
+          "chapter": 22
+        },
+        {
+          "book": "Josué",
+          "chapter": 23
+        },
+        {
+          "book": "Juan",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 103,
+      "readings": [
+        {
+          "book": "Josué",
+          "chapter": 24
+        },
+        {
+          "book": "Jueces",
+          "chapter": 1
+        },
+        {
+          "book": "Juan",
+          "chapter": 6
+        },
+        {
+          "book": "Salmos",
+          "chapter": 52
+        }
+      ]
+    },
+    {
+      "day": 104,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 2
+        },
+        {
+          "book": "Jueces",
+          "chapter": 3
+        },
+        {
+          "book": "Juan",
+          "chapter": 7
+        }
+      ]
+    },
+    {
+      "day": 105,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 4
+        },
+        {
+          "book": "Jueces",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 53
+        }
+      ]
+    },
+    {
+      "day": 106,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 6
+        },
+        {
+          "book": "Jueces",
+          "chapter": 7
+        },
+        {
+          "book": "Juan",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 107,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 8
+        },
+        {
+          "book": "Jueces",
+          "chapter": 9
+        },
+        {
+          "book": "Juan",
+          "chapter": 9
+        },
+        {
+          "book": "Salmos",
+          "chapter": 54
+        }
+      ]
+    },
+    {
+      "day": 108,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 10
+        },
+        {
+          "book": "Jueces",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 109,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 12
+        },
+        {
+          "book": "Jueces",
+          "chapter": 13
+        },
+        {
+          "book": "Juan",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 55
+        }
+      ]
+    },
+    {
+      "day": 110,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 14
+        },
+        {
+          "book": "Jueces",
+          "chapter": 15
+        },
+        {
+          "book": "Juan",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 111,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 16
+        },
+        {
+          "book": "Jueces",
+          "chapter": 17
+        },
+        {
+          "book": "Juan",
+          "chapter": 12
+        },
+        {
+          "book": "Salmos",
+          "chapter": 56
+        }
+      ]
+    },
+    {
+      "day": 112,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 18
+        },
+        {
+          "book": "Jueces",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 113,
+      "readings": [
+        {
+          "book": "Jueces",
+          "chapter": 20
+        },
+        {
+          "book": "Jueces",
+          "chapter": 21
+        },
+        {
+          "book": "Juan",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 57
+        }
+      ]
+    },
+    {
+      "day": 114,
+      "readings": [
+        {
+          "book": "Rut",
+          "chapter": 1
+        },
+        {
+          "book": "Rut",
+          "chapter": 2
+        },
+        {
+          "book": "Juan",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 115,
+      "readings": [
+        {
+          "book": "Rut",
+          "chapter": 3
+        },
+        {
+          "book": "Rut",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 58
+        }
+      ]
+    },
+    {
+      "day": 116,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 1
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 2
+        },
+        {
+          "book": "Juan",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 117,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 3
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 4
+        },
+        {
+          "book": "Juan",
+          "chapter": 16
+        },
+        {
+          "book": "Salmos",
+          "chapter": 59
+        }
+      ]
+    },
+    {
+      "day": 118,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 5
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 6
+        },
+        {
+          "book": "Juan",
+          "chapter": 17
+        }
+      ]
+    },
+    {
+      "day": 119,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 7
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 8
+        },
+        {
+          "book": "Salmos",
+          "chapter": 60
+        }
+      ]
+    },
+    {
+      "day": 120,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 9
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 10
+        },
+        {
+          "book": "Juan",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 121,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 11
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 12
+        },
+        {
+          "book": "Juan",
+          "chapter": 19
+        },
+        {
+          "book": "Salmos",
+          "chapter": 61
+        }
+      ]
+    },
+    {
+      "day": 122,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 13
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 14
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 123,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 16
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 17
+        },
+        {
+          "book": "Juan",
+          "chapter": 20
+        }
+      ]
+    },
+    {
+      "day": 124,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 18
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 19
+        },
+        {
+          "book": "Juan",
+          "chapter": 21
+        },
+        {
+          "book": "Salmos",
+          "chapter": 62
+        }
+      ]
+    },
+    {
+      "day": 125,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 20
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 21
+        },
+        {
+          "book": "Hechos",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 126,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 22
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 23
+        },
+        {
+          "book": "Salmos",
+          "chapter": 63
+        }
+      ]
+    },
+    {
+      "day": 127,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 24
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 25
+        },
+        {
+          "book": "Hechos",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 128,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 26
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 27
+        },
+        {
+          "book": "Hechos",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 64
+        }
+      ]
+    },
+    {
+      "day": 129,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 28
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 29
+        }
+      ]
+    },
+    {
+      "day": 130,
+      "readings": [
+        {
+          "book": "1 Samuel",
+          "chapter": 30
+        },
+        {
+          "book": "1 Samuel",
+          "chapter": 31
+        },
+        {
+          "book": "Hechos",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 65
+        }
+      ]
+    },
+    {
+      "day": 131,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 1
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 2
+        },
+        {
+          "book": "Hechos",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 132,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 3
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 4
+        },
+        {
+          "book": "Hechos",
+          "chapter": 6
+        },
+        {
+          "book": "Salmos",
+          "chapter": 66
+        }
+      ]
+    },
+    {
+      "day": 133,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 5
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 134,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 7
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 8
+        },
+        {
+          "book": "Hechos",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 67
+        }
+      ]
+    },
+    {
+      "day": 135,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 9
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 10
+        },
+        {
+          "book": "Hechos",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 136,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 11
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 12
+        },
+        {
+          "book": "Salmos",
+          "chapter": 68
+        }
+      ]
+    },
+    {
+      "day": 137,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 13
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 14
+        },
+        {
+          "book": "Hechos",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 138,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 15
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 16
+        },
+        {
+          "book": "Hechos",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 69
+        }
+      ]
+    },
+    {
+      "day": 139,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 17
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 18
+        },
+        {
+          "book": "Hechos",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 140,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 19
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 20
+        },
+        {
+          "book": "Salmos",
+          "chapter": 70
+        }
+      ]
+    },
+    {
+      "day": 141,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 21
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 22
+        },
+        {
+          "book": "Hechos",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 142,
+      "readings": [
+        {
+          "book": "2 Samuel",
+          "chapter": 23
+        },
+        {
+          "book": "2 Samuel",
+          "chapter": 24
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 1
+        },
+        {
+          "book": "Hechos",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 71
+        }
+      ]
+    },
+    {
+      "day": 143,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 2
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 144,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 4
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 5
+        },
+        {
+          "book": "Hechos",
+          "chapter": 14
+        },
+        {
+          "book": "Salmos",
+          "chapter": 72
+        }
+      ]
+    },
+    {
+      "day": 145,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 6
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 7
+        },
+        {
+          "book": "Hechos",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 146,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 8
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 9
+        },
+        {
+          "book": "Salmos",
+          "chapter": 73
+        }
+      ]
+    },
+    {
+      "day": 147,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 10
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 11
+        },
+        {
+          "book": "Hechos",
+          "chapter": 16
+        }
+      ]
+    },
+    {
+      "day": 148,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 12
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 13
+        },
+        {
+          "book": "Hechos",
+          "chapter": 17
+        },
+        {
+          "book": "Salmos",
+          "chapter": 74
+        }
+      ]
+    },
+    {
+      "day": 149,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 14
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 15
+        },
+        {
+          "book": "Hechos",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 150,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 16
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 17
+        },
+        {
+          "book": "Salmos",
+          "chapter": 75
+        }
+      ]
+    },
+    {
+      "day": 151,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 18
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 19
+        },
+        {
+          "book": "Hechos",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 152,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 20
+        },
+        {
+          "book": "1 Reyes",
+          "chapter": 21
+        },
+        {
+          "book": "Hechos",
+          "chapter": 20
+        },
+        {
+          "book": "Salmos",
+          "chapter": 76
+        }
+      ]
+    },
+    {
+      "day": 153,
+      "readings": [
+        {
+          "book": "1 Reyes",
+          "chapter": 22
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 154,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 2
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 3
+        },
+        {
+          "book": "Hechos",
+          "chapter": 21
+        },
+        {
+          "book": "Salmos",
+          "chapter": 77
+        }
+      ]
+    },
+    {
+      "day": 155,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 4
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 5
+        },
+        {
+          "book": "Hechos",
+          "chapter": 22
+        }
+      ]
+    },
+    {
+      "day": 156,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 6
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 7
+        },
+        {
+          "book": "Hechos",
+          "chapter": 23
+        },
+        {
+          "book": "Salmos",
+          "chapter": 78
+        }
+      ]
+    },
+    {
+      "day": 157,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 8
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 158,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 10
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 11
+        },
+        {
+          "book": "Hechos",
+          "chapter": 24
+        },
+        {
+          "book": "Salmos",
+          "chapter": 79
+        }
+      ]
+    },
+    {
+      "day": 159,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 12
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 13
+        },
+        {
+          "book": "Hechos",
+          "chapter": 25
+        }
+      ]
+    },
+    {
+      "day": 160,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 14
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 15
+        },
+        {
+          "book": "Salmos",
+          "chapter": 80
+        }
+      ]
+    },
+    {
+      "day": 161,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 16
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 17
+        },
+        {
+          "book": "Hechos",
+          "chapter": 26
+        }
+      ]
+    },
+    {
+      "day": 162,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 18
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 19
+        },
+        {
+          "book": "Hechos",
+          "chapter": 27
+        },
+        {
+          "book": "Salmos",
+          "chapter": 81
+        }
+      ]
+    },
+    {
+      "day": 163,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 20
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 21
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 22
+        },
+        {
+          "book": "Hechos",
+          "chapter": 28
+        }
+      ]
+    },
+    {
+      "day": 164,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 23
+        },
+        {
+          "book": "2 Reyes",
+          "chapter": 24
+        },
+        {
+          "book": "Salmos",
+          "chapter": 82
+        }
+      ]
+    },
+    {
+      "day": 165,
+      "readings": [
+        {
+          "book": "2 Reyes",
+          "chapter": 25
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 1
+        },
+        {
+          "book": "Romanos",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 166,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 2
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 3
+        },
+        {
+          "book": "Romanos",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 83
+        }
+      ]
+    },
+    {
+      "day": 167,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 4
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 168,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 6
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 7
+        },
+        {
+          "book": "Romanos",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 84
+        }
+      ]
+    },
+    {
+      "day": 169,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 8
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 9
+        },
+        {
+          "book": "Romanos",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 170,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 10
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 11
+        },
+        {
+          "book": "Romanos",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 85
+        }
+      ]
+    },
+    {
+      "day": 171,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 12
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 172,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 14
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 15
+        },
+        {
+          "book": "Romanos",
+          "chapter": 6
+        },
+        {
+          "book": "Salmos",
+          "chapter": 86
+        }
+      ]
+    },
+    {
+      "day": 173,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 16
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 17
+        },
+        {
+          "book": "Romanos",
+          "chapter": 7
+        }
+      ]
+    },
+    {
+      "day": 174,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 18
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 19
+        },
+        {
+          "book": "Salmos",
+          "chapter": 87
+        }
+      ]
+    },
+    {
+      "day": 175,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 20
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 21
+        },
+        {
+          "book": "Romanos",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 176,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 22
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 23
+        },
+        {
+          "book": "Romanos",
+          "chapter": 9
+        },
+        {
+          "book": "Salmos",
+          "chapter": 88
+        }
+      ]
+    },
+    {
+      "day": 177,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 24
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 25
+        },
+        {
+          "book": "Romanos",
+          "chapter": 10
+        }
+      ]
+    },
+    {
+      "day": 178,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 26
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 27
+        },
+        {
+          "book": "Salmos",
+          "chapter": 89
+        }
+      ]
+    },
+    {
+      "day": 179,
+      "readings": [
+        {
+          "book": "1 Crónicas",
+          "chapter": 28
+        },
+        {
+          "book": "1 Crónicas",
+          "chapter": 29
+        },
+        {
+          "book": "Romanos",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 180,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 1
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 2
+        },
+        {
+          "book": "Romanos",
+          "chapter": 12
+        },
+        {
+          "book": "Salmos",
+          "chapter": 90
+        }
+      ]
+    },
+    {
+      "day": 181,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 3
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 182,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 5
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 6
+        },
+        {
+          "book": "Romanos",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 91
+        }
+      ]
+    },
+    {
+      "day": 183,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 7
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 8
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 9
+        },
+        {
+          "book": "Romanos",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 184,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 10
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 11
+        },
+        {
+          "book": "Romanos",
+          "chapter": 15
+        },
+        {
+          "book": "Salmos",
+          "chapter": 92
+        }
+      ]
+    },
+    {
+      "day": 185,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 12
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 186,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 14
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 15
+        },
+        {
+          "book": "Romanos",
+          "chapter": 16
+        },
+        {
+          "book": "Salmos",
+          "chapter": 93
+        }
+      ]
+    },
+    {
+      "day": 187,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 16
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 17
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 188,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 18
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 19
+        },
+        {
+          "book": "Salmos",
+          "chapter": 94
+        }
+      ]
+    },
+    {
+      "day": 189,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 20
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 21
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 190,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 22
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 23
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 95
+        }
+      ]
+    },
+    {
+      "day": 191,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 24
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 25
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 192,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 26
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 27
+        },
+        {
+          "book": "Salmos",
+          "chapter": 96
+        }
+      ]
+    },
+    {
+      "day": 193,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 28
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 29
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 194,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 30
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 31
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 6
+        },
+        {
+          "book": "Salmos",
+          "chapter": 97
+        }
+      ]
+    },
+    {
+      "day": 195,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 32
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 33
+        }
+      ]
+    },
+    {
+      "day": 196,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 34
+        },
+        {
+          "book": "2 Crónicas",
+          "chapter": 35
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 98
+        }
+      ]
+    },
+    {
+      "day": 197,
+      "readings": [
+        {
+          "book": "2 Crónicas",
+          "chapter": 36
+        },
+        {
+          "book": "Esdras",
+          "chapter": 1
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 198,
+      "readings": [
+        {
+          "book": "Esdras",
+          "chapter": 2
+        },
+        {
+          "book": "Esdras",
+          "chapter": 3
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 9
+        },
+        {
+          "book": "Salmos",
+          "chapter": 99
+        }
+      ]
+    },
+    {
+      "day": 199,
+      "readings": [
+        {
+          "book": "Esdras",
+          "chapter": 4
+        },
+        {
+          "book": "Esdras",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 200,
+      "readings": [
+        {
+          "book": "Esdras",
+          "chapter": 6
+        },
+        {
+          "book": "Esdras",
+          "chapter": 7
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 100
+        }
+      ]
+    },
+    {
+      "day": 201,
+      "readings": [
+        {
+          "book": "Esdras",
+          "chapter": 8
+        },
+        {
+          "book": "Esdras",
+          "chapter": 9
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 202,
+      "readings": [
+        {
+          "book": "Esdras",
+          "chapter": 10
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 101
+        }
+      ]
+    },
+    {
+      "day": 203,
+      "readings": [
+        {
+          "book": "Nehemías",
+          "chapter": 2
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 3
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 4
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 204,
+      "readings": [
+        {
+          "book": "Nehemías",
+          "chapter": 5
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 6
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 13
+        },
+        {
+          "book": "Salmos",
+          "chapter": 102
+        }
+      ]
+    },
+    {
+      "day": 205,
+      "readings": [
+        {
+          "book": "Nehemías",
+          "chapter": 7
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 8
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 206,
+      "readings": [
+        {
+          "book": "Nehemías",
+          "chapter": 9
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 103
+        }
+      ]
+    },
+    {
+      "day": 207,
+      "readings": [
+        {
+          "book": "Nehemías",
+          "chapter": 11
+        },
+        {
+          "book": "Nehemías",
+          "chapter": 12
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 208,
+      "readings": [
+        {
+          "book": "Nehemías",
+          "chapter": 13
+        },
+        {
+          "book": "Ester",
+          "chapter": 1
+        },
+        {
+          "book": "1 Corintios",
+          "chapter": 16
+        },
+        {
+          "book": "Salmos",
+          "chapter": 104
+        }
+      ]
+    },
+    {
+      "day": 209,
+      "readings": [
+        {
+          "book": "Ester",
+          "chapter": 2
+        },
+        {
+          "book": "Ester",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 210,
+      "readings": [
+        {
+          "book": "Ester",
+          "chapter": 4
+        },
+        {
+          "book": "Ester",
+          "chapter": 5
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 105
+        }
+      ]
+    },
+    {
+      "day": 211,
+      "readings": [
+        {
+          "book": "Ester",
+          "chapter": 6
+        },
+        {
+          "book": "Ester",
+          "chapter": 7
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 212,
+      "readings": [
+        {
+          "book": "Ester",
+          "chapter": 8
+        },
+        {
+          "book": "Ester",
+          "chapter": 9
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 106
+        }
+      ]
+    },
+    {
+      "day": 213,
+      "readings": [
+        {
+          "book": "Ester",
+          "chapter": 10
+        },
+        {
+          "book": "Job",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 214,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 2
+        },
+        {
+          "book": "Job",
+          "chapter": 3
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 107
+        }
+      ]
+    },
+    {
+      "day": 215,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 4
+        },
+        {
+          "book": "Job",
+          "chapter": 5
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 216,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 6
+        },
+        {
+          "book": "Job",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 108
+        }
+      ]
+    },
+    {
+      "day": 217,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 8
+        },
+        {
+          "book": "Job",
+          "chapter": 9
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 218,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 10
+        },
+        {
+          "book": "Job",
+          "chapter": 11
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 109
+        }
+      ]
+    },
+    {
+      "day": 219,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 12
+        },
+        {
+          "book": "Job",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 220,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 14
+        },
+        {
+          "book": "Job",
+          "chapter": 15
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 8
+        },
+        {
+          "book": "Salmos",
+          "chapter": 110
+        }
+      ]
+    },
+    {
+      "day": 221,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 16
+        },
+        {
+          "book": "Job",
+          "chapter": 17
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 222,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 18
+        },
+        {
+          "book": "Job",
+          "chapter": 19
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 10
+        },
+        {
+          "book": "Salmos",
+          "chapter": 111
+        }
+      ]
+    },
+    {
+      "day": 223,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 20
+        },
+        {
+          "book": "Job",
+          "chapter": 21
+        }
+      ]
+    },
+    {
+      "day": 224,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 22
+        },
+        {
+          "book": "Job",
+          "chapter": 23
+        },
+        {
+          "book": "Job",
+          "chapter": 24
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 11
+        },
+        {
+          "book": "Salmos",
+          "chapter": 112
+        }
+      ]
+    },
+    {
+      "day": 225,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 25
+        },
+        {
+          "book": "Job",
+          "chapter": 26
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 226,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 27
+        },
+        {
+          "book": "Job",
+          "chapter": 28
+        },
+        {
+          "book": "Salmos",
+          "chapter": 113
+        }
+      ]
+    },
+    {
+      "day": 227,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 29
+        },
+        {
+          "book": "Job",
+          "chapter": 30
+        },
+        {
+          "book": "2 Corintios",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 228,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 31
+        },
+        {
+          "book": "Job",
+          "chapter": 32
+        },
+        {
+          "book": "Gálatas",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 114
+        }
+      ]
+    },
+    {
+      "day": 229,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 33
+        },
+        {
+          "book": "Job",
+          "chapter": 34
+        },
+        {
+          "book": "Gálatas",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 230,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 35
+        },
+        {
+          "book": "Job",
+          "chapter": 36
+        },
+        {
+          "book": "Salmos",
+          "chapter": 115
+        }
+      ]
+    },
+    {
+      "day": 231,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 37
+        },
+        {
+          "book": "Job",
+          "chapter": 38
+        },
+        {
+          "book": "Gálatas",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 232,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 39
+        },
+        {
+          "book": "Job",
+          "chapter": 40
+        },
+        {
+          "book": "Gálatas",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 116
+        }
+      ]
+    },
+    {
+      "day": 233,
+      "readings": [
+        {
+          "book": "Job",
+          "chapter": 41
+        },
+        {
+          "book": "Job",
+          "chapter": 42
+        }
+      ]
+    },
+    {
+      "day": 234,
+      "readings": [
+        {
+          "book": "Eclesiastés",
+          "chapter": 1
+        },
+        {
+          "book": "Eclesiastés",
+          "chapter": 2
+        },
+        {
+          "book": "Gálatas",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 117
+        }
+      ]
+    },
+    {
+      "day": 235,
+      "readings": [
+        {
+          "book": "Eclesiastés",
+          "chapter": 3
+        },
+        {
+          "book": "Eclesiastés",
+          "chapter": 4
+        },
+        {
+          "book": "Gálatas",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 236,
+      "readings": [
+        {
+          "book": "Eclesiastés",
+          "chapter": 5
+        },
+        {
+          "book": "Eclesiastés",
+          "chapter": 6
+        },
+        {
+          "book": "Efesios",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 118
+        }
+      ]
+    },
+    {
+      "day": 237,
+      "readings": [
+        {
+          "book": "Eclesiastés",
+          "chapter": 7
+        },
+        {
+          "book": "Eclesiastés",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 238,
+      "readings": [
+        {
+          "book": "Eclesiastés",
+          "chapter": 9
+        },
+        {
+          "book": "Eclesiastés",
+          "chapter": 10
+        },
+        {
+          "book": "Efesios",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 119
+        }
+      ]
+    },
+    {
+      "day": 239,
+      "readings": [
+        {
+          "book": "Eclesiastés",
+          "chapter": 11
+        },
+        {
+          "book": "Eclesiastés",
+          "chapter": 12
+        },
+        {
+          "book": "Efesios",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 240,
+      "readings": [
+        {
+          "book": "Cantares",
+          "chapter": 1
+        },
+        {
+          "book": "Cantares",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 120
+        }
+      ]
+    },
+    {
+      "day": 241,
+      "readings": [
+        {
+          "book": "Cantares",
+          "chapter": 3
+        },
+        {
+          "book": "Cantares",
+          "chapter": 4
+        },
+        {
+          "book": "Efesios",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 242,
+      "readings": [
+        {
+          "book": "Cantares",
+          "chapter": 5
+        },
+        {
+          "book": "Cantares",
+          "chapter": 6
+        },
+        {
+          "book": "Efesios",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 121
+        }
+      ]
+    },
+    {
+      "day": 243,
+      "readings": [
+        {
+          "book": "Cantares",
+          "chapter": 7
+        },
+        {
+          "book": "Cantares",
+          "chapter": 8
+        },
+        {
+          "book": "Efesios",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 244,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 1
+        },
+        {
+          "book": "Isaías",
+          "chapter": 2
+        },
+        {
+          "book": "Isaías",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 245,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 4
+        },
+        {
+          "book": "Isaías",
+          "chapter": 5
+        },
+        {
+          "book": "Filipenses",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 122
+        }
+      ]
+    },
+    {
+      "day": 246,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 6
+        },
+        {
+          "book": "Isaías",
+          "chapter": 7
+        },
+        {
+          "book": "Filipenses",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 247,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 8
+        },
+        {
+          "book": "Isaías",
+          "chapter": 9
+        },
+        {
+          "book": "Salmos",
+          "chapter": 123
+        }
+      ]
+    },
+    {
+      "day": 248,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 10
+        },
+        {
+          "book": "Isaías",
+          "chapter": 11
+        },
+        {
+          "book": "Filipenses",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 249,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 12
+        },
+        {
+          "book": "Isaías",
+          "chapter": 13
+        },
+        {
+          "book": "Filipenses",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 124
+        }
+      ]
+    },
+    {
+      "day": 250,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 14
+        },
+        {
+          "book": "Isaías",
+          "chapter": 15
+        },
+        {
+          "book": "Colosenses",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 251,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 16
+        },
+        {
+          "book": "Isaías",
+          "chapter": 17
+        },
+        {
+          "book": "Salmos",
+          "chapter": 125
+        }
+      ]
+    },
+    {
+      "day": 252,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 18
+        },
+        {
+          "book": "Isaías",
+          "chapter": 19
+        },
+        {
+          "book": "Colosenses",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 253,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 20
+        },
+        {
+          "book": "Isaías",
+          "chapter": 21
+        },
+        {
+          "book": "Colosenses",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 126
+        }
+      ]
+    },
+    {
+      "day": 254,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 22
+        },
+        {
+          "book": "Isaías",
+          "chapter": 23
+        }
+      ]
+    },
+    {
+      "day": 255,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 24
+        },
+        {
+          "book": "Isaías",
+          "chapter": 25
+        },
+        {
+          "book": "Colosenses",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 127
+        }
+      ]
+    },
+    {
+      "day": 256,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 26
+        },
+        {
+          "book": "Isaías",
+          "chapter": 27
+        },
+        {
+          "book": "1 Tesalonicenses",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 257,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 28
+        },
+        {
+          "book": "Isaías",
+          "chapter": 29
+        },
+        {
+          "book": "1 Tesalonicenses",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 128
+        }
+      ]
+    },
+    {
+      "day": 258,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 30
+        },
+        {
+          "book": "Isaías",
+          "chapter": 31
+        }
+      ]
+    },
+    {
+      "day": 259,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 32
+        },
+        {
+          "book": "Isaías",
+          "chapter": 33
+        },
+        {
+          "book": "1 Tesalonicenses",
+          "chapter": 3
+        },
+        {
+          "book": "Salmos",
+          "chapter": 129
+        }
+      ]
+    },
+    {
+      "day": 260,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 34
+        },
+        {
+          "book": "Isaías",
+          "chapter": 35
+        },
+        {
+          "book": "1 Tesalonicenses",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 261,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 36
+        },
+        {
+          "book": "Isaías",
+          "chapter": 37
+        },
+        {
+          "book": "Salmos",
+          "chapter": 130
+        }
+      ]
+    },
+    {
+      "day": 262,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 38
+        },
+        {
+          "book": "Isaías",
+          "chapter": 39
+        },
+        {
+          "book": "1 Tesalonicenses",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 263,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 40
+        },
+        {
+          "book": "Isaías",
+          "chapter": 41
+        },
+        {
+          "book": "2 Tesalonicenses",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 131
+        }
+      ]
+    },
+    {
+      "day": 264,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 42
+        },
+        {
+          "book": "Isaías",
+          "chapter": 43
+        },
+        {
+          "book": "Isaías",
+          "chapter": 44
+        },
+        {
+          "book": "2 Tesalonicenses",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 265,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 45
+        },
+        {
+          "book": "Isaías",
+          "chapter": 46
+        },
+        {
+          "book": "Salmos",
+          "chapter": 132
+        }
+      ]
+    },
+    {
+      "day": 266,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 47
+        },
+        {
+          "book": "Isaías",
+          "chapter": 48
+        },
+        {
+          "book": "2 Tesalonicenses",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 267,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 49
+        },
+        {
+          "book": "Isaías",
+          "chapter": 50
+        },
+        {
+          "book": "1 Timoteo",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 133
+        }
+      ]
+    },
+    {
+      "day": 268,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 51
+        },
+        {
+          "book": "Isaías",
+          "chapter": 52
+        }
+      ]
+    },
+    {
+      "day": 269,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 53
+        },
+        {
+          "book": "Isaías",
+          "chapter": 54
+        },
+        {
+          "book": "1 Timoteo",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 134
+        }
+      ]
+    },
+    {
+      "day": 270,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 55
+        },
+        {
+          "book": "Isaías",
+          "chapter": 56
+        },
+        {
+          "book": "1 Timoteo",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 271,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 57
+        },
+        {
+          "book": "Isaías",
+          "chapter": 58
+        },
+        {
+          "book": "1 Timoteo",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 135
+        }
+      ]
+    },
+    {
+      "day": 272,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 59
+        },
+        {
+          "book": "Isaías",
+          "chapter": 60
+        }
+      ]
+    },
+    {
+      "day": 273,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 61
+        },
+        {
+          "book": "Isaías",
+          "chapter": 62
+        },
+        {
+          "book": "1 Timoteo",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 136
+        }
+      ]
+    },
+    {
+      "day": 274,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 63
+        },
+        {
+          "book": "Isaías",
+          "chapter": 64
+        },
+        {
+          "book": "1 Timoteo",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 275,
+      "readings": [
+        {
+          "book": "Isaías",
+          "chapter": 65
+        },
+        {
+          "book": "Isaías",
+          "chapter": 66
+        },
+        {
+          "book": "Salmos",
+          "chapter": 137
+        }
+      ]
+    },
+    {
+      "day": 276,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 1
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 2
+        },
+        {
+          "book": "2 Timoteo",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 277,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 3
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 4
+        },
+        {
+          "book": "2 Timoteo",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 138
+        }
+      ]
+    },
+    {
+      "day": 278,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 5
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 6
+        },
+        {
+          "book": "2 Timoteo",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 279,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 7
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 8
+        },
+        {
+          "book": "Salmos",
+          "chapter": 139
+        }
+      ]
+    },
+    {
+      "day": 280,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 9
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 10
+        },
+        {
+          "book": "2 Timoteo",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 281,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 11
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 12
+        },
+        {
+          "book": "Tito",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 140
+        }
+      ]
+    },
+    {
+      "day": 282,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 13
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 283,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 15
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 16
+        },
+        {
+          "book": "Tito",
+          "chapter": 2
+        },
+        {
+          "book": "Salmos",
+          "chapter": 141
+        }
+      ]
+    },
+    {
+      "day": 284,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 17
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 18
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 19
+        },
+        {
+          "book": "Tito",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 285,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 20
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 21
+        },
+        {
+          "book": "Filemón",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 142
+        }
+      ]
+    },
+    {
+      "day": 286,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 22
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 23
+        }
+      ]
+    },
+    {
+      "day": 287,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 24
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 25
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 1
+        },
+        {
+          "book": "Salmos",
+          "chapter": 143
+        }
+      ]
+    },
+    {
+      "day": 288,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 26
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 27
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 289,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 28
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 29
+        },
+        {
+          "book": "Salmos",
+          "chapter": 144
+        }
+      ]
+    },
+    {
+      "day": 290,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 30
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 31
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 291,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 32
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 33
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 4
+        },
+        {
+          "book": "Salmos",
+          "chapter": 145
+        }
+      ]
+    },
+    {
+      "day": 292,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 34
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 35
+        }
+      ]
+    },
+    {
+      "day": 293,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 36
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 37
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 5
+        },
+        {
+          "book": "Salmos",
+          "chapter": 146
+        }
+      ]
+    },
+    {
+      "day": 294,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 38
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 39
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 295,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 40
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 41
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 7
+        },
+        {
+          "book": "Salmos",
+          "chapter": 147
+        }
+      ]
+    },
+    {
+      "day": 296,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 42
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 43
+        }
+      ]
+    },
+    {
+      "day": 297,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 44
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 45
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 8
+        },
+        {
+          "book": "Salmos",
+          "chapter": 148
+        }
+      ]
+    },
+    {
+      "day": 298,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 46
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 47
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 299,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 48
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 49
+        },
+        {
+          "book": "Salmos",
+          "chapter": 149
+        }
+      ]
+    },
+    {
+      "day": 300,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 50
+        },
+        {
+          "book": "Jeremías",
+          "chapter": 51
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 10
+        }
+      ]
+    },
+    {
+      "day": 301,
+      "readings": [
+        {
+          "book": "Jeremías",
+          "chapter": 52
+        },
+        {
+          "book": "Lamentaciones",
+          "chapter": 1
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 11
+        },
+        {
+          "book": "Salmos",
+          "chapter": 150
+        }
+      ]
+    },
+    {
+      "day": 302,
+      "readings": [
+        {
+          "book": "Lamentaciones",
+          "chapter": 2
+        },
+        {
+          "book": "Lamentaciones",
+          "chapter": 3
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 303,
+      "readings": [
+        {
+          "book": "Lamentaciones",
+          "chapter": 4
+        },
+        {
+          "book": "Lamentaciones",
+          "chapter": 5
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 304,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 1
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 2
+        },
+        {
+          "book": "Hebreos",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 305,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 3
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 4
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 5
+        },
+        {
+          "book": "Santiago",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 306,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 6
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 7
+        }
+      ]
+    },
+    {
+      "day": 307,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 8
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 9
+        },
+        {
+          "book": "Santiago",
+          "chapter": 2
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 308,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 10
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 11
+        },
+        {
+          "book": "Santiago",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 309,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 12
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 13
+        },
+        {
+          "book": "Santiago",
+          "chapter": 4
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 310,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 14
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 311,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 16
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 17
+        },
+        {
+          "book": "Santiago",
+          "chapter": 5
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 312,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 18
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 19
+        },
+        {
+          "book": "1 Pedro",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 313,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 20
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 21
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 314,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 22
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 23
+        },
+        {
+          "book": "1 Pedro",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 315,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 24
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 25
+        },
+        {
+          "book": "1 Pedro",
+          "chapter": 3
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 7
+        }
+      ]
+    },
+    {
+      "day": 316,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 26
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 27
+        },
+        {
+          "book": "1 Pedro",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 317,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 28
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 29
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 318,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 30
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 31
+        },
+        {
+          "book": "1 Pedro",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 319,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 32
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 33
+        },
+        {
+          "book": "2 Pedro",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 320,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 34
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 35
+        }
+      ]
+    },
+    {
+      "day": 321,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 36
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 37
+        },
+        {
+          "book": "2 Pedro",
+          "chapter": 2
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 10
+        }
+      ]
+    },
+    {
+      "day": 322,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 38
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 39
+        },
+        {
+          "book": "2 Pedro",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 323,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 40
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 41
+        },
+        {
+          "book": "1 Juan",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 11
+        }
+      ]
+    },
+    {
+      "day": 324,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 42
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 43
+        }
+      ]
+    },
+    {
+      "day": 325,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 44
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 45
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 46
+        },
+        {
+          "book": "1 Juan",
+          "chapter": 2
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 326,
+      "readings": [
+        {
+          "book": "Ezequiel",
+          "chapter": 47
+        },
+        {
+          "book": "Ezequiel",
+          "chapter": 48
+        },
+        {
+          "book": "1 Juan",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 327,
+      "readings": [
+        {
+          "book": "Daniel",
+          "chapter": 1
+        },
+        {
+          "book": "Daniel",
+          "chapter": 2
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 13
+        }
+      ]
+    },
+    {
+      "day": 328,
+      "readings": [
+        {
+          "book": "Daniel",
+          "chapter": 3
+        },
+        {
+          "book": "Daniel",
+          "chapter": 4
+        },
+        {
+          "book": "1 Juan",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 329,
+      "readings": [
+        {
+          "book": "Daniel",
+          "chapter": 5
+        },
+        {
+          "book": "Daniel",
+          "chapter": 6
+        },
+        {
+          "book": "1 Juan",
+          "chapter": 5
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 14
+        }
+      ]
+    },
+    {
+      "day": 330,
+      "readings": [
+        {
+          "book": "Daniel",
+          "chapter": 7
+        },
+        {
+          "book": "Daniel",
+          "chapter": 8
+        },
+        {
+          "book": "2 Juan",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 331,
+      "readings": [
+        {
+          "book": "Daniel",
+          "chapter": 9
+        },
+        {
+          "book": "Daniel",
+          "chapter": 10
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 332,
+      "readings": [
+        {
+          "book": "Daniel",
+          "chapter": 11
+        },
+        {
+          "book": "Daniel",
+          "chapter": 12
+        },
+        {
+          "book": "3 Juan",
+          "chapter": 1
+        }
+      ]
+    },
+    {
+      "day": 333,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 1
+        },
+        {
+          "book": "Oseas",
+          "chapter": 2
+        },
+        {
+          "book": "Judas",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 16
+        }
+      ]
+    },
+    {
+      "day": 334,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 3
+        },
+        {
+          "book": "Oseas",
+          "chapter": 4
+        }
+      ]
+    },
+    {
+      "day": 335,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 5
+        },
+        {
+          "book": "Oseas",
+          "chapter": 6
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 17
+        }
+      ]
+    },
+    {
+      "day": 336,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 7
+        },
+        {
+          "book": "Oseas",
+          "chapter": 8
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 337,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 9
+        },
+        {
+          "book": "Oseas",
+          "chapter": 10
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 3
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 338,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 11
+        },
+        {
+          "book": "Oseas",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 339,
+      "readings": [
+        {
+          "book": "Oseas",
+          "chapter": 13
+        },
+        {
+          "book": "Oseas",
+          "chapter": 14
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 4
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 340,
+      "readings": [
+        {
+          "book": "Joel",
+          "chapter": 1
+        },
+        {
+          "book": "Joel",
+          "chapter": 2
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 5
+        }
+      ]
+    },
+    {
+      "day": 341,
+      "readings": [
+        {
+          "book": "Joel",
+          "chapter": 3
+        },
+        {
+          "book": "Amós",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 20
+        }
+      ]
+    },
+    {
+      "day": 342,
+      "readings": [
+        {
+          "book": "Amós",
+          "chapter": 2
+        },
+        {
+          "book": "Amós",
+          "chapter": 3
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 6
+        }
+      ]
+    },
+    {
+      "day": 343,
+      "readings": [
+        {
+          "book": "Amós",
+          "chapter": 4
+        },
+        {
+          "book": "Amós",
+          "chapter": 5
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 7
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 21
+        }
+      ]
+    },
+    {
+      "day": 344,
+      "readings": [
+        {
+          "book": "Amós",
+          "chapter": 6
+        },
+        {
+          "book": "Amós",
+          "chapter": 7
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 8
+        }
+      ]
+    },
+    {
+      "day": 345,
+      "readings": [
+        {
+          "book": "Amós",
+          "chapter": 8
+        },
+        {
+          "book": "Amós",
+          "chapter": 9
+        },
+        {
+          "book": "Abdías",
+          "chapter": 1
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 22
+        }
+      ]
+    },
+    {
+      "day": 346,
+      "readings": [
+        {
+          "book": "Jonás",
+          "chapter": 1
+        },
+        {
+          "book": "Jonás",
+          "chapter": 2
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 9
+        }
+      ]
+    },
+    {
+      "day": 347,
+      "readings": [
+        {
+          "book": "Jonás",
+          "chapter": 3
+        },
+        {
+          "book": "Jonás",
+          "chapter": 4
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 10
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 23
+        }
+      ]
+    },
+    {
+      "day": 348,
+      "readings": [
+        {
+          "book": "Miqueas",
+          "chapter": 1
+        },
+        {
+          "book": "Miqueas",
+          "chapter": 2
+        }
+      ]
+    },
+    {
+      "day": 349,
+      "readings": [
+        {
+          "book": "Miqueas",
+          "chapter": 3
+        },
+        {
+          "book": "Miqueas",
+          "chapter": 4
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 11
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 24
+        }
+      ]
+    },
+    {
+      "day": 350,
+      "readings": [
+        {
+          "book": "Miqueas",
+          "chapter": 5
+        },
+        {
+          "book": "Miqueas",
+          "chapter": 6
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 351,
+      "readings": [
+        {
+          "book": "Miqueas",
+          "chapter": 7
+        },
+        {
+          "book": "Nahúm",
+          "chapter": 1
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 13
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 25
+        }
+      ]
+    },
+    {
+      "day": 352,
+      "readings": [
+        {
+          "book": "Nahúm",
+          "chapter": 2
+        },
+        {
+          "book": "Nahúm",
+          "chapter": 3
+        }
+      ]
+    },
+    {
+      "day": 353,
+      "readings": [
+        {
+          "book": "Habacuc",
+          "chapter": 1
+        },
+        {
+          "book": "Habacuc",
+          "chapter": 2
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 14
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 26
+        }
+      ]
+    },
+    {
+      "day": 354,
+      "readings": [
+        {
+          "book": "Habacuc",
+          "chapter": 3
+        },
+        {
+          "book": "Sofonías",
+          "chapter": 1
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 15
+        }
+      ]
+    },
+    {
+      "day": 355,
+      "readings": [
+        {
+          "book": "Sofonías",
+          "chapter": 2
+        },
+        {
+          "book": "Sofonías",
+          "chapter": 3
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 27
+        }
+      ]
+    },
+    {
+      "day": 356,
+      "readings": [
+        {
+          "book": "Hageo",
+          "chapter": 1
+        },
+        {
+          "book": "Hageo",
+          "chapter": 2
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 16
+        }
+      ]
+    },
+    {
+      "day": 357,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 1
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 2
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 17
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 28
+        }
+      ]
+    },
+    {
+      "day": 358,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 3
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 4
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 18
+        }
+      ]
+    },
+    {
+      "day": 359,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 5
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 6
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 29
+        }
+      ]
+    },
+    {
+      "day": 360,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 7
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 8
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 19
+        }
+      ]
+    },
+    {
+      "day": 361,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 9
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 10
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 20
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 30
+        }
+      ]
+    },
+    {
+      "day": 362,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 11
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 12
+        }
+      ]
+    },
+    {
+      "day": 363,
+      "readings": [
+        {
+          "book": "Zacarías",
+          "chapter": 13
+        },
+        {
+          "book": "Zacarías",
+          "chapter": 14
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 21
+        },
+        {
+          "book": "Proverbios",
+          "chapter": 31
+        }
+      ]
+    },
+    {
+      "day": 364,
+      "readings": [
+        {
+          "book": "Malaquías",
+          "chapter": 1
+        },
+        {
+          "book": "Malaquías",
+          "chapter": 2
+        },
+        {
+          "book": "Apocalipsis",
+          "chapter": 22
+        }
+      ]
+    },
+    {
+      "day": 365,
+      "readings": [
+        {
+          "book": "Malaquías",
+          "chapter": 3
+        },
+        {
+          "book": "Malaquías",
+          "chapter": 4
+        }
+      ]
+    }
+  ]
+}

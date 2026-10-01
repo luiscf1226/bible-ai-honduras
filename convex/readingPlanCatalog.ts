@@ -1,4 +1,5 @@
 import ansiedadJson from "../docs/content/planes/ansiedad.json";
+import anualParaEmpezarJson from "../docs/content/planes/anual-para-empezar.json";
 import canonicoJson from "../docs/content/planes/canonico.json";
 import dueloJson from "../docs/content/planes/duelo.json";
 import perdonJson from "../docs/content/planes/perdon.json";
@@ -13,6 +14,8 @@ import vidaDeJoseJson from "../docs/content/planes/vida-de-jose.json";
  * solo las carga, tipa y valida su forma antes de exportarlas.
  *
  * - `canonico.json`: el plan anual (#114).
+ * - `anual-para-empezar.json`: la Biblia completa en un año para quien nunca
+ *   la leyó entera — cada día un poco de AT, NT y Salmos/Proverbios.
  * - Un JSON por recorrido corto (#115): mismo formato, menos días. Un recorrido
  *   es un plan como cualquier otro — reusa el motor y las tablas del anual.
  *
@@ -129,7 +132,19 @@ export const JOURNEY_READING_PLANS: readonly ReadingPlanDefinition[] = [
   loadPlan(semanaSantaJson),
 ];
 
-export const SUPPORTED_READING_PLANS: readonly ReadingPlanDefinition[] = [canonicalReadingPlan, ...JOURNEY_READING_PLANS];
+/**
+ * Plan anual para quien nunca leyó la Biblia completa: en vez de arrancar en
+ * Génesis y llegar a los evangelios recién en octubre, cada día trae un poco
+ * del Antiguo Testamento, del Nuevo y de Salmos o Proverbios. Cubre los 1189
+ * capítulos en 365 días, igual que el canónico. Generado por
+ * `scripts/generate-balanced-reading-plan.mjs`.
+ */
+export const beginnerReadingPlan: ReadingPlanDefinition = loadPlan(anualParaEmpezarJson);
+
+/** Los planes de un año completo (no recorridos), en orden de presentación. */
+export const ANNUAL_READING_PLANS: readonly ReadingPlanDefinition[] = [canonicalReadingPlan, beginnerReadingPlan];
+
+export const SUPPORTED_READING_PLANS: readonly ReadingPlanDefinition[] = [...ANNUAL_READING_PLANS, ...JOURNEY_READING_PLANS];
 
 export function findReadingPlan(planId: string): ReadingPlanDefinition | null {
   return SUPPORTED_READING_PLANS.find((plan) => plan.id === planId) ?? null;

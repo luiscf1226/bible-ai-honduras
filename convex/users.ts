@@ -307,6 +307,7 @@ export type PurgeCounts = {
   readingProgress: number;
   readingRecents: number;
   readingBookmarks: number;
+  readingSeparators: number;
   readingPlanProgress: number;
   users: number;
 };
@@ -337,6 +338,7 @@ function emptyPurgeCounts(): PurgeCounts {
     readingProgress: 0,
     readingRecents: 0,
     readingBookmarks: 0,
+    readingSeparators: 0,
     readingPlanProgress: 0,
     users: 0,
   };
@@ -459,6 +461,7 @@ export const purgeAccountData = internalMutation({
     deleted.readingProgress = reading.deleted.progress;
     deleted.readingRecents = reading.deleted.recents;
     deleted.readingBookmarks = reading.deleted.bookmarks;
+    deleted.readingSeparators = reading.deleted.separators;
 
     const readingPlan = await deleteReadingPlanDataForUser(ctx, user._id);
     deleted.readingPlanProgress = readingPlan.deleted;
@@ -546,6 +549,7 @@ export const deleteAccount = action({
       deleted.readingProgress += result.deleted.readingProgress;
       deleted.readingRecents += result.deleted.readingRecents;
       deleted.readingBookmarks += result.deleted.readingBookmarks;
+      deleted.readingSeparators += result.deleted.readingSeparators;
       deleted.readingPlanProgress += result.deleted.readingPlanProgress;
       deleted.users += result.deleted.users;
       dataDone = result.done;

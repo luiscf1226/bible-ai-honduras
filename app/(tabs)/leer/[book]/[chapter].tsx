@@ -21,6 +21,7 @@ import {
 } from "../../../../src/features/reading/readingSettings";
 import { copyToClipboard } from "../../../../src/lib/clipboard";
 import { goToChat } from "../../../../src/lib/goToChat";
+import { openPassage } from "../../../../src/lib/openPassage";
 import { useTheme } from "../../../../src/theme/ThemeProvider";
 import { tokens } from "../../../../src/theme/tokens";
 
@@ -42,6 +43,9 @@ export default function ReaderScreen() {
   const saveProgress = useMutation(api.reading.saveProgress);
   const recordRecent = useMutation(api.reading.recordRecent);
   const toggleBookmark = useMutation(api.reading.toggleBookmark);
+  const separator = useQuery(api.reading.separator, currentUser?._id ? {} : "skip");
+  const setSeparator = useMutation(api.reading.setSeparator);
+  const clearSeparator = useMutation(api.reading.clearSeparator);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [selected, setSelected] = useState<ReadingVerse | null>(null);
   const [saved, setSaved] = useState<boolean | null>(null);
@@ -105,6 +109,21 @@ export default function ReaderScreen() {
     if (!selected) return;
     void copyToClipboard(buildVerseCopyText(selected));
   };
+  // El separador es la cinta de una Biblia de papel: uno solo, y se queda donde
+  // la persona lo puso (no se mueve con cada capítulo como "Seguí leyendo").
+  const separatorHere = (verse: { book: string; chapter: number; verse: number }) =>
+    separator != null && separator.book === verse.book && separator.chapter === verse.chapter && separator.verse === verse.verse;
+  const separatorElsewhere =
+    separator != null && ref != null && (separator.book !== ref.book || separator.chapter !== ref.chapter);
+  const toggleSeparator = async () => {
+    if (!selected) return;
+    if (separatorHere(selected)) {
+      await clearSeparator({}).catch(() => undefined);
+    } else {
+      await setSeparator({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
+    }
+    setSelected(null);
+  };
   const saveSelected = async () => {
     if (!selected) return;
     const result = await toggleBookmark({ book: selected.book, chapter: selected.chapter, verse: selected.verse });
@@ -115,6 +134,21 @@ export default function ReaderScreen() {
     <AppScreen contentStyle={styles.screen}>
       <ScreenHeader onBack={goBackOrHome} title={`${ref.book} ${ref.chapter}`} titleSize="pick" />
       <Text style={[styles.version, { color: color.inkSoft }]}>{version}</Text>
+
+      {separatorElsewhere && separator ? (
+        <Pressable
+          accessibilityHint="Abre el capítulo donde dejaste tu separador."
+          accessibilityRole="button"
+          onPress={() => openPassage(separator)}
+          style={({ pressed }) => [styles.separatorJump, { borderColor: color.border }, pressed && styles.pressed]}
+          testID="reading-separator-jump"
+        >
+          <View style={[styles.separatorRibbon, { backgroundColor: color.accent }]} />
+          <Text style={[styles.controlLabel, { color: color.inkMuted }]}>
+            Ir a tu separador · {separator.book} {separator.chapter}:{separator.verse}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.controls}>
         <Text style={[styles.controlLabel, { color: color.inkSoft }]}>TAMAÑO: {READING_FONT_LABELS[fontStep]}</Text>
@@ -132,12 +166,28 @@ export default function ReaderScreen() {
       <ScrollView contentContainerStyle={styles.verseList} keyboardShouldPersistTaps="handled">
         {verses === undefined ? <Text style={[styles.status, { color: color.inkSoft }]}>Abriendo el capítulo…</Text> : null}
         {verses?.length === 0 ? <Text style={[styles.status, { color: color.inkSoft }]}>Todavía no tenemos este capítulo en el corpus. Volvé a intentar cuando se haya indexado.</Text> : null}
-        {verses?.map((verse) => (
-          <Pressable accessibilityRole="button" key={verse.verse} onPress={() => selectVerse(verse)} style={({ pressed }) => [styles.verseRow, pressed && styles.pressed]}>
-            <Text style={[styles.verseNumber, { color: color.accent }]}>{verse.verse}</Text>
-            <Text style={[styles.verseText, typeStyle, { color: color.ink }]}>{verse.text}</Text>
-          </Pressable>
-        ))}
+        {verses?.map((verse) => {
+          const marked = separatorHere(verse);
+          return (
+            <View key={verse.verse}>
+              {marked ? (
+                <View style={styles.separatorMark} testID="reading-separator-mark">
+                  <View style={[styles.separatorRibbon, { backgroundColor: color.accent }]} />
+                  <Text style={[styles.separatorLabel, { color: color.accent }]}>TU SEPARADOR</Text>
+                </View>
+              ) : null}
+              <Pressable
+                accessibilityHint={marked ? "Acá está tu separador." : undefined}
+                accessibilityRole="button"
+                onPress={() => selectVerse(verse)}
+                style={({ pressed }) => [styles.verseRow, pressed && styles.pressed]}
+              >
+                <Text style={[styles.verseNumber, { color: color.accent }]}>{verse.verse}</Text>
+                <Text style={[styles.verseText, typeStyle, { color: color.ink }]}>{verse.text}</Text>
+              </Pressable>
+            </View>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.navigation}>
@@ -153,6 +203,13 @@ export default function ReaderScreen() {
           <Pressable accessibilityRole="button" onPress={askAboutSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Preguntar sobre esto</Text></Pressable>
           <Pressable accessibilityRole="button" disabled={!currentUser?.referralCode} onPress={shareSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Compartir</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={() => void saveSelected()} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>{saved ? "Guardado" : "Guardar"}</Text></Pressable>
+          {currentUser?._id ? (
+            <Pressable accessibilityRole="button" onPress={() => void toggleSeparator()} style={styles.action} testID="reading-separator-toggle">
+              <Text style={[styles.actionLabel, { color: color.ink }]}>
+                {separatorHere(selected) ? "Quitar el separador" : "Poner el separador aquí"}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable accessibilityRole="button" onPress={copySelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Copiar</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.action}><Text style={[styles.actionLabel, { color: color.inkSoft }]}>Cancelar</Text></Pressable>
         </BottomPanel>
@@ -183,5 +240,24 @@ const styles = StyleSheet.create({
   panelTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size },
   panelQuote: { fontFamily: tokens.font.serif, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
   action: { paddingVertical: tokens.space.xs },
+  // Separador: misma cinta que la tarjeta de `leer/index.tsx`.
+  separatorRibbon: { borderRadius: tokens.radius.pill, height: tokens.space.lg, width: tokens.size.dot },
+  separatorMark: { alignItems: "center", flexDirection: "row", gap: tokens.space.sm, marginLeft: tokens.space.xl + tokens.space.md },
+  separatorLabel: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+  },
+  separatorJump: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.sm,
+    paddingHorizontal: tokens.space.md,
+    paddingVertical: tokens.space.xs,
+  },
   actionLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
 });

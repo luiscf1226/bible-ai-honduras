@@ -1,6 +1,6 @@
 import { DEFAULT_BIBLE_VERSION } from "../../convex/bibleVersions";
 import { useEffect, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useConvex, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -16,12 +16,20 @@ import { parseVerseRef } from "../../src/lib/parseVerseRef";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
+// Barra fija de abajo: las 4 entradas a los módulos (no hay tab bar). Antes
+// eran un grid de tarjetas debajo del devocional y la home se sentía cargada
+// (reporte de la beta); abajo quedan siempre a mano sin competir con el
+// versículo. Cada entrada dice qué hace, no solo cómo se llama el módulo.
 const modules = [
-  { description: "Busca un pasaje y leé el capítulo completo", href: "/leer", title: "Leer la Biblia" },
-  { description: "Elige un pasaje", href: "/preguntar", title: "Pregunta al texto" },
-  { description: "Habla con Moisés, Ester…", href: "/voces", title: "Voces" },
-  { description: "Mira una historia bíblica en imágenes", href: "/historias", title: "Historias ilustradas" }
+  { a11y: "Leer la Biblia: planes de lectura y tu separador", caption: "la Biblia", href: "/leer", title: "Leer", testID: "home-dock-leer" },
+  { a11y: "Pregunta al texto: elegí un pasaje y preguntá", caption: "sobre un pasaje", href: "/preguntar", title: "Preguntar", testID: "home-dock-preguntar" },
+  { a11y: "Voces: conversá con Moisés, Ester y otros personajes", caption: "Moisés, Ester…", href: "/voces", title: "Voces", testID: "home-dock-voces" },
+  { a11y: "Historias bíblicas en texto e imágenes", caption: "texto e imágenes", href: "/historias", title: "Historias", testID: "home-dock-historias" }
 ] as const;
+
+// Atajos del "¿Cómo estás hoy?": tres sentimientos frecuentes que abren Sentir
+// con el chip ya elegido. Son de la lista real (`FEELINGS`).
+const feelingShortcuts = ["Ansiedad", "Cansancio", "Gratitud"] as const;
 
 type TodayDevotional = FunctionReturnType<typeof api.devotional.today>;
 
@@ -104,7 +112,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: dark ? color.bg : color.surface }}>
+    <AppScreen contentStyle={styles.screen} style={{ backgroundColor: dark ? color.bg : color.surface }}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
       <View style={styles.header}>
         <View style={styles.identity}>
           <Brand size="small" />
@@ -213,32 +222,83 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push("/sentir")}
-        style={({ pressed }) => [
+      {/* "¿Cómo estás hoy?" tiene que leerse como algo que se puede pedir:
+          atajos de sentimiento y un campo que invita a escribir (beta). */}
+      <View
+        style={[
           styles.feelingCard,
           { backgroundColor: dark ? color.surfaceSunk : color.surfaceAlt, borderColor: color.border },
-          pressed && styles.pressed,
         ]}
+        testID="home-feeling-card"
       >
         <Text style={[styles.feelingTitle, { color: color.ink }]}>¿Cómo estás hoy?</Text>
-        <Text style={[styles.feelingDescription, { color: color.inkMuted }]}>Contame qué llevás encima y te preparo un devocional para eso.</Text>
-      </Pressable>
+        <Text style={[styles.feelingDescription, { color: color.inkMuted }]}>
+          Contame qué llevás encima y te preparo un devocional para eso: un versículo, una reflexión y una oración corta.
+        </Text>
+        <View style={styles.feelingChips}>
+          {feelingShortcuts.map((feeling) => (
+            <Pressable
+              accessibilityHint={`Prepara un devocional para ${feeling.toLowerCase()}.`}
+              accessibilityRole="button"
+              key={feeling}
+              onPress={() => router.push({ pathname: "/sentir", params: { feeling } })}
+              style={({ pressed }) => [
+                styles.feelingChip,
+                { backgroundColor: color.surface, borderColor: color.borderStrong },
+                pressed && styles.pressed,
+              ]}
+              testID={`home-feeling-${feeling}`}
+            >
+              <Text style={[styles.feelingChipLabel, { color: color.ink }]}>{feeling}</Text>
+            </Pressable>
+          ))}
+          <Pressable
+            accessibilityHint="Abre la lista completa de sentimientos."
+            accessibilityRole="button"
+            onPress={() => router.push("/sentir")}
+            style={({ pressed }) => [styles.feelingChip, { borderColor: color.borderStrong }, pressed && styles.pressed]}
+            testID="home-feeling-more"
+          >
+            <Text style={[styles.feelingChipLabel, { color: color.inkMuted }]}>Ver todos</Text>
+          </Pressable>
+        </View>
+        <Pressable
+          accessibilityHint="Abre Sentir para escribir cómo te sentís."
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: "/sentir", params: { escribir: "1" } })}
+          style={({ pressed }) => [
+            styles.feelingInput,
+            { backgroundColor: color.surface, borderColor: color.borderStrong },
+            pressed && styles.pressed,
+          ]}
+          testID="home-feeling-write"
+        >
+          <Text style={[styles.feelingInputPlaceholder, { color: color.inkFaint }]}>O escribilo con tus palabras…</Text>
+          <View style={[styles.feelingInputSend, { backgroundColor: color.ink }]}>
+            <Text style={[styles.feelingInputArrow, { color: color.surface }]}>↑</Text>
+          </View>
+        </Pressable>
+      </View>
+      </ScrollView>
 
-      {/* El grid es la única entrada a los 4 módulos (no hay tab bar): se muestra
-          también en modo noche, si no esos usuarios pierden acceso a todo. */}
-      <Text style={[styles.sectionTitle, { color: color.inkSoft }]}>Acompañamiento</Text>
-      <View style={styles.moduleGrid}>
+      {/* Las 4 entradas a los módulos, fijas abajo. Se muestran también en modo
+          noche: es la única entrada a los módulos (no hay tab bar). */}
+      <View
+        accessibilityLabel="¿Qué querés hacer?"
+        style={[styles.dock, { backgroundColor: color.surface, borderTopColor: color.border }]}
+        testID="home-dock"
+      >
         {modules.map((module) => (
           <Pressable
+            accessibilityLabel={module.a11y}
             accessibilityRole="button"
             key={module.href}
             onPress={() => router.push(module.href)}
-            style={[styles.moduleCard, { backgroundColor: color.surface, borderColor: color.border }]}
+            style={({ pressed }) => [styles.dockItem, pressed && styles.pressed]}
+            testID={module.testID}
           >
-            <Text style={[styles.moduleTitle, { color: color.ink }]}>{module.title}</Text>
-            <Text style={[styles.moduleDescription, { color: color.inkSoft }]}>{module.description}</Text>
+            <Text numberOfLines={1} style={[styles.dockTitle, { color: color.ink }]}>{module.title}</Text>
+            <Text numberOfLines={2} style={[styles.dockCaption, { color: color.inkSoft }]}>{module.caption}</Text>
           </Pressable>
         ))}
       </View>
@@ -247,7 +307,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: tokens.space.xxl },
+  // El scroll se lleva el padding horizontal; la barra de abajo sangra a los bordes.
+  screen: { paddingBottom: 0, paddingHorizontal: 0 },
+  scroll: { flex: 1 },
+  content: { gap: tokens.space.xxl, paddingBottom: tokens.space.xl, paddingHorizontal: tokens.screenPadding.horizontal },
   header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: tokens.space.sm },
   identity: { alignItems: "center", flexDirection: "row", flex: 1, gap: tokens.space.md },
   settingsButton: { alignItems: "center", borderRadius: tokens.radius.pill, borderWidth: 1, height: tokens.size.logoSmall, justifyContent: "center", width: tokens.size.logoSmall },
@@ -271,9 +334,33 @@ const styles = StyleSheet.create({
   feelingCard: { borderRadius: tokens.radius.xl, borderWidth: 1, paddingHorizontal: tokens.space.xl, paddingVertical: tokens.space.xxl },
   feelingTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   feelingDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
-  sectionTitle: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
-  moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.md },
-  moduleCard: { borderRadius: tokens.radius.xl, borderWidth: 1, flexGrow: 1, flexShrink: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.xl, width: "45%" },
-  moduleTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
-  moduleDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs }
+  feelingChips: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm, marginTop: tokens.space.lg },
+  feelingChip: { borderRadius: tokens.radius.pill, borderWidth: 1, paddingHorizontal: tokens.space.md, paddingVertical: tokens.space.sm },
+  feelingChipLabel: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
+  // Mismo campo redondo con botón de enviar del composer de Voces en el prototipo.
+  feelingInput: {
+    alignItems: "center",
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.md,
+    marginTop: tokens.space.md,
+    paddingLeft: tokens.space.lg,
+    paddingRight: tokens.space.sm,
+    paddingVertical: tokens.space.sm,
+  },
+  feelingInputPlaceholder: { flex: 1, fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
+  feelingInputSend: { alignItems: "center", borderRadius: tokens.radius.pill, height: tokens.size.sendButton, justifyContent: "center", width: tokens.size.sendButton },
+  feelingInputArrow: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
+  // Barra fija: mismo tratamiento que `BottomPanel` (borde de 1px arriba + surface).
+  dock: {
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.xs,
+    paddingHorizontal: tokens.space.md,
+    paddingVertical: tokens.space.md,
+  },
+  dockItem: { alignItems: "center", flex: 1, paddingVertical: tokens.space.xs },
+  dockTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
+  dockCaption: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, textAlign: "center" }
 });

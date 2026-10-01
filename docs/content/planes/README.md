@@ -6,6 +6,14 @@
 repartidos en 365 días lo más parejo posible (271 días de 3 capítulos, 94 días de 4).
 Cronológico, M'Cheyne y "NT + Salmos" quedaron fuera de esta primera versión.
 
+`anual-para-empezar.json` es el segundo plan anual, para quien nunca leyó la Biblia
+completa: cada día trae un poco de tres partes que avanzan a la par — Antiguo Testamento
+(sin Salmos ni Proverbios), Nuevo Testamento, y Salmos seguido de Proverbios — así el día 1
+ya arranca con Génesis 1, Mateo 1 y Salmos 1. Cubre los 1189 capítulos en 365 días (2 a 5
+por día). Lo genera `scripts/generate-balanced-reading-plan.mjs`, con la misma aritmética
+determinística (reparto proporcional) y sin texto de IA. El test cruza que cubre cada
+capítulo exactamente una vez y que cada libro avanza en orden.
+
 No es contenido generado por IA (regla dura #4): se generó con
 `scripts/generate-reading-plan.mjs`, una aritmética determinística sobre la cantidad de
 capítulos por libro (dato factual de dominio público, no texto con licencia). El

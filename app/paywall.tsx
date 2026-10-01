@@ -2,12 +2,13 @@ import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
 import { goBackOrHome } from "../src/components/ScreenHeader";
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
 import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
 import { purchasesConfigured, purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
 import { tokens } from "../src/theme/tokens";
@@ -164,6 +165,17 @@ export default function PaywallScreen() {
               Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.
             </Text>
           ) : null}
+
+          {/* App Store 3.1.2: términos y privacidad enlazados desde el paywall. */}
+          <View style={styles.legalLinks}>
+            <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(TERMS_OF_USE_URL)} testID="paywall-terminos">
+              <Text style={[styles.legal, styles.legalLink]}>Términos de uso</Text>
+            </Pressable>
+            <Text style={styles.legal}>·</Text>
+            <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} testID="paywall-privacidad">
+              <Text style={[styles.legal, styles.legalLink]}>Privacidad</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -282,6 +294,8 @@ const styles = StyleSheet.create({
     marginTop: tokens.space.sm,
     textAlign: "center",
   },
+  legalLinks: { flexDirection: "row", gap: tokens.space.xs, justifyContent: "center" },
+  legalLink: { color: tokens.paywall.color.skip, textDecorationLine: "underline" },
   legal: {
     color: tokens.paywall.color.legal,
     fontFamily: tokens.font.sansLight,

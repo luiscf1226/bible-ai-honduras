@@ -9,7 +9,8 @@ import { AppScreen } from "../../../src/components/AppScreen";
 import { ChapterGrid } from "../../../src/components/ChapterGrid";
 import { PassageSearch } from "../../../src/components/PassageSearch";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
-import { openPassage } from "../../../src/lib/openPassage";
+import { BEGINNER_PLAN_ID } from "../../../src/features/reading/annualPlans";
+import { openPassage, openReadingPlan } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -24,6 +25,7 @@ export default function LeerScreen() {
   const progress = useQuery(api.reading.progress, {});
   const recents = useQuery(api.reading.recents, {});
   const bookmarks = useQuery(api.reading.bookmarks, {});
+  const separator = useQuery(api.reading.separator, {});
   const version = currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
 
   const back = () => {
@@ -50,6 +52,48 @@ export default function LeerScreen() {
         <ChapterGrid book={book} onSelect={(chapter) => openPassage({ book, chapter })} />
       ) : (
         <>
+          {/* El separador va primero: es lo que la persona dejó a propósito, como
+              la cinta de una Biblia de papel. Reusa la tarjeta de "Seguí leyendo". */}
+          {separator ? (
+            <Pressable
+              accessibilityHint="Abre la Biblia donde dejaste tu separador."
+              accessibilityRole="button"
+              onPress={() => openPassage(separator)}
+              style={({ pressed }) => [
+                styles.resumeCard,
+                { backgroundColor: color.surfaceAlt, borderColor: color.border },
+                pressed && styles.pressed,
+              ]}
+              testID="leer-separator"
+            >
+              <View style={styles.separatorHeader}>
+                <View style={[styles.separatorRibbon, { backgroundColor: color.accent }]} />
+                <Text style={[styles.resumeOverline, { color: color.accent }]}>TU SEPARADOR</Text>
+              </View>
+              <Text style={[styles.resumeLabel, { color: color.ink }]}>
+                {separator.book} {separator.chapter}:{separator.verse}
+              </Text>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            accessibilityHint="Abre el plan de un año pensado para quien nunca leyó la Biblia completa."
+            accessibilityRole="button"
+            onPress={() => openReadingPlan(BEGINNER_PLAN_ID)}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-beginner-plan-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>PARA EMPEZAR · 365 DÍAS</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Toda la Biblia en un año, un poco de cada parte</Text>
+            <Text style={[styles.planDescription, { color: color.inkMuted }]}>
+              Cada día: Antiguo Testamento, Nuevo Testamento y Salmos o Proverbios.
+            </Text>
+          </Pressable>
+
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/leer/plan")}
@@ -181,6 +225,16 @@ const styles = StyleSheet.create({
     letterSpacing: tokens.type.overline.letterSpacing,
     lineHeight: tokens.type.overline.lineHeight,
   },
+  planDescription: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.caption.size,
+    lineHeight: tokens.type.caption.lineHeight,
+    marginTop: tokens.space.xs,
+  },
+  // Cinta del separador: mismo punto que marca "Los de antes" en Sentir, en
+  // vertical. Ancho y alto salen de tokens de tamaño existentes.
+  separatorHeader: { alignItems: "center", flexDirection: "row", gap: tokens.space.sm },
+  separatorRibbon: { borderRadius: tokens.radius.pill, height: tokens.space.lg, width: tokens.size.dot },
   planLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight, marginTop: tokens.space.xs },
   savedSection: { gap: tokens.space.sm },
   savedTitle: {
