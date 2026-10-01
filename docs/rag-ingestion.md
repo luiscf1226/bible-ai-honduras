@@ -39,6 +39,8 @@ Después de la carga completa:
 
 Para otra versión: `npm run rag:evaluate -- --version RVR1960 --prod`.
 
+Antes de medir recall, el script corre `rag/corpusCheck:checkAvailableVersions` y confirma que cada versión de `AVAILABLE_BIBLE_VERSIONS` (`convex/bibleVersions.ts`) tenga los 31.102 versículos en el deployment. Si a alguna le falta texto, termina con código 1 y dice qué versión y cuántos versículos faltan (#174). El mismo chequeo corre a diario en el cron `chequear-corpus-versiones` y deja un log de error en el dashboard de Convex.
+
 El set de `docs/rag-evaluation-questions.json` no copia el fixture y calcula recall@3 sobre cinco capítulos esperados. Guardar el resultado en el issue #93. OpenAI no ofrece el `input_type: document/query` que usaba Voyage; este benchmark es el criterio mínimo para detectar una degradación por esa pérdida. Antes de ampliar la beta se recomienda conservar un baseline de Voyage y comparar los mismos casos, umbral y corpus.
 
 ## Habilitar una versión nueva (#151)

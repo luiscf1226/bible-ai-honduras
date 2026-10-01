@@ -22,6 +22,29 @@ const cases = JSON.parse(readFileSync(file, "utf8"));
 const binary = resolve("node_modules/.bin/convex");
 let hits = 0;
 
+// #174: antes de medir recall, cada versión de AVAILABLE_BIBLE_VERSIONS tiene
+// que tener el canon completo. Una versión habilitada sin texto da cero citas
+// en silencio (#93 §4b); acá falla fuerte y dice cuál y cuánto falta.
+const EXPECTED_CANON_VERSES = 31_102;
+const checkArgs = ["run", "rag/corpusCheck:checkAvailableVersions", "{}"];
+if (prod) checkArgs.push("--prod");
+const check = spawnSync(binary, checkArgs, { encoding: "utf8" });
+if (check.status !== 0) throw new Error(check.stderr || "fallo chequeando el corpus de las versiones habilitadas");
+const statuses = JSON.parse(check.stdout.slice(check.stdout.indexOf("[")));
+const incomplete = statuses.filter((status) => status.count !== EXPECTED_CANON_VERSES);
+for (const status of statuses) {
+  const ok = status.count === EXPECTED_CANON_VERSES;
+  console.log(`${ok ? "PASS" : "FAIL"} corpus ${status.version}: ${status.count}/${EXPECTED_CANON_VERSES} versículos`);
+}
+if (incomplete.length > 0) {
+  for (const status of incomplete) {
+    console.error(status.missing > 0
+      ? `Error: ${status.version} está habilitada pero le faltan ${status.missing} versículos. Ingerir con npm run rag:ingest o sacarla de AVAILABLE_BIBLE_VERSIONS.`
+      : `Error: ${status.version} tiene ${status.count - EXPECTED_CANON_VERSES} versículos de más. Revisar la ingesta.`);
+  }
+  process.exit(1);
+}
+
 for (const testCase of cases) {
   const args = ["run", "rag/retrieve:topVerses", JSON.stringify({ query: testCase.question, version, limit: 3 })];
   if (prod) args.push("--prod");

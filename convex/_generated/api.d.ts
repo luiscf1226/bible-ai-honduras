@@ -22,6 +22,7 @@ import type * as qa from "../qa.js";
 import type * as quotas from "../quotas.js";
 import type * as rag_answer from "../rag/answer.js";
 import type * as rag_commentary from "../rag/commentary.js";
+import type * as rag_corpusCheck from "../rag/corpusCheck.js";
 import type * as rag_embed from "../rag/embed.js";
 import type * as rag_ingest from "../rag/ingest.js";
 import type * as rag_llm from "../rag/llm.js";
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   quotas: typeof quotas;
   "rag/answer": typeof rag_answer;
   "rag/commentary": typeof rag_commentary;
+  "rag/corpusCheck": typeof rag_corpusCheck;
   "rag/embed": typeof rag_embed;
   "rag/ingest": typeof rag_ingest;
   "rag/llm": typeof rag_llm;
