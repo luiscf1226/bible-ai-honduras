@@ -7,6 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
+import { track } from "../../src/lib/telemetry";
 import { tokens } from "../../src/theme/tokens";
 
 const steps = [
@@ -28,6 +29,7 @@ export default function OnboardingScreen() {
   // en el onboarding es peor que arriesgarse a mostrárselo otra vez. El
   // siguiente arranque con red lo vuelve a intentar.
   const leave = useCallback(async () => {
+    track("onboarding_completed");
     try {
       await completeOnboarding({});
     } catch (error) {

@@ -94,6 +94,24 @@ export const recents = query({
   },
 });
 
+/**
+ * Texto de un versículo en la versión dada, o null si no está en el corpus:
+ * nunca se inventa texto. Lo usan Guardados y Subrayados.
+ */
+async function verseText(
+  ctx: QueryCtx,
+  version: string,
+  ref: { book: string; chapter: number; verse: number },
+): Promise<string | null> {
+  const verse = await ctx.db
+    .query("verses")
+    .withIndex("by_ref", (q) =>
+      q.eq("version", version).eq("book", ref.book).eq("chapter", ref.chapter).eq("verse", ref.verse),
+    )
+    .unique();
+  return verse?.text ?? null;
+}
+
 /** Tope de la nota personal de un guardado (#167). */
 export const BOOKMARK_NOTE_MAX_LENGTH = 500;
 
@@ -124,23 +142,15 @@ export const bookmarks = query({
     const limit = args.limit !== undefined && Number.isInteger(args.limit) && args.limit > 0 ? args.limit : sorted.length;
     const version = resolveBibleVersion(user.bibleVersion);
     const items = await Promise.all(
-      sorted.slice(0, limit).map(async (row) => {
-        const verse = await ctx.db
-          .query("verses")
-          .withIndex("by_ref", (q) =>
-            q.eq("version", version).eq("book", row.book).eq("chapter", row.chapter).eq("verse", row.verse),
-          )
-          .unique();
-        return {
-          book: row.book,
-          chapter: row.chapter,
-          verse: row.verse,
-          createdAt: row.createdAt,
-          version,
-          text: verse?.text ?? null,
-          note: row.note ?? null,
-        };
-      }),
+      sorted.slice(0, limit).map(async (row) => ({
+        book: row.book,
+        chapter: row.chapter,
+        verse: row.verse,
+        createdAt: row.createdAt,
+        version,
+        text: await verseText(ctx, version, row),
+        note: row.note ?? null,
+      })),
     );
     return { total: sorted.length, items };
   },
@@ -419,6 +429,43 @@ export const highlights = query({
     return rows
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .map((row) => ({ book: row.book, chapter: row.chapter, verse: row.verse, color: row.color, updatedAt: row.updatedAt }));
+  },
+});
+
+/**
+ * Subrayados con el texto del versículo, para la pantalla Subrayados y la
+ * vista previa de Leer. Misma forma que `bookmarks`: `limit` acota cuántos
+ * vienen con texto y `total` es el conteo completo.
+ *
+ * Es una query aparte (y no un cambio a `highlights`) para no romper los
+ * builds instalados, que esperan el arreglo de `highlights` tal cual.
+ */
+export const highlightsWithText = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      return { total: 0, items: [] };
+    }
+    const rows = await ctx.db
+      .query("readingHighlights")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const sorted = rows.sort((a, b) => b.updatedAt - a.updatedAt);
+    const limit = args.limit !== undefined && Number.isInteger(args.limit) && args.limit > 0 ? args.limit : sorted.length;
+    const version = resolveBibleVersion(user.bibleVersion);
+    const items = await Promise.all(
+      sorted.slice(0, limit).map(async (row) => ({
+        book: row.book,
+        chapter: row.chapter,
+        verse: row.verse,
+        color: row.color,
+        updatedAt: row.updatedAt,
+        version,
+        text: await verseText(ctx, version, row),
+      })),
+    );
+    return { total: sorted.length, items };
   },
 });
 

@@ -13,7 +13,7 @@ export type MySpaceSectionId = "separator" | "bookmarks" | "highlights" | "feeli
 
 export type MySpaceDestination =
   | { kind: "passage"; passage: VerseRef }
-  | { kind: "route"; href: "/leer" | "/historial" | "/preguntar" }
+  | { kind: "route"; href: "/leer" | "/leer/guardados" | "/leer/subrayados" | "/historial" | "/preguntar" }
   | { kind: "sentir"; openHistory: boolean };
 
 export type MySpaceSection = {
@@ -62,7 +62,7 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
         ? formatRef(data.bookmarks[0])
         : "Versículos para tener a mano. En el lector, tocá uno y elegí «Guardar».",
       action: data.bookmarks.length > 0 ? VIEW_ALL : START,
-      destination: { kind: "route", href: "/leer" },
+      destination: { kind: "route", href: data.bookmarks.length > 0 ? "/leer/guardados" : "/leer" },
     },
     {
       id: "highlights",
@@ -72,7 +72,7 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
         ? formatRef(data.highlights[0])
         : "Como el resaltador de una Biblia de papel. En el lector, tocá un versículo y elegí un color.",
       action: data.highlights.length > 0 ? VIEW_ALL : START,
-      destination: { kind: "route", href: "/leer" },
+      destination: { kind: "route", href: data.highlights.length > 0 ? "/leer/subrayados" : "/leer" },
     },
     {
       id: "feelings",

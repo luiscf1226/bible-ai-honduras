@@ -34,6 +34,7 @@ import type * as readingPlanCatalog from "../readingPlanCatalog.js";
 import type * as readingPlans from "../readingPlans.js";
 import type * as savedMemory from "../savedMemory.js";
 import type * as stories from "../stories.js";
+import type * as telemetry from "../telemetry.js";
 import type * as users from "../users.js";
 import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   readingPlans: typeof readingPlans;
   savedMemory: typeof savedMemory;
   stories: typeof stories;
+  telemetry: typeof telemetry;
   users: typeof users;
   voices: typeof voices;
   voicesCatalog: typeof voicesCatalog;

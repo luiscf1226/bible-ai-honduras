@@ -276,3 +276,46 @@ describe("reading — notas personales (#167)", () => {
     );
   });
 });
+
+describe("reading — subrayados con texto", () => {
+  it("trae el texto en la versión de la persona y null si no está en el corpus", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "highlight_text");
+    await ana.mutation(api.users.upsert, {});
+    await seedVerse(t, { version: "RV1909", book: "Juan", chapter: 3, verse: 16, text: "Porque de tal manera amó Dios al mundo" });
+
+    await ana.mutation(api.reading.setHighlight, { book: "Juan", chapter: 3, verse: 16, color: "sage" });
+    await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 150, verse: 6, color: "amber" });
+
+    const result = await ana.query(api.reading.highlightsWithText, {});
+    expect(result.total).toBe(2);
+    const juan = result.items.find((item) => item.book === "Juan");
+    expect(juan).toMatchObject({ color: "sage", version: "RV1909", text: "Porque de tal manera amó Dios al mundo" });
+    expect(result.items.find((item) => item.book === "Salmos")?.text).toBeNull();
+  });
+
+  it("limit acota los items pero no el total; sin sesión no hay nada", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "highlight_text_limit");
+    await ana.mutation(api.users.upsert, {});
+    for (let verse = 1; verse <= 6; verse += 1) {
+      await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 119, verse, color: "clay" });
+    }
+
+    const result = await ana.query(api.reading.highlightsWithText, { limit: 3 });
+    expect(result.total).toBe(6);
+    expect(result.items).toHaveLength(3);
+    await expect(t.query(api.reading.highlightsWithText, {})).resolves.toEqual({ total: 0, items: [] });
+  });
+
+  it("cada persona ve solo sus subrayados", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "highlight_text_ana");
+    const beto = asUser(t, "highlight_text_beto");
+    await ana.mutation(api.users.upsert, {});
+    await beto.mutation(api.users.upsert, {});
+    await ana.mutation(api.reading.setHighlight, { book: "Juan", chapter: 3, verse: 16, color: "amber" });
+
+    await expect(beto.query(api.reading.highlightsWithText, {})).resolves.toEqual({ total: 0, items: [] });
+  });
+});

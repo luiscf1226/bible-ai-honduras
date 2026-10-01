@@ -34,4 +34,11 @@ crons.daily(
   internal.rag.corpusCheck.checkAvailableVersions,
 );
 
+// Diagnóstico: los eventos y errores viven 90 días (convex/telemetry.ts).
+crons.daily(
+  "purgar-diagnostico",
+  { hourUTC: 6, minuteUTC: 20 },
+  internal.telemetry.purgeOld,
+);
+
 export default crons;

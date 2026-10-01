@@ -29,9 +29,10 @@ export default function LeerScreen() {
   const recents = useQuery(api.reading.recents, {});
   const bookmarks = useQuery(api.reading.bookmarks, { limit: SAVED_PREVIEW_COUNT });
   const separator = useQuery(api.reading.separator, {});
-  const highlights = useQuery(api.reading.highlights, {});
+  const highlights = useQuery(api.reading.highlightsWithText, { limit: SAVED_PREVIEW_COUNT });
   const version = currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
   const seeAll = bookmarks ? seeAllLabel(bookmarks.total) : null;
+  const seeAllHighlights = highlights ? seeAllLabel(highlights.total) : null;
 
   const back = () => {
     if (book) {
@@ -188,10 +189,24 @@ export default function LeerScreen() {
             </View>
           ) : null}
 
-          {highlights && highlights.length > 0 ? (
+          {/* Igual que Guardados: los 3 últimos y "Ver todos (N)" a la pantalla
+              Subrayados, que filtra por color. */}
+          {highlights && highlights.total > 0 ? (
             <View style={styles.savedSection} testID="leer-highlights">
-              <Text style={[styles.savedTitle, { color: color.inkSoft }]}>SUBRAYADOS</Text>
-              {highlights.map((highlight) => (
+              <View style={styles.savedHeader}>
+                <Text style={[styles.savedTitle, { color: color.inkSoft }]}>SUBRAYADOS</Text>
+                {seeAllHighlights ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={tokens.space.sm}
+                    onPress={() => router.push("/leer/subrayados")}
+                    testID="leer-highlights-see-all"
+                  >
+                    <Text style={[styles.seeAll, { color: color.accent }]}>{seeAllHighlights}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {highlights.items.map((highlight) => (
                 <Pressable
                   accessibilityRole="button"
                   key={`${highlight.book}-${highlight.chapter}-${highlight.verse}`}
