@@ -94,6 +94,8 @@ async function seedEverything(
       chapter: 3,
       verse: 16,
       createdAt: Date.now(),
+      // Nota personal (#167): tiene que irse con la cuenta.
+      note: `nota privada de ${label}`,
     });
     await ctx.db.insert("readingSeparators", {
       userId,
@@ -212,6 +214,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingProgress).toHaveLength(1);
     expect(before.readingRecents).toHaveLength(1);
     expect(before.readingBookmarks).toHaveLength(1);
+    expect(before.readingBookmarks[0]?.note).toMatch(/^nota privada de /);
     expect(before.readingSeparators).toHaveLength(1);
     expect(before.readingHighlights).toHaveLength(1);
     expect(before.userPlanProgress).toHaveLength(2);
@@ -288,6 +291,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents[0]?.userId).toBe(betoId);
     expect(after.readingBookmarks).toHaveLength(1);
     expect(after.readingBookmarks[0]?.userId).toBe(betoId);
+    expect(after.readingBookmarks[0]?.note).toContain("Beto");
     expect(after.userPlanProgress).toHaveLength(2);
     expect(after.userPlanProgress.every((row) => row.userId === betoId)).toBe(true);
 

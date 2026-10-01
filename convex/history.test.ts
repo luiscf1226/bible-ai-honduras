@@ -9,6 +9,8 @@ import schema from "./schema";
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./history.ts": () => import("./history"),
+  "./reading.ts": () => import("./reading"),
+  "./bibleVersions.ts": () => import("./bibleVersions"),
   "./users.ts": () => import("./users"),
   "./voicesCatalog.ts": () => import("./voicesCatalog"),
 };
@@ -123,7 +125,7 @@ describe("history.deleteAll", () => {
     });
 
     const result = await authed.mutation(api.history.deleteAll, {});
-    expect(result).toEqual({ deletedConversations: 3, deletedMessages: 4 });
+    expect(result).toEqual({ deletedConversations: 3, deletedMessages: 4, clearedNotes: 0 });
 
     expect(await authed.query(api.history.list, {})).toEqual([]);
     const leftover = await t.run(async (ctx) => ({
@@ -133,6 +135,27 @@ describe("history.deleteAll", () => {
     expect(leftover.conversations).toHaveLength(0);
     expect(leftover.messages).toHaveLength(0);
     expect(leftover.conversations.some((row) => "deleted" in row)).toBe(false);
+  });
+
+  it("borra las notas de los guardados pero deja los versículos guardados (#167)", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_notes_wipe");
+    const beto = asUser(t, "user_notes_other");
+    await ana.mutation(api.users.upsert, {});
+    await beto.mutation(api.users.upsert, {});
+
+    await ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "Lo predicó el pastor" });
+    await ana.mutation(api.reading.toggleBookmark, { book: "Salmos", chapter: 23, verse: 1 });
+    await beto.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "De Beto" });
+
+    const result = await ana.mutation(api.history.deleteAll, {});
+    expect(result.clearedNotes).toBe(1);
+
+    const anaSaved = await ana.query(api.reading.bookmarks, {});
+    expect(anaSaved.total).toBe(2);
+    expect(anaSaved.items.every((item) => item.note === null)).toBe(true);
+    const betoSaved = await beto.query(api.reading.bookmarks, {});
+    expect(betoSaved.items[0]?.note).toBe("De Beto");
   });
 
   it("no borra el historial de otro usuario", async () => {

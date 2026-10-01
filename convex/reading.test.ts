@@ -38,9 +38,12 @@ describe("reading — progreso, recientes y guardados", () => {
     await expect(ana.query(api.reading.recents, {})).resolves.toHaveLength(1);
 
     await expect(ana.mutation(api.reading.toggleBookmark, { book: "Juan", chapter: 3, verse: 16 })).resolves.toEqual({ saved: true });
-    await expect(ana.query(api.reading.bookmarks, {})).resolves.toMatchObject([{ book: "Juan", chapter: 3, verse: 16 }]);
+    await expect(ana.query(api.reading.bookmarks, {})).resolves.toMatchObject({
+      total: 1,
+      items: [{ book: "Juan", chapter: 3, verse: 16 }],
+    });
     await expect(ana.mutation(api.reading.toggleBookmark, { book: "Juan", chapter: 3, verse: 16 })).resolves.toEqual({ saved: false });
-    await expect(ana.query(api.reading.bookmarks, {})).resolves.toEqual([]);
+    await expect(ana.query(api.reading.bookmarks, {})).resolves.toEqual({ total: 0, items: [] });
   });
 
   it("el separador es uno solo: moverlo lo saca del versículo anterior", async () => {
@@ -157,5 +160,119 @@ describe("reading — subrayados (#168)", () => {
       await ana.mutation(api.reading.setHighlight, { book: "Salmos", chapter: 119, verse, color: "sand" });
     }
     expect(await t.run((ctx) => ctx.db.query("usage").collect())).toEqual([]);
+  });
+});
+
+async function seedVerse(t: ReturnType<typeof convexTest>, ref: { version: string; book: string; chapter: number; verse: number; text: string }) {
+  await t.run((ctx) => ctx.db.insert("verses", { ...ref, embedding: [] }));
+}
+
+describe("reading — guardados con texto (#166)", () => {
+  it("devuelve el texto en la versión de la persona, del más reciente al más viejo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "saved_text");
+    await ana.mutation(api.users.upsert, {});
+    await seedVerse(t, { version: "RV1909", book: "Juan", chapter: 3, verse: 16, text: "Porque de tal manera amó Dios al mundo" });
+
+    await ana.mutation(api.reading.toggleBookmark, { book: "Juan", chapter: 3, verse: 16 });
+    await ana.mutation(api.reading.toggleBookmark, { book: "Salmos", chapter: 23, verse: 1 });
+
+    const saved = await ana.query(api.reading.bookmarks, {});
+    expect(saved.total).toBe(2);
+    expect(saved.items.map((item) => item.book)).toEqual(["Salmos", "Juan"]);
+    expect(saved.items[1]).toMatchObject({ version: "RV1909", text: "Porque de tal manera amó Dios al mundo", note: null });
+    // Sin texto en el corpus: null, nunca un texto inventado.
+    expect(saved.items[0]?.text).toBeNull();
+  });
+
+  it("con 20 guardados y limit 3 devuelve 3 con texto y el total completo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "saved_limit");
+    await ana.mutation(api.users.upsert, {});
+    for (let verse = 1; verse <= 20; verse += 1) {
+      await ana.mutation(api.reading.toggleBookmark, { book: "Salmos", chapter: 119, verse });
+    }
+
+    const saved = await ana.query(api.reading.bookmarks, { limit: 3 });
+    expect(saved.total).toBe(20);
+    expect(saved.items).toHaveLength(3);
+  });
+
+  it("quitar desde la lista lo quita también en el lector y no lo vuelve a crear", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "saved_remove");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "Me lo dijo mi mamá" });
+
+    await expect(ana.mutation(api.reading.removeBookmark, { book: "Juan", chapter: 3, verse: 16 })).resolves.toEqual({ removed: true });
+    await expect(ana.mutation(api.reading.removeBookmark, { book: "Juan", chapter: 3, verse: 16 })).resolves.toEqual({ removed: false });
+
+    await expect(ana.query(api.reading.chapterBookmarks, { book: "Juan", chapter: 3 })).resolves.toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("readingBookmarks").collect())).toHaveLength(0);
+  });
+
+  it("no expone ni quita guardados de otra persona", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "saved_ana");
+    const beto = asUser(t, "saved_beto");
+    await ana.mutation(api.users.upsert, {});
+    await beto.mutation(api.users.upsert, {});
+    await beto.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "De Beto" });
+
+    await expect(ana.query(api.reading.bookmarks, {})).resolves.toEqual({ total: 0, items: [] });
+    await expect(ana.mutation(api.reading.removeBookmark, { book: "Juan", chapter: 3, verse: 16 })).resolves.toEqual({ removed: false });
+    await expect(beto.query(api.reading.bookmarks, {})).resolves.toMatchObject({ total: 1, items: [{ note: "De Beto" }] });
+  });
+});
+
+describe("reading — notas personales (#167)", () => {
+  it("crear una nota guarda el versículo; editarla la reemplaza; vaciarla la borra sin quitar el guardado", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "note_flow");
+    await ana.mutation(api.users.upsert, {});
+
+    await expect(
+      ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "  Lo predicó el pastor el domingo  " }),
+    ).resolves.toEqual({ saved: true, note: "Lo predicó el pastor el domingo" });
+    await expect(ana.query(api.reading.chapterBookmarks, { book: "Juan", chapter: 3 })).resolves.toEqual([
+      { verse: 16, note: "Lo predicó el pastor el domingo" },
+    ]);
+
+    await ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "Me lo dijo mi mamá" });
+    await expect(ana.query(api.reading.bookmarks, {})).resolves.toMatchObject({ total: 1, items: [{ note: "Me lo dijo mi mamá" }] });
+
+    await expect(ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "   " })).resolves.toEqual({
+      saved: true,
+      note: null,
+    });
+    await expect(ana.query(api.reading.bookmarks, {})).resolves.toMatchObject({ total: 1, items: [{ note: null }] });
+  });
+
+  it("una nota vacía sobre un versículo no guardado no crea nada", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "note_empty");
+    await ana.mutation(api.users.upsert, {});
+
+    await expect(ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "" })).resolves.toEqual({
+      saved: false,
+      note: null,
+    });
+    expect(await t.run((ctx) => ctx.db.query("readingBookmarks").collect())).toHaveLength(0);
+  });
+
+  it("rechaza notas de más de 500 caracteres y pide sesión", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "note_long");
+    await ana.mutation(api.users.upsert, {});
+
+    await expect(
+      ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "a".repeat(501) }),
+    ).rejects.toThrow("hasta 500");
+    await expect(
+      ana.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "a".repeat(500) }),
+    ).resolves.toMatchObject({ saved: true });
+    await expect(t.mutation(api.reading.setBookmarkNote, { book: "Juan", chapter: 3, verse: 16, note: "x" })).rejects.toThrow(
+      "No autenticado",
+    );
   });
 });
