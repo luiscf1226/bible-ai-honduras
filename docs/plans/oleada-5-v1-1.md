@@ -99,7 +99,20 @@ versículos en el deployment. Así se evita repetir el error que motivó #93 §4
 seleccionable que devuelve cero citas sin avisar.
 **Código:** query de conteo por versión y un chequeo en `npm run rag:evaluate`.
 
-### Orden sugerido
+### Foco elegido: lo personal (UI/UX) — tickets creados
+
+| Issue | Qué | Depende de |
+|---|---|---|
+| #166 | Guardados: mostrar el texto del versículo y poder quitarlo desde la lista. Hoy GUARDADOS en Leer solo muestra "Juan 3:16" y crece sin límite. | — |
+| #167 | Notas personales en los versículos guardados (N3) | #166 |
+| #168 | Lector: subrayar versículos con colores de `design/tokens.json` | — |
+| #169 | **Mi espacio**: una sola pantalla con todo lo personal (separador, guardados y notas, subrayados, peticiones #159, memorizar #158, Sentir, conversaciones) | #166, #167, #168 |
+| #170 | Widget del versículo del día (N6) | — |
+
+Todos pasan antes por Claude Design (regla dura #1). Orden: **#166 → #167 → #168 → #169**, y
+#170 en paralelo. N1, N2, N4, N5 y N7 quedan como propuestas sin ticket por ahora.
+
+### Orden sugerido (todas las ideas)
 **N7 → N3 → N4 → N6 → N1 → N5**, con N2 en paralelo, porque es solo una decisión.
 - N7 y N3 son chicas y no necesitan diseño nuevo (N3 sí necesita el campo en el
   prototipo).
