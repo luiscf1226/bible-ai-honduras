@@ -6,21 +6,25 @@ import { resolve } from "node:path";
 
 const EXPECTED_CANON_VERSES = 31_102;
 const DEFAULT_VERSION = "RV1909";
+// Literales que acepta `users.bibleVersion` (convex/bibleVersions.ts). Cargar
+// una versión no la habilita en la app: eso lo hace AVAILABLE_BIBLE_VERSIONS.
+const KNOWN_VERSIONS = ["RV1909", "RVR1960", "NVI"];
 const DEFAULT_BATCH_SIZE = 64;
 const OPENAI_USD_PER_MILLION_TOKENS = 0.02;
 
 function usage(message) {
   if (message) console.error(`Error: ${message}\n`);
-  console.error("Uso: npm run rag:ingest -- --kind verses|commentaries --file /ruta/corpus.json [--batch-size 64] [--start-batch 0] [--prod] [--dry-run] [--allow-partial]");
+  console.error("Uso: npm run rag:ingest -- --kind verses|commentaries --file /ruta/corpus.json [--version RV1909] [--batch-size 64] [--start-batch 0] [--prod] [--dry-run] [--allow-partial]");
   process.exit(message ? 1 : 0);
 }
 
 function parseArgs(argv) {
-  const result = { batchSize: DEFAULT_BATCH_SIZE, startBatch: 0, prod: false, dryRun: false, allowPartial: false };
+  const result = { version: DEFAULT_VERSION, batchSize: DEFAULT_BATCH_SIZE, startBatch: 0, prod: false, dryRun: false, allowPartial: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--kind") result.kind = argv[++index];
     else if (arg === "--file") result.file = argv[++index];
+    else if (arg === "--version") result.version = argv[++index];
     else if (arg === "--batch-size") result.batchSize = Number(argv[++index]);
     else if (arg === "--start-batch") result.startBatch = Number(argv[++index]);
     else if (arg === "--prod") result.prod = true;
@@ -30,6 +34,8 @@ function parseArgs(argv) {
     else usage(`argumento desconocido: ${arg}`);
   }
   if (!result.file || !["verses", "commentaries"].includes(result.kind)) usage("faltan --kind y/o --file");
+  if (!KNOWN_VERSIONS.includes(result.version)) usage(`--version debe ser ${KNOWN_VERSIONS.join(", ")}`);
+  if (result.kind === "commentaries" && result.version !== DEFAULT_VERSION) usage("--version solo aplica a --kind verses; los comentarios no tienen versión");
   if (!Number.isInteger(result.batchSize) || result.batchSize < 1 || result.batchSize > 256) usage("--batch-size debe ser 1..256");
   if (!Number.isInteger(result.startBatch) || result.startBatch < 0) usage("--start-batch debe ser un entero >= 0");
   return result;
@@ -63,7 +69,7 @@ function validateRows(kind, parsed, allowPartial) {
 
 function runBatch(options, rows) {
   const functionName = options.kind === "verses" ? "rag/ingest:ingestVerses" : "rag/commentary:ingestCommentary";
-  const payload = options.kind === "verses" ? { verses: rows, version: DEFAULT_VERSION } : { commentaries: rows };
+  const payload = options.kind === "verses" ? { verses: rows, version: options.version } : { commentaries: rows };
   const binary = resolve("node_modules/.bin/convex");
   const args = ["run", functionName, JSON.stringify(payload)];
   if (options.prod) args.push("--prod");
@@ -78,7 +84,7 @@ const options = parseArgs(process.argv.slice(2));
 const path = resolve(options.file);
 const rows = validateRows(options.kind, JSON.parse(readFileSync(path, "utf8")), options.allowPartial);
 const totalBatches = Math.ceil(rows.length / options.batchSize);
-console.log(`Corpus validado: ${rows.length} ${options.kind}; ${totalBatches} lotes de hasta ${options.batchSize}.`);
+console.log(`Corpus validado: ${rows.length} ${options.kind}${options.kind === "verses" ? ` (${options.version})` : ""}; ${totalBatches} lotes de hasta ${options.batchSize}.`);
 if (options.dryRun) process.exit(0);
 
 const startedAt = Date.now();

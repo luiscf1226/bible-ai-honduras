@@ -21,6 +21,8 @@ Versículos: un arreglo JSON de 31.102 objetos `{ "book", "chapter", "verse", "t
 
    `npm run rag:ingest -- --kind verses --file /ruta/local/biblia.json --start-batch 120`
 
+Por defecto los versículos se cargan como `RV1909`. Para otra versión, agregar `--version` (acepta `RV1909`, `RVR1960` o `NVI`): `npm run rag:ingest -- --kind verses --file /ruta/local/rvr1960.json --version RVR1960`. Los comentarios no tienen versión y rechazan el flag.
+
 La acción hace upsert por referencia, así que volver a ejecutar un lote no duplica filas. OpenAI recibe los textos del lote en una sola solicitud y la salida final informa filas, tokens, segundos y costo estimado. La estimación usa USD 0,02 por millón de tokens, tarifa publicada para `text-embedding-3-small` al 25-08-2026; confirmar la tarifa vigente antes de presupuestar.
 
 Los vectores de Voyage y OpenAI no son comparables. La migración solo termina cuando se reingresan **todos** los versículos y comentarios del deployment; no debe mezclarse un índice parcialmente migrado con consultas de OpenAI.
@@ -35,4 +37,16 @@ Después de la carga completa:
 
 `npm run rag:evaluate -- --prod`
 
+Para otra versión: `npm run rag:evaluate -- --version RVR1960 --prod`.
+
 El set de `docs/rag-evaluation-questions.json` no copia el fixture y calcula recall@3 sobre cinco capítulos esperados. Guardar el resultado en el issue #93. OpenAI no ofrece el `input_type: document/query` que usaba Voyage; este benchmark es el criterio mínimo para detectar una degradación por esa pérdida. Antes de ampliar la beta se recomienda conservar un baseline de Voyage y comparar los mismos casos, umbral y corpus.
+
+## Habilitar una versión nueva (#151)
+
+Solo cuando la licencia esté firmada y el archivo llegue por la vía autorizada:
+
+1. `--dry-run` con `--version`: tiene que validar las 31.102 filas sin `--allow-partial`.
+2. Cargar en desarrollo, correr `rag:evaluate -- --version …` y comparar contra el recall@3 de RV1909.
+3. Cargar en producción con `--prod` y volver a evaluar.
+4. **Recién entonces** agregar la versión a `AVAILABLE_BIBLE_VERSIONS` en `convex/bibleVersions.ts` y actualizar `convex/bibleVersions.test.ts`. Antes de ese paso la versión ya está en el índice pero nadie puede elegirla, así que cargar no rompe nada.
+5. Registrar en el issue la licencia, la fuente del archivo y el resultado de la evaluación.
