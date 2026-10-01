@@ -1,7 +1,9 @@
 import { ConvexError, v } from "convex/values";
 
 import { internalMutation, query } from "./_generated/server";
+import { parseVerseRef } from "../src/lib/parseVerseRef";
 import { devotionalCatalog, type DevotionalCatalogItem } from "./devotionalCatalog";
+import { bibleVersionForIdentity, findVerse } from "./rag/verses";
 
 const HONDURAS_TIME_ZONE = "America/Tegucigalpa";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -87,6 +89,36 @@ export const byDate = query({
       .withIndex("by_date", (q) => q.eq("date", args.date))
       .first();
     return asResponse(stored ?? devotionalForDate(args.date));
+  },
+});
+
+export const WIDGET_DAYS = 14;
+
+/**
+ * Versículo del día para el widget de la pantalla del teléfono (#170): hoy y
+ * los próximos días, con el texto en la versión de la persona. El widget no
+ * corre JS propio a medianoche; la app le deja esta línea de tiempo y el
+ * widget avanza solo cada día (hora de Honduras), aun sin conexión. Después del
+ * último día sigue mostrando el último que bajó.
+ */
+export const widgetDays = query({
+  args: {},
+  handler: async (ctx) => {
+    const version = await bibleVersionForIdentity(ctx);
+    const startDate = hondurasDateKey();
+    const days = [];
+    for (let offset = 0; offset < WIDGET_DAYS; offset += 1) {
+      const date = addDays(startDate, offset);
+      const stored = await ctx.db
+        .query("dailyDevotionals")
+        .withIndex("by_date", (q) => q.eq("date", date))
+        .first();
+      const verseRef = (stored ?? devotionalForDate(date)).verseRef;
+      const parsed = parseVerseRef(verseRef);
+      const verse = parsed ? await findVerse(ctx, { ...parsed, version }) : null;
+      days.push({ date, verseRef, text: verse?.text ?? null, version });
+    }
+    return days;
   },
 });
 

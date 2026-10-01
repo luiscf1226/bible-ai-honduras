@@ -1,7 +1,7 @@
 import { DEFAULT_BIBLE_VERSION } from "../../convex/bibleVersions";
 import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useConvex, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 
@@ -78,6 +78,10 @@ export default function HomeScreen() {
   const { retry, state } = useTodayDevotional();
   const currentUser = useQuery(api.users.current);
   const [isDevotionalOpen, setIsDevotionalOpen] = useState(false);
+  // El widget del versículo del día (#170) abre el inicio con `?devocional=1`:
+  // tocarlo lleva al devocional de hoy ya desplegado.
+  const params = useLocalSearchParams<{ devocional?: string | string[] }>();
+  const openFromWidget = (Array.isArray(params.devocional) ? params.devocional[0] : params.devocional) === "1";
   const [shareFailed, setShareFailed] = useState(false);
   const appUpdate = useAppUpdate();
 
@@ -87,6 +91,10 @@ export default function HomeScreen() {
   const cited = useQuery(api.rag.verses.citedForUser, parsed ?? "skip");
   const bibleVersion = cited?.version ?? DEFAULT_BIBLE_VERSION;
   const verseText = cited?.verse?.text;
+
+  useEffect(() => {
+    if (openFromWidget && isReady) setIsDevotionalOpen(true);
+  }, [isReady, openFromWidget]);
 
   const onDevotionalPress = () => {
     if (state.status === "error") {

@@ -67,3 +67,31 @@ describe("devotional.ensureWindow", () => {
     expect(rows.every((row) => row.imageUrl && row.imageAlt && row.verseRef && row.reflection)).toBe(true);
   });
 });
+
+describe("devotional.widgetDays (#170)", () => {
+  it("deja dos semanas de versículos desde hoy en Honduras, con el texto cuando está en el corpus", async () => {
+    const t = convexTest(schema, {
+      ...modules,
+      "./rag/verses.ts": () => import("./rag/verses"),
+      "./bibleVersions.ts": () => import("./bibleVersions"),
+    });
+    const today = hondurasDateKey();
+    const ref = devotionalForDate(today).verseRef;
+    const [, book, chapter, verse] = ref.match(/^(.+?)\s+(\d+):(\d+)/) ?? [];
+    await t.run((ctx) =>
+      ctx.db.insert("verses", {
+        book,
+        chapter: Number(chapter),
+        verse: Number(verse),
+        version: "RV1909",
+        text: "Texto de prueba",
+        embedding: [],
+      }),
+    );
+
+    const days = await t.query(api.devotional.widgetDays, {});
+    expect(days).toHaveLength(14);
+    expect(days[0]).toEqual({ date: today, verseRef: ref, text: "Texto de prueba", version: "RV1909" });
+    expect(new Set(days.map((day) => day.date)).size).toBe(14);
+  });
+});

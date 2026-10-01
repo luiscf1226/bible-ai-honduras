@@ -12,6 +12,7 @@ import { convexClient } from "../src/lib/convexClient";
 import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
 import { useRevenueCatLogin } from "../src/hooks/useRevenueCatLogin";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
+import { useVerseWidgetSync } from "../src/features/widget/useVerseWidgetSync";
 import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 
 configureDailyReminderNotifications();
@@ -27,6 +28,7 @@ const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as str
 function AppNavigator() {
   useSyncConvexUser();
   useRevenueCatLogin();
+  useVerseWidgetSync();
   const { dark } = useTheme();
   return (
     <>
