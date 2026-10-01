@@ -47,8 +47,8 @@ describe("Mi espacio (#169)", () => {
       detail: "Salmos 23:1",
       destination: { kind: "passage", passage: { book: "Salmos", chapter: 23, verse: 1 } },
     });
-    expect(byId.bookmarks).toMatchObject({ count: 2, detail: "Juan 3:16", action: "Ver todo", destination: { href: "/leer" } });
-    expect(byId.highlights).toMatchObject({ count: 1, detail: "Romanos 8:28", destination: { href: "/leer" } });
+    expect(byId.bookmarks).toMatchObject({ count: 2, detail: "Juan 3:16", action: "Ver todo", destination: { href: "/leer/guardados" } });
+    expect(byId.highlights).toMatchObject({ count: 1, detail: "Romanos 8:28", destination: { href: "/leer/subrayados" } });
     expect(byId.feelings).toMatchObject({ count: 1, destination: { kind: "sentir", openHistory: true } });
     expect(byId.conversations).toMatchObject({ count: 2, detail: "¿Qué es la gracia?", destination: { href: "/historial" } });
   });

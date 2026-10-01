@@ -142,6 +142,28 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
 
+  // Diagnóstico (convex/telemetry.ts): eventos del embudo y errores de la app.
+  // Sin userId a propósito — `installId` es un id aleatorio del teléfono que no
+  // se une con la cuenta — y sin contenido. Se borran a los 90 días.
+  telemetryEvents: defineTable({
+    installId: v.string(),
+    name: v.string(),
+    module: v.optional(v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings"), v.literal("stories"))),
+    platform: v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
+    build: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_at", ["at"]),
+
+  clientErrors: defineTable({
+    installId: v.string(),
+    message: v.string(),
+    stack: v.optional(v.string()),
+    fatal: v.boolean(),
+    platform: v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
+    build: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_at", ["at"]),
+
   // Plan de lectura anual (#114). Contenido curado versionado en el repo
   // (docs/content/planes/canonico.json, cargado y validado por
   // convex/readingPlanCatalog.ts) — esta tabla es la copia servible, sembrada

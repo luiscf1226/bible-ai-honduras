@@ -56,6 +56,16 @@ const db = {
         { book: "Filipenses", chapter: 4, verse: 13, createdAt: Date.now() - 9 * 24 * 3600e3 },
         { book: "1 Pedro", chapter: 5, verse: 7, createdAt: Date.now() - 20 * 24 * 3600e3, note: "Me lo dijo mi mamá." },
       ],
+  // Subrayados (#168): cuatro, en tres colores, para ver "Ver todos (4)" y el
+  // filtro por color de la pantalla Subrayados.
+  highlights: isEmpty()
+    ? []
+    : [
+        { book: "Salmos", chapter: 46, verse: 1, color: "amber", updatedAt: Date.now() - 3600e3 },
+        { book: "Juan", chapter: 3, verse: 16, color: "sage", updatedAt: Date.now() - 2 * 3600e3 },
+        { book: "Romanos", chapter: 8, verse: 28, color: "amber", updatedAt: Date.now() - 3 * 24 * 3600e3 },
+        { book: "Filipenses", chapter: 4, verse: 13, color: "clay", updatedAt: Date.now() - 9 * 24 * 3600e3 },
+      ],
   history: isEmpty()
     ? []
     : [
@@ -161,6 +171,35 @@ const handlers = {
     db.bookmarks
       .filter((b) => b.book === args.book && b.chapter === args.chapter)
       .map((b) => ({ verse: b.verse, note: b.note ?? null })),
+  "reading:highlights": () => [...db.highlights].sort((a, b) => b.updatedAt - a.updatedAt),
+  "reading:highlightsForChapter": (args) =>
+    db.highlights
+      .filter((h) => h.book === args.book && h.chapter === args.chapter)
+      .map((h) => ({ verse: h.verse, color: h.color })),
+  "reading:highlightsWithText": (args) => {
+    const sorted = [...db.highlights].sort((a, b) => b.updatedAt - a.updatedAt);
+    const items = sorted.slice(0, args?.limit ?? sorted.length).map((h) => ({
+      ...h,
+      version: db.bibleVersion,
+      text: db.bibleVersion === "RV1909" ? SAVED_TEXT[`${h.book} ${h.chapter}:${h.verse}`] ?? null : null,
+    }));
+    return { total: sorted.length, items };
+  },
+  "reading:setHighlight": (args) => {
+    const index = db.highlights.findIndex((h) => h.book === args.book && h.chapter === args.chapter && h.verse === args.verse);
+    if (index >= 0) db.highlights[index] = { ...db.highlights[index], color: args.color, updatedAt: Date.now() };
+    else db.highlights.push({ ...args, updatedAt: Date.now() });
+    notify();
+    return "h1";
+  },
+  "reading:clearHighlight": (args) => {
+    db.highlights = db.highlights.filter((h) => !(h.book === args.book && h.chapter === args.chapter && h.verse === args.verse));
+    notify();
+    return null;
+  },
+  // Diagnóstico: en el harness no se manda nada.
+  "telemetry:track": () => null,
+  "telemetry:reportError": () => null,
   "reading:separator": () => db.separator,
   "reading:setSeparator": (args) => {
     db.separator = { ...args, updatedAt: Date.now() };

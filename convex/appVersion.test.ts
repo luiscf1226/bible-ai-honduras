@@ -28,16 +28,28 @@ describe("appVersion.latest", () => {
   it("devuelve el build de cada plataforma desde el entorno", async () => {
     vi.stubEnv("LATEST_IOS_BUILD", "14");
     vi.stubEnv("LATEST_ANDROID_BUILD", "9");
+    vi.stubEnv("MIN_IOS_BUILD", undefined);
+    vi.stubEnv("MIN_ANDROID_BUILD", undefined);
     const t = convexTest(schema, modules);
 
-    expect(await t.query(api.appVersion.latest, { platform: "ios" })).toEqual({ latestBuild: 14 });
-    expect(await t.query(api.appVersion.latest, { platform: "android" })).toEqual({ latestBuild: 9 });
+    expect(await t.query(api.appVersion.latest, { platform: "ios" })).toEqual({ latestBuild: 14, minBuild: null });
+    expect(await t.query(api.appVersion.latest, { platform: "android" })).toEqual({ latestBuild: 9, minBuild: null });
   });
 
   it("sin variable no hay build conocido (y la app no avisa)", async () => {
     vi.stubEnv("LATEST_IOS_BUILD", undefined);
+    vi.stubEnv("MIN_IOS_BUILD", undefined);
     const t = convexTest(schema, modules);
 
-    expect(await t.query(api.appVersion.latest, { platform: "ios" })).toEqual({ latestBuild: null });
+    expect(await t.query(api.appVersion.latest, { platform: "ios" })).toEqual({ latestBuild: null, minBuild: null });
+  });
+
+  it("devuelve el piso de cada plataforma por separado", async () => {
+    vi.stubEnv("MIN_IOS_BUILD", "12");
+    vi.stubEnv("MIN_ANDROID_BUILD", "7");
+    const t = convexTest(schema, modules);
+
+    expect((await t.query(api.appVersion.latest, { platform: "ios" })).minBuild).toBe(12);
+    expect((await t.query(api.appVersion.latest, { platform: "android" })).minBuild).toBe(7);
   });
 });

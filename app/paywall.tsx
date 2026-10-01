@@ -11,6 +11,7 @@ import { goBackOrHome } from "../src/components/ScreenHeader";
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
 import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
 import { purchasesConfigured, purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
+import { track } from "../src/lib/telemetry";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
@@ -24,6 +25,10 @@ export default function PaywallScreen() {
   // precio y CTA en vez de dejarlos romper — Apple rechaza precio visible sin
   // IAP funcional.
   const canPurchase = purchasesConfigured();
+
+  useEffect(() => {
+    track("paywall_viewed");
+  }, []);
 
   useEffect(() => {
     if (!awaitingUnlock || !isPro) {
@@ -43,6 +48,7 @@ export default function PaywallScreen() {
     try {
       const result = await purchaseMonthly(userId ?? undefined);
       if (result.ok) {
+        track("purchase_completed");
         setAwaitingUnlock(true);
         return;
       }

@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 
 import { AppScreen } from "../../src/components/AppScreen";
+import { FilterPills } from "../../src/components/FilterPills";
 import { LoadingState } from "../../src/components/LoadingState";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { SearchField } from "../../src/components/SearchField";
@@ -71,26 +72,26 @@ export default function HistoriasScreen() {
           : "Escenas ilustradas con IA. Incluyen una muestra gratis; el resto es Pro."}
       </Text>
 
-      <FilterRow
-        color={color}
+      <FilterPills<StoryModeFilter>
         options={[
           { id: "texto", label: "Texto · gratis" },
           { id: "ilustradas", label: "Ilustradas" },
         ]}
         selected={mode}
+        style={styles.filterRow}
         testID="historias-mode"
-        onSelect={(value) => setMode(value as StoryModeFilter)}
+        onSelect={setMode}
       />
-      <FilterRow
-        color={color}
+      <FilterPills<TestamentFilter>
         options={[
           { id: "todos", label: "Todos" },
           { id: "antiguo", label: "Antiguo" },
           { id: "nuevo", label: "Nuevo" },
         ]}
         selected={testament}
+        style={styles.filterRow}
         testID="historias-testament"
-        onSelect={(value) => setTestament(value as TestamentFilter)}
+        onSelect={setTestament}
       />
 
       <SearchField
@@ -125,48 +126,6 @@ export default function HistoriasScreen() {
         />
       )}
     </AppScreen>
-  );
-}
-
-function FilterRow({
-  color,
-  onSelect,
-  options,
-  selected,
-  testID,
-}: {
-  color: ReturnType<typeof useTheme>["color"];
-  onSelect: (id: string) => void;
-  options: readonly { id: string; label: string }[];
-  selected: string;
-  testID: string;
-}) {
-  return (
-    <View style={styles.filterRow} testID={testID}>
-      {options.map((option) => {
-        const active = option.id === selected;
-        return (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            key={option.id}
-            onPress={() => onSelect(option.id)}
-            style={[
-              styles.filterPill,
-              {
-                backgroundColor: active ? color.surfaceSunk : color.surface,
-                borderColor: active ? color.borderStrong : color.border,
-              },
-            ]}
-            testID={`${testID}-${option.id}`}
-          >
-            <Text style={[styles.filterPillLabel, { color: active ? color.ink : color.inkSoft }]}>
-              {option.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
   );
 }
 
@@ -301,24 +260,7 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.bodySm.lineHeight,
     marginTop: tokens.space.sm,
   },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: tokens.space.sm,
-    marginTop: tokens.space.xl,
-  },
-  filterPill: {
-    borderRadius: tokens.radius.sm,
-    borderWidth: 1,
-    flexGrow: 1,
-    paddingHorizontal: tokens.space.md,
-    paddingVertical: tokens.space.md,
-  },
-  filterPillLabel: {
-    fontFamily: tokens.font.sans,
-    fontSize: tokens.type.bodySm.size,
-    textAlign: "center",
-  },
+  filterRow: { marginTop: tokens.space.xl },
   searchBar: { marginTop: tokens.space.lg },
   error: {
     fontFamily: tokens.font.sansLight,

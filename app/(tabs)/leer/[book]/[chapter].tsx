@@ -9,6 +9,7 @@ import { AppScreen } from "../../../../src/components/AppScreen";
 import { BottomPanel } from "../../../../src/components/BottomPanel";
 import { ScreenHeader, goBackOrHome } from "../../../../src/components/ScreenHeader";
 import { nextChapter, parseChapterParams, previousChapter } from "../../../../src/features/reading/chapterNavigation";
+import { voiceDraftFor, voiceForChapter } from "../../../../src/features/reading/chapterVoice";
 import { HIGHLIGHT_SWATCHES, highlightFill, type HighlightColor } from "../../../../src/features/reading/highlightColors";
 import { buildVerseCopyText, formatVerseReference, shareVerse, type ReadingVerse } from "../../../../src/features/reading/shareVerse";
 import {
@@ -24,7 +25,9 @@ import {
 import { NOTE_MAX_LENGTH, removeSavedCopy } from "../../../../src/features/reading/savedVerses";
 import { copyToClipboard } from "../../../../src/lib/clipboard";
 import { goToChat } from "../../../../src/lib/goToChat";
+import { goToVoices } from "../../../../src/lib/goToVoices";
 import { openPassage } from "../../../../src/lib/openPassage";
+import { track } from "../../../../src/lib/telemetry";
 import { useTheme } from "../../../../src/theme/ThemeProvider";
 import { tokens } from "../../../../src/theme/tokens";
 
@@ -126,6 +129,17 @@ export default function ReaderScreen() {
   const askAboutSelected = () => {
     if (!selected) return;
     goToChat(selected);
+  };
+  // Puente Lectura → Voces: si el capítulo lo vivió o lo escribió un personaje
+  // del catálogo, se ofrece hablar con él sobre este versículo. Voces sigue
+  // pasando por su cuota (regla dura #3); acá solo se navega.
+  const chapterVoice = voiceForChapter(ref.book, ref.chapter);
+  const talkAboutSelected = () => {
+    if (!selected || !chapterVoice) return;
+    track("reader_voice_opened");
+    goToVoices(chapterVoice.slug, {
+      draft: voiceDraftFor(`${selected.book} ${selected.chapter}:${selected.verse}`, chapterVoice.role),
+    });
   };
   const shareSelected = () => {
     if (!selected || !currentUser?.referralCode) return;
@@ -333,6 +347,17 @@ export default function ReaderScreen() {
           testID="reading-verse-actions"
         >
           <Pressable accessibilityRole="button" onPress={askAboutSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Preguntar sobre esto</Text></Pressable>
+          {chapterVoice ? (
+            <Pressable
+              accessibilityHint={`Abre Voces con ${chapterVoice.name} y deja escrito este versículo.`}
+              accessibilityRole="button"
+              onPress={talkAboutSelected}
+              style={styles.action}
+              testID="reading-talk-to-voice"
+            >
+              <Text style={[styles.actionLabel, { color: color.ink }]}>Hablar con {chapterVoice.name}</Text>
+            </Pressable>
+          ) : null}
           <Pressable accessibilityRole="button" disabled={!currentUser?.referralCode} onPress={shareSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Compartir</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={saveSelected} style={styles.action} testID="reading-save-toggle"><Text style={[styles.actionLabel, { color: color.ink }]}>{selectedBookmark ? "Guardado" : "Guardar"}</Text></Pressable>
           {currentUser?._id ? (
