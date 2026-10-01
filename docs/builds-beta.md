@@ -135,6 +135,29 @@ npx eas-cli submit -p ios --profile testflight --path build.ipa     # TestFlight
   bundle id (`com.bibleaihonduras.app`) ya está en `app.json` y **no se puede
   cambiar** una vez publicada la primera build.
 
+## Después de publicar un build — avisar a los testers
+
+TestFlight no siempre actualiza solo: un tester puede quedarse en un build viejo
+y reportar "en mi iPhone faltan opciones". La app compara su build con el último
+publicado y, si está atrasada, muestra **"Hay una versión nueva"** en home y en
+Ajustes → App, con un toque que abre TestFlight / Google Play.
+
+El último build lo sabe Convex por variable de entorno. Cuando el build ya
+aparece en TestFlight / Play (no antes: si avisás de un build que todavía se
+está procesando, el tester no tiene qué instalar):
+
+```bash
+npx convex env set LATEST_IOS_BUILD 14        # número de build de TestFlight
+npx convex env set LATEST_ANDROID_BUILD 9     # versionCode del AAB
+```
+
+iOS y Android llevan contadores separados (`autoIncrement` remoto), por eso son
+dos variables. El número está en expo.dev → Builds, o en Ajustes → App →
+"Versión instalada" del propio dispositivo. Sin la variable no hay aviso.
+
+**Para soporte:** pedile al tester la línea "Versión 0.1.0 (build N)" de
+Ajustes → App antes de investigar un "no me aparece".
+
 ## Build en la nube (alternativa)
 
 Sin instalar nada nativo, a costa de la cola de EAS:
@@ -149,6 +172,7 @@ eas build -p ios --profile testflight
 | Síntoma | Causa casi siempre |
 |---|---|
 | App abre en blanco | Faltan las `EXPO_PUBLIC_*` en el perfil de `eas.json` |
+| A un tester le "faltan opciones" | Build viejo: compará Ajustes → App con el último build y que actualice desde TestFlight |
 | Todas las respuestas dicen "no encontré contenido relevante" | El corpus no está ingerido (`npm run rag:ingest`) |
 | `eas submit -p ios` rechaza | Falta el cuestionario App Privacy (el ícono 1024 ya está, PR #136) |
 | Play rechaza el AAB | Falta completar *App content* (política, clasificación, data safety) |

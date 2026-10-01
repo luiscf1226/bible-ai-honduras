@@ -8,6 +8,7 @@ import type { FunctionReturnType } from "convex/server";
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
 import { LoadingState } from "../../src/components/LoadingState";
+import { useAppUpdate } from "../../src/hooks/useAppUpdate";
 import { buildDevotionalShareText } from "../../src/features/home/shareDevotional";
 import { shareContent } from "../../src/lib/share";
 import { api } from "../../convex/_generated/api";
@@ -70,6 +71,7 @@ export default function HomeScreen() {
   const currentUser = useQuery(api.users.current);
   const [isDevotionalOpen, setIsDevotionalOpen] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
+  const appUpdate = useAppUpdate();
 
   const isReady = state.status === "ready";
   const devotional = isReady ? state.devotional : null;
@@ -121,6 +123,26 @@ export default function HomeScreen() {
           <Text style={[styles.settingsIcon, { color: color.inkMuted }]}>⚙</Text>
         </Pressable>
       </View>
+
+      {/* Un build viejo de TestFlight se ve como "faltan opciones": se avisa arriba. */}
+      {appUpdate.updateAvailable && appUpdate.storeName ? (
+        <Pressable
+          accessibilityHint={`Abre ${appUpdate.storeName}`}
+          accessibilityRole="link"
+          onPress={() => void appUpdate.openStore()}
+          style={({ pressed }) => [
+            styles.feelingCard,
+            { backgroundColor: dark ? color.surfaceSunk : color.surfaceAlt, borderColor: color.borderStrong },
+            pressed && styles.pressed,
+          ]}
+          testID="home-update-available"
+        >
+          <Text style={[styles.feelingTitle, { color: color.ink }]}>Hay una versión nueva</Text>
+          <Text style={[styles.feelingDescription, { color: color.inkMuted }]}>
+            Tocá para actualizar en {appUpdate.storeName}. Sin actualizar te pueden faltar secciones.
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Pressable
         accessibilityHint={state.status === "error" ? "Vuelve a intentar cargar el devocional." : "Abre o cierra el devocional completo."}
@@ -204,26 +226,22 @@ export default function HomeScreen() {
         <Text style={[styles.feelingDescription, { color: color.inkMuted }]}>Contame qué llevás encima y te preparo un devocional para eso.</Text>
       </Pressable>
 
-      {dark ? (
-        <Text style={[styles.nightHint, { color: color.inkFaint }]}>Modo noche suave activo · desactívalo en ajustes</Text>
-      ) : (
-        <>
-          <Text style={[styles.sectionTitle, { color: color.inkSoft }]}>Acompañamiento</Text>
-          <View style={styles.moduleGrid}>
-            {modules.map((module) => (
-              <Pressable
-                accessibilityRole="button"
-                key={module.href}
-                onPress={() => router.push(module.href)}
-                style={[styles.moduleCard, { backgroundColor: color.surface, borderColor: color.border }]}
-              >
-                <Text style={[styles.moduleTitle, { color: color.ink }]}>{module.title}</Text>
-                <Text style={[styles.moduleDescription, { color: color.inkSoft }]}>{module.description}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </>
-      )}
+      {/* El grid es la única entrada a los 4 módulos (no hay tab bar): se muestra
+          también en modo noche, si no esos usuarios pierden acceso a todo. */}
+      <Text style={[styles.sectionTitle, { color: color.inkSoft }]}>Acompañamiento</Text>
+      <View style={styles.moduleGrid}>
+        {modules.map((module) => (
+          <Pressable
+            accessibilityRole="button"
+            key={module.href}
+            onPress={() => router.push(module.href)}
+            style={[styles.moduleCard, { backgroundColor: color.surface, borderColor: color.border }]}
+          >
+            <Text style={[styles.moduleTitle, { color: color.ink }]}>{module.title}</Text>
+            <Text style={[styles.moduleDescription, { color: color.inkSoft }]}>{module.description}</Text>
+          </Pressable>
+        ))}
+      </View>
     </AppScreen>
   );
 }
@@ -254,7 +272,6 @@ const styles = StyleSheet.create({
   feelingTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   feelingDescription: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
   sectionTitle: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size, letterSpacing: tokens.type.overline.letterSpacing, lineHeight: tokens.type.overline.lineHeight },
-  nightHint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, textAlign: "center" },
   moduleGrid: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.md },
   moduleCard: { borderRadius: tokens.radius.xl, borderWidth: 1, flexGrow: 1, flexShrink: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.xl, width: "45%" },
   moduleTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },

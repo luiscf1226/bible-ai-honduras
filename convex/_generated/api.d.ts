@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as appVersion from "../appVersion.js";
 import type * as bibleVersions from "../bibleVersions.js";
 import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
@@ -44,6 +45,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  appVersion: typeof appVersion;
   bibleVersions: typeof bibleVersions;
   crons: typeof crons;
   devotional: typeof devotional;
