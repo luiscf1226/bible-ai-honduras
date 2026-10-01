@@ -108,9 +108,13 @@ seleccionable que devuelve cero citas sin avisar.
 | #168 | Lector: subrayar versículos con colores de `design/tokens.json` | — |
 | #169 | **Mi espacio**: una sola pantalla con todo lo personal (separador, guardados y notas, subrayados, peticiones #159, memorizar #158, Sentir, conversaciones) | #166, #167, #168 |
 | #170 | Widget del versículo del día (N6) | — |
+| #171 | Bloquear Mi espacio y Sentir con Face ID, huella o PIN (apagado por defecto) | #169 |
+| #172 | Inicio: "Hace un año guardaste…", un guardado viejo una vez por semana | #166, #167 |
+| #173 | Exportar mis notas y guardados (texto o PDF) | #166, #167, #169 |
+| #174 | Chequeo: toda versión habilitada tiene su texto completo (N7, sin UI) | — |
 
-Todos pasan antes por Claude Design (regla dura #1). Orden: **#166 → #167 → #168 → #169**, y
-#170 en paralelo. N1, N2, N4, N5 y N7 quedan como propuestas sin ticket por ahora.
+Todos pasan antes por Claude Design (regla dura #1). Orden: **#174 → #166 → #167 → #168 → #169 →
+#171 → #172 → #173**, y #170 en paralelo. N1, N2, N4 y N5 quedan como propuestas sin ticket por ahora.
 
 ### Orden sugerido (todas las ideas)
 **N7 → N3 → N4 → N6 → N1 → N5**, con N2 en paralelo, porque es solo una decisión.
