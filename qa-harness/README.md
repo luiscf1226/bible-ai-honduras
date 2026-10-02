@@ -77,6 +77,10 @@ empezar de cero, borrá el `localStorage` del sitio.
   4 versículos de Salmos 46 como placeholder.
 - Las cuotas no decrementan al consumir: `quotas:remaining` es un fixture fijo,
   no una query reactiva. Usá `?qa=limit` para ver el estado agotado.
+- "Tu año en la Palabra" (#183): `/tu-ano` abre siempre; `yearInWord:summary`
+  es un fixture fijo (`?qa=empty` lo deja en cero). La entrada en Mi espacio
+  solo aparece del 1 de diciembre al 31 de enero: para verla, fijá el reloj
+  del navegador (Playwright `page.clock.setFixedTime("2026-12-05T12:00:00-06:00")`).
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
   historial" no aparece en el navegador. En iOS/Android sí.
 - Los recordatorios devuelven `unsupported` en web (comportamiento real de
