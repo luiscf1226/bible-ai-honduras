@@ -35,6 +35,8 @@ import type * as readingPlans from "../readingPlans.js";
 import type * as referralCode from "../referralCode.js";
 import type * as referrals from "../referrals.js";
 import type * as savedMemory from "../savedMemory.js";
+import type * as seasons from "../seasons.js";
+import type * as seasonsDraftCatalog from "../seasonsDraftCatalog.js";
 import type * as stories from "../stories.js";
 import type * as telemetry from "../telemetry.js";
 import type * as users from "../users.js";
@@ -77,6 +79,8 @@ declare const fullApi: ApiFromModules<{
   referralCode: typeof referralCode;
   referrals: typeof referrals;
   savedMemory: typeof savedMemory;
+  seasons: typeof seasons;
+  seasonsDraftCatalog: typeof seasonsDraftCatalog;
   stories: typeof stories;
   telemetry: typeof telemetry;
   users: typeof users;
