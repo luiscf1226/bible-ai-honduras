@@ -360,7 +360,12 @@ const handlers = {
   "history:getById": () => ({
     module: "feelings",
     messages: [
-      { role: "user", text: "Cansancio" },
+      // Como lo guarda `feelings:saveGenerated`: el prompt de `buildFeelingQuestion`,
+      // del que Sentir recupera los chips y la nota al reabrirlo (#197).
+      {
+        role: "user",
+        text: "La persona identifica: Cansancio. También cuenta: Llevo semanas durmiendo mal. Respondé con un devocional breve, compasivo y práctico, basado solo en el pasaje bíblico recuperado.",
+      },
       { role: "assistant", text: FEELING_DEVOTIONAL.reflection, devotional: FEELING_DEVOTIONAL },
     ],
   }),
