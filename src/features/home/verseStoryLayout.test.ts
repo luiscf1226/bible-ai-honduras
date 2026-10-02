@@ -69,6 +69,31 @@ describe("verseStoryLayout (#161)", () => {
   });
 });
 
+describe("verseStoryLayout con temporada (#199)", () => {
+  it("el nombre de la temporada le quita alto al versículo, nunca se lo suma", () => {
+    expect(verseAreaHeight(image, { withSeason: true })).toBeLessThan(verseAreaHeight());
+    expect(verseAreaHeight(image, { withSeason: false })).toBe(verseAreaHeight());
+  });
+
+  it("sin temporada la imagen queda igual que antes", () => {
+    for (const text of [SALMO_46_1, JUAN_3_16, LONG, VERY_LONG]) {
+      expect(verseStoryLayout(text, image, {})).toEqual(verseStoryLayout(text));
+    }
+  });
+
+  it("con temporada, lo que entra sin cortar cabe en el alto que queda", () => {
+    for (const text of [SALMO_46_1, JUAN_3_16, LONG, VERY_LONG]) {
+      const layout = verseStoryLayout(text, image, { withSeason: true });
+      const shown = layout.truncated ? layout.maxLines : layout.lines;
+      expect(shown * layout.lineHeight).toBeLessThanOrEqual(verseAreaHeight(image, { withSeason: true }));
+    }
+  });
+
+  it("el renglón del nombre cabe en la franja que se le reserva", () => {
+    expect(storyChrome().seasonLineHeight).toBeLessThanOrEqual(image.season * 2);
+  });
+});
+
 describe("storyCaptureSize (PNG de 1080×1920)", () => {
   it("iOS pide puntos: 1080×1920 dividido por la densidad", () => {
     expect(storyCaptureSize("ios", 3)).toEqual({ width: 360, height: 640 });

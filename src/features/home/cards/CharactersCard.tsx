@@ -1,5 +1,4 @@
 import { useQuery } from "convex/react";
-import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../../../convex/_generated/api";
@@ -7,6 +6,8 @@ import { goToVoices } from "../../../lib/goToVoices";
 import { track } from "../../../lib/telemetry";
 import { useTheme } from "../../../theme/ThemeProvider";
 import { tokens } from "../../../theme/tokens";
+import { CharacterAvatar } from "../../voices/CharacterAvatar";
+import { openFeaturedShortcut, useFeaturedCharacter } from "../../voices/useFeaturedCharacter";
 import { CHARACTERS_CARD_CAPTION, HOME_ROUTES, pickHomeCharacters } from "../homeCards";
 import { HomeCard, openFromHome } from "./HomeCard";
 
@@ -14,11 +15,15 @@ import { HomeCard, openFromHome } from "./HomeCard";
  * Tarjeta 5, Personajes de la Biblia (U1): 4 avatares del catálogo de Voces,
  * con el mismo degradado + inicial de `voces.tsx`. Tocar un avatar abre esa
  * conversación; la tarjeta, el catálogo. Voces no cambia por dentro.
+ *
+ * El personaje del mes (#200) va primero, con anillo `accent` y `DEL MES`
+ * encima. Los demás llevan el mismo lugar vacío para que la fila quede pareja.
  */
 export function CharactersCard() {
   const { color } = useTheme();
   const characters = useQuery(api.voices.list);
-  const shown = pickHomeCharacters(characters ?? []);
+  const featured = useFeaturedCharacter();
+  const shown = pickHomeCharacters(characters ?? [], featured?.slug);
 
   return (
     <HomeCard
@@ -31,27 +36,35 @@ export function CharactersCard() {
     >
       {shown.length > 0 ? (
         <View style={styles.row}>
-          {shown.map((character) => (
-            <Pressable
-              accessibilityHint={`Abre la conversación con ${character.name}.`}
-              accessibilityLabel={character.name}
-              accessibilityRole="button"
-              key={character.slug}
-              onPress={() => {
-                track("home_card_opened");
-                goToVoices(character.slug);
-              }}
-              style={({ pressed }) => [styles.person, pressed && styles.pressed]}
-              testID={`home-character-${character.slug}`}
-            >
-              <LinearGradient colors={[character.gradientFrom, character.gradientTo]} style={styles.avatar}>
-                <Text style={[styles.initial, { color: color.avatarInitial }]}>{character.name[0]}</Text>
-              </LinearGradient>
-              <Text numberOfLines={1} style={[styles.name, { color: color.inkMuted }]}>
-                {character.name}
-              </Text>
-            </Pressable>
-          ))}
+          {shown.map((character) => {
+            const isFeatured = character.slug === featured?.slug;
+            return (
+              <Pressable
+                accessibilityHint={`Abre la conversación con ${character.name}.`}
+                accessibilityLabel={isFeatured ? `${character.name}, personaje del mes` : character.name}
+                accessibilityRole="button"
+                key={character.slug}
+                onPress={() => {
+                  if (featured && isFeatured) {
+                    openFeaturedShortcut("conversar", featured);
+                    return;
+                  }
+                  track("home_card_opened");
+                  goToVoices(character.slug);
+                }}
+                style={({ pressed }) => [styles.person, pressed && styles.pressed]}
+                testID={`home-character-${character.slug}`}
+              >
+                {featured ? (
+                  <Text style={[styles.overline, { color: color.accent }]}>{isFeatured ? "Del mes" : " "}</Text>
+                ) : null}
+                <CharacterAvatar character={character} ring={featured ? isFeatured : undefined} size={tokens.size.cardAvatar} />
+                <Text numberOfLines={1} style={[styles.name, { color: color.inkMuted }]}>
+                  {character.name}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
     </HomeCard>
@@ -62,13 +75,12 @@ const styles = StyleSheet.create({
   pressed: { opacity: tokens.opacity.pressed },
   row: { flexDirection: "row", justifyContent: "space-between" },
   person: { alignItems: "center", flex: 1, gap: tokens.space.xs },
-  avatar: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    height: tokens.size.cardAvatar,
-    justifyContent: "center",
-    width: tokens.size.cardAvatar,
+  overline: {
+    fontFamily: tokens.font.sansMedium,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+    textTransform: "uppercase",
   },
-  initial: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   name: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },
 });

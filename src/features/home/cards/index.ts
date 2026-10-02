@@ -5,11 +5,16 @@ import { AskCard } from "./AskCard";
 import { CharactersCard } from "./CharactersCard";
 import { FeelingCard } from "./FeelingCard";
 import { ReadCard } from "./ReadCard";
+import { SeasonStrip } from "./SeasonStrip";
 import { StoriesCard } from "./StoriesCard";
 import { VerseCard } from "./VerseCard";
 
 /** Lo que una tarjeta puede mirar para decidir si se muestra. */
-export type HomeCardContext = { dateKey: string };
+export type HomeCardContext = {
+  dateKey: string;
+  /** Temporada activa (#199), o null fuera de temporada. */
+  season: { slug: string } | null;
+};
 
 export type HomeCardEntry = {
   id: HomeCardId;
@@ -18,6 +23,7 @@ export type HomeCardEntry = {
 };
 
 const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
+  season: { Component: SeasonStrip, visible: ({ season }) => season !== null },
   verse: { Component: VerseCard },
   read: { Component: ReadCard },
   feeling: { Component: FeelingCard },

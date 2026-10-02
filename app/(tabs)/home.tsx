@@ -19,7 +19,7 @@ import { tokens } from "../../src/theme/tokens";
  * `src/features/home/` para que esta pantalla no crezca con cada tarjeta.
  */
 export default function HomeScreen() {
-  const { color, dark } = useTheme();
+  const { color, dark, season } = useTheme();
   const appUpdate = useAppUpdate();
 
   // El widget del versículo del día (#170) abre el inicio con `?devocional=1`:
@@ -36,7 +36,7 @@ export default function HomeScreen() {
   // con sesión, así que acá se atiende también el arranque desde el aviso.
   useEffect(() => subscribeToDailyReminderTaps((pathname) => router.push(pathname as Href)), []);
 
-  const cards = visibleHomeCards({ dateKey: hondurasToday() });
+  const cards = visibleHomeCards({ dateKey: hondurasToday(), season });
 
   return (
     <AppScreen contentStyle={styles.screen} style={{ backgroundColor: dark ? color.bg : color.surface }}>

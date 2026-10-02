@@ -56,6 +56,7 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?qa=error` | `devotional:today` falla |
 | `?qa=loading` | todas las `useQuery` en `undefined` |
 | `?qa=dark` | `users.darkMode = true` |
+| `?temporada=reforma` / `gratitud` / `adviento` | `seasons.current` con esa temporada de muestra (#199); se combina con `?qa=dark`. Sin el parámetro, fuera de temporada |
 | `?ver=NVI` | versión de la Biblia = NVI (sin corpus, igual que en producción) |
 
 ## Limitaciones conocidas

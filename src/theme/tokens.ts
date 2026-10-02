@@ -146,6 +146,8 @@ export const tokens = {
     ribbon: { width: 14, height: 42 },
     marginMark: 5,
     actionTile: 64,
+    // Anillo `accent` del personaje del mes (#200).
+    ring: 1.5,
   },
   grid: { chapterColumns: 5, actionColumns: 4 },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
@@ -159,6 +161,8 @@ export const tokens = {
     verseLineHeight: 1.3,
     reference: 36,
     brand: 30,
+    // Nombre de la temporada arriba al centro (#199).
+    season: 30,
   },
 } as const;
 

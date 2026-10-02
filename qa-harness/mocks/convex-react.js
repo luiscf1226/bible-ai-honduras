@@ -11,10 +11,55 @@ import {
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
-import { atLimit, isDark, isEmpty, isError, isLoading, isPro } from "./scenario";
+import { atLimit, isDark, isEmpty, isError, isLoading, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
+
+// Temporadas de muestra (#199), con la forma de `seasons.current`. El
+// calendario real lo decide el fundador; esto es solo para ver la capa.
+const SEASON_BASE = {
+  imageUrl: null,
+  imageAlt: null,
+  imageAttributionUrl: null,
+  devotionalCycleId: null,
+  readingPlanId: null,
+  storyId: null,
+};
+const SEASONS = {
+  reforma: {
+    ...SEASON_BASE,
+    slug: "reforma-2026",
+    name: "Mes de la Reforma",
+    startDate: "2026-10-01",
+    endDate: "2026-10-31",
+    paletteKey: "reforma",
+    characterSlug: "pablo",
+    sampleQuestions: ["¿Qué quiere decir “el justo vivirá por la fe”?", "¿Qué enseña Gálatas sobre la gracia?"],
+  },
+  gratitud: {
+    ...SEASON_BASE,
+    slug: "gratitud-2026",
+    name: "Mes de gratitud",
+    startDate: "2026-11-01",
+    endDate: "2026-11-30",
+    paletteKey: "gratitud",
+    characterSlug: "david",
+    sampleQuestions: ["¿Por qué David daba gracias en medio de la angustia?", "¿Qué dice el Salmo 100 sobre dar gracias?"],
+  },
+  // Sin personaje ni preguntas: el personaje sale de la rotación del mes.
+  adviento: {
+    ...SEASON_BASE,
+    slug: "adviento-navidad-2026",
+    name: "Adviento y Navidad",
+    startDate: "2026-12-01",
+    endDate: "2026-12-31",
+    paletteKey: "adviento",
+    characterSlug: null,
+    sampleQuestions: [],
+  },
+};
+const CURRENT_SEASON = SEASONS[seasonScenario()] ?? null;
 
 const listeners = new Set();
 const notify = () => listeners.forEach((l) => l());
@@ -199,6 +244,7 @@ const handlers = {
     return null;
   },
   "devotional:today": () => DEVOTIONAL,
+  "seasons:current": () => CURRENT_SEASON,
   "devotional:byDate": (args) => ({ ...DEVOTIONAL, date: args.date }),
   // Solo RV1909 tiene corpus ingerido (convex/bibleVersions.ts); con NVI el backend real devuelve
   // verse: null y [] — el harness reproduce ese comportamiento.
