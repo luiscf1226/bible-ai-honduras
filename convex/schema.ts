@@ -285,6 +285,10 @@ export default defineSchema({
     // racha se calcula contra el calendario real, no contra el día del plan,
     // para que ponerse al día en una sola sesión no infle la racha.
     lastCompletedDate: v.optional(v.string()),
+    // Última vez (ms) que el usuario empezó el plan o marcó un día — define
+    // cuál es "el plan abierto más recientemente" para el recordatorio diario
+    // (#153). Opcional: las filas viejas caen a `_creationTime`.
+    lastActivityAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_plan", ["userId", "planId"]),
