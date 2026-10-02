@@ -23,6 +23,9 @@ export const tokens = {
     highlightSage: "rgba(124,143,123,0.24)",
     highlightClay: "rgba(176,96,63,0.18)",
     highlightSand: "rgba(189,180,166,0.38)",
+    // Oleada UX (design/oleada-ux.md): tono de papel del lector y velo sobre imágenes.
+    paper: "#F7F0E4",
+    imageScrim: "rgba(37,34,32,0.42)",
   },
   night: {
     color: {
@@ -45,6 +48,24 @@ export const tokens = {
       highlightSage: "rgba(143,164,141,0.24)",
       highlightClay: "rgba(176,96,63,0.32)",
       highlightSand: "rgba(189,180,166,0.18)",
+      paper: "#25211E",
+      imageScrim: "rgba(20,18,16,0.55)",
+    },
+  },
+  // Temporadas (#199): capa encima de día/noche que solo pisa estas llaves.
+  // El servidor (`seasons.current`) devuelve el nombre de la paleta, nunca un hex.
+  season: {
+    reforma: {
+      day: { accent: "#A5683F", accentDeep: "#7E4E2F", bg: "#E8DCCB", surfaceSunk: "#F3EADD" },
+      night: { accent: "#C98A55", accentDeep: "#7E4E2F", bg: "#211E1B", surfaceSunk: "#27221E" },
+    },
+    gratitud: {
+      day: { accent: "#B08A4E", accentDeep: "#866634", bg: "#EAE0CC", surfaceSunk: "#F4EDDD" },
+      night: { accent: "#CDA766", accentDeep: "#866634", bg: "#22201C", surfaceSunk: "#28241F" },
+    },
+    adviento: {
+      day: { accent: "#7E5C74", accentDeep: "#5E4257", bg: "#E7DFDA", surfaceSunk: "#F3EEEA" },
+      night: { accent: "#A7849B", accentDeep: "#5E4257", bg: "#211E20", surfaceSunk: "#272325" },
     },
   },
   paywall: {
@@ -92,11 +113,16 @@ export const tokens = {
     versePicker: { size: 17, lineHeight: 28 },
     chip: { size: 12.5, lineHeight: 13 },
     disclaimer: { size: 12, lineHeight: 12 },
+    verseHero: { size: 28, lineHeight: 38 },
+    dropCap: { size: 58, lineHeight: 52 },
+    verseNumber: { size: 10, lineHeight: 10 },
+    readerBody: { size: 19, lineHeight: 31 },
   },
   opacity: { pressed: 0.9 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
+  readerPadding: { horizontal: 26, top: 18 },
   screenPadding: { horizontal: 20 },
   size: {
     logoLarge: 96,
@@ -111,8 +137,28 @@ export const tokens = {
     switchKnob: 22,
     switchKnobOffset: 18,
     switchPadding: 3,
+    cardAvatar: 40,
+    verseCardImage: 176,
+    hoyImage: 236,
+    icon: { sm: 16, md: 20, lg: 24 },
+    iconStroke: 1.3,
+    ribbon: { width: 14, height: 42 },
+    marginMark: 5,
+    actionTile: 64,
   },
-  grid: { chapterColumns: 5 },
+  grid: { chapterColumns: 5, actionColumns: 4 },
+  // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
+  storyImage: {
+    width: 1080,
+    height: 1920,
+    paddingX: 96,
+    paddingY: 150,
+    verseMax: 84,
+    verseMin: 54,
+    verseLineHeight: 1.3,
+    reference: 36,
+    brand: 30,
+  },
 } as const;
 
 // Ambas paletas (día y noche) comparten llaves; el tipo se ensancha a string
