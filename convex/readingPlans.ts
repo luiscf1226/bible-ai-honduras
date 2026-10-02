@@ -209,6 +209,11 @@ export type MyPlanProgress = {
   currentStreak: number;
   longestStreak: number;
   /**
+   * Última fecha (Honduras) en que se marcó algo. La racha guardada no se
+   * resetea sola: con esto el widget (#184) sabe si sigue viva en una fecha.
+   */
+  lastCompletedDate?: string;
+  /**
    * Días anteriores al de hoy que quedaron sin marcar, del más viejo al más
    * nuevo. Es la data de "ponerme al día" — la pantalla la muestra como
    * "seguí desde donde estés" con la lista de lecturas pendientes, sin un
@@ -231,6 +236,7 @@ function buildProgress(progress: ProgressRow, plan: ReadingPlanDefinition, today
     completedCount: progress.completedDays.length,
     currentStreak: progress.currentStreak,
     longestStreak: progress.longestStreak,
+    lastCompletedDate: progress.lastCompletedDate,
     pendingDays,
   };
 }

@@ -56,7 +56,11 @@ const MAX_CHARS: Record<WidgetSize, number> = { small: 90, medium: 180 };
 
 /** Recorta en una palabra completa y agrega "…". El sistema recorta también por líneas. */
 export function truncateVerse(text: string, size: WidgetSize): string {
-  const max = MAX_CHARS[size];
+  return truncateAtWord(text, MAX_CHARS[size]);
+}
+
+/** Recorta `text` a `max` caracteres (más el "…") sin partir una palabra. */
+export function truncateAtWord(text: string, max: number): string {
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");

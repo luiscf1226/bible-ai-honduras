@@ -42,6 +42,19 @@
                   "systemMedium"
                 ]
               }
+            },
+            {
+              "name": "LecturaDeHoy",
+              "displayName": "Tu lectura de hoy",
+              "description": "La lectura de hoy de tu plan y tu racha. Tocalo para abrir el plan.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryRectangular",
+                  "accessoryInline"
+                ]
+              }
             }
           ]
         }
@@ -69,6 +82,17 @@
               "name": "VersiculoMediano",
               "label": "Versículo del día (mediano)",
               "description": "El versículo de hoy. Tocalo para abrir el devocional.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 10800000
+            },
+            {
+              "name": "LecturaDeHoy",
+              "label": "Tu lectura de hoy",
+              "description": "La lectura de hoy de tu plan y tu racha. Tocalo para abrir el plan.",
               "minWidth": "250dp",
               "minHeight": "110dp",
               "targetCellWidth": 4,
