@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -10,6 +10,7 @@ import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader
 import { isAnnualPlan, planOverline } from "../../../src/features/reading/annualPlans";
 import { formatReadingsLabel, readingTarget, type PlanReading } from "../../../src/features/reading/planReadingsLabel";
 import { openPassage } from "../../../src/lib/openPassage";
+import { refreshDailyRemindersIfActive } from "../../../src/lib/reminderSchedule";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -32,6 +33,7 @@ function openReading(reading: PlanReading) {
 
 export default function PlanScreen() {
   const { color } = useTheme();
+  const convex = useConvex();
   const params = useLocalSearchParams<{ planId?: string | string[] }>();
   const requestedPlanId = Array.isArray(params.planId) ? params.planId[0] : params.planId;
   const planArgs = requestedPlanId ? { planId: requestedPlanId } : {};
@@ -51,6 +53,8 @@ export default function PlanScreen() {
     setIsStarting(true);
     try {
       await startPlan({ planId: catalog.id });
+      // El aviso diario menciona la lectura del plan abierto más recientemente (#153).
+      void refreshDailyRemindersIfActive(convex);
     } finally {
       setIsStarting(false);
     }
@@ -61,6 +65,7 @@ export default function PlanScreen() {
     setMarkingDay(day);
     try {
       await markDayRead({ planId: catalog.id, day });
+      void refreshDailyRemindersIfActive(convex);
     } finally {
       setMarkingDay(null);
     }
