@@ -42,6 +42,8 @@ import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
 import type * as voicesGuardrail from "../voicesGuardrail.js";
 import type * as voicesPrompt from "../voicesPrompt.js";
+import type * as yearInWord from "../yearInWord.js";
+import type * as yearInWordCore from "../yearInWordCore.js";
 
 import type {
   ApiFromModules,
@@ -84,6 +86,8 @@ declare const fullApi: ApiFromModules<{
   voicesCatalog: typeof voicesCatalog;
   voicesGuardrail: typeof voicesGuardrail;
   voicesPrompt: typeof voicesPrompt;
+  yearInWord: typeof yearInWord;
+  yearInWordCore: typeof yearInWordCore;
 }>;
 
 /**

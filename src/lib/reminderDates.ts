@@ -19,6 +19,11 @@ function hondurasParts(now: Date) {
   };
 }
 
+/** Fecha de hoy (YYYY-MM-DD) en el calendario de Honduras, no el del teléfono. */
+export function hondurasToday(now = new Date()): string {
+  return hondurasParts(now).date;
+}
+
 function addDays(date: string, days: number) {
   const [year, month, day] = date.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
