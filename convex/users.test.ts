@@ -127,6 +127,18 @@ describe("users.updatePreferences", () => {
     });
   });
 
+  it("recuerda en la cuenta que ya vio la pista del lector (#196)", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_reader_hint");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    expect((await authed.query(api.users.current, {}))?.readerHintSeen).toBeUndefined();
+    await authed.mutation(api.users.updatePreferences, { readerHintSeen: true });
+
+    expect(await t.run((ctx) => ctx.db.get(userId))).toMatchObject({ readerHintSeen: true });
+    expect((await authed.query(api.users.current, {}))?.readerHintSeen).toBe(true);
+  });
+
   it("rechaza pasos de lectura fuera del rango permitido", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_bad_reading_preferences");

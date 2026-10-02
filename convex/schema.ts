@@ -27,6 +27,9 @@ export default defineSchema({
     // hora de Honduras) de la semana en que la persona la cerró.
     savedMemoryEnabled: v.optional(v.boolean()),
     savedMemoryDismissedWeek: v.optional(v.string()),
+    // Pista de primera vez del lector (#196): "Tocá un versículo para…". Vive
+    // en la cuenta para que no reaparezca al cambiar de teléfono.
+    readerHintSeen: v.optional(v.boolean()),
     // Quién invitó a esta persona (PRD §9b): el `referralCode` de quien
     // compartió el link. Sirve solo para medir cuántos registros y pagos vienen
     // de compartir; no da premios ni se le muestra a nadie. Vive en la fila del
