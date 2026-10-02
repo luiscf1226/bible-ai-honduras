@@ -2,9 +2,11 @@ import type { IconName } from "../../components/Icon";
 import { copyToClipboard } from "../../lib/clipboard";
 import { goToChat } from "../../lib/goToChat";
 import { goToVoices } from "../../lib/goToVoices";
+import { openTimeline } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
 import { buildVerseCopyText, shareVerse, type ReadingVerse } from "./shareVerse";
+import { eraForChapter } from "./timeline";
 
 /**
  * Registro de acciones del versículo (#196, U4). La hoja del lector pinta esta
@@ -113,6 +115,23 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
       goToVoices(ctx.voice.slug, {
         draft: voiceDraftFor(`${ctx.verse.book} ${ctx.verse.chapter}:${ctx.verse.verse}`, ctx.voice.role),
       });
+    },
+  },
+  {
+    // Línea del tiempo (#201): abre en la época del capítulo (Rut 1 → Los
+    // jueces). Solo si el capítulo cae en alguna época curada.
+    id: "timeline",
+    icon: "clock",
+    label: () => "¿Cuándo pasó esto?",
+    accessibilityHint: (ctx) => {
+      const era = eraForChapter(ctx.verse.book, ctx.verse.chapter);
+      return era ? `Abre la línea del tiempo en ${era.name.toLowerCase()}.` : undefined;
+    },
+    testID: "reading-timeline",
+    visible: (ctx) => eraForChapter(ctx.verse.book, ctx.verse.chapter) !== null,
+    onPress: (ctx) => {
+      const era = eraForChapter(ctx.verse.book, ctx.verse.chapter);
+      if (era) openTimeline(era.id);
     },
   },
   {
