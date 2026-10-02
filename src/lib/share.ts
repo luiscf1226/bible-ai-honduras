@@ -153,3 +153,58 @@ export async function shareImage(params: { fileUri: string; text: string; referr
     return { status: "error", error };
   }
 }
+
+/**
+ * Exportar lo mío (#173): el texto va sin link de referido. Es lo personal de
+ * la persona (guardados, notas), no una invitación, y no cuenta en el embudo
+ * de compartir. Mismo share sheet y misma política de errores que `shareContent`.
+ */
+export async function sharePlainText(text: string): Promise<ShareResult> {
+  try {
+    const Share = await loadNative();
+    const result = await Share.share({ message: text });
+    return result.action === Share.dismissedAction ? { status: "dismissed" } : { status: "shared" };
+  } catch (error) {
+    return { status: "error", error };
+  }
+}
+
+export type ShareFileNative = {
+  isAvailableAsync: () => Promise<boolean>;
+  shareAsync: (url: string, options?: { mimeType?: string; UTI?: string; dialogTitle?: string }) => Promise<void>;
+};
+
+let fileOverride: ShareFileNative | undefined;
+
+/** Solo para tests. */
+export function setShareFileNativeForTests(native: ShareFileNative | undefined): void {
+  fileOverride = native;
+}
+
+async function loadFileNative(): Promise<ShareFileNative> {
+  if (fileOverride !== undefined) return fileOverride;
+  return await import("expo-sharing");
+}
+
+/**
+ * Comparte un archivo del teléfono (el PDF de "Exportar lo mío") con la hoja
+ * del sistema. `expo-sharing` no distingue cancelar de compartir, así que solo
+ * hay `shared` o `error`. Nunca lanza.
+ */
+export async function shareFile(params: {
+  uri: string;
+  mimeType: string;
+  uti?: string;
+  dialogTitle: string;
+}): Promise<ShareResult> {
+  try {
+    const Sharing = await loadFileNative();
+    if (!(await Sharing.isAvailableAsync())) {
+      return { status: "error", error: new Error("sharing_unavailable") };
+    }
+    await Sharing.shareAsync(params.uri, { mimeType: params.mimeType, UTI: params.uti, dialogTitle: params.dialogTitle });
+    return { status: "shared" };
+  } catch (error) {
+    return { status: "error", error };
+  }
+}

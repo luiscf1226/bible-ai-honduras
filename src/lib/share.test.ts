@@ -5,9 +5,12 @@ import {
   buildReferralLink,
   buildShareMessage,
   resetShareNativeForTests,
+  setShareFileNativeForTests,
   setShareNativeForTests,
   shareContent,
+  shareFile,
   shareImage,
+  sharePlainText,
   type ShareNative,
 } from "./share";
 
@@ -196,5 +199,65 @@ describe("asFileUri", () => {
   it("no toca lo que ya trae esquema", () => {
     expect(asFileUri("file:///tmp/x.png")).toBe("file:///tmp/x.png");
     expect(asFileUri("data:image/png;base64,AAA")).toBe("data:image/png;base64,AAA");
+  });
+});
+
+describe("sharePlainText (#173 — exportar lo mío)", () => {
+  afterEach(() => {
+    resetShareNativeForTests();
+  });
+
+  it("comparte el texto tal cual, sin link de referido", async () => {
+    const native = mockNative();
+    setShareNativeForTests(native);
+
+    const result = await sharePlainText("Lo mío\nJuan 3:16");
+
+    expect(result).toEqual({ status: "shared" });
+    expect(native.share).toHaveBeenCalledWith({ message: "Lo mío\nJuan 3:16" });
+  });
+
+  it("cancelar no es error", async () => {
+    setShareNativeForTests(mockNative({ share: vi.fn().mockResolvedValue({ action: "dismissedAction" }) }));
+    expect(await sharePlainText("x")).toEqual({ status: "dismissed" });
+  });
+
+  it("nunca lanza", async () => {
+    const failure = new Error("boom");
+    setShareNativeForTests(mockNative({ share: vi.fn().mockRejectedValue(failure) }));
+    expect(await sharePlainText("x")).toEqual({ status: "error", error: failure });
+  });
+});
+
+describe("shareFile (#173 — PDF)", () => {
+  afterEach(() => {
+    setShareFileNativeForTests(undefined);
+  });
+
+  const params = { uri: "file:///tmp/lo-mio.pdf", mimeType: "application/pdf", uti: "com.adobe.pdf", dialogTitle: "Lo mío" };
+
+  it("abre la hoja del sistema con el PDF", async () => {
+    const native = { isAvailableAsync: vi.fn().mockResolvedValue(true), shareAsync: vi.fn().mockResolvedValue(undefined) };
+    setShareFileNativeForTests(native);
+
+    expect(await shareFile(params)).toEqual({ status: "shared" });
+    expect(native.shareAsync).toHaveBeenCalledWith("file:///tmp/lo-mio.pdf", {
+      mimeType: "application/pdf",
+      UTI: "com.adobe.pdf",
+      dialogTitle: "Lo mío",
+    });
+  });
+
+  it("sin hoja de compartir disponible devuelve error sin intentar", async () => {
+    const native = { isAvailableAsync: vi.fn().mockResolvedValue(false), shareAsync: vi.fn() };
+    setShareFileNativeForTests(native);
+
+    expect((await shareFile(params)).status).toBe("error");
+    expect(native.shareAsync).not.toHaveBeenCalled();
+  });
+
+  it("nunca lanza", async () => {
+    setShareFileNativeForTests({ isAvailableAsync: vi.fn().mockResolvedValue(true), shareAsync: vi.fn().mockRejectedValue(new Error("x")) });
+    expect((await shareFile(params)).status).toBe("error");
   });
 });
