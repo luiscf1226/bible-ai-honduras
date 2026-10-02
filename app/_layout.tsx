@@ -8,6 +8,7 @@ import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 import { FullScreenNotice } from "../src/components/FullScreenNotice";
+import { OfflineSyncProvider } from "../src/features/offline/OfflineSyncProvider";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
@@ -107,7 +108,10 @@ export default function RootLayout() {
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
           <ThemeProvider>
-            <AppNavigator />
+            {/* Cola sin conexión del lector (#182): necesita Convex y la sesión. */}
+            <OfflineSyncProvider>
+              <AppNavigator />
+            </OfflineSyncProvider>
           </ThemeProvider>
         </ConvexProviderWithClerk>
       </ClerkLoaded>

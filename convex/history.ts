@@ -28,7 +28,7 @@ async function requireUser(ctx: AuthedCtx) {
   return user;
 }
 
-function titleFor(module: "qa" | "voices" | "feelings", characterId?: string) {
+function titleFor(module: "qa" | "voices" | "feelings", characterId?: string, title?: string) {
   if (module === "voices") {
     const character = voiceCharacters.find((item) => item.slug === characterId);
     return character?.name ?? "Voces";
@@ -36,14 +36,15 @@ function titleFor(module: "qa" | "voices" | "feelings", characterId?: string) {
   if (module === "feelings") {
     return "Sentimiento";
   }
-  return "Pregunta al texto";
+  // Preguntar tiene una conversación por tema (#191); la de antes no tiene título.
+  return title ?? "Pregunta al texto";
 }
 
 function initialFor(title: string) {
   return title[0]?.toUpperCase() ?? "?";
 }
 
-// Conversaciones del usuario autenticado, más recientes primero.
+// Conversaciones del usuario autenticado, con actividad más reciente primero.
 // Preview = último mensaje. No incluye filas de otros usuarios.
 export const list = query({
   args: {},
@@ -69,12 +70,13 @@ export const list = query({
           .withIndex("by_conversation", (q) => q.eq("conversationId", conversation._id))
           .collect();
         const last = messages[messages.length - 1];
-        const title = titleFor(conversation.module, conversation.characterId);
+        const title = titleFor(conversation.module, conversation.characterId, conversation.title);
         return {
           id: conversation._id,
           module: conversation.module,
           characterId: conversation.characterId,
           createdAt: conversation.createdAt,
+          updatedAt: conversation.updatedAt ?? conversation.createdAt,
           title,
           initial: initialFor(title),
           preview: last?.text ?? "",
@@ -82,7 +84,7 @@ export const list = query({
       }),
     );
 
-    return items.sort((a, b) => b.createdAt - a.createdAt);
+    return items.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 

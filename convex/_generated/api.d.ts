@@ -20,6 +20,8 @@ import type * as http from "../http.js";
 import type * as images from "../images.js";
 import type * as memorize from "../memorize.js";
 import type * as memorizeSchedule from "../memorizeSchedule.js";
+import type * as offlineBible from "../offlineBible.js";
+import type * as offlineBiblePackage from "../offlineBiblePackage.js";
 import type * as prayers from "../prayers.js";
 import type * as qa from "../qa.js";
 import type * as quotas from "../quotas.js";
@@ -38,6 +40,8 @@ import type * as readingPlans from "../readingPlans.js";
 import type * as referralCode from "../referralCode.js";
 import type * as referrals from "../referrals.js";
 import type * as savedMemory from "../savedMemory.js";
+import type * as seasons from "../seasons.js";
+import type * as seasonsDraftCatalog from "../seasonsDraftCatalog.js";
 import type * as stories from "../stories.js";
 import type * as telemetry from "../telemetry.js";
 import type * as users from "../users.js";
@@ -45,6 +49,8 @@ import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
 import type * as voicesGuardrail from "../voicesGuardrail.js";
 import type * as voicesPrompt from "../voicesPrompt.js";
+import type * as yearInWord from "../yearInWord.js";
+import type * as yearInWordCore from "../yearInWordCore.js";
 
 import type {
   ApiFromModules,
@@ -65,6 +71,8 @@ declare const fullApi: ApiFromModules<{
   images: typeof images;
   memorize: typeof memorize;
   memorizeSchedule: typeof memorizeSchedule;
+  offlineBible: typeof offlineBible;
+  offlineBiblePackage: typeof offlineBiblePackage;
   prayers: typeof prayers;
   qa: typeof qa;
   quotas: typeof quotas;
@@ -83,6 +91,8 @@ declare const fullApi: ApiFromModules<{
   referralCode: typeof referralCode;
   referrals: typeof referrals;
   savedMemory: typeof savedMemory;
+  seasons: typeof seasons;
+  seasonsDraftCatalog: typeof seasonsDraftCatalog;
   stories: typeof stories;
   telemetry: typeof telemetry;
   users: typeof users;
@@ -90,6 +100,8 @@ declare const fullApi: ApiFromModules<{
   voicesCatalog: typeof voicesCatalog;
   voicesGuardrail: typeof voicesGuardrail;
   voicesPrompt: typeof voicesPrompt;
+  yearInWord: typeof yearInWord;
+  yearInWordCore: typeof yearInWordCore;
 }>;
 
 /**

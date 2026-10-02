@@ -56,7 +56,16 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?qa=error` | `devotional:today` falla |
 | `?qa=loading` | todas las `useQuery` en `undefined` |
 | `?qa=dark` | `users.darkMode = true` |
+| `?temporada=reforma` / `gratitud` / `adviento` | `seasons.current` con esa temporada de muestra (#199); se combina con `?qa=dark`. Sin el parámetro, fuera de temporada |
 | `?ver=NVI` | versión de la Biblia = NVI (sin corpus, igual que en producción) |
+| `?net=off` | modo avión (#160, #182): NetInfo sin red, las `useQuery` quedan en `undefined` y las mutaciones no vuelven, como el cliente real de Convex sin conexión |
+| `?plan=1` | plan anual empezado, en el día 5 con los días 3 y 4 pendientes |
+
+La Biblia sin conexión se descarga de verdad desde Ajustes: el manifiesto del
+harness trae los 66 libros (con los versículos placeholder) como `data:` URLs y
+queda en `localStorage` (`offline/…`), igual que en el teléfono queda en
+archivos. La cola sin conexión también vive ahí (`offline/queue.json`). Para
+empezar de cero, borrá el `localStorage` del sitio.
 
 ## Limitaciones conocidas
 
@@ -68,6 +77,10 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
   4 versículos de Salmos 46 como placeholder.
 - Las cuotas no decrementan al consumir: `quotas:remaining` es un fixture fijo,
   no una query reactiva. Usá `?qa=limit` para ver el estado agotado.
+- "Tu año en la Palabra" (#183): `/tu-ano` abre siempre; `yearInWord:summary`
+  es un fixture fijo (`?qa=empty` lo deja en cero). La entrada en Mi espacio
+  solo aparece del 1 de diciembre al 31 de enero: para verla, fijá el reloj
+  del navegador (Playwright `page.clock.setFixedTime("2026-12-05T12:00:00-06:00")`).
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
   historial" no aparece en el navegador. En iOS/Android sí.
 - Los recordatorios devuelven `unsupported` en web (comportamiento real de

@@ -62,3 +62,10 @@ Design y se re-exporte, estos valores se re-miden y se reemplazan.
 - Regla dura del proyecto: **`CLAUDE.md` § Regla dura #1**.
 - Skill que aplica el procedimiento completo (incluye cómo re-exportar desde Claude
   Design cuando el diseño cambia): **`.claude/skills/frontend-claude-design/SKILL.md`**.
+
+## Oleada UX "inicio en tarjetas" (#190)
+
+Por decisión del fundador (2026-10-02), las pantallas de U1–U6 y lo visual de
+#199/#200 se diseñaron directo en el repo, sin pasar por Claude Design:
+**`design/oleada-ux.md`** es su contrato visual, con los tokens nuevos ya en
+`tokens.json` y el set de íconos en `src/components/Icon.tsx`.

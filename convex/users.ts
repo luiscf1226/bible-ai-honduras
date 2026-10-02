@@ -232,6 +232,8 @@ export const updatePreferences = mutation({
     readingSpacingStep: v.optional(v.number()),
     // "Hace un año guardaste…" en el inicio (#172).
     savedMemoryEnabled: v.optional(v.boolean()),
+    // Pista de primera vez del lector (#196).
+    readerHintSeen: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
@@ -262,6 +264,7 @@ export const updatePreferences = mutation({
       readingFontStep: number;
       readingSpacingStep: number;
       savedMemoryEnabled: boolean;
+      readerHintSeen: boolean;
     }> = {};
     if (args.bibleVersion !== undefined) {
       // #93 §4b: el schema sigue aceptando NVI (hay filas viejas que la tienen),
@@ -283,6 +286,9 @@ export const updatePreferences = mutation({
     }
     if (args.savedMemoryEnabled !== undefined) {
       patch.savedMemoryEnabled = args.savedMemoryEnabled;
+    }
+    if (args.readerHintSeen !== undefined) {
+      patch.readerHintSeen = args.readerHintSeen;
     }
     await ctx.db.patch(existing._id, patch);
   },

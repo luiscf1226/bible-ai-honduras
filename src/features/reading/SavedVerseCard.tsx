@@ -1,9 +1,9 @@
-import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import { openPassage } from "../../lib/openPassage";
+import { useOfflineSync } from "../offline/OfflineSyncProvider";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
 import { removeSavedCopy, savedWhenLabel } from "./savedVerses";
@@ -31,7 +31,8 @@ type SavedVerseCardProps = {
  */
 export function SavedVerseCard({ item, referralCode }: SavedVerseCardProps) {
   const { color } = useTheme();
-  const removeBookmark = useMutation(api.reading.removeBookmark);
+  // Quitar pasa por la cola sin conexión (#182): desaparece al instante.
+  const { run } = useOfflineSync();
   const reference = `${item.book} ${item.chapter}:${item.verse}`;
   const text = item.text;
 
@@ -43,7 +44,7 @@ export function SavedVerseCard({ item, referralCode }: SavedVerseCardProps) {
         text: "Quitar",
         style: "destructive",
         onPress: () => {
-          void removeBookmark({ book: item.book, chapter: item.chapter, verse: item.verse }).catch(() => undefined);
+          run({ kind: "bookmark", ref: { book: item.book, chapter: item.chapter, verse: item.verse }, saved: false });
         },
       },
     ]);

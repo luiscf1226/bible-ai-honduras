@@ -1,13 +1,13 @@
 import { ConvexError, v } from "convex/values";
 
-import { internalMutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { internalMutation, query, type QueryCtx } from "./_generated/server";
 import { parseVerseRef } from "../src/lib/parseVerseRef";
-import { devotionalCatalog, type DevotionalCatalogItem } from "./devotionalCatalog";
+import { devotionalForMonthDay, type DevotionalCatalogItem } from "./devotionalCatalog";
 import { bibleVersionForIdentity, findVerse } from "./rag/verses";
 
 const HONDURAS_TIME_ZONE = "America/Tegucigalpa";
 const DAY_MS = 24 * 60 * 60 * 1000;
-const REFERENCE_DATE = "2026-01-01";
 const DAYS_TO_PREPARE = 28;
 
 type Devotional = DevotionalCatalogItem & { date: string };
@@ -50,45 +50,78 @@ export function hondurasDateKey(now = Date.now()): string {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
+// Un devocional por día del calendario (366, con el 29 de febrero): el mismo
+// mes-día trae el mismo devocional todos los años. `date` es la fecha de
+// Honduras (`hondurasDateKey`), así que el cambio de día ocurre a la
+// medianoche de Tegucigalpa.
 export function devotionalForDate(date: string): Devotional {
-  const differenceInDays = Math.round((parseDateKey(date) - parseDateKey(REFERENCE_DATE)) / DAY_MS);
-  const index = ((differenceInDays % devotionalCatalog.length) + devotionalCatalog.length) % devotionalCatalog.length;
-  return { date, ...devotionalCatalog[index] };
+  parseDateKey(date);
+  const [, month, day] = date.split("-").map(Number);
+  return { date, ...devotionalForMonthDay(month, day) };
 }
 
+const CONTENT_FIELDS = [
+  "catalogId",
+  "openingPrayer",
+  "intro",
+  "verseRef",
+  "reflection",
+  "closingPrayer",
+  "imageUrl",
+  "imageAlt",
+  "imageAttributionUrl",
+] as const;
+
+// Filas sembradas por el ciclo de cuatro semanas anterior no traen oración
+// inicial, introducción ni oración final: se ignoran y se sirve el catálogo.
+function isComplete(row: Doc<"dailyDevotionals">): row is Doc<"dailyDevotionals"> & Devotional {
+  return Boolean(row.openingPrayer && row.intro && row.closingPrayer);
+}
+
+function matchesCatalog(row: Doc<"dailyDevotionals">, devotional: Devotional): boolean {
+  return CONTENT_FIELDS.every((field) => row[field] === devotional[field]);
+}
+
+async function storedRow(ctx: QueryCtx, date: string) {
+  return await ctx.db
+    .query("dailyDevotionals")
+    .withIndex("by_date", (q) => q.eq("date", date))
+    .first();
+}
+
+async function devotionalServedOn(ctx: QueryCtx, date: string): Promise<Devotional> {
+  const stored = await storedRow(ctx, date);
+  return stored && isComplete(stored) ? stored : devotionalForDate(date);
+}
+
+// Campos para `/hoy` (#194): Oración inicial · Introducción · Pasaje ·
+// Reflexión · Oración final. El texto del pasaje no viaja acá: se resuelve por
+// `verseRef` contra el corpus en la versión de la persona.
 function asResponse(devotional: Devotional) {
   return {
     catalogId: devotional.catalogId,
     date: devotional.date,
+    openingPrayer: devotional.openingPrayer,
+    intro: devotional.intro,
+    verseRef: devotional.verseRef,
+    reflection: devotional.reflection,
+    closingPrayer: devotional.closingPrayer,
     imageAlt: devotional.imageAlt,
     imageAttributionUrl: devotional.imageAttributionUrl,
     imageUrl: devotional.imageUrl,
-    reflection: devotional.reflection,
-    verseRef: devotional.verseRef,
   };
 }
 
 export const today = query({
   args: {},
-  handler: async (ctx) => {
-    const date = hondurasDateKey();
-    const stored = await ctx.db
-      .query("dailyDevotionals")
-      .withIndex("by_date", (q) => q.eq("date", date))
-      .first();
-    return asResponse(stored ?? devotionalForDate(date));
-  },
+  handler: async (ctx) => asResponse(await devotionalServedOn(ctx, hondurasDateKey())),
 });
 
 export const byDate = query({
   args: { date: v.string() },
   handler: async (ctx, args) => {
     parseDateKey(args.date);
-    const stored = await ctx.db
-      .query("dailyDevotionals")
-      .withIndex("by_date", (q) => q.eq("date", args.date))
-      .first();
-    return asResponse(stored ?? devotionalForDate(args.date));
+    return asResponse(await devotionalServedOn(ctx, args.date));
   },
 });
 
@@ -109,11 +142,7 @@ export const widgetDays = query({
     const days = [];
     for (let offset = 0; offset < WIDGET_DAYS; offset += 1) {
       const date = addDays(startDate, offset);
-      const stored = await ctx.db
-        .query("dailyDevotionals")
-        .withIndex("by_date", (q) => q.eq("date", date))
-        .first();
-      const verseRef = (stored ?? devotionalForDate(date)).verseRef;
+      const { verseRef } = await devotionalServedOn(ctx, date);
       const parsed = parseVerseRef(verseRef);
       const verse = parsed ? await findVerse(ctx, { ...parsed, version }) : null;
       days.push({ date, verseRef, text: verse?.text ?? null, version });
@@ -122,26 +151,30 @@ export const widgetDays = query({
   },
 });
 
-// Solo cron puede llamarla. Inserta una ventana de cuatro semanas y puede
-// repetirse sin duplicar el contenido ya persistido.
+// Solo cron puede llamarla. Deja persistida una ventana de cuatro semanas igual
+// al catálogo: inserta los días que faltan y reemplaza los que quedaron
+// desactualizados (filas del ciclo anterior o contenido corregido después de
+// la revisión pastoral). Repetirla no duplica nada.
 export const ensureWindow = internalMutation({
   args: {},
   handler: async (ctx) => {
     const startDate = hondurasDateKey();
     let inserted = 0;
+    let updated = 0;
 
     for (let offset = 0; offset < DAYS_TO_PREPARE; offset += 1) {
       const date = addDays(startDate, offset);
-      const existing = await ctx.db
-        .query("dailyDevotionals")
-        .withIndex("by_date", (q) => q.eq("date", date))
-        .first();
-      if (existing) continue;
-
-      await ctx.db.insert("dailyDevotionals", devotionalForDate(date));
-      inserted += 1;
+      const devotional = devotionalForDate(date);
+      const existing = await storedRow(ctx, date);
+      if (!existing) {
+        await ctx.db.insert("dailyDevotionals", devotional);
+        inserted += 1;
+      } else if (!matchesCatalog(existing, devotional)) {
+        await ctx.db.replace(existing._id, devotional);
+        updated += 1;
+      }
     }
 
-    return { inserted, startDate };
+    return { inserted, startDate, updated };
   },
 });
