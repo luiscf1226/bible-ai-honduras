@@ -7,7 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
 import { cancelDailyDevotionalReminder, scheduleDailyDevotionalReminders } from "../../src/lib/dailyReminder";
-import { upcomingReminderDates } from "../../src/lib/reminderDates";
+import { loadDailyReminders } from "../../src/lib/reminderSchedule";
 import { REMINDER_HOURS, reminderHourFromDisplay, type ReminderDisplay } from "../../src/lib/reminderHours";
 import { tokens } from "../../src/theme/tokens";
 
@@ -38,18 +38,11 @@ export default function NotificationsScreen() {
         throw new Error("El devocional de hoy todavía no está disponible.");
       }
 
-      const dates = upcomingReminderDates(selectedTime);
-      const devotionals = await Promise.all(
-        dates.map(async (date) => {
-          if (date === todayDevotional.date) {
-            return { date, verseRef: todayDevotional.verseRef };
-          }
-
-          const devotional = await convex.query(api.devotional.byDate, { date });
-          return { date: devotional.date, verseRef: devotional.verseRef };
-        }),
-      );
-      const result = await scheduleDailyDevotionalReminders(selectedTime, devotionals);
+      const reminders = await loadDailyReminders(convex, selectedTime, {
+        date: todayDevotional.date,
+        verseRef: todayDevotional.verseRef,
+      });
+      const result = await scheduleDailyDevotionalReminders(selectedTime, reminders);
 
       if (result === "scheduled") {
         finish();
