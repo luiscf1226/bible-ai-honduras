@@ -48,6 +48,7 @@ import {
   stepTowards,
 } from "../../../../src/features/reading/readingSettings";
 import { NOTE_MAX_LENGTH, removeSavedCopy } from "../../../../src/features/reading/savedVerses";
+import { formatCitation } from "../../../../src/lib/citation";
 import { formatVerseReference, type ReadingVerse } from "../../../../src/features/reading/shareVerse";
 import type { VerseActionContext } from "../../../../src/features/reading/verseActions";
 import { VerseToolbar } from "../../../../src/features/reading/VerseToolbar";
@@ -361,7 +362,7 @@ export default function ReaderScreen() {
     selected ? (
       <View style={styles.sheetHeader}>
         <View style={styles.sheetHeaderText}>
-          <Text style={[styles.panelTitle, { color: color.ink }]}>{formatVerseReference(selected)}</Text>
+          <Text style={[styles.panelTitle, { color: color.ink }]}>{formatCitation(selected)}</Text>
           <Text numberOfLines={2} style={[styles.panelQuote, { color: color.inkMuted }]}>{selected.text}</Text>
           {full && selectedBookmark?.note ? (
             <Text numberOfLines={2} style={[styles.panelNote, { backgroundColor: color.surfaceSunk, color: color.inkMuted }]}>
