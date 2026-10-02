@@ -8,7 +8,7 @@ import { EMBEDDING_DIMENSIONS } from "./embed";
 
 const DEFAULT_VERSION = DEFAULT_BIBLE_VERSION;
 
-async function findVerse(
+export async function findVerse(
   ctx: QueryCtx,
   args: { version: string; book: string; chapter: number; verse: number },
 ) {
@@ -37,7 +37,7 @@ async function findVerse(
   };
 }
 
-async function bibleVersionForIdentity(ctx: QueryCtx): Promise<string> {
+export async function bibleVersionForIdentity(ctx: QueryCtx): Promise<string> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     return DEFAULT_VERSION;
