@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { inviteTokenFromUrl } from "../../convex/readingGroupCore";
 import {
+  buildGroupInviteLink,
   asFileUri,
   buildReferralLink,
   buildShareMessage,
@@ -42,6 +44,14 @@ describe("buildShareMessage", () => {
     const message = buildShareMessage("Moisés te responde: ...", "BAH-XYZ");
     expect(message).toContain("Moisés te responde: ...");
     expect(message).toContain(buildReferralLink("BAH-XYZ"));
+  });
+
+  it("invitación a un grupo (#185): el mismo link con el token, que la app sabe leer", () => {
+    const token = "abcdefghijkmnpqr";
+    const message = buildShareMessage("Te invito", "BAH-XYZ", token);
+    expect(message).toContain(buildGroupInviteLink("BAH-XYZ", token));
+    expect(buildGroupInviteLink("BAH-XYZ", token)).toBe(`${buildReferralLink("BAH-XYZ")}&grupo=${token}`);
+    expect(inviteTokenFromUrl(buildGroupInviteLink("BAH-XYZ", token))).toBe(token);
   });
 });
 

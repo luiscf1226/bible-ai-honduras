@@ -323,6 +323,36 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_plan", ["userId", "planId"]),
 
+  // Plan en grupo cerrado (#185, cierra #162). El nombre del grupo no se
+  // guarda: se deriva de `kind` (lista fija) y del plan, para que no haya
+  // texto libre de usuarios que moderar (docs/spikes/moderacion-contenido-usuarios.md).
+  readingGroups: defineTable({
+    planId: v.string(),
+    kind: v.union(
+      v.literal("familia"),
+      v.literal("celula"),
+      v.literal("escuela-dominical"),
+      v.literal("jovenes"),
+      v.literal("amigos"),
+    ),
+    // Quien está a cargo: puede cambiar el link. Si sale, pasa a quien entró primero.
+    ownerId: v.id("users"),
+    // Token del link de invitación (`bibleai://grupo?token=…`). Se puede rotar.
+    inviteToken: v.string(),
+    createdAt: v.number(),
+  }).index("by_invite_token", ["inviteToken"]),
+
+  // Una fila por (grupo, persona). Lo único que se comparte es el avance del
+  // plan, que se lee de `userPlanProgress` — acá no se copia nada.
+  readingGroupMembers: defineTable({
+    groupId: v.id("readingGroups"),
+    userId: v.id("users"),
+    joinedAt: v.number(),
+  })
+    .index("by_group", ["groupId"])
+    .index("by_user", ["userId"])
+    .index("by_group_user", ["groupId", "userId"]),
+
   // ── Transversales (#4 / quotas) ─────────────────────────
   usage: defineTable({
     userId: v.id("users"),

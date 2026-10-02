@@ -1,11 +1,11 @@
 import * as Application from "expo-application";
-import * as SecureStore from "expo-secure-store";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef } from "react";
 import { Linking, Platform } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import { referralFromQuery, type ReferralVia } from "../../convex/referralCode";
+import { deletePending, getPending, setPending } from "../lib/pendingStore";
 import { setReferralAttribute } from "../lib/revenuecat";
 import { track } from "../lib/telemetry";
 
@@ -25,50 +25,24 @@ import { track } from "../lib/telemetry";
 
 const PENDING_KEY = "referral-pending";
 const PLAY_CHECKED_KEY = "referral-play-checked";
-const native = Platform.OS === "ios" || Platform.OS === "android";
-
-// En web no hay SecureStore: el pendiente vive solo en memoria.
-const memory = new Map<string, string>();
-async function getItem(key: string): Promise<string | null> {
-  if (!native) return memory.get(key) ?? null;
-  try {
-    return await SecureStore.getItemAsync(key);
-  } catch {
-    return null;
-  }
-}
-async function setItem(key: string, value: string): Promise<void> {
-  if (!native) return void memory.set(key, value);
-  try {
-    await SecureStore.setItemAsync(key, value);
-  } catch {
-    // Sin almacenamiento se pierde la atribución, nunca la app.
-  }
-}
-async function deleteItem(key: string): Promise<void> {
-  if (!native) return void memory.delete(key);
-  try {
-    await SecureStore.deleteItemAsync(key);
-  } catch {
-    // idem
-  }
-}
+// El pendiente se guarda en `src/lib/pendingStore.ts`, el mismo lugar que la
+// invitación a un grupo (#185).
 
 async function rememberFromUrl(url: string | null) {
   const code = referralFromQuery(url);
-  if (code) await setItem(PENDING_KEY, code);
+  if (code) await setPending(PENDING_KEY, code);
 }
 
 /** Lo que haya para anotar: primero el link, después Google Play (una sola vez). */
 async function nextCandidate(): Promise<{ code: string; via: ReferralVia } | null> {
-  const pending = await getItem(PENDING_KEY);
+  const pending = await getPending(PENDING_KEY);
   if (pending) return { code: pending, via: "link" };
-  if (Platform.OS !== "android" || (await getItem(PLAY_CHECKED_KEY))) return null;
+  if (Platform.OS !== "android" || (await getPending(PLAY_CHECKED_KEY))) return null;
   try {
     const code = referralFromQuery(await Application.getInstallReferrerAsync());
     // Sin `ref` en el referrer (instalación orgánica) no hay nada que anotar,
     // nunca: se marca ya. Con `ref`, se marca cuando el backend responde.
-    if (!code) await setItem(PLAY_CHECKED_KEY, "1");
+    if (!code) await setPending(PLAY_CHECKED_KEY, "1");
     return code ? { code, via: "play" } : null;
   } catch {
     return null;
@@ -95,7 +69,7 @@ export function useReferralAttribution() {
         attributed.current = currentUser.referredBy;
         void setReferralAttribute(currentUser.referredBy);
       }
-      void deleteItem(PENDING_KEY);
+      void deletePending(PENDING_KEY);
       return;
     }
     if (claiming.current) return;
@@ -107,8 +81,8 @@ export function useReferralAttribution() {
         const result = await claim(candidate);
         // Cualquier respuesta es final (anotado, inválido, propio, tarde): no se
         // reintenta. Un error de red sí deja el pendiente para la próxima vez.
-        if (candidate.via === "play") await setItem(PLAY_CHECKED_KEY, "1");
-        else await deleteItem(PENDING_KEY);
+        if (candidate.via === "play") await setPending(PLAY_CHECKED_KEY, "1");
+        else await deletePending(PENDING_KEY);
         if (result.status === "ok") track("referral_claimed");
       } catch {
         // Sin red o backend viejo: se reintenta en el próximo arranque.
