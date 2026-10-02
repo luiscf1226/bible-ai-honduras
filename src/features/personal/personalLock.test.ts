@@ -5,6 +5,7 @@ import {
   LOCK_UNAVAILABLE_COPY,
   RELOCK_AFTER_MS,
   authOutcome,
+  hideLockedFeelings,
   lockAvailability,
   lockSettingHint,
   needsUnlock,
@@ -102,5 +103,22 @@ describe("authOutcome", () => {
   it("sin bloqueo en el teléfono deja pasar", () => {
     expect(authOutcome({ success: false, error: "not_enrolled" })).toBe("pass");
     expect(authOutcome({ success: false, error: "passcode_not_set" })).toBe("pass");
+  });
+});
+
+describe("hideLockedFeelings (#171 — Mis conversaciones)", () => {
+  const items = [
+    { id: "1", module: "qa" },
+    { id: "2", module: "feelings" },
+    { id: "3", module: "voices" },
+  ];
+
+  it("con lo personal desbloqueado (o sin candado) se ve todo", () => {
+    expect(hideLockedFeelings(items, "open")).toEqual(items);
+  });
+
+  it("bloqueado o todavía revisando, las de Sentir no salen", () => {
+    expect(hideLockedFeelings(items, "locked").map((item) => item.id)).toEqual(["1", "3"]);
+    expect(hideLockedFeelings(items, "checking").map((item) => item.id)).toEqual(["1", "3"]);
   });
 });

@@ -38,6 +38,18 @@ export function needsUnlock(enabled: boolean, available: boolean, session: LockS
   return enabled && available && !session.unlocked;
 }
 
+/**
+ * "Mis conversaciones" (Ajustes) lista también las de Sentir, con su último
+ * mensaje. Esa pantalla no lleva candado (Preguntar y Voces quedan libres),
+ * así que mientras lo personal no esté desbloqueado, las de Sentir no salen.
+ */
+export function hideLockedFeelings<T extends { module: string }>(
+  items: T[],
+  status: "checking" | "locked" | "open",
+): T[] {
+  return status === "open" ? items : items.filter((item) => item.module !== "feelings");
+}
+
 /** Lo que reporta el teléfono, con la forma de `expo-local-authentication`. */
 export type DeviceSecurity = {
   hasHardware: boolean;
