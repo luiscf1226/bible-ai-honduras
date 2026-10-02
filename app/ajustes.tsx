@@ -454,7 +454,7 @@ export default function AjustesScreen() {
           onPress={() => {
             Alert.alert(
               "¿Borrar tu historial?",
-              "Se eliminan de verdad tus conversaciones y las notas de tus versículos guardados. No se puede deshacer.",
+              "Se eliminan de verdad tus conversaciones, tu diario de oración y las notas de tus versículos guardados. No se puede deshacer.",
               [
                 { text: "Cancelar", style: "cancel" },
                 {
