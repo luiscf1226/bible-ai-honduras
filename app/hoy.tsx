@@ -46,7 +46,7 @@ type ShareFeedback = "error" | "copied" | null;
  * preguntar). Reemplaza la expansión que vivía dentro del inicio.
  */
 export default function HoyScreen() {
-  const { color, dark } = useTheme();
+  const { color, dark, season } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const { retry, state } = useTodayDevotional();
   const devotional = state.status === "ready" ? state.devotional : null;
@@ -285,6 +285,7 @@ export default function HoyScreen() {
             }}
             ref={storyRef}
             scale={windowWidth / tokens.storyImage.width}
+            seasonName={season?.name}
             verseText={verse.text}
           />
         </View>

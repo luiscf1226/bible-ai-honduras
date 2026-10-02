@@ -30,8 +30,9 @@
 | `size.ribbon` | 14 × 42 | | Cinta del separador (U3) |
 | `size.marginMark` | 5 | | Punto de "guardado" en el margen (U4) |
 | `size.actionTile` | 64 | | Celda de la barra de herramientas del versículo (U4) |
+| `size.ring` | 1.5 | | Anillo `accent` del personaje del mes (#200) |
 | `grid.actionColumns` | 4 | | Columnas de esa barra (U4) |
-| `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
+| `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30, temporada 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
 | `season.{reforma,gratitud,adviento}` | ver `tokens.json` | | Capa de temporada (#199) |
 
 ## Íconos

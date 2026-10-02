@@ -9,8 +9,11 @@ import type { Feeling } from "../feelings/feelings";
  * ejemplo del día y las líneas de estado.
  */
 
-/** Orden exacto de las tarjetas del inicio (#193). Una tarjeta nueva entra acá y en `cards/index.ts`. */
-export const HOME_CARD_ORDER = ["verse", "read", "feeling", "ask", "characters", "stories"] as const;
+/**
+ * Orden exacto de las tarjetas del inicio (#193). Una tarjeta nueva entra acá y en `cards/index.ts`.
+ * `season` es la franja de temporada (#199): solo se ve con temporada activa.
+ */
+export const HOME_CARD_ORDER = ["season", "verse", "read", "feeling", "ask", "characters", "stories"] as const;
 export type HomeCardId = (typeof HOME_CARD_ORDER)[number];
 
 /** Ruta en la forma que acepta `router.push`. */
@@ -135,12 +138,16 @@ export const CHARACTERS_CARD_CAPTION = "Conversá con Moisés, Ester, David…";
 export const HOME_CHARACTER_COUNT = 4;
 const PREFERRED_CHARACTERS = ["moises", "ester", "david", "pablo"];
 
-/** Los 4 avatares del inicio: los que nombra la línea, y si faltan, los primeros del catálogo. */
-export function pickHomeCharacters<T extends { slug: string }>(characters: readonly T[]): T[] {
-  const preferred = PREFERRED_CHARACTERS.map((slug) => characters.find((character) => character.slug === slug)).filter(
+/**
+ * Los 4 avatares del inicio: el personaje del mes primero (#200), después los
+ * que nombra la línea, y si faltan, los primeros del catálogo.
+ */
+export function pickHomeCharacters<T extends { slug: string }>(characters: readonly T[], featuredSlug?: string | null): T[] {
+  const order = featuredSlug ? [featuredSlug, ...PREFERRED_CHARACTERS.filter((slug) => slug !== featuredSlug)] : PREFERRED_CHARACTERS;
+  const preferred = order.map((slug) => characters.find((character) => character.slug === slug)).filter(
     (character): character is T => character !== undefined,
   );
-  const rest = characters.filter((character) => !PREFERRED_CHARACTERS.includes(character.slug));
+  const rest = characters.filter((character) => !order.includes(character.slug));
   return [...preferred, ...rest].slice(0, HOME_CHARACTER_COUNT);
 }
 

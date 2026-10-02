@@ -38,6 +38,10 @@ export const TELEMETRY_EVENTS = [
   // Oleada UX (#193, #194): tarjetas del inicio y la pantalla del versículo del día.
   "home_card_opened",
   "today_opened",
+  // Temporadas (#199) y personaje del mes (#200). Sin la temporada ni el
+  // personaje: solo que se vio la franja / se abrió la tarjeta.
+  "season_shown",
+  "featured_character_opened",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 

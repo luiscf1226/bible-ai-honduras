@@ -16,9 +16,10 @@ type QaEmptyStateProps = {
  * Estado vacío de Preguntar (design/oleada-ux.md §U6): "¿Qué querés entender
  * hoy?" + grupos con `overline` `accent` y preguntas tocables en serif
  * `versePicker` con chevron. Con pasaje, un solo grupo "Sobre {pasaje}".
+ * Con temporada, sus preguntas de ejemplo encabezan la lista (#199).
  */
 export function QaEmptyState({ disabled = false, onAsk, passage }: QaEmptyStateProps) {
-  const { color } = useTheme();
+  const { color, season } = useTheme();
 
   return (
     <View style={styles.root} testID="qa-empty">
@@ -28,7 +29,7 @@ export function QaEmptyState({ disabled = false, onAsk, passage }: QaEmptyStateP
           Preguntá con tus palabras. Cada respuesta sale del texto y cita el versículo.
         </Text>
       </View>
-      {emptyStateGroups(passage).map((group) => (
+      {emptyStateGroups(passage, season).map((group) => (
         <View key={group.label} style={styles.group}>
           <Text style={[styles.overline, { color: color.accent }]}>{group.label}</Text>
           <View style={[styles.list, { borderTopColor: color.border }]}>

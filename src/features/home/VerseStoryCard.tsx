@@ -14,6 +14,8 @@ type VerseStoryCardProps = {
   scale: number;
   /** La foto ya cargó (o falló): recién ahí conviene capturar. */
   onImageSettled: () => void;
+  /** Nombre de la temporada activa (#199): va arriba al centro. Sin temporada, la imagen de siempre. */
+  seasonName?: string | null;
 };
 
 const image = tokens.storyImage;
@@ -25,9 +27,20 @@ const night = tokens.night.color;
  * No se ve: `/hoy` la dibuja fuera de pantalla y la captura con
  * react-native-view-shot. Todas las medidas salen de `tokens.storyImage`
  * (píxeles de salida) multiplicadas por `scale`.
+ *
+ * Con temporada (#199, §Temporadas) el nombre va en `overline` arriba al
+ * centro, `surface` al 85 %; el versículo cede ese alto (`verseStoryLayout`).
  */
-export function VerseStoryCard({ citation, imageUrl, onImageSettled, ref, scale, verseText }: VerseStoryCardProps) {
-  const layout = verseStoryLayout(`“${verseText}”`);
+export function VerseStoryCard({
+  citation,
+  imageUrl,
+  onImageSettled,
+  ref,
+  scale,
+  seasonName,
+  verseText,
+}: VerseStoryCardProps) {
+  const layout = verseStoryLayout(`“${verseText}”`, image, { withSeason: Boolean(seasonName) });
   const chrome = storyChrome();
   const px = (value: number) => value * scale;
 
@@ -47,6 +60,22 @@ export function VerseStoryCard({ citation, imageUrl, onImageSettled, ref, scale,
       <View style={[StyleSheet.absoluteFill, { backgroundColor: night.imageScrim }]} />
 
       <View style={[StyleSheet.absoluteFill, { paddingHorizontal: px(image.paddingX), paddingVertical: px(image.paddingY) }]}>
+        {seasonName ? (
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.season,
+              {
+                color: tokens.color.surface,
+                fontSize: px(image.season),
+                letterSpacing: px(chrome.seasonLetterSpacing),
+                lineHeight: px(chrome.seasonLineHeight),
+              },
+            ]}
+          >
+            {seasonName}
+          </Text>
+        ) : null}
         <View style={styles.center}>
           <Text
             numberOfLines={layout.maxLines}
@@ -100,6 +129,7 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", flex: 1, justifyContent: "center" },
   verse: { fontFamily: tokens.font.serif, textAlign: "center" },
   citation: { fontFamily: tokens.font.sansMedium, opacity: tokens.opacity.imageMuted, textAlign: "center" },
+  season: { fontFamily: tokens.font.sansMedium, opacity: tokens.opacity.imageMuted, textAlign: "center", textTransform: "uppercase" },
   brand: { alignItems: "center", flexDirection: "row", justifyContent: "center" },
   brandName: { fontFamily: tokens.font.sansMedium },
 });

@@ -31,6 +31,24 @@ describe("emptyStateGroups", () => {
     expect(groups[0].questions).toEqual(["¿Qué quiere decir el versículo 16?", APPLY_TODAY, WHO_WROTE_IT]);
   });
 
+  it("con temporada y preguntas de ejemplo, la temporada encabeza y siguen siendo tres grupos (#199)", () => {
+    const season = { name: "Mes de la Reforma", sampleQuestions: ["¿Qué es la gracia en Romanos?", "¿Qué dice Gálatas de la fe?", "Una tercera"] };
+    const groups = emptyStateGroups(null, season);
+    expect(groups.map((group) => group.label)).toEqual(["Mes de la Reforma", "Para mi vida", "Sobre personajes"]);
+    expect(groups[0].questions).toEqual(["¿Qué es la gracia en Romanos?", "¿Qué dice Gálatas de la fe?"]);
+  });
+
+  it("sin temporada o sin preguntas de ejemplo, lo de siempre", () => {
+    expect(emptyStateGroups(null, null)).toBe(FREE_QUESTION_GROUPS);
+    expect(emptyStateGroups(null, { name: "Mes de gratitud", sampleQuestions: [] })).toBe(FREE_QUESTION_GROUPS);
+    expect(emptyStateGroups(null, { name: "Mes de gratitud", sampleQuestions: ["  "] })).toBe(FREE_QUESTION_GROUPS);
+  });
+
+  it("con pasaje, la temporada no cambia nada: las preguntas son sobre el texto", () => {
+    const season = { name: "Mes de la Reforma", sampleQuestions: ["¿Qué es la gracia?"] };
+    expect(emptyStateGroups({ book: "Juan", chapter: 3 }, season)).toEqual(emptyStateGroups({ book: "Juan", chapter: 3 }));
+  });
+
   it("con capítulo sin versículo: pregunta por la idea del capítulo", () => {
     const [group] = emptyStateGroups({ book: "Romanos", chapter: 8 });
     expect(group.label).toBe("Sobre Romanos 8");

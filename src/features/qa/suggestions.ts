@@ -40,12 +40,25 @@ function meaningQuestion(passage: PassageQuery): string {
     : `¿Qué quiere decir el versículo ${passage.verse}?`;
 }
 
+/** Preguntas por grupo en el estado vacío (U6). */
+const QUESTIONS_PER_GROUP = 2;
+
+type SeasonLike = { name: string; sampleQuestions: readonly string[] } | null | undefined;
+
 /**
  * Grupos del estado vacío. Con pasaje hay un solo grupo, "Sobre {pasaje}",
  * con preguntas que solo tienen sentido sobre un texto concreto.
+ *
+ * Con temporada que trae preguntas de ejemplo (#199), el primer grupo lleva el
+ * nombre de la temporada y sus dos primeras preguntas, en lugar de "Para
+ * entender": siguen siendo tres grupos. Sin temporada, lo de siempre.
  */
-export function emptyStateGroups(passage: PassageQuery | null): readonly SuggestionGroup[] {
-  if (!passage) return FREE_QUESTION_GROUPS;
+export function emptyStateGroups(passage: PassageQuery | null, season?: SeasonLike): readonly SuggestionGroup[] {
+  if (!passage) {
+    const seasonal = season?.sampleQuestions.filter((question) => question.trim()).slice(0, QUESTIONS_PER_GROUP) ?? [];
+    if (!season || seasonal.length === 0) return FREE_QUESTION_GROUPS;
+    return [{ label: season.name, questions: seasonal }, ...FREE_QUESTION_GROUPS.slice(1)];
+  }
   return [
     {
       label: `Sobre ${formatPassage(passage)}`,

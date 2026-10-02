@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
+import { FeaturedCharacterCard } from "../../src/features/voices/FeaturedCharacterCard";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
@@ -26,6 +27,8 @@ export default function VocesScreen() {
       </Text>
 
       <View style={styles.list}>
+        {/* Personaje del mes (#200): arriba de la lista; la lista no cambia. */}
+        <FeaturedCharacterCard />
         {characters?.map((character) => (
           <Pressable
             accessibilityRole="button"

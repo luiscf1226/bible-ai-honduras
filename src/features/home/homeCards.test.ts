@@ -20,8 +20,8 @@ import {
 } from "./homeCards";
 
 describe("orden de las tarjetas (#193)", () => {
-  it("es exactamente el de la tabla del issue", () => {
-    expect(HOME_CARD_ORDER).toEqual(["verse", "read", "feeling", "ask", "characters", "stories"]);
+  it("es exactamente el de la tabla del issue, con la franja de temporada arriba del versículo (#199)", () => {
+    expect(HOME_CARD_ORDER).toEqual(["season", "verse", "read", "feeling", "ask", "characters", "stories"]);
   });
 
   it("cada tarjeta abre su módulo", () => {
@@ -126,6 +126,13 @@ describe("Personajes", () => {
   it("si faltan, completa con el catálogo", () => {
     expect(pickHomeCharacters([{ slug: "rut" }, { slug: "moises" }]).map((c) => c.slug)).toEqual(["moises", "rut"]);
     expect(pickHomeCharacters([])).toEqual([]);
+  });
+
+  it("el personaje del mes va primero y no se repite (#200)", () => {
+    const catalog = ["moises", "david", "ester", "pablo", "rut", "elias"].map((slug) => ({ slug }));
+    expect(pickHomeCharacters(catalog, "elias").map((c) => c.slug)).toEqual(["elias", "moises", "ester", "david"]);
+    expect(pickHomeCharacters(catalog, "david").map((c) => c.slug)).toEqual(["david", "moises", "ester", "pablo"]);
+    expect(pickHomeCharacters(catalog, "noexiste").map((c) => c.slug)).toEqual(["moises", "ester", "david", "pablo"]);
   });
 });
 

@@ -33,6 +33,13 @@ const FONT_STEP = 2;
 // tamaño: cita (1 renglón + aire) y marca (logo + nombre + aire).
 const REFERENCE_BLOCK_EM = 3;
 const BRAND_BLOCK_EM = 4;
+// Con temporada (#199), su nombre arriba: un renglón + aire, en múltiplos de su tamaño.
+const SEASON_BLOCK_EM = 2;
+
+export type VerseStoryOptions = {
+  /** Hay temporada activa: su nombre ocupa la franja de arriba. */
+  withSeason?: boolean;
+};
 
 /** Renglones que ocupa `text` partiendo por palabras con `charsPerLine` caracteres. */
 export function estimateLines(text: string, charsPerLine: number): number {
@@ -57,14 +64,19 @@ export function estimateLines(text: string, charsPerLine: number): number {
   return lines;
 }
 
-/** Alto disponible para el versículo, descontando márgenes, cita y marca. */
-export function verseAreaHeight(image: StoryImageTokens = tokens.storyImage): number {
-  return image.height - image.paddingY * 2 - image.reference * REFERENCE_BLOCK_EM - image.brand * BRAND_BLOCK_EM;
+/** Alto disponible para el versículo, descontando márgenes, cita, marca y, si hay, la temporada. */
+export function verseAreaHeight(image: StoryImageTokens = tokens.storyImage, options: VerseStoryOptions = {}): number {
+  const season = options.withSeason ? image.season * SEASON_BLOCK_EM : 0;
+  return image.height - image.paddingY * 2 - image.reference * REFERENCE_BLOCK_EM - image.brand * BRAND_BLOCK_EM - season;
 }
 
-export function verseStoryLayout(text: string, image: StoryImageTokens = tokens.storyImage): VerseStoryLayout {
+export function verseStoryLayout(
+  text: string,
+  image: StoryImageTokens = tokens.storyImage,
+  options: VerseStoryOptions = {},
+): VerseStoryLayout {
   const availableWidth = image.width - image.paddingX * 2;
-  const availableHeight = verseAreaHeight(image);
+  const availableHeight = verseAreaHeight(image, options);
 
   const measure = (fontSize: number) => {
     const lineHeight = Math.round(fontSize * image.verseLineHeight);
@@ -92,6 +104,9 @@ export function storyChrome(image: StoryImageTokens = tokens.storyImage) {
     logoSize: image.brand * 2,
     brandGap: image.brand / 2,
     referenceGap: image.reference,
+    // Temporada (#199): el renglón del nombre y el espaciado de `overline`, en proporción.
+    seasonLineHeight: image.season * image.verseLineHeight,
+    seasonLetterSpacing: image.season * tokens.type.overline.letterSpacing,
   };
 }
 
