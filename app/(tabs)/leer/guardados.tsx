@@ -1,4 +1,5 @@
 import { useQuery } from "convex/react";
+import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -8,7 +9,7 @@ import { FilterPills } from "../../../src/components/FilterPills";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
 import { SearchField } from "../../../src/components/SearchField";
 import { SavedVerseCard } from "../../../src/features/reading/SavedVerseCard";
-import { BOOKMARK_FILTERS, filterBookmarks, type BookmarkFilter } from "../../../src/features/reading/personalFilters";
+import { BOOKMARK_FILTERS, bookmarkFilterFromParam, filterBookmarks, type BookmarkFilter } from "../../../src/features/reading/personalFilters";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -25,7 +26,9 @@ export default function GuardadosScreen() {
   const currentUser = useQuery(api.users.current);
   const bookmarks = useQuery(api.reading.bookmarks, {});
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<BookmarkFilter>("todos");
+  // El chip "Notas" del inicio (#193) entra con `?filtro=con-nota`.
+  const params = useLocalSearchParams<{ filtro?: string | string[] }>();
+  const [filter, setFilter] = useState<BookmarkFilter>(() => bookmarkFilterFromParam(params.filtro));
   const visible = useMemo(
     () => (bookmarks ? filterBookmarks(bookmarks.items, { query, filter }) : []),
     [bookmarks, filter, query],

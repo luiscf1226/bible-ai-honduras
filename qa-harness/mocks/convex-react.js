@@ -96,6 +96,16 @@ const DEVOTIONAL = {
   verseRef: "Salmos 46:1",
   reflection:
     "Hay días en que lo único que se sostiene es que Dios está. No que todo salga bien: que Él está. Ese versículo no promete que la tierra no tiemble — promete que hay dónde ampararse cuando tiembla.",
+  // Devocional por secciones (PR aparte): `/hoy` las muestra solo si vienen.
+  // Con `?qa=empty` no vienen, para ver la pantalla como antes de ese cambio.
+  ...(isEmpty()
+    ? {}
+    : {
+        openingPrayer: "Señor, antes de empezar el día, quiero quedarme un momento con vos.",
+        intro:
+          "El salmo 46 se cantaba en tiempos de guerra y de terremotos. No nace de una vida tranquila, sino de gente que vio temblar todo lo que tenía.",
+        closingPrayer: "Gracias porque sos mi amparo hoy, pase lo que pase. Ayudame a correr hacia vos y no lejos. Amén.",
+      }),
   imageUrl: IMG,
   imageAlt: "Amanecer cálido entre montañas",
   imageAttributionUrl: "https://unsplash.com/photos/1500534623283-312aade485b7",

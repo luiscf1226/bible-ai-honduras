@@ -31,6 +31,15 @@ export const BOOKMARK_FILTERS: readonly { id: BookmarkFilter; label: string }[] 
   { id: "con-nota", label: "Con nota" },
 ];
 
+/**
+ * Filtro inicial desde la ruta: el chip "Notas" del inicio (#193) abre
+ * `/leer/guardados?filtro=con-nota`. Un valor desconocido cae en "todos".
+ */
+export function bookmarkFilterFromParam(param: string | string[] | undefined): BookmarkFilter {
+  const value = Array.isArray(param) ? param[0] : param;
+  return BOOKMARK_FILTERS.find((filter) => filter.id === value)?.id ?? "todos";
+}
+
 export function filterBookmarks<T extends VerseLike & { note: string | null }>(
   items: readonly T[],
   options: { query: string; filter: BookmarkFilter },
