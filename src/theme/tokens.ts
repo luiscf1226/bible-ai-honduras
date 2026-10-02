@@ -118,7 +118,8 @@ export const tokens = {
     verseNumber: { size: 10, lineHeight: 10 },
     readerBody: { size: 19, lineHeight: 31 },
   },
-  opacity: { pressed: 0.9 },
+  // Sobre imágenes (U2): botón volver con fondo surface al 90 % y textos al 85 %.
+  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
