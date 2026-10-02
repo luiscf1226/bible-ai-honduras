@@ -23,6 +23,15 @@ import {
   stepTowards,
 } from "../../../../src/features/reading/readingSettings";
 import { NOTE_MAX_LENGTH, removeSavedCopy } from "../../../../src/features/reading/savedVerses";
+import {
+  overlayChapterBookmarks,
+  overlayChapterHighlights,
+  overlaySeparator,
+} from "../../../../src/features/offline/mutationQueue";
+import { useLocalChapter } from "../../../../src/features/offline/offlineBible";
+import { READER_CHAPTER_UNAVAILABLE, READER_OFFLINE_NOTE } from "../../../../src/features/offline/offlineCopy";
+import { useOfflineSync } from "../../../../src/features/offline/OfflineSyncProvider";
+import { usePersistedQuery } from "../../../../src/features/offline/usePersistedQuery";
 import { copyToClipboard } from "../../../../src/lib/clipboard";
 import { goToChat } from "../../../../src/lib/goToChat";
 import { goToVoices } from "../../../../src/lib/goToVoices";
@@ -39,38 +48,56 @@ export default function ReaderScreen() {
   const { color } = useTheme();
   const params = useLocalSearchParams<{ book?: string | string[]; chapter?: string | string[]; verse?: string | string[] }>();
   const ref = parseChapterParams(params);
-  const currentUser = useQuery(api.users.current);
+  // Sin conexión (#160): la cuenta, el separador y lo del capítulo salen de lo
+  // último que se vio con señal; el texto, de la Biblia descargada.
+  const currentUser = usePersistedQuery(api.users.current, {}, "users.current");
   const version = currentUser?.bibleVersion ?? "RV1909";
   const requestedVerse = Number(Array.isArray(params.verse) ? params.verse[0] : params.verse);
-  const verses = useQuery(
+  const chapterKey = ref ? `${ref.book}:${ref.chapter}` : null;
+  // Si el capítulo está en el teléfono se lee de ahí, con o sin señal: no gasta
+  // datos. Si no, se pide al servidor como siempre.
+  const localVerses = useLocalChapter(ref ? { version, book: ref.book, chapter: ref.chapter } : null);
+  const remoteVerses = useQuery(
     api.rag.verses.listByChapter,
-    ref ? { version, book: ref.book, chapter: ref.chapter } : "skip",
+    ref && localVerses === null ? { version, book: ref.book, chapter: ref.chapter } : "skip",
   );
+  const verses = localVerses ?? remoteVerses;
   const saveProgress = useMutation(api.reading.saveProgress);
   const recordRecent = useMutation(api.reading.recordRecent);
-  const toggleBookmark = useMutation(api.reading.toggleBookmark);
-  const setBookmarkNote = useMutation(api.reading.setBookmarkNote);
+  // Guardar, subrayar, separador y nota pasan por la cola (#182): se ven al
+  // instante y se mandan en orden cuando hay red.
+  const { online, pending, run } = useOfflineSync();
   // Guardados del capítulo desde el backend, no desde estado local: así quitar
   // un guardado desde la lista de Leer se ve también acá (#166).
-  const chapterBookmarks = useQuery(
-    api.reading.chapterBookmarks,
-    ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+  const chapterBookmarks = overlayChapterBookmarks(
+    usePersistedQuery(
+      api.reading.chapterBookmarks,
+      ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+      chapterKey && currentUser?._id ? `chapterBookmarks:${chapterKey}` : null,
+    ),
+    pending,
+    ref?.book ?? "",
+    ref?.chapter ?? 0,
   );
-  const separator = useQuery(api.reading.separator, currentUser?._id ? {} : "skip");
-  const setSeparator = useMutation(api.reading.setSeparator);
-  const clearSeparator = useMutation(api.reading.clearSeparator);
-  const highlights = useQuery(
-    api.reading.highlightsForChapter,
-    ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+  const separator = overlaySeparator(
+    usePersistedQuery(api.reading.separator, currentUser?._id ? {} : "skip", currentUser?._id ? "separator" : null),
+    pending,
   );
-  const setHighlight = useMutation(api.reading.setHighlight);
-  const clearHighlight = useMutation(api.reading.clearHighlight);
+  const highlights = overlayChapterHighlights(
+    usePersistedQuery(
+      api.reading.highlightsForChapter,
+      ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+      chapterKey && currentUser?._id ? `highlightsForChapter:${chapterKey}` : null,
+    ),
+    pending,
+    ref?.book ?? "",
+    ref?.chapter ?? 0,
+  );
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [selected, setSelected] = useState<ReadingVerse | null>(null);
   // Borrador de la nota (#167). null = la hoja muestra las acciones; string =
   // la hoja muestra el campo de nota.
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
-  const [noteError, setNoteError] = useState<string | null>(null);
   const openedVerse = useRef<string | null>(null);
 
   const fontStep = clampFontStep(currentUser?.readingFontStep);
@@ -118,12 +145,10 @@ export default function ReaderScreen() {
   const selectVerse = (verse: ReadingVerse) => {
     setSelected(verse);
     setNoteDraft(null);
-    setNoteError(null);
   };
   const closeSheet = () => {
     setSelected(null);
     setNoteDraft(null);
-    setNoteError(null);
   };
   const selectedBookmark = selected ? chapterBookmarks?.find((item) => item.verse === selected.verse) : undefined;
   const askAboutSelected = () => {
@@ -155,13 +180,12 @@ export default function ReaderScreen() {
     separator != null && separator.book === verse.book && separator.chapter === verse.chapter && separator.verse === verse.verse;
   const separatorElsewhere =
     separator != null && ref != null && (separator.book !== ref.book || separator.chapter !== ref.chapter);
-  const toggleSeparator = async () => {
+  const toggleSeparator = () => {
     if (!selected) return;
-    if (separatorHere(selected)) {
-      await clearSeparator({}).catch(() => undefined);
-    } else {
-      await setSeparator({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
-    }
+    run({
+      kind: "separator",
+      ref: separatorHere(selected) ? null : { book: selected.book, chapter: selected.chapter, verse: selected.verse },
+    });
     setSelected(null);
   };
   // Subrayado (#168): como el resaltador de una Biblia de papel. Es gratis y
@@ -173,16 +197,16 @@ export default function ReaderScreen() {
   const chooseHighlight = (key: HighlightColor) => {
     if (!selected) return;
     const target = { book: selected.book, chapter: selected.chapter, verse: selected.verse };
-    void (selectedHighlight === key ? clearHighlight(target) : setHighlight({ ...target, color: key })).catch(() => undefined);
+    run({ kind: "highlight", ref: target, color: selectedHighlight === key ? null : key });
   };
   const removeHighlight = () => {
     if (!selected) return;
-    void clearHighlight({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
+    run({ kind: "highlight", ref: { book: selected.book, chapter: selected.chapter, verse: selected.verse }, color: null });
   };
   const saveSelected = () => {
     if (!selected) return;
-    const toggle = () =>
-      void toggleBookmark({ book: selected.book, chapter: selected.chapter, verse: selected.verse }).catch(() => undefined);
+    const target = { book: selected.book, chapter: selected.chapter, verse: selected.verse };
+    const toggle = () => run({ kind: "bookmark", ref: target, saved: !selectedBookmark });
     // Quitar un guardado con nota borra la nota: se avisa antes (#167).
     if (selectedBookmark?.note) {
       const copy = removeSavedCopy(true);
@@ -194,21 +218,29 @@ export default function ReaderScreen() {
     }
     toggle();
   };
-  const saveNote = async (note: string) => {
+  // Guardar una nota también guarda el versículo; una nota vacía la borra y
+  // deja el guardado (mismo contrato que `reading.saveBookmark`).
+  const saveNote = (note: string) => {
     if (!selected) return;
-    try {
-      await setBookmarkNote({ book: selected.book, chapter: selected.chapter, verse: selected.verse, note });
-      setNoteDraft(null);
-      setNoteError(null);
-    } catch {
-      setNoteError("No pudimos guardar tu nota. Revisá tu conexión e intentá de nuevo.");
-    }
+    const trimmed = note.trim();
+    run({
+      kind: "bookmark",
+      ref: { book: selected.book, chapter: selected.chapter, verse: selected.verse },
+      saved: true,
+      note: trimmed.length > 0 ? trimmed : null,
+    });
+    setNoteDraft(null);
   };
 
   return (
     <AppScreen contentStyle={styles.screen}>
       <ScreenHeader onBack={goBackOrHome} title={`${ref.book} ${ref.chapter}`} titleSize="pick" />
       <Text style={[styles.version, { color: color.inkSoft }]}>{version}</Text>
+      {!online ? (
+        <Text style={[styles.status, { color: color.inkSoft }]} testID="reading-offline-note">
+          {READER_OFFLINE_NOTE}
+        </Text>
+      ) : null}
 
       {separatorElsewhere && separator ? (
         <Pressable
@@ -239,7 +271,11 @@ export default function ReaderScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.verseList} keyboardShouldPersistTaps="handled">
-        {verses === undefined ? <Text style={[styles.status, { color: color.inkSoft }]}>Abriendo el capítulo…</Text> : null}
+        {verses === undefined ? (
+          <Text style={[styles.status, { color: color.inkSoft }]} testID={online ? undefined : "reading-chapter-unavailable"}>
+            {online ? "Abriendo el capítulo…" : READER_CHAPTER_UNAVAILABLE}
+          </Text>
+        ) : null}
         {verses?.length === 0 ? <Text style={[styles.status, { color: color.inkSoft }]}>Todavía no tenemos este capítulo en el corpus. Volvé a intentar cuando se haya indexado.</Text> : null}
         {verses?.map((verse) => {
           const marked = separatorHere(verse);
@@ -301,20 +337,15 @@ export default function ReaderScreen() {
               <Text style={[styles.noteCount, { color: color.inkFaint }]}>
                 {noteDraft.length}/{NOTE_MAX_LENGTH} · No se comparte ni se envía a la IA.
               </Text>
-              {noteError ? (
-                <Text accessibilityRole="alert" style={[styles.noteCount, { color: color.accentDeep }]}>
-                  {noteError}
-                </Text>
-              ) : null}
               <AppButton
                 disabled={noteDraft.trim().length === 0}
-                onPress={() => void saveNote(noteDraft)}
+                onPress={() => saveNote(noteDraft)}
                 testID="reading-note-save"
               >
                 Guardar nota
               </AppButton>
               {selectedBookmark?.note ? (
-                <AppButton onPress={() => void saveNote("")} testID="reading-note-delete" variant="quiet">
+                <AppButton onPress={() => saveNote("")} testID="reading-note-delete" variant="quiet">
                   Borrar nota
                 </AppButton>
               ) : null}
@@ -400,7 +431,7 @@ export default function ReaderScreen() {
             </View>
           ) : null}
           {currentUser?._id ? (
-            <Pressable accessibilityRole="button" onPress={() => void toggleSeparator()} style={styles.action} testID="reading-separator-toggle">
+            <Pressable accessibilityRole="button" onPress={toggleSeparator} style={styles.action} testID="reading-separator-toggle">
               <Text style={[styles.actionLabel, { color: color.ink }]}>
                 {separatorHere(selected) ? "Quitar el separador" : "Poner el separador aquí"}
               </Text>

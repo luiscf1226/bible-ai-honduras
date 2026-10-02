@@ -61,6 +61,19 @@ export default defineSchema({
       filterFields: ["version", "book"],
     }),
 
+  // Biblia sin conexión (#160): un archivo JSON por libro en el storage de
+  // Convex, armado una vez desde `verses` con `offlineBible:buildPackages`.
+  // El teléfono baja estos archivos en vez de leer `verses` (cada fila arrastra
+  // ~8 KB de embedding). No es dato de nadie: no entra en el borrado de cuenta.
+  bibleOfflinePackages: defineTable({
+    version: v.string(),
+    book: v.string(),
+    storageId: v.id("_storage"),
+    bytes: v.number(),
+    verses: v.number(),
+    builtAt: v.number(),
+  }).index("by_version_book", ["version", "book"]),
+
   // Comentarios evangélicos de referencia (#6) — granularidad de capítulo,
   // no de versículo (así se publican). Segunda fuente de recuperación que
   // enriquece la respuesta de rag.answer; nunca reemplaza la cita bíblica.

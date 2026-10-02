@@ -12,10 +12,11 @@ import type { PassageQuery } from "../../src/features/reading/bookSearch";
 import { goToChat } from "../../src/lib/goToChat";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 
 export { goToChat } from "../../src/lib/goToChat";
 
-export default function PreguntarScreen() {
+function PreguntarScreenContent() {
   const { color } = useTheme();
   const [book, setBook] = useState<string | null>(null);
   const currentUser = useQuery(api.users.current);
@@ -73,3 +74,12 @@ const styles = StyleSheet.create({
   },
   freeButtonLabel: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, textAlign: "center" },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function PreguntarScreen() {
+  return (
+    <RequiresConnection module="qa">
+      <PreguntarScreenContent />
+    </RequiresConnection>
+  );
+}

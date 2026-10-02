@@ -300,6 +300,49 @@ export const setBookmarkNote = mutation({
 });
 
 /**
+ * Deja un versículo guardado, con o sin nota (#182). A diferencia de
+ * `toggleBookmark`, repetirla no deshace nada: la cola sin conexión de la app
+ * puede reenviar la misma acción al volver la red y el resultado es el mismo.
+ *
+ * `note` ausente no toca la nota; `""` la borra; un texto la reemplaza.
+ */
+export const saveBookmark = mutation({
+  args: { book: v.string(), chapter: v.number(), verse: v.number(), note: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    if (!user) {
+      throw new ConvexError("No autenticado");
+    }
+    assertVerseRef(args);
+    const note = args.note === undefined ? undefined : args.note.trim();
+    if (note !== undefined && note.length > BOOKMARK_NOTE_MAX_LENGTH) {
+      throw new ConvexError(`La nota puede tener hasta ${BOOKMARK_NOTE_MAX_LENGTH} caracteres`);
+    }
+    const existing = await ctx.db
+      .query("readingBookmarks")
+      .withIndex("by_user_verse", (q) =>
+        q.eq("userId", user._id).eq("book", args.book).eq("chapter", args.chapter).eq("verse", args.verse),
+      )
+      .unique();
+    if (existing) {
+      if (note !== undefined) {
+        await ctx.db.patch(existing._id, { note: note.length > 0 ? note : undefined });
+      }
+      return { saved: true, note: note === undefined ? (existing.note ?? null) : note || null };
+    }
+    await ctx.db.insert("readingBookmarks", {
+      userId: user._id,
+      book: args.book,
+      chapter: args.chapter,
+      verse: args.verse,
+      createdAt: Date.now(),
+      ...(note ? { note } : {}),
+    });
+    return { saved: true, note: note || null };
+  },
+});
+
+/**
  * Borra las notas personales sin quitar los guardados. Lo usa "Borrar mi
  * historial" (#167): la nota es texto que la persona escribió, igual que una
  * conversación; el versículo guardado en sí no es historial.
