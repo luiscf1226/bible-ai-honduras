@@ -406,6 +406,24 @@ const handlers = {
     return null;
   },
   "readingPlans:myPlans": () => [],
+  // Tu año en la Palabra (#183). Con ?qa=empty, todo en cero.
+  "yearInWord:summary": (args) =>
+    isEmpty()
+      ? { year: args.year, chaptersRead: 0, planDays: 0, savedVerses: 0, topHighlight: null }
+      : {
+          year: args.year,
+          chaptersRead: 148,
+          planDays: 212,
+          savedVerses: db.bookmarks.length,
+          topHighlight: {
+            book: "Salmos",
+            chapter: 46,
+            verse: 1,
+            chapterCount: 3,
+            version: db.bibleVersion,
+            text: db.bibleVersion === "RV1909" ? SAVED_TEXT["Salmos 46:1"] : null,
+          },
+        },
   "voices:list": () => voiceCharacters,
   "voices:thread": (args) => db.voiceThreads[args.slug] ?? [],
   "voices:sendMessage": (args) => {

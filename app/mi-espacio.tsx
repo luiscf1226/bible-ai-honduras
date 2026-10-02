@@ -6,8 +6,10 @@ import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { buildMySpaceSections, type MySpaceDestination } from "../src/features/personal/mySpaceSections";
+import { yearInWordEntry } from "../src/features/personal/yearInWord";
 import { PRIVACY_POLICY_URL } from "../src/lib/legalLinks";
 import { openPassage } from "../src/lib/openPassage";
+import { hondurasToday } from "../src/lib/reminderDates";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -35,6 +37,9 @@ export default function MiEspacioScreen() {
   const history = useQuery(api.history.list, {});
   const loading = separator === undefined || bookmarks === undefined || highlights === undefined || history === undefined;
 
+  // "Tu año en la Palabra" (#183): solo del 1 de diciembre al 31 de enero.
+  const yearEntry = yearInWordEntry(hondurasToday());
+
   const sections = buildMySpaceSections({
     separator: separator ?? null,
     bookmarks: bookmarks?.items ?? [],
@@ -61,6 +66,24 @@ export default function MiEspacioScreen() {
           <Text style={[styles.chevron, { color: color.inkFaint }]}>↗</Text>
         </Pressable>
       </View>
+
+      {yearEntry ? (
+        <View style={[styles.card, styles.sections, { backgroundColor: color.surface, borderColor: color.border }]}>
+          <Pressable
+            accessibilityHint="Abre el resumen de tu año."
+            accessibilityRole="button"
+            onPress={() => router.push("/tu-ano")}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            testID="mi-espacio-tu-ano"
+          >
+            <View style={styles.rowText}>
+              <Text style={[styles.rowLabel, { color: color.ink }]}>{yearEntry.title}</Text>
+              <Text style={[styles.rowHint, { color: color.inkSoft }]}>{yearEntry.hint}</Text>
+            </View>
+            <Text style={[styles.action, { color: color.accentDeep }]}>Abrir ›</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={[styles.card, styles.sections, { backgroundColor: color.surface, borderColor: color.border }]}>
         {sections.map((section, index) => (
