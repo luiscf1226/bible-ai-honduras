@@ -1,6 +1,7 @@
-import { StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 
 import { useTheme } from "../theme/ThemeProvider";
+import { Icon } from "./Icon";
 import { tokens } from "../theme/tokens";
 
 /**
@@ -17,10 +18,16 @@ export type SearchFieldProps = {
   style?: StyleProp<ViewStyle>;
   testID: string;
   value: string;
+  /**
+   * Campo compacto sobre `surfaceSunk`, sin borde (índice de `/leer`, #195):
+   * la búsqueda queda como lupa arriba y no compite con el índice.
+   */
+  compact?: boolean;
 };
 
 export function SearchField({
   accessibilityLabel,
+  compact = false,
   onChangeText,
   placeholder,
   returnKeyType,
@@ -32,9 +39,15 @@ export function SearchField({
 
   return (
     <View
-      style={[styles.searchBar, { backgroundColor: color.surface, borderColor: color.borderStrong }, style]}
+      style={[
+        styles.searchBar,
+        compact
+          ? [styles.compact, { backgroundColor: color.surfaceSunk, borderColor: color.surfaceSunk }]
+          : { backgroundColor: color.surface, borderColor: color.borderStrong },
+        style,
+      ]}
     >
-      <Text style={[styles.searchIcon, { color: color.inkFaint }]}>⌕</Text>
+      <Icon color={compact ? color.inkSoft : color.inkFaint} name="search" size={compact ? "sm" : "md"} />
       <TextInput
         accessibilityLabel={accessibilityLabel}
         autoCapitalize="none"
@@ -62,6 +75,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.cardPadding.horizontal,
     paddingVertical: tokens.space.md,
   },
-  searchIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
+  compact: { paddingVertical: tokens.space.sm },
   searchInput: { flex: 1, fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size },
 });

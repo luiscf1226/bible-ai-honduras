@@ -11,6 +11,7 @@ import { PassageSearch } from "../../../src/components/PassageSearch";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
 import { overlayBookmarkPage, overlayHighlightPage, overlaySeparator } from "../../../src/features/offline/mutationQueue";
 import { useOfflineSync } from "../../../src/features/offline/OfflineSyncProvider";
+import { BookIndex } from "../../../src/features/reading/BookIndex";
 import { BEGINNER_PLAN_ID } from "../../../src/features/reading/annualPlans";
 import { highlightSwatch } from "../../../src/features/reading/highlightColors";
 import { SavedVerseCard } from "../../../src/features/reading/SavedVerseCard";
@@ -22,6 +23,9 @@ import { tokens } from "../../../src/theme/tokens";
 /**
  * Entrada del módulo de Lectura (#112). Buscar y leer son gratis: esta
  * pantalla no consulta cuotas ni muestra paywall.
+ *
+ * Desde #195 (U3) la primera vista es el índice de una Biblia de papel
+ * (`BookIndex`); la búsqueda queda como campo compacto arriba del índice.
  */
 export default function LeerScreen() {
   const { color } = useTheme();
@@ -58,7 +62,7 @@ export default function LeerScreen() {
         titleSize="pick"
       />
       <Text style={[styles.subtitle, { color: color.inkSoft }]}>
-        {book ? "Elegí el capítulo." : `Buscá un pasaje o una palabra. Texto ${DEFAULT_BIBLE_VERSION}.`}
+        {book ? "Elegí el capítulo." : `Elegí un libro o buscá un pasaje. Texto ${DEFAULT_BIBLE_VERSION}.`}
       </Text>
 
       {book ? (
@@ -107,18 +111,20 @@ export default function LeerScreen() {
             </Text>
           </Pressable>
 
+          <View style={styles.cardRow}>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/leer/plan")}
             style={({ pressed }) => [
               styles.planCard,
+              styles.halfCard,
               { backgroundColor: color.surfaceAlt, borderColor: color.border },
               pressed && styles.pressed,
             ]}
             testID="leer-plan-entry"
           >
             <Text style={[styles.planOverline, { color: color.accent }]}>PLAN DE LECTURA</Text>
-            <Text style={[styles.planLabel, { color: color.ink }]}>Génesis a Apocalipsis en 365 días</Text>
+            <Text style={[styles.halfLabel, { color: color.ink }]}>De Génesis a Apocalipsis</Text>
           </Pressable>
 
           <Pressable
@@ -126,14 +132,16 @@ export default function LeerScreen() {
             onPress={() => router.push("/leer/recorridos")}
             style={({ pressed }) => [
               styles.planCard,
+              styles.halfCard,
               { backgroundColor: color.surfaceAlt, borderColor: color.border },
               pressed && styles.pressed,
             ]}
             testID="leer-journeys-entry"
           >
             <Text style={[styles.planOverline, { color: color.accent }]}>RECORRIDOS</Text>
-            <Text style={[styles.planLabel, { color: color.ink }]}>Lecturas cortas por tema e historia</Text>
+            <Text style={[styles.halfLabel, { color: color.ink }]}>Lecturas cortas por tema</Text>
           </Pressable>
+          </View>
 
           {progress ? (
             <Pressable
@@ -156,18 +164,34 @@ export default function LeerScreen() {
           {recents && recents.length > 0 ? (
             <View style={styles.savedSection}>
               <Text style={[styles.savedTitle, { color: color.inkSoft }]}>RECIENTES</Text>
-              {recents.map((recent) => (
-                <Pressable
-                  accessibilityRole="button"
-                  key={`${recent.book}-${recent.chapter}`}
-                  onPress={() => openPassage(recent)}
-                  style={[styles.savedRow, { borderColor: color.border }]}
-                >
-                  <Text style={[styles.savedLabel, { color: color.ink }]}>{recent.book} {recent.chapter}</Text>
-                </Pressable>
-              ))}
+              {/* Chips en vez de filas: no empujan el índice hacia abajo (#195). */}
+              <View style={styles.chips}>
+                {recents.map((recent) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={`${recent.book}-${recent.chapter}`}
+                    onPress={() => openPassage(recent)}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      { backgroundColor: color.surface, borderColor: color.border },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={[styles.chipLabel, { color: color.ink }]}>{recent.book} {recent.chapter}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           ) : null}
+
+          <PassageSearch
+            compact
+            emptyQueryContent={<BookIndex onSelectBook={setBook} />}
+            onSelectBook={setBook}
+            onSelectPassage={openPassage}
+            placeholder="Buscá “Juan 3:16” o una palabra"
+            version={version}
+          />
 
           {/* Solo los 3 más recientes: antes la lista crecía sin límite y
               empujaba el buscador hacia abajo (#166). */}
@@ -229,11 +253,6 @@ export default function LeerScreen() {
             </View>
           ) : null}
 
-          <PassageSearch
-            onSelectBook={setBook}
-            onSelectPassage={openPassage}
-            version={version}
-          />
         </>
       )}
     </AppScreen>
@@ -290,6 +309,22 @@ const styles = StyleSheet.create({
   // vertical. Ancho y alto salen de tokens de tamaño existentes.
   separatorHeader: { alignItems: "center", flexDirection: "row", gap: tokens.space.sm },
   separatorRibbon: { borderRadius: tokens.radius.pill, height: tokens.space.lg, width: tokens.size.dot },
+  cardRow: { flexDirection: "row", gap: tokens.space.md },
+  halfCard: { flex: 1 },
+  halfLabel: {
+    fontFamily: tokens.font.serif,
+    fontSize: tokens.type.versePicker.size,
+    lineHeight: tokens.type.versePicker.lineHeight,
+    marginTop: tokens.space.xs,
+  },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
+  chip: {
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.xs,
+  },
+  chipLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
   planLabel: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight, marginTop: tokens.space.xs },
   savedSection: { gap: tokens.space.sm },
   savedHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },

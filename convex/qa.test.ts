@@ -5,6 +5,7 @@ import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
 import { QUOTA_LIMITS } from "./quotas";
+import { LEGACY_CONVERSATION_TITLE, conversationTitle } from "./qa";
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 
@@ -182,7 +183,7 @@ describe("qa.ask", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("dos preguntas seguidas quedan en el mismo hilo continuo", async () => {
+  it("con conversationId, la segunda pregunta continúa el mismo hilo", async () => {
     stubEnv();
     const t = convexTest(schema, modules);
     const authed = asUser(t, "qa_thread");
@@ -191,12 +192,166 @@ describe("qa.ask", () => {
     await seedSalmos23(t, zeroEmbedding());
     stubExternalApis();
 
-    await authed.action(api.qa.ask, { question: "¿Quién es mi pastor?" });
-    await authed.action(api.qa.ask, { question: "¿Y qué más dice?" });
+    const first = await authed.action(api.qa.ask, { question: "¿Quién es mi pastor?" });
+    if (first.status !== "ok") throw new Error("esperado ok");
+    const second = await authed.action(api.qa.ask, {
+      question: "¿Y qué más dice?",
+      conversationId: first.conversationId,
+    });
+    if (second.status !== "ok") throw new Error("esperado ok");
 
-    const thread = await authed.query(api.qa.thread, {});
+    expect(second.conversationId).toBe(first.conversationId);
+    const thread = await authed.query(api.qa.thread, { conversationId: first.conversationId });
     expect(thread).toHaveLength(4);
     const conversations = await t.run((ctx) => ctx.db.query("conversations").collect());
     expect(conversations).toHaveLength(1);
+  });
+
+  it("sin conversationId, otro pasaje abre un hilo limpio y el anterior sigue en la lista (#191)", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "qa_topics");
+    await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
+    await seedSalmos23(t, zeroEmbedding());
+    stubExternalApis();
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-02T10:00:00Z"));
+      const genesis = await authed.action(api.qa.ask, {
+        question: "¿Qué pasó en la creación?",
+        passage: { book: "Génesis", chapter: 1 },
+      });
+      vi.setSystemTime(new Date("2026-10-02T10:05:00Z"));
+      const romanos = await authed.action(api.qa.ask, {
+        question: "¿Qué significa no hay condenación?",
+        passage: { book: "Romanos", chapter: 8, verse: 1 },
+      });
+      if (genesis.status !== "ok" || romanos.status !== "ok") throw new Error("esperado ok");
+
+      expect(romanos.conversationId).not.toBe(genesis.conversationId);
+      const romanosThread = await authed.query(api.qa.thread, { conversationId: romanos.conversationId });
+      expect(romanosThread.map((message) => message.role)).toEqual(["user", "assistant"]);
+      expect(romanosThread[0]?.text).toBe("¿Qué significa no hay condenación?");
+
+      const list = await authed.query(api.qa.conversations, {});
+      expect(list).toEqual([
+        {
+          _id: romanos.conversationId,
+          title: "Romanos 8:1",
+          passage: { book: "Romanos", chapter: 8, verse: 1 },
+          updatedAt: new Date("2026-10-02T10:05:00Z").getTime(),
+          lastQuestion: "¿Qué significa no hay condenación?",
+        },
+        {
+          _id: genesis.conversationId,
+          title: "Génesis 1",
+          passage: { book: "Génesis", chapter: 1 },
+          updatedAt: new Date("2026-10-02T10:00:00Z").getTime(),
+          lastQuestion: "¿Qué pasó en la creación?",
+        },
+      ]);
+
+      // Continuar Génesis la sube al primer lugar.
+      vi.setSystemTime(new Date("2026-10-02T10:10:00Z"));
+      await authed.action(api.qa.ask, { question: "¿Y el día siete?", conversationId: genesis.conversationId });
+      const reordered = await authed.query(api.qa.conversations, {});
+      expect(reordered.map((item) => item.title)).toEqual(["Génesis 1", "Romanos 8:1"]);
+      expect(reordered[0]?.lastQuestion).toBe("¿Y el día siete?");
+
+      // Sin args, `thread` devuelve la más reciente (builds viejos).
+      const latest = await authed.query(api.qa.thread, {});
+      expect(latest).toHaveLength(4);
+      expect(latest[0]?.conversationId).toBe(genesis.conversationId);
+
+      const limited = await authed.query(api.qa.conversations, { limit: 1 });
+      expect(limited).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("la conversación única de antes se lista como 'Conversación anterior'", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "qa_legacy");
+    const userId = await authed.mutation(api.users.upsert, {});
+    const legacyId = await t.run(async (ctx) => {
+      const conversationId = await ctx.db.insert("conversations", { userId, module: "qa", createdAt: 1_000 });
+      await ctx.db.insert("messages", { conversationId, role: "user", text: "¿Quién escribió Génesis?" });
+      await ctx.db.insert("messages", { conversationId, role: "assistant", text: "Moisés, según la tradición." });
+      return conversationId;
+    });
+
+    expect(await authed.query(api.qa.conversations, {})).toEqual([
+      {
+        _id: legacyId,
+        title: LEGACY_CONVERSATION_TITLE,
+        passage: null,
+        updatedAt: 1_000,
+        lastQuestion: "¿Quién escribió Génesis?",
+      },
+    ]);
+    expect(await authed.query(api.qa.thread, {})).toHaveLength(2);
+  });
+
+  it("no deja leer ni escribir en la conversación de otro usuario", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "qa_owner_ana");
+    const beto = asUser(t, "qa_owner_beto");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.users.acceptAiConsent, {});
+    await beto.mutation(api.users.upsert, {});
+    await beto.mutation(api.users.acceptAiConsent, {});
+    await seedSalmos23(t, zeroEmbedding());
+    stubExternalApis();
+
+    const anas = await ana.action(api.qa.ask, { question: "Algo privado de Ana" });
+    if (anas.status !== "ok") throw new Error("esperado ok");
+
+    expect(await beto.query(api.qa.thread, { conversationId: anas.conversationId })).toEqual([]);
+    expect(await beto.query(api.qa.conversations, {})).toEqual([]);
+
+    const fetchMock = stubExternalApis();
+    await expect(
+      beto.action(api.qa.ask, { question: "Me meto", conversationId: anas.conversationId }),
+    ).rejects.toThrow("Conversación no encontrada");
+    // Se rechaza antes de gastar cuota o llamar al RAG.
+    expect(fetchMock).not.toHaveBeenCalled();
+    const betoUsage = await t.run((ctx) => ctx.db.query("usage").collect());
+    expect(betoUsage.every((row) => row.count === 1)).toBe(true);
+    expect(await ana.query(api.qa.thread, { conversationId: anas.conversationId })).toHaveLength(2);
+  });
+
+  it("rechaza continuar una conversación de otro módulo", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "qa_wrong_module");
+    const userId = await authed.mutation(api.users.upsert, {});
+    await authed.mutation(api.users.acceptAiConsent, {});
+    const voicesId = await t.run((ctx) =>
+      ctx.db.insert("conversations", { userId, module: "voices", characterId: "moises", createdAt: Date.now() }),
+    );
+    stubExternalApis();
+
+    await expect(authed.action(api.qa.ask, { question: "Hola", conversationId: voicesId })).rejects.toThrow(
+      "Conversación no encontrada",
+    );
+    expect(await authed.query(api.qa.thread, { conversationId: voicesId })).toEqual([]);
+  });
+});
+
+describe("conversationTitle", () => {
+  it("usa el pasaje si viene", () => {
+    expect(conversationTitle("¿De qué trata?", { book: "Juan", chapter: 3 })).toBe("Juan 3");
+    expect(conversationTitle("¿De qué trata?", { book: "Juan", chapter: 3, verse: 16 })).toBe("Juan 3:16");
+  });
+
+  it("sin pasaje, usa el inicio de la pregunta cortado en una palabra", () => {
+    expect(conversationTitle("  ¿Quién es mi pastor?  ")).toBe("¿Quién es mi pastor?");
+    expect(conversationTitle("¿Por qué Dios permitió que José fuera vendido por sus hermanos?")).toBe(
+      "¿Por qué Dios permitió que José fuera…",
+    );
   });
 });

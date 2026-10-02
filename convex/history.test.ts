@@ -29,6 +29,8 @@ async function seedConversation(
   args: {
     module: "qa" | "voices" | "feelings";
     characterId?: string;
+    title?: string;
+    updatedAt?: number;
     messages: { role: "user" | "assistant"; text: string }[];
   },
 ) {
@@ -38,6 +40,8 @@ async function seedConversation(
       module: args.module,
       characterId: args.characterId,
       createdAt: Date.now(),
+      title: args.title,
+      updatedAt: args.updatedAt,
     });
     for (const message of args.messages) {
       await ctx.db.insert("messages", {
@@ -78,6 +82,39 @@ describe("history.list", () => {
       preview: "El camino se abrió mientras caminaba.",
       module: "voices",
     });
+  });
+});
+
+describe("history.list — Preguntar con una conversación por tema (#191)", () => {
+  it("lista cada conversación qa con su título, la de actividad más reciente primero", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_qa_topics_h");
+    const anaId = await ana.mutation(api.users.upsert, {});
+
+    await seedConversation(t, anaId, {
+      module: "qa",
+      messages: [{ role: "user", text: "pregunta de antes" }],
+    });
+    await seedConversation(t, anaId, {
+      module: "qa",
+      title: "Génesis 1",
+      updatedAt: Date.now() + 1_000,
+      messages: [{ role: "user", text: "¿Qué pasó en la creación?" }],
+    });
+    await seedConversation(t, anaId, {
+      module: "qa",
+      title: "Romanos 8",
+      updatedAt: Date.now() + 2_000,
+      messages: [{ role: "user", text: "¿No hay condenación?" }],
+    });
+
+    const list = await ana.query(api.history.list, {});
+    expect(list.map((item) => item.title)).toEqual(["Romanos 8", "Génesis 1", "Pregunta al texto"]);
+    expect(list.every((item) => item.module === "qa")).toBe(true);
+
+    const result = await ana.mutation(api.history.deleteAll, {});
+    expect(result.deletedConversations).toBe(3);
+    expect(await ana.query(api.history.list, {})).toEqual([]);
   });
 });
 

@@ -56,6 +56,7 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?qa=error` | `devotional:today` falla |
 | `?qa=loading` | todas las `useQuery` en `undefined` |
 | `?qa=dark` | `users.darkMode = true` |
+| `?temporada=reforma` / `gratitud` / `adviento` | `seasons.current` con esa temporada de muestra (#199); se combina con `?qa=dark`. Sin el parámetro, fuera de temporada |
 | `?ver=NVI` | versión de la Biblia = NVI (sin corpus, igual que en producción) |
 | `?net=off` | modo avión (#160, #182): NetInfo sin red, las `useQuery` quedan en `undefined` y las mutaciones no vuelven, como el cliente real de Convex sin conexión |
 | `?plan=1` | plan anual empezado, en el día 5 con los días 3 y 4 pendientes |

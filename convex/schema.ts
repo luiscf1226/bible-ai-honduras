@@ -27,6 +27,9 @@ export default defineSchema({
     // hora de Honduras) de la semana en que la persona la cerró.
     savedMemoryEnabled: v.optional(v.boolean()),
     savedMemoryDismissedWeek: v.optional(v.string()),
+    // Pista de primera vez del lector (#196): "Tocá un versículo para…". Vive
+    // en la cuenta para que no reaparezca al cambiar de teléfono.
+    readerHintSeen: v.optional(v.boolean()),
     // Quién invitó a esta persona (PRD §9b): el `referralCode` de quien
     // compartió el link. Sirve solo para medir cuántos registros y pagos vienen
     // de compartir; no da premios ni se le muestra a nadie. Vive en la fila del
@@ -102,6 +105,43 @@ export default defineSchema({
     imageAlt: v.string(),
     imageAttributionUrl: v.string(),
   }).index("by_date", ["date"]),
+
+  // Temporadas (#199): un paquete por época (paleta, imagen, destacados) que
+  // se carga con `seasons:upsert` sin publicar un build. La validación vive en
+  // convex/seasons.ts; `seasons.current` resuelve cuál está activa.
+  seasons: defineTable({
+    slug: v.string(),
+    // Nombre visible ("Mes de gratitud"). Copy en español de Honduras.
+    name: v.string(),
+    // YYYY-MM-DD inclusivas, calendario de Honduras (igual que el devocional).
+    startDate: v.string(),
+    endDate: v.string(),
+    // Apagada = cargada pero invisible: deja lista la próxima temporada sin
+    // que la app la muestre.
+    enabled: v.boolean(),
+    // Desempate cuando dos temporadas se pisan (Semana Santa dentro de un mes
+    // temático). Mayor gana; sin valor cuenta como 0.
+    priority: v.optional(v.number()),
+    // Llave de una paleta de design/tokens.json (pendiente de #190). Nunca un
+    // hex: el servidor elige cuál, el tono lo decide el tema del cliente.
+    paletteKey: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    imageAlt: v.optional(v.string()),
+    imageAttributionUrl: v.optional(v.string()),
+    // Ciclo de devocionales de la temporada. Todavía no existe ninguno.
+    devotionalCycleId: v.optional(v.string()),
+    // Recorrido destacado en Leer (id de readingPlanCatalog).
+    readingPlanId: v.optional(v.string()),
+    // Personaje del mes en Voces (slug de voicesCatalog: solo humanos).
+    characterSlug: v.optional(v.string()),
+    // Historia destacada (catálogo ilustrado o de texto).
+    storyId: v.optional(v.string()),
+    // Preguntas de ejemplo en Preguntar.
+    sampleQuestions: v.optional(v.array(v.string())),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_end_date", ["endDate"]),
 
   // Marcador "seguí leyendo" del lector (#113). Una fila por usuario: el
   // lector no guarda un historial de lectura, guarda dónde quedó.
@@ -272,7 +312,14 @@ export default defineSchema({
     module: v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings")),
     characterId: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_user_module", ["userId", "module"]),
+    // Preguntar (#191): una conversación por tema. Opcionales porque la
+    // conversación única de antes no los tiene — se resuelven al leer.
+    title: v.optional(v.string()),
+    passage: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.optional(v.number()) })),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user_module", ["userId", "module"])
+    .index("by_user_module_updated", ["userId", "module", "updatedAt"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),

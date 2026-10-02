@@ -13,10 +13,55 @@ import STORY_CATALOG from "./story-catalog.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
-import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro } from "./scenario";
+import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
+
+// Temporadas de muestra (#199), con la forma de `seasons.current`. El
+// calendario real lo decide el fundador; esto es solo para ver la capa.
+const SEASON_BASE = {
+  imageUrl: null,
+  imageAlt: null,
+  imageAttributionUrl: null,
+  devotionalCycleId: null,
+  readingPlanId: null,
+  storyId: null,
+};
+const SEASONS = {
+  reforma: {
+    ...SEASON_BASE,
+    slug: "reforma-2026",
+    name: "Mes de la Reforma",
+    startDate: "2026-10-01",
+    endDate: "2026-10-31",
+    paletteKey: "reforma",
+    characterSlug: "pablo",
+    sampleQuestions: ["¿Qué quiere decir “el justo vivirá por la fe”?", "¿Qué enseña Gálatas sobre la gracia?"],
+  },
+  gratitud: {
+    ...SEASON_BASE,
+    slug: "gratitud-2026",
+    name: "Mes de gratitud",
+    startDate: "2026-11-01",
+    endDate: "2026-11-30",
+    paletteKey: "gratitud",
+    characterSlug: "david",
+    sampleQuestions: ["¿Por qué David daba gracias en medio de la angustia?", "¿Qué dice el Salmo 100 sobre dar gracias?"],
+  },
+  // Sin personaje ni preguntas: el personaje sale de la rotación del mes.
+  adviento: {
+    ...SEASON_BASE,
+    slug: "adviento-navidad-2026",
+    name: "Adviento y Navidad",
+    startDate: "2026-12-01",
+    endDate: "2026-12-31",
+    paletteKey: "adviento",
+    characterSlug: null,
+    sampleQuestions: [],
+  },
+};
+const CURRENT_SEASON = SEASONS[seasonScenario()] ?? null;
 
 const listeners = new Set();
 const notify = () => listeners.forEach((l) => l());
@@ -25,9 +70,14 @@ const db = {
   darkMode: isDark(),
   bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
-  qaThread: isEmpty()
-    ? []
-    : [
+  // Lector (#113, #196). `?hint=seen` simula una cuenta que ya cerró la pista.
+  readingFontStep: undefined,
+  readingSpacingStep: undefined,
+  readerHintSeen: typeof window !== "undefined" && new URLSearchParams(window.location.search).get("hint") === "seen",
+  // Preguntar: una conversación por tema (#191). `qa-seed` es la de ejemplo.
+  qaThreads: isEmpty()
+    ? {}
+    : { "qa-seed": [
         { _id: "m1", role: "user", text: "¿Qué quiere decir que Dios es nuestro refugio?" },
         {
           _id: "m2",
@@ -43,7 +93,9 @@ const db = {
             },
           ],
         },
-      ],
+      ] },
+  // Título y pasaje de cada conversación de Preguntar, como los guarda `qa.ask`.
+  qaMeta: {},
   voiceThreads: {},
   planCompleted: [1, 2],
   // Lectura (#112–#115 y separador): fixtures para ver el módulo en el harness.
@@ -58,6 +110,8 @@ const db = {
         { book: "Romanos", chapter: 8, verse: 28, createdAt: Date.now() - 3 * 24 * 3600e3 },
         { book: "Filipenses", chapter: 4, verse: 13, createdAt: Date.now() - 9 * 24 * 3600e3 },
         { book: "1 Pedro", chapter: 5, verse: 7, createdAt: Date.now() - 20 * 24 * 3600e3, note: "Me lo dijo mi mamá." },
+        // Sin nota: el lector marca este con un punto en el margen (#196).
+        { book: "Salmos", chapter: 46, verse: 10, createdAt: Date.now() - 40 * 24 * 3600e3 },
       ],
   // Subrayados (#168): cuatro, en tres colores, para ver "Ver todos (4)" y el
   // filtro por color de la pantalla Subrayados.
@@ -98,6 +152,16 @@ const DEVOTIONAL = {
   verseRef: "Salmos 46:1",
   reflection:
     "Hay días en que lo único que se sostiene es que Dios está. No que todo salga bien: que Él está. Ese versículo no promete que la tierra no tiemble — promete que hay dónde ampararse cuando tiembla.",
+  // Devocional por secciones (PR aparte): `/hoy` las muestra solo si vienen.
+  // Con `?qa=empty` no vienen, para ver la pantalla como antes de ese cambio.
+  ...(isEmpty()
+    ? {}
+    : {
+        openingPrayer: "Señor, antes de empezar el día, quiero quedarme un momento con vos.",
+        intro:
+          "El salmo 46 se cantaba en tiempos de guerra y de terremotos. No nace de una vida tranquila, sino de gente que vio temblar todo lo que tenía.",
+        closingPrayer: "Gracias porque sos mi amparo hoy, pase lo que pase. Ayudame a correr hacia vos y no lejos. Amén.",
+      }),
   imageUrl: IMG,
   imageAlt: "Amanecer cálido entre montañas",
   imageAttributionUrl: "https://unsplash.com/photos/1500534623283-312aade485b7",
@@ -109,6 +173,7 @@ const SAVED_TEXT = {
   "Romanos 8:28": "Y sabemos que á los que á Dios aman, todas las cosas les ayudan á bien, es á saber, á los que conforme al propósito son llamados.",
   "Filipenses 4:13": "Todo lo puedo en Cristo que me fortalece.",
   "1 Pedro 5:7": "Echando toda vuestra solicitud en él, porque él tiene cuidado de vosotros.",
+  "Salmos 46:10": "Estad quietos, y conoced que yo soy Dios: ensalzado he de ser entre las gentes, ensalzado seré en la tierra.",
 };
 
 function findBookmark(args) {
@@ -120,7 +185,23 @@ const VERSES = [
   { verse: 2, text: "Por tanto, no temeremos, aunque la tierra sea removida, y se traspasen los montes al corazón del mar;" },
   { verse: 3, text: "Aunque bramen y se turben sus aguas, y tiemblen los montes a causa de su braveza." },
   { verse: 4, text: "Del río sus corrientes alegran la ciudad de Dios, el santuario de las moradas del Altísimo." },
+  // Lector "Biblia de papel" (#195): el capítulo completo, para ver la prosa
+  // corrida, las marcas del margen y el scroll al versículo (#154).
+  { verse: 5, text: "Dios está en medio de ella; no será conmovida: Dios la ayudará al clarear la mañana." },
+  { verse: 6, text: "Bramaron las gentes, titubearon los reinos; dió él su voz, derritióse la tierra." },
+  { verse: 7, text: "Jehová de los ejércitos es con nosotros; nuestro refugio es el Dios de Jacob. (Selah.)" },
+  { verse: 8, text: "Venid, ved las obras de Jehová, que ha puesto asolamientos en la tierra." },
+  { verse: 9, text: "Que hace cesar las guerras hasta los fines de la tierra: que quiebra el arco, corta la lanza, y quema los carros en el fuego." },
+  { verse: 10, text: "Estad quietos, y conoced que yo soy Dios: ensalzado he de ser entre las gentes, ensalzado seré en la tierra." },
+  { verse: 11, text: "Jehová de los ejércitos es con nosotros; nuestro refugio es el Dios de Jacob. (Selah.)" },
 ];
+
+// Salmos 119 tiene 176 versículos: el harness repite el texto de arriba para
+// medir el scroll de un capítulo largo. El resto de capítulos usa los 11.
+function chapterVerses(book, chapter) {
+  const count = book === "Salmos" && chapter === 119 ? 176 : VERSES.length;
+  return Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+}
 
 // Biblia sin conexión (#160): un paquete por libro con los mismos 4
 // versículos placeholder en cada capítulo, servido como data: URL. El tamaño
@@ -184,6 +265,9 @@ const handlers = {
     bibleVersion: db.bibleVersion,
     darkMode: db.darkMode,
     reminderHour: db.reminderHour,
+    readingFontStep: db.readingFontStep,
+    readingSpacingStep: db.readingSpacingStep,
+    readerHintSeen: db.readerHintSeen,
   }),
   // Invitaciones: BAH-QA00001 existe; el resto no.
   "referrals:claim": (args) => {
@@ -199,10 +283,14 @@ const handlers = {
     if (args.darkMode !== undefined) db.darkMode = args.darkMode;
     if (args.bibleVersion) db.bibleVersion = args.bibleVersion;
     if (args.reminderHour !== undefined) db.reminderHour = args.reminderHour;
+    if (args.readingFontStep !== undefined) db.readingFontStep = args.readingFontStep;
+    if (args.readingSpacingStep !== undefined) db.readingSpacingStep = args.readingSpacingStep;
+    if (args.readerHintSeen !== undefined) db.readerHintSeen = args.readerHintSeen;
     notify();
     return null;
   },
   "devotional:today": () => DEVOTIONAL,
+  "seasons:current": () => CURRENT_SEASON,
   "devotional:byDate": (args) => ({ ...DEVOTIONAL, date: args.date }),
   // Solo RV1909 tiene corpus ingerido (convex/bibleVersions.ts); con NVI el backend real devuelve
   // verse: null y [] — el harness reproduce ese comportamiento.
@@ -213,7 +301,7 @@ const handlers = {
   "rag/verses:listByChapter": (args) =>
     isEmpty() || args.version !== "RV1909"
       ? []
-      : VERSES.map((v) => ({ ...v, book: args.book, chapter: args.chapter, version: args.version })),
+      : chapterVerses(args.book, args.chapter).map((v) => ({ ...v, book: args.book, chapter: args.chapter, version: args.version })),
   "reading:progress": () => db.readingProgress,
   "reading:recents": () => (isEmpty() ? [] : [{ book: "Juan", chapter: 3, openedAt: Date.now() }]),
   "reading:bookmarks": (args) => {
@@ -336,21 +424,45 @@ const handlers = {
     notify();
     return { status: "ok" };
   },
-  "qa:thread": () => db.qaThread,
+  "qa:thread": (args) => {
+    if (args?.conversationId) return db.qaThreads[args.conversationId] ?? [];
+    const ids = Object.keys(db.qaThreads);
+    return ids.length ? db.qaThreads[ids[ids.length - 1]] : [];
+  },
+  "qa:conversations": () =>
+    Object.entries(db.qaThreads)
+      .reverse()
+      .map(([id, messages]) => ({
+        _id: id,
+        // Como `conversationTitle` del backend: el pasaje si lo hubo, si no la pregunta.
+        title: db.qaMeta[id]?.title ?? messages[0]?.text.slice(0, 40) ?? "",
+        passage: db.qaMeta[id]?.passage ?? null,
+        updatedAt: Date.now(),
+        lastQuestion: [...messages].reverse().find((m) => m.role === "user")?.text ?? null,
+      })),
   "qa:ask": (args) => {
-    if (atLimit()) return { status: "limit_reached" };
-    db.qaThread = [
-      ...db.qaThread,
-      { _id: `q${db.qaThread.length}`, role: "user", text: args.question },
-      {
-        _id: `q${db.qaThread.length + 1}`,
-        role: "assistant",
-        text: "El texto no promete ausencia de tormenta, promete presencia. Mirá el versículo:",
-        citations: [{ book: "Salmos", chapter: 46, verse: 1, version: db.bibleVersion, text: VERSES[0].text }],
-      },
-    ];
+    if (atLimit()) return { status: "limit_reached", conversationId: args.conversationId ?? null };
+    const conversationId = args.conversationId ?? `qa-${Object.keys(db.qaThreads).length + 1}`;
+    const thread = db.qaThreads[conversationId] ?? [];
+    if (!db.qaThreads[conversationId] && args.passage) {
+      const { book, chapter, verse } = args.passage;
+      db.qaMeta[conversationId] = { title: `${book} ${chapter}${verse === undefined ? "" : `:${verse}`}`, passage: args.passage };
+    }
+    db.qaThreads = {
+      ...db.qaThreads,
+      [conversationId]: [
+        ...thread,
+        { _id: `${conversationId}-${thread.length}`, role: "user", text: args.question },
+        {
+          _id: `${conversationId}-${thread.length + 1}`,
+          role: "assistant",
+          text: "El texto no promete ausencia de tormenta, promete presencia. Mirá el versículo:",
+          citations: [{ book: "Salmos", chapter: 46, verse: 1, version: db.bibleVersion, text: VERSES[0].text }],
+        },
+      ],
+    };
     notify();
-    return { status: "ok" };
+    return { status: "ok", conversationId };
   },
   "quotas:remaining": (args) => quota(args.module),
   "entitlements:mine": () => ({ isPro: isPro(), expiresAt: isPro() ? Date.now() + 30 * 24 * 3600e3 : null }),
@@ -358,7 +470,12 @@ const handlers = {
   "history:getById": () => ({
     module: "feelings",
     messages: [
-      { role: "user", text: "Cansancio" },
+      // Como lo guarda `feelings:saveGenerated`: el prompt de `buildFeelingQuestion`,
+      // del que Sentir recupera los chips y la nota al reabrirlo (#197).
+      {
+        role: "user",
+        text: "La persona identifica: Cansancio. También cuenta: Llevo semanas durmiendo mal. Respondé con un devocional breve, compasivo y práctico, basado solo en el pasaje bíblico recuperado.",
+      },
       { role: "assistant", text: FEELING_DEVOTIONAL.reflection, devotional: FEELING_DEVOTIONAL },
     ],
   }),
