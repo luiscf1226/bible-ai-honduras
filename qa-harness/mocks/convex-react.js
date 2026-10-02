@@ -23,9 +23,10 @@ const db = {
   darkMode: isDark(),
   bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
-  qaThread: isEmpty()
-    ? []
-    : [
+  // Preguntar: una conversación por tema (#191). `qa-seed` es la de ejemplo.
+  qaThreads: isEmpty()
+    ? {}
+    : { "qa-seed": [
         { _id: "m1", role: "user", text: "¿Qué quiere decir que Dios es nuestro refugio?" },
         {
           _id: "m2",
@@ -41,7 +42,7 @@ const db = {
             },
           ],
         },
-      ],
+      ] },
   voiceThreads: {},
   // Lectura (#112–#115 y separador): fixtures para ver el módulo en el harness.
   separator: isEmpty() ? null : { book: "Salmos", chapter: 46, verse: 1, updatedAt: Date.now() },
@@ -272,21 +273,40 @@ const handlers = {
     notify();
     return { status: "ok" };
   },
-  "qa:thread": () => db.qaThread,
+  "qa:thread": (args) => {
+    if (args?.conversationId) return db.qaThreads[args.conversationId] ?? [];
+    const ids = Object.keys(db.qaThreads);
+    return ids.length ? db.qaThreads[ids[ids.length - 1]] : [];
+  },
+  "qa:conversations": () =>
+    Object.entries(db.qaThreads)
+      .reverse()
+      .map(([id, messages]) => ({
+        _id: id,
+        title: messages[0]?.text.slice(0, 40) ?? "",
+        passage: null,
+        updatedAt: Date.now(),
+        lastQuestion: [...messages].reverse().find((m) => m.role === "user")?.text ?? null,
+      })),
   "qa:ask": (args) => {
-    if (atLimit()) return { status: "limit_reached" };
-    db.qaThread = [
-      ...db.qaThread,
-      { _id: `q${db.qaThread.length}`, role: "user", text: args.question },
-      {
-        _id: `q${db.qaThread.length + 1}`,
-        role: "assistant",
-        text: "El texto no promete ausencia de tormenta, promete presencia. Mirá el versículo:",
-        citations: [{ book: "Salmos", chapter: 46, verse: 1, version: db.bibleVersion, text: VERSES[0].text }],
-      },
-    ];
+    if (atLimit()) return { status: "limit_reached", conversationId: args.conversationId ?? null };
+    const conversationId = args.conversationId ?? `qa-${Object.keys(db.qaThreads).length + 1}`;
+    const thread = db.qaThreads[conversationId] ?? [];
+    db.qaThreads = {
+      ...db.qaThreads,
+      [conversationId]: [
+        ...thread,
+        { _id: `${conversationId}-${thread.length}`, role: "user", text: args.question },
+        {
+          _id: `${conversationId}-${thread.length + 1}`,
+          role: "assistant",
+          text: "El texto no promete ausencia de tormenta, promete presencia. Mirá el versículo:",
+          citations: [{ book: "Salmos", chapter: 46, verse: 1, version: db.bibleVersion, text: VERSES[0].text }],
+        },
+      ],
+    };
     notify();
-    return { status: "ok" };
+    return { status: "ok", conversationId };
   },
   "quotas:remaining": (args) => quota(args.module),
   "entitlements:mine": () => ({ isPro: isPro(), expiresAt: isPro() ? Date.now() + 30 * 24 * 3600e3 : null }),

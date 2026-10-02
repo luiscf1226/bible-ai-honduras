@@ -259,7 +259,14 @@ export default defineSchema({
     module: v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings")),
     characterId: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_user_module", ["userId", "module"]),
+    // Preguntar (#191): una conversación por tema. Opcionales porque la
+    // conversación única de antes no los tiene — se resuelven al leer.
+    title: v.optional(v.string()),
+    passage: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.optional(v.number()) })),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user_module", ["userId", "module"])
+    .index("by_user_module_updated", ["userId", "module", "updatedAt"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),

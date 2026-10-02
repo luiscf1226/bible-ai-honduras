@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { LimitReached } from "../../../src/components/LimitReached";
 import { LoadingState, QA_ANSWER_STEPS } from "../../../src/components/LoadingState";
 import { ScreenHeader } from "../../../src/components/ScreenHeader";
@@ -34,8 +35,18 @@ export default function PreguntarChatScreen() {
   const insets = useScreenInsets();
   const threadRef = useRef<ScrollView>(null);
   useScrollToEndOnKeyboard(threadRef);
-  const { book, chapter, verse } = useLocalSearchParams<{ book?: string; chapter?: string; verse?: string }>();
-  const thread = useQuery(api.qa.thread, {});
+  const { book, chapter, verse, conversationId: routeConversationId } = useLocalSearchParams<{
+    book?: string;
+    chapter?: string;
+    verse?: string;
+    conversationId?: string;
+  }>();
+  // Una conversación por tema (#191): sin id en la ruta, el hilo arranca vacío
+  // y `qa.ask` crea la conversación con la primera pregunta.
+  const [conversationId, setConversationId] = useState<Id<"conversations"> | undefined>(
+    routeConversationId as Id<"conversations"> | undefined,
+  );
+  const thread = useQuery(api.qa.thread, conversationId ? { conversationId } : "skip");
   const currentUser = useQuery(api.users.current);
   const quota = useQuery(api.quotas.remaining, currentUser ? { module: "qa" } : "skip");
   const ask = useAction(api.qa.ask);
@@ -71,7 +82,10 @@ export default function PreguntarChatScreen() {
       const passage = book
         ? { book, chapter: Number(chapter), verse: verse ? Number(verse) : undefined }
         : undefined;
-      const result = await ask({ question: trimmed, passage });
+      const result = await ask({ question: trimmed, passage, conversationId });
+      if (result.conversationId) {
+        setConversationId(result.conversationId);
+      }
       if (requestId !== requestIdRef.current) {
         return;
       }

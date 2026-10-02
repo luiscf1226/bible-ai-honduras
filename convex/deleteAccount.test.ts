@@ -67,6 +67,20 @@ async function seedEverything(
       role: "user",
       text: `segunda pregunta de ${label}`,
     });
+    // Preguntar tiene una conversación por tema (#191): otra más, con título.
+    const qaTopicId = await ctx.db.insert("conversations", {
+      userId,
+      module: "qa",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      title: "Romanos 8",
+      passage: { book: "Romanos", chapter: 8 },
+    });
+    await ctx.db.insert("messages", {
+      conversationId: qaTopicId,
+      role: "user",
+      text: `pregunta sobre Romanos de ${label}`,
+    });
 
     await ctx.db.insert("usage", { userId, module: "qa", day: "2026-09-10", count: 3 });
     await ctx.db.insert("usage", { userId, module: "stories", day: "lifetime", count: 1 });
@@ -206,8 +220,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 
     const before = await tableDump(t);
     expect(before.users).toHaveLength(1);
-    expect(before.conversations).toHaveLength(2);
-    expect(before.messages).toHaveLength(3);
+    expect(before.conversations).toHaveLength(3);
+    expect(before.messages).toHaveLength(4);
     expect(before.usage).toHaveLength(2);
     expect(before.entitlements).toHaveLength(1);
     expect(before.stories).toHaveLength(1);
@@ -225,8 +239,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 
     expect(result.status).toBe("ok");
     expect(result.deleted).toEqual({
-      messages: 3,
-      conversations: 2,
+      messages: 4,
+      conversations: 3,
       usage: 2,
       entitlements: 1,
       stories: 1,
@@ -276,8 +290,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     const after = await tableDump(t);
     expect(after.users.map((row) => row.clerkId)).toEqual(["user_beto_intacto"]);
     expect(after.conversations.every((row) => row.userId === betoId)).toBe(true);
-    expect(after.conversations).toHaveLength(2);
-    expect(after.messages).toHaveLength(3);
+    expect(after.conversations).toHaveLength(3);
+    expect(after.messages).toHaveLength(4);
     expect(after.messages.every((row) => row.text.includes("Beto"))).toBe(true);
     expect(after.usage).toHaveLength(2);
     expect(after.usage.every((row) => row.userId === betoId)).toBe(true);
