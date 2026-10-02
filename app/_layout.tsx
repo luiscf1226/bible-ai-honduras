@@ -15,6 +15,7 @@ import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
 import { useReferralAttribution } from "../src/hooks/useReferralAttribution";
 import { useRevenueCatLogin } from "../src/hooks/useRevenueCatLogin";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
+import { useVerseWidgetSync } from "../src/features/widget/useVerseWidgetSync";
 import { installGlobalErrorReporting, reportError, track } from "../src/lib/telemetry";
 import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 
@@ -33,6 +34,7 @@ const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as str
 function AppNavigator() {
   useSyncConvexUser();
   useRevenueCatLogin();
+  useVerseWidgetSync();
   useReferralAttribution();
   const { dark } = useTheme();
   const appUpdate = useAppUpdate();
