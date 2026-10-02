@@ -10,6 +10,8 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
+import { deleteMemoryVersesForUser } from "./memorize";
+import { deletePrayersForUser } from "./prayers";
 import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
 
@@ -297,6 +299,8 @@ export const updatePreferences = mutation({
 //   stories        → la fila y además cada blob de `_storage` de sus escenas
 //   reading*       → marcador, recientes y guardados del lector (#112/#113)
 //   userPlanProgress → progreso en planes de lectura, una fila por plan (#114/#115)
+//   prayerRequests → diario de oración (#159)
+//   memoryVerses   → versículos para memorizar (#158)
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 
@@ -316,6 +320,8 @@ export type PurgeCounts = {
   readingSeparators: number;
   readingHighlights: number;
   readingPlanProgress: number;
+  prayerRequests: number;
+  memoryVerses: number;
   users: number;
 };
 
@@ -348,6 +354,8 @@ function emptyPurgeCounts(): PurgeCounts {
     readingSeparators: 0,
     readingHighlights: 0,
     readingPlanProgress: 0,
+    prayerRequests: 0,
+    memoryVerses: 0,
     users: 0,
   };
 }
@@ -475,8 +483,20 @@ export const purgeAccountData = internalMutation({
     const readingPlan = await deleteReadingPlanDataForUser(ctx, user._id);
     deleted.readingPlanProgress = readingPlan.deleted;
 
+    const prayers = await deletePrayersForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.prayerRequests = prayers.deleted;
+
+    const memory = await deleteMemoryVersesForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.memoryVerses = memory.deleted;
+
     const childrenDone =
-      conversations.done && stories.done && usage.done && entitlements.done && reading.done;
+      conversations.done &&
+      stories.done &&
+      usage.done &&
+      entitlements.done &&
+      reading.done &&
+      prayers.done &&
+      memory.done;
     if (!childrenDone) {
       return { done: false, deleted };
     }
@@ -561,6 +581,8 @@ export const deleteAccount = action({
       deleted.readingSeparators += result.deleted.readingSeparators;
       deleted.readingHighlights += result.deleted.readingHighlights;
       deleted.readingPlanProgress += result.deleted.readingPlanProgress;
+      deleted.prayerRequests += result.deleted.prayerRequests;
+      deleted.memoryVerses += result.deleted.memoryVerses;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

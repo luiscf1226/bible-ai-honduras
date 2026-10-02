@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -14,6 +14,7 @@ import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { SideDrawer } from "../../src/components/SideDrawer";
 import { api } from "../../convex/_generated/api";
 import { FEELINGS, OWN_WORDS_CHIP, feelingFromParam } from "../../src/features/feelings/feelings";
+import { PRAYER_MAX_LENGTH, prayerDraft } from "../../src/features/personal/prayerJournal";
 import { journeyCtaLabel, journeyForFeelings } from "../../src/features/reading/feelingJourneys";
 import { openReadingPlan } from "../../src/lib/openPassage";
 import { track } from "../../src/lib/telemetry";
@@ -58,6 +59,16 @@ export default function SentirScreen() {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [writingOwn, setWritingOwn] = useState(false);
+  // "Guardar como petición" (#159): null = botón; string = campo abierto.
+  const createPrayer = useMutation(api.prayers.create);
+  const [prayerText, setPrayerText] = useState<string | null>(null);
+  const [prayerSaved, setPrayerSaved] = useState(false);
+  const [prayerError, setPrayerError] = useState<string | null>(null);
+  const resetPrayer = () => {
+    setPrayerText(null);
+    setPrayerSaved(false);
+    setPrayerError(null);
+  };
   const freeTextRef = useRef<TextInput>(null);
   // Desde el inicio se puede llegar con un sentimiento ya elegido
   // (`?feeling=Ansiedad`) o directo a escribir (`?escribir=1`). Desde Mi espacio
@@ -124,6 +135,7 @@ export default function SentirScreen() {
         return;
       }
       setDevotional(result.devotional);
+      resetPrayer();
       track("feeling_devotional_generated");
     } catch (cause) {
       if (requestId !== generateRequestIdRef.current) {
@@ -174,6 +186,18 @@ export default function SentirScreen() {
   }
 
   if (activeDevotional) {
+    const savePrayer = async () => {
+      if (!prayerText?.trim()) return;
+      const { book, chapter, verse } = activeDevotional.citation;
+      try {
+        await createPrayer({ text: prayerText, verse: { book, chapter, verse } });
+        setPrayerText(null);
+        setPrayerSaved(true);
+        setPrayerError(null);
+      } catch {
+        setPrayerError("No pudimos guardar tu petición. Revisá tu conexión e intentá de nuevo.");
+      }
+    };
     const reference = `${activeDevotional.citation.book} ${activeDevotional.citation.chapter}:${activeDevotional.citation.verse} · ${activeDevotional.citation.version}`;
     return (
       <AppScreen scroll contentStyle={styles.resultContent}>
@@ -182,6 +206,7 @@ export default function SentirScreen() {
           onBack={() => {
             setDevotional(null);
             setSelectedHistoryId(null);
+            resetPrayer();
           }}
           testID="sentir-result-back"
         />
@@ -206,6 +231,54 @@ export default function SentirScreen() {
             {journeyCtaLabel(journeyPlan.totalDays, journey.topic)}
           </AppButton>
         ) : null}
+        {/* Diario de oración (#159). Mismo campo que la nota del lector (#167). */}
+        {prayerSaved ? (
+          <View style={styles.prayerSaved} testID="sentir-prayer-saved">
+            <Text style={[styles.privateNote, { color: color.sage }]}>Quedó en tu diario de oración.</Text>
+            <AppButton onPress={() => router.push("/oracion")} testID="sentir-prayer-open" variant="quiet">
+              Ver mi diario de oración
+            </AppButton>
+          </View>
+        ) : prayerText !== null ? (
+          <View style={styles.prayerForm} testID="sentir-prayer-form">
+            <Text style={[styles.inputLabel, { color: color.accent }]}>TU PETICIÓN · PRIVADA</Text>
+            <TextInput
+              accessibilityLabel="Escribí tu petición de oración"
+              autoFocus
+              maxLength={PRAYER_MAX_LENGTH}
+              multiline
+              onChangeText={setPrayerText}
+              placeholder="Por ejemplo: “Que encuentre trabajo pronto”."
+              placeholderTextColor={color.inkFaint}
+              style={[styles.input, { backgroundColor: color.surface, borderColor: color.accent, color: color.ink }]}
+              testID="sentir-prayer-input"
+              textAlignVertical="top"
+              value={prayerText}
+            />
+            <Text style={[styles.disclaimer, { color: color.inkFaint }]}>
+              {prayerText.length}/{PRAYER_MAX_LENGTH} · No se comparte ni se envía a la IA.
+            </Text>
+            {prayerError ? (
+              <Text accessibilityRole="alert" style={[styles.error, { color: color.accentDeep }]}>
+                {prayerError}
+              </Text>
+            ) : null}
+            <AppButton disabled={!prayerText.trim()} onPress={() => void savePrayer()} testID="sentir-prayer-save">
+              Guardar petición
+            </AppButton>
+            <AppButton onPress={() => setPrayerText(null)} variant="quiet">
+              Cancelar
+            </AppButton>
+          </View>
+        ) : (
+          <AppButton
+            onPress={() => setPrayerText(devotional ? prayerDraft(selectedFeelings, freeText) : "")}
+            testID="sentir-save-prayer"
+            variant="secondary"
+          >
+            Guardar como petición
+          </AppButton>
+        )}
         <AppButton onPress={() => void generateDevotional()} variant="secondary">
           Dame otro enfoque
         </AppButton>
@@ -280,6 +353,7 @@ export default function SentirScreen() {
             onPress={() => {
               setIsHistoryOpen(false);
               setSelectedHistoryId(item.id);
+              resetPrayer();
             }}
             style={[styles.historyItem, { backgroundColor: color.surface, borderColor: color.border }]}
           >
@@ -540,6 +614,8 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
     textAlign: "center",
   },
+  prayerForm: { gap: tokens.space.sm },
+  prayerSaved: { alignItems: "center" },
   topRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   pressed: { opacity: tokens.opacity.pressed },
   historyButton: {

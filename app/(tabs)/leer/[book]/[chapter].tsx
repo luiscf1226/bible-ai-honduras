@@ -65,6 +65,13 @@ export default function ReaderScreen() {
   );
   const setHighlight = useMutation(api.reading.setHighlight);
   const clearHighlight = useMutation(api.reading.clearHighlight);
+  // Memorizar (#158): versículos del capítulo que ya están en el repaso.
+  const memorizing = useQuery(
+    api.memorize.chapterVerses,
+    ref && currentUser?._id ? { book: ref.book, chapter: ref.chapter } : "skip",
+  );
+  const addToMemorize = useMutation(api.memorize.add);
+  const removeFromMemorize = useMutation(api.memorize.remove);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const [selected, setSelected] = useState<ReadingVerse | null>(null);
   // Borrador de la nota (#167). null = la hoja muestra las acciones; string =
@@ -193,6 +200,12 @@ export default function ReaderScreen() {
       return;
     }
     toggle();
+  };
+  const selectedMemorizing = selected ? (memorizing ?? []).includes(selected.verse) : false;
+  const toggleMemorize = () => {
+    if (!selected) return;
+    const target = { book: selected.book, chapter: selected.chapter, verse: selected.verse };
+    void (selectedMemorizing ? removeFromMemorize(target) : addToMemorize(target)).catch(() => undefined);
   };
   const saveNote = async (note: string) => {
     if (!selected) return;
@@ -360,6 +373,23 @@ export default function ReaderScreen() {
           ) : null}
           <Pressable accessibilityRole="button" disabled={!currentUser?.referralCode} onPress={shareSelected} style={styles.action}><Text style={[styles.actionLabel, { color: color.ink }]}>Compartir</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={saveSelected} style={styles.action} testID="reading-save-toggle"><Text style={[styles.actionLabel, { color: color.ink }]}>{selectedBookmark ? "Guardado" : "Guardar"}</Text></Pressable>
+          {currentUser?._id ? (
+            <Pressable
+              accessibilityHint={
+                selectedMemorizing
+                  ? "Lo saca de tu repaso de Memorizar."
+                  : "Lo agrega a Memorizar. Aparece en tu repaso de mañana."
+              }
+              accessibilityRole="button"
+              onPress={toggleMemorize}
+              style={styles.action}
+              testID="reading-memorize-toggle"
+            >
+              <Text style={[styles.actionLabel, { color: color.ink }]}>
+                {selectedMemorizing ? "Memorizando · quitar" : "Memorizar"}
+              </Text>
+            </Pressable>
+          ) : null}
           {currentUser?._id ? (
             <Pressable
               accessibilityRole="button"
