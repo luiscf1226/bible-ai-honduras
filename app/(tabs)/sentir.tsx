@@ -19,6 +19,7 @@ import { openReadingPlan } from "../../src/lib/openPassage";
 import { track } from "../../src/lib/telemetry";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 
 type FeelingDevotional = {
   citation: { book: string; chapter: number; verse: number; version: string; text: string };
@@ -44,7 +45,7 @@ const getHistoryConversation = makeFunctionReference<
   | null
 >("history:getById");
 
-export default function SentirScreen() {
+function SentirScreenContent() {
   const { color } = useTheme();
   const generate = useAction(generateFeelingDevotional);
   const pastDevotionals = useQuery(api.history.list, {})?.filter((item) => item.module === "feelings") ?? [];
@@ -591,3 +592,12 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.subtitle.lineHeight,
   },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function SentirScreen() {
+  return (
+    <RequiresConnection module="feelings">
+      <SentirScreenContent />
+    </RequiresConnection>
+  );
+}

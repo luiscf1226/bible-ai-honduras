@@ -26,10 +26,11 @@ import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../../src/lib
 import { track } from "../../../src/lib/telemetry";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
+import { RequiresConnection } from "../../../src/features/offline/RequiresConnection";
 
 const QA_SUGGESTIONS = ["¿Quién lo escribió?", "¿Cómo lo aplico hoy?", "Explícalo más simple"] as const;
 
-export default function PreguntarChatScreen() {
+function PreguntarChatScreenContent() {
   const { color } = useTheme();
   const insets = useScreenInsets();
   const threadRef = useRef<ScrollView>(null);
@@ -329,3 +330,12 @@ const styles = StyleSheet.create({
   },
   sendIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function PreguntarChatScreen() {
+  return (
+    <RequiresConnection module="qa">
+      <PreguntarChatScreenContent />
+    </RequiresConnection>
+  );
+}

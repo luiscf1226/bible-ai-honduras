@@ -14,6 +14,7 @@ import { goToVoices } from "../../../../src/lib/goToVoices";
 import { openPassage } from "../../../../src/lib/openPassage";
 import { useTheme } from "../../../../src/theme/ThemeProvider";
 import { tokens } from "../../../../src/theme/tokens";
+import { RequiresConnection } from "../../../../src/features/offline/RequiresConnection";
 
 const getTextStory = makeFunctionReference<"query", { storyId: string }, TextStoryCatalogItem | null>(
   "textStories:getById",
@@ -23,7 +24,7 @@ const getTextStory = makeFunctionReference<"query", { storyId: string }, TextSto
  * Visor de historia en texto (#145). Gratis: no consulta cuotas ni paywall.
  * Páginas tipográficas + puentes a lector, Preguntar y Voces.
  */
-export default function TextStoryViewerScreen() {
+function TextStoryViewerScreenContent() {
   const { color } = useTheme();
   const { storyId } = useLocalSearchParams<{ storyId?: string | string[] }>();
   const selectedStoryId = Array.isArray(storyId) ? storyId[0] : storyId;
@@ -217,3 +218,12 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.bodySm.lineHeight,
   },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function TextStoryViewerScreen() {
+  return (
+    <RequiresConnection module="stories">
+      <TextStoryViewerScreenContent />
+    </RequiresConnection>
+  );
+}

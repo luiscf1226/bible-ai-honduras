@@ -9,6 +9,8 @@ import { AppScreen } from "../../../src/components/AppScreen";
 import { ChapterGrid } from "../../../src/components/ChapterGrid";
 import { PassageSearch } from "../../../src/components/PassageSearch";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
+import { overlayBookmarkPage, overlayHighlightPage, overlaySeparator } from "../../../src/features/offline/mutationQueue";
+import { useOfflineSync } from "../../../src/features/offline/OfflineSyncProvider";
 import { BEGINNER_PLAN_ID } from "../../../src/features/reading/annualPlans";
 import { highlightSwatch } from "../../../src/features/reading/highlightColors";
 import { SavedVerseCard } from "../../../src/features/reading/SavedVerseCard";
@@ -27,9 +29,14 @@ export default function LeerScreen() {
   const currentUser = useQuery(api.users.current);
   const progress = useQuery(api.reading.progress, {});
   const recents = useQuery(api.reading.recents, {});
-  const bookmarks = useQuery(api.reading.bookmarks, { limit: SAVED_PREVIEW_COUNT });
-  const separator = useQuery(api.reading.separator, {});
-  const highlights = useQuery(api.reading.highlightsWithText, { limit: SAVED_PREVIEW_COUNT });
+  // Lo hecho sin conexión se ve al instante (#182).
+  const { pending } = useOfflineSync();
+  const bookmarks = overlayBookmarkPage(useQuery(api.reading.bookmarks, { limit: SAVED_PREVIEW_COUNT }), pending);
+  const separator = overlaySeparator(useQuery(api.reading.separator, {}), pending);
+  const highlights = overlayHighlightPage(
+    useQuery(api.reading.highlightsWithText, { limit: SAVED_PREVIEW_COUNT }),
+    pending,
+  );
   const version = currentUser?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
   const seeAll = bookmarks ? seeAllLabel(bookmarks.total) : null;
   const seeAllHighlights = highlights ? seeAllLabel(highlights.total) : null;

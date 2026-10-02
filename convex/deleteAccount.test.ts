@@ -462,7 +462,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 });
 
 describe("purgeAccountData", () => {
-  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans)", async () => {
+  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans, bibleOfflinePackages)", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_editorial_107");
     const userId = await authed.mutation(api.users.upsert, {});
@@ -500,6 +500,16 @@ describe("purgeAccountData", () => {
         totalDays: 1,
         days: [{ day: 1, readings: [{ book: "Génesis", chapter: 1 }] }],
       });
+      // La Biblia sin conexión (#160) no es de nadie: un paquete por libro.
+      const storageId = await ctx.storage.store(new Blob(["{}"], { type: "application/json" }));
+      await ctx.db.insert("bibleOfflinePackages", {
+        version: "RV1909",
+        book: "Éxodo",
+        storageId,
+        bytes: 2,
+        verses: 1,
+        builtAt: 1,
+      });
     });
 
     await t.mutation(internal.users.purgeAccountData, { clerkId: "user_editorial_107" });
@@ -509,11 +519,13 @@ describe("purgeAccountData", () => {
       commentaries: await ctx.db.query("commentaries").collect(),
       dailyDevotionals: await ctx.db.query("dailyDevotionals").collect(),
       readingPlans: await ctx.db.query("readingPlans").collect(),
+      bibleOfflinePackages: await ctx.db.query("bibleOfflinePackages").collect(),
     }));
     expect(editorial.verses).toHaveLength(1);
     expect(editorial.commentaries).toHaveLength(1);
     expect(editorial.dailyDevotionals).toHaveLength(1);
     expect(editorial.readingPlans).toHaveLength(1);
+    expect(editorial.bibleOfflinePackages).toHaveLength(1);
   });
 
   it("con un clerkId inexistente devuelve done sin borrar nada", async () => {

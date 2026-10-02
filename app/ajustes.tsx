@@ -12,6 +12,10 @@ import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleV
 // Los números salen de las cuotas reales: el prototipo decía "3 preguntas y 2
 // devocionales", pero el límite es otro y la tarjeta mentía.
 import { QUOTA_LIMITS } from "../convex/quotas";
+import { bibleDownloadState } from "../src/features/offline/bibleDownload";
+import { removeOfflineBible, startBibleDownload, useOfflineBible } from "../src/features/offline/offlineBible";
+import { bibleRowCopy, REMOVE_BIBLE_BODY, REMOVE_BIBLE_TITLE } from "../src/features/offline/offlineCopy";
+import { useOfflineSync } from "../src/features/offline/OfflineSyncProvider";
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
 import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
 import { canEnterReferral, claimMessage } from "../src/lib/referralCopy";
@@ -67,6 +71,31 @@ export default function AjustesScreen() {
   const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : DEFAULT_BIBLE_VERSION;
   const darkMode = user?.darkMode ?? false;
   const appUpdate = useAppUpdate();
+  // Biblia sin conexión (#160). Leer es gratis: no pasa por cuotas.
+  const { online, clearUserData, forgetNotes } = useOfflineSync();
+  const offlineBible = useOfflineBible();
+  const manifest = useQuery(api.offlineBible.manifest, { version: bibleVersion });
+  const bibleState = bibleDownloadState(offlineBible.index, manifest);
+  const bibleCopy = bibleRowCopy({
+    state: bibleState,
+    downloading: offlineBible.downloading,
+    failed: offlineBible.failed,
+    online,
+    version: bibleVersion,
+    totalBytes: manifest?.totalBytes,
+  });
+
+  function onBibleRow() {
+    if (!bibleCopy.actionable) return;
+    if (bibleState.kind === "ready" || (bibleState.kind === "update" && !online)) {
+      Alert.alert(REMOVE_BIBLE_TITLE, REMOVE_BIBLE_BODY, [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Quitar", style: "destructive", onPress: () => void removeOfflineBible() },
+      ]);
+      return;
+    }
+    if (manifest) void startBibleDownload(manifest);
+  }
 
   // Invitaciones (PRD §9b): en iPhone no hay forma automática de saber quién
   // mandó el link de la tienda, así que se puede escribir el código.
@@ -87,6 +116,13 @@ export default function AjustesScreen() {
   // aviso diario sobreviviera, seguirían llegando notificaciones de una cuenta
   // desconectada. Ningún paso puede bloquear a los otros.
   async function endSession() {
+    try {
+      // La cola sin conexión y lo último visto son de esta cuenta (#182). La
+      // Biblia descargada no es de nadie: se queda en el teléfono.
+      await clearUserData();
+    } catch {
+      // Un archivo que no se pudo borrar no bloquea el cierre de sesión.
+    }
     try {
       await cancelDailyDevotionalReminder();
     } catch {
@@ -302,6 +338,27 @@ export default function AjustesScreen() {
           </Text>
         </View>
 
+        {/* Mismo renglón que "Mi espacio": título, pista y glifo a la derecha. */}
+        <Pressable
+          accessibilityHint={bibleCopy.hint}
+          accessibilityRole="button"
+          accessibilityState={{ busy: offlineBible.downloading !== null, disabled: !bibleCopy.actionable }}
+          disabled={!bibleCopy.actionable}
+          onPress={onBibleRow}
+          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+          testID="ajustes-biblia-sin-conexion"
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Leer sin conexión</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-biblia-sin-conexion-estado">
+              {bibleCopy.hint}
+            </Text>
+          </View>
+          <Text style={[styles.planChevron, { color: bibleState.kind === "ready" ? color.sage : color.inkFaint }]}>
+            {bibleCopy.glyph}
+          </Text>
+        </Pressable>
+
         <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}>
           <View style={styles.rowText}>
             <Text style={[styles.rowLabel, { color: color.ink }]}>Modo noche suave</Text>
@@ -404,6 +461,7 @@ export default function AjustesScreen() {
                   text: "Borrar",
                   style: "destructive",
                   onPress: () => {
+                    void forgetNotes();
                     void deleteHistory({}).then(() => setCleared(true));
                   },
                 },

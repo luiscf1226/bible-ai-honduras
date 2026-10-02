@@ -13,8 +13,9 @@ import { shareStory } from "../../../src/features/stories/storyShare";
 import { storiesApi } from "../../../src/features/stories/contracts";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
+import { RequiresConnection } from "../../../src/features/offline/RequiresConnection";
 
-export default function StoryViewerScreen() {
+function StoryViewerScreenContent() {
   const { color } = useTheme();
   const { storyId } = useLocalSearchParams<{ storyId?: string | string[] }>();
   const selectedStoryId = Array.isArray(storyId) ? storyId[0] : storyId;
@@ -166,3 +167,12 @@ const styles = StyleSheet.create({
     marginTop: tokens.space.lg,
   },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function StoryViewerScreen() {
+  return (
+    <RequiresConnection module="stories">
+      <StoryViewerScreenContent />
+    </RequiresConnection>
+  );
+}
