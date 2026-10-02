@@ -23,3 +23,16 @@ export function openPassage(passage: PassageQuery) {
 export function openReadingPlan(planId: string) {
   router.push({ pathname: "/leer/plan", params: { planId } });
 }
+
+/**
+ * Línea del tiempo (#201), abierta en una época si viene (desde el lector:
+ * "¿Cuándo pasó esto?").
+ */
+export function openTimeline(eraId?: string) {
+  router.push({ pathname: "/leer/linea-del-tiempo", params: eraId ? { epoca: eraId } : {} });
+}
+
+/** Historia en texto del catálogo (gratis), la misma ruta que usa Historias. */
+export function openTextStory(storyId: string) {
+  router.push({ pathname: "/historias/texto/[storyId]", params: { storyId } });
+}

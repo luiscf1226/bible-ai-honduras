@@ -36,7 +36,15 @@ function MiEspacioScreen() {
   const bookmarks = useQuery(api.reading.bookmarks, {});
   const highlights = useQuery(api.reading.highlights, {});
   const history = useQuery(api.history.list, {});
-  const loading = separator === undefined || bookmarks === undefined || highlights === undefined || history === undefined;
+  const memorize = useQuery(api.memorize.list, {});
+  const prayers = useQuery(api.prayers.list, {});
+  const loading =
+    separator === undefined ||
+    bookmarks === undefined ||
+    highlights === undefined ||
+    history === undefined ||
+    memorize === undefined ||
+    prayers === undefined;
 
   // "Tu año en la Palabra" (#183): solo del 1 de diciembre al 31 de enero.
   const yearEntry = yearInWordEntry(hondurasToday());
@@ -46,6 +54,8 @@ function MiEspacioScreen() {
     bookmarks: bookmarks?.items ?? [],
     highlights: highlights ?? [],
     history: history ?? [],
+    memorize: { total: memorize?.items.length ?? 0, dueCount: memorize?.dueCount ?? 0 },
+    prayers: prayers ?? [],
   });
 
   return (

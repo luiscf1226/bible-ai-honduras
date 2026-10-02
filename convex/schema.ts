@@ -209,6 +209,36 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
 
+  // Diario de oración (#159): peticiones privadas, abiertas o respondidas.
+  // Nunca se comparten ni se mandan a la IA (ningún prompt lee esta tabla).
+  // Entran en "Borrar mi historial" y en el borrado de cuenta. `verse` es el
+  // versículo del devocional de Sentir desde el que se guardó, si vino de ahí.
+  prayerRequests: defineTable({
+    userId: v.id("users"),
+    text: v.string(),
+    createdAt: v.number(),
+    answeredAt: v.optional(v.number()),
+    answerNote: v.optional(v.string()),
+    verse: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.number() })),
+  }).index("by_user", ["userId"]),
+
+  // Versículos para memorizar (#158). Repaso espaciado: `level` es el escalón
+  // (hoy, 3, 7, 21 días; convex/memorizeSchedule.ts) y `nextReview` el día de
+  // Honduras (YYYY-MM-DD) del próximo repaso. Sin IA: el texto sale del corpus.
+  // Entra en el borrado de cuenta.
+  memoryVerses: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    level: v.number(),
+    nextReview: v.string(),
+    createdAt: v.number(),
+    lastReviewedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
+
   // Diagnóstico (convex/telemetry.ts): eventos del embudo y errores de la app.
   // Sin userId a propósito — `installId` es un id aleatorio del teléfono que no
   // se une con la cuenta — y sin contenido. Se borran a los 90 días.

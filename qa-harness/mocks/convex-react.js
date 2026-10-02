@@ -123,6 +123,22 @@ const db = {
         { book: "Romanos", chapter: 8, verse: 28, color: "amber", updatedAt: Date.now() - 3 * 24 * 3600e3 },
         { book: "Filipenses", chapter: 4, verse: 13, color: "clay", updatedAt: Date.now() - 9 * 24 * 3600e3 },
       ],
+  // Diario de oración (#159): dos abiertas (una desde Sentir) y una respondida.
+  prayers: isEmpty()
+    ? []
+    : [
+        { id: "p1", text: "Por la salud de mi abuela, que la operan el jueves.", createdAt: Date.now() - 3600e3, answeredAt: null, answerNote: null, verse: null },
+        { id: "p2", text: "Ansiedad · Sin trabajo", createdAt: Date.now() - 2 * 24 * 3600e3, answeredAt: null, answerNote: null, verse: { book: "Mateo", chapter: 11, verse: 28 } },
+        { id: "p3", text: "Que mi hermano encuentre trabajo.", createdAt: Date.now() - 20 * 24 * 3600e3, answeredAt: Date.now() - 26 * 3600e3, answerNote: "Lo llamaron de la maquila. ¡Gracias, Señor!", verse: null },
+      ],
+  // Memorizar (#158): dos tocan hoy y uno vuelve en 3 días.
+  memory: isEmpty()
+    ? []
+    : [
+        { id: "mv1", book: "Salmos", chapter: 46, verse: 1, level: 0, nextOffset: 0 },
+        { id: "mv2", book: "Filipenses", chapter: 4, verse: 13, level: 1, nextOffset: 0 },
+        { id: "mv3", book: "Juan", chapter: 3, verse: 16, level: 2, nextOffset: 3 },
+      ],
   history: isEmpty()
     ? []
     : [
@@ -178,6 +194,28 @@ const SAVED_TEXT = {
 
 function findBookmark(args) {
   return db.bookmarks.findIndex((b) => b.book === args.book && b.chapter === args.chapter && b.verse === args.verse);
+}
+
+// Día de Honduras (YYYY-MM-DD) desplazado `offset` días, como `hondurasDateKey`.
+function hnDay(offset = 0) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tegucigalpa" }).format(new Date(Date.now() + offset * 24 * 3600e3));
+}
+
+function memoryList() {
+  const today = hnDay();
+  const items = db.memory.map((m) => ({
+    id: m.id,
+    book: m.book,
+    chapter: m.chapter,
+    verse: m.verse,
+    level: m.level,
+    nextReview: hnDay(m.nextOffset),
+    due: m.nextOffset <= 0,
+    version: db.bibleVersion,
+    text: db.bibleVersion === "RV1909" ? SAVED_TEXT[`${m.book} ${m.chapter}:${m.verse}`] ?? null : null,
+  }));
+  items.sort((a, b) => a.nextReview.localeCompare(b.nextReview));
+  return { today, dueCount: items.filter((i) => i.due).length, items };
 }
 
 const VERSES = [
@@ -347,6 +385,60 @@ const handlers = {
   // Diagnóstico: en el harness no se manda nada.
   "telemetry:track": () => null,
   "telemetry:reportError": () => null,
+  "prayers:list": () => {
+    const open = db.prayers.filter((p) => p.answeredAt === null).sort((a, b) => b.createdAt - a.createdAt);
+    const answered = db.prayers.filter((p) => p.answeredAt !== null).sort((a, b) => b.answeredAt - a.answeredAt);
+    return [...open, ...answered];
+  },
+  "prayers:create": (args) => {
+    const id = `p${db.prayers.length + 10}`;
+    db.prayers.push({ id, text: args.text.trim(), createdAt: Date.now(), answeredAt: null, answerNote: null, verse: args.verse ?? null });
+    notify();
+    return id;
+  },
+  "prayers:markAnswered": (args) => {
+    db.prayers = db.prayers.map((p) => (p.id === args.id ? { ...p, answeredAt: Date.now(), answerNote: args.note?.trim() || null } : p));
+    notify();
+    return null;
+  },
+  "prayers:reopen": (args) => {
+    db.prayers = db.prayers.map((p) => (p.id === args.id ? { ...p, answeredAt: null, answerNote: null } : p));
+    notify();
+    return null;
+  },
+  "prayers:remove": (args) => {
+    db.prayers = db.prayers.filter((p) => p.id !== args.id);
+    notify();
+    return null;
+  },
+  "memorize:list": () => memoryList(),
+  "memorize:chapterVerses": (args) => db.memory.filter((m) => m.book === args.book && m.chapter === args.chapter).map((m) => m.verse),
+  "memorize:add": (args) => {
+    if (!db.memory.some((m) => m.book === args.book && m.chapter === args.chapter && m.verse === args.verse)) {
+      db.memory.push({ id: `mv${db.memory.length + 10}`, ...args, level: 0, nextOffset: 1 });
+      notify();
+    }
+    return { added: true, nextReview: hnDay(1) };
+  },
+  "memorize:remove": (args) => {
+    db.memory = db.memory.filter((m) => !(m.book === args.book && m.chapter === args.chapter && m.verse === args.verse));
+    notify();
+    return { removed: true };
+  },
+  // Mismo calendario que convex/memorizeSchedule.ts: acertar espacia (3, 7, 21), fallar vuelve a hoy.
+  "memorize:review": (args) => {
+    const steps = [0, 3, 7, 21];
+    let state = { level: 0, nextReview: hnDay() };
+    db.memory = db.memory.map((m) => {
+      if (m.id !== args.id) return m;
+      const level = args.correct ? Math.min(3, m.level + 1) : 0;
+      const offset = args.correct ? steps[level] : 0;
+      state = { level, nextReview: hnDay(offset) };
+      return { ...m, level, nextOffset: offset };
+    });
+    notify();
+    return state;
+  },
   "reading:separator": () => db.separator,
   "reading:setSeparator": (args) => {
     db.separator = { ...args, updatedAt: Date.now() };
@@ -499,6 +591,7 @@ const handlers = {
   }),
   "history:deleteAll": () => {
     db.history = [];
+    db.prayers = [];
     notify();
     return null;
   },
