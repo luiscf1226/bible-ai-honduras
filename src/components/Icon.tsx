@@ -85,17 +85,27 @@ export function Icon({ name, color, size = "md", filled = false, testID }: IconP
       {ICONS[name].map((shape: Shape, index) => {
         const common = {
           fill,
-          key: index,
           stroke: color,
           strokeLinecap: "round" as const,
           strokeLinejoin: "round" as const,
           strokeWidth: tokens.size.iconStroke,
         };
-        if (shape.kind === "circle") return <Circle {...common} cx={shape.cx} cy={shape.cy} r={shape.r} />;
+        // `key` va aparte: React no acepta `key` dentro de un spread de props.
+        if (shape.kind === "circle") return <Circle key={index} {...common} cx={shape.cx} cy={shape.cy} r={shape.r} />;
         if (shape.kind === "rect") {
-          return <Rect {...common} height={shape.height} rx={shape.rx} width={shape.width} x={shape.x} y={shape.y} />;
+          return (
+            <Rect
+              key={index}
+              {...common}
+              height={shape.height}
+              rx={shape.rx}
+              width={shape.width}
+              x={shape.x}
+              y={shape.y}
+            />
+          );
         }
-        return <Path {...common} d={shape.d} />;
+        return <Path key={index} {...common} d={shape.d} />;
       })}
     </Svg>
   );
