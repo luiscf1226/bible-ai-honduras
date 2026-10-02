@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "description": "Línea del tiempo de la Biblia (#201). Datos fijos, curados a mano y sin IA: cada época con los libros que la cuentan (o que se escribieron entonces), los personajes de Voces que vivían en ella y las historias en texto del catálogo. Los años son aproximados y solo aparecen donde hay consenso amplio; donde la fecha se discute (patriarcas, éxodo, jueces) se muestra solo el orden. Requiere revisión pastoral antes de publicarse. Un libro que abarca varias épocas se parte por capítulos (from/to); sin from/to, el libro entero va en esa época.",
+  "eras": [
+    {
+      "id": "origenes",
+      "name": "Los orígenes",
+      "years": null,
+      "summary": "La creación, la caída, el diluvio y la torre de Babel. El principio de todo, antes de Abraham.",
+      "books": [{ "book": "Génesis", "from": 1, "to": 11 }],
+      "voices": [],
+      "stories": ["creacion", "la-caida", "cain-y-abel", "arca-de-noe", "torre-de-babel"]
+    },
+    {
+      "id": "patriarcas",
+      "name": "Los patriarcas",
+      "years": null,
+      "summary": "Dios llama a Abraham y le promete una tierra y una descendencia. La promesa sigue con Isaac, Jacob y José, hasta que la familia termina en Egipto.",
+      "books": [
+        { "book": "Génesis", "from": 12, "to": 50 },
+        {
+          "book": "Job",
+          "note": "No se sabe con certeza cuándo vivió Job. Muchos lo ubican en tiempos de los patriarcas."
+        }
+      ],
+      "voices": [],
+      "stories": ["llamado-de-abram", "pacto-con-abraham", "isaac-en-el-monte", "jacob-y-esau", "jose-en-egipto"]
+    },
+    {
+      "id": "exodo",
+      "name": "El éxodo",
+      "years": null,
+      "summary": "Israel sale de la esclavitud en Egipto con Moisés, recibe la ley en el Sinaí, pasa cuarenta años en el desierto y entra a Canaán con Josué.",
+      "books": [
+        { "book": "Éxodo" },
+        { "book": "Levítico" },
+        { "book": "Números" },
+        { "book": "Deuteronomio" },
+        { "book": "Josué" }
+      ],
+      "voices": ["moises"],
+      "stories": [
+        "nacimiento-de-moises",
+        "zarza-ardiente",
+        "el-mar-rojo-se-abre",
+        "los-diez-mandamientos",
+        "el-becerro-de-oro",
+        "josue-y-jerico"
+      ]
+    },
+    {
+      "id": "jueces",
+      "name": "Los jueces",
+      "years": null,
+      "summary": "Israel todavía no tiene rey. Cuando el pueblo se aparta y clama, Dios levanta jueces como Débora, Gedeón y Sansón. En esos días pasa la historia de Rut y crece Samuel, el último juez.",
+      "books": [{ "book": "Jueces" }, { "book": "Rut" }, { "book": "1 Samuel", "from": 1, "to": 7 }],
+      "voices": ["rut"],
+      "stories": ["debora-y-barac", "gedeon", "sanson", "rut-y-booz", "samuel-oye-a-dios"]
+    },
+    {
+      "id": "reino-unido",
+      "name": "El reino unido",
+      "years": "c. 1050–930 a.C.",
+      "summary": "Saúl, David y Salomón reinan sobre las doce tribus. Es la época de muchos salmos, de los proverbios y del templo de Jerusalén.",
+      "books": [
+        { "book": "1 Samuel", "from": 8, "to": 31 },
+        { "book": "2 Samuel" },
+        { "book": "1 Reyes", "from": 1, "to": 11 },
+        { "book": "1 Crónicas", "note": "Empieza con las genealogías desde Adán y después cuenta el reinado de David." },
+        { "book": "2 Crónicas", "from": 1, "to": 9 },
+        { "book": "Salmos", "note": "Se escribieron a lo largo de siglos; muchos son de David." },
+        { "book": "Proverbios" },
+        { "book": "Eclesiastés" },
+        { "book": "Cantares" }
+      ],
+      "voices": ["david"],
+      "stories": ["david-y-goliat", "david-y-jonatan", "david-rey-arrepentido", "salomon-pide-sabiduria"]
+    },
+    {
+      "id": "reino-dividido",
+      "name": "El reino dividido",
+      "years": "c. 930–586 a.C.",
+      "summary": "El reino se parte en dos: Israel al norte y Judá al sur. Profetas como Elías, Eliseo, Isaías y Jeremías llaman al pueblo a volver a Dios.",
+      "books": [
+        { "book": "1 Reyes", "from": 12, "to": 22 },
+        { "book": "2 Reyes", "from": 1, "to": 23 },
+        { "book": "2 Crónicas", "from": 10, "to": 35 },
+        { "book": "Isaías" },
+        { "book": "Jeremías", "note": "Profetizó hasta la caída de Jerusalén y siguió después." },
+        { "book": "Oseas" },
+        { "book": "Joel", "note": "No hay acuerdo sobre cuándo se escribió." },
+        { "book": "Amós" },
+        { "book": "Jonás" },
+        { "book": "Miqueas" },
+        { "book": "Nahúm" },
+        { "book": "Habacuc" },
+        { "book": "Sofonías" }
+      ],
+      "voices": ["elias"],
+      "stories": ["elias-en-el-carmelo", "eliseo-y-la-sunamita", "jonas-y-ninive"]
+    },
+    {
+      "id": "exilio",
+      "name": "El exilio",
+      "years": "c. 586–538 a.C.",
+      "summary": "Babilonia destruye Jerusalén y el templo, y lleva al pueblo cautivo. Lejos de casa, Daniel y Ezequiel siguen sirviendo a Dios.",
+      "books": [
+        { "book": "2 Reyes", "from": 24, "to": 25 },
+        { "book": "2 Crónicas", "from": 36, "to": 36 },
+        { "book": "Lamentaciones" },
+        { "book": "Ezequiel" },
+        { "book": "Daniel" },
+        { "book": "Abdías", "note": "Habla de Edom cuando cayó Jerusalén. No hay acuerdo sobre cuándo se escribió." }
+      ],
+      "voices": [],
+      "stories": ["daniel-en-el-foso", "los-tres-en-el-horno"]
+    },
+    {
+      "id": "regreso",
+      "name": "El regreso",
+      "years": "desde c. 538 a.C.",
+      "summary": "Persia deja volver a los judíos. Reconstruyen el templo y los muros de Jerusalén con Esdras y Nehemías. En Persia, Ester arriesga su vida por su pueblo. Malaquías es el último profeta del Antiguo Testamento.",
+      "books": [
+        { "book": "Esdras" },
+        { "book": "Nehemías" },
+        { "book": "Ester" },
+        { "book": "Hageo" },
+        { "book": "Zacarías" },
+        { "book": "Malaquías" }
+      ],
+      "voices": ["ester"],
+      "stories": ["ester-ante-el-rey", "nehemias-reconstruye"]
+    },
+    {
+      "id": "vida-de-jesus",
+      "name": "La vida de Jesús",
+      "years": "comienzos del siglo I d.C.",
+      "summary": "El nacimiento, el ministerio, la muerte y la resurrección de Jesús, contados por los cuatro evangelios.",
+      "books": [{ "book": "Mateo" }, { "book": "Marcos" }, { "book": "Lucas" }, { "book": "Juan" }],
+      "voices": [],
+      "stories": [
+        "nacimiento-de-jesus",
+        "jesus-en-el-templo",
+        "bautismo-de-jesus",
+        "tentacion-en-el-desierto",
+        "sermon-del-monte",
+        "jesus-calma-la-tormenta",
+        "alimentacion-de-los-cinco-mil",
+        "el-buen-samaritano",
+        "el-hijo-prodigo",
+        "lazaro-resucitado",
+        "entrada-triunfal",
+        "la-ultima-cena",
+        "getsemani",
+        "la-cruz",
+        "la-resurreccion",
+        "el-camino-a-emaus"
+      ]
+    },
+    {
+      "id": "iglesia-primitiva",
+      "name": "La iglesia primitiva",
+      "years": "siglo I d.C.",
+      "summary": "El Espíritu Santo llega en Pentecostés y el evangelio se extiende de Jerusalén a Roma. Los apóstoles escriben cartas a las iglesias, y Juan escribe el Apocalipsis.",
+      "books": [
+        { "book": "Hechos" },
+        { "book": "Romanos" },
+        { "book": "1 Corintios" },
+        { "book": "2 Corintios" },
+        { "book": "Gálatas" },
+        { "book": "Efesios" },
+        { "book": "Filipenses" },
+        { "book": "Colosenses" },
+        { "book": "1 Tesalonicenses" },
+        { "book": "2 Tesalonicenses" },
+        { "book": "1 Timoteo" },
+        { "book": "2 Timoteo" },
+        { "book": "Tito" },
+        { "book": "Filemón" },
+        { "book": "Hebreos" },
+        { "book": "Santiago" },
+        { "book": "1 Pedro" },
+        { "book": "2 Pedro" },
+        { "book": "1 Juan" },
+        { "book": "2 Juan" },
+        { "book": "3 Juan" },
+        { "book": "Judas" },
+        { "book": "Apocalipsis" }
+      ],
+      "voices": ["pablo"],
+      "stories": ["pentecostes", "pedro-y-cornelio", "saulo-en-el-camino", "pablo-y-silas-en-la-carcel", "naufragio-de-pablo"]
+    }
+  ]
+}
