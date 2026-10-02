@@ -16,4 +16,16 @@ describe("buildDevotionalShareText", () => {
     expect(message).toContain("RV1909");
     expect(message).toContain("Dios puede sostenerte mientras caminás paso a paso.");
   });
+
+  it("suma la oración final cuando el devocional la trae", () => {
+    const message = buildDevotionalShareText({
+      closingPrayer: "Señor, guiame hoy. Amén.",
+      reflection: "Dios puede sostenerte mientras caminás paso a paso.",
+      verseRef: "Isaías 41:10",
+      version: "RV1909"
+    });
+
+    expect(message).toContain("Dios puede sostenerte mientras caminás paso a paso.\n\nSeñor, guiame hoy. Amén.");
+    expect(message.endsWith("Que esta Palabra te acompañe hoy.")).toBe(true);
+  });
 });

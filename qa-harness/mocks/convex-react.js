@@ -91,10 +91,13 @@ const FEELING_DEVOTIONAL = {
 
 const DEVOTIONAL = {
   date: "2026-08-25",
-  catalogId: "qa-1",
+  catalogId: "08-25",
+  openingPrayer: "Señor, en medio de lo que se mueve hoy, me acerco a vos como mi refugio.",
+  intro: "El salmista escribe en un tiempo de amenaza y de cambios. En lugar de negar el peligro, declara dónde está su seguridad.",
   verseRef: "Salmos 46:1",
   reflection:
     "Hay días en que lo único que se sostiene es que Dios está. No que todo salga bien: que Él está. Ese versículo no promete que la tierra no tiemble — promete que hay dónde ampararse cuando tiembla.",
+  closingPrayer: "Padre, gracias porque sos amparo cuando todo tiembla. Sostené hoy mi confianza en vos. Amén.",
   imageUrl: IMG,
   imageAlt: "Amanecer cálido entre montañas",
   imageAttributionUrl: "https://unsplash.com/photos/1500534623283-312aade485b7",
