@@ -83,19 +83,21 @@ export function Icon({ name, color, size = "md", filled = false, testID }: IconP
   return (
     <Svg height={px} testID={testID} viewBox="0 0 24 24" width={px}>
       {ICONS[name].map((shape: Shape, index) => {
+        // `key` va aparte: React avisa si viene dentro de un objeto esparcido.
         const common = {
           fill,
-          key: index,
           stroke: color,
           strokeLinecap: "round" as const,
           strokeLinejoin: "round" as const,
           strokeWidth: tokens.size.iconStroke,
         };
-        if (shape.kind === "circle") return <Circle {...common} cx={shape.cx} cy={shape.cy} r={shape.r} />;
+        if (shape.kind === "circle") return <Circle key={index} {...common} cx={shape.cx} cy={shape.cy} r={shape.r} />;
         if (shape.kind === "rect") {
-          return <Rect {...common} height={shape.height} rx={shape.rx} width={shape.width} x={shape.x} y={shape.y} />;
+          return (
+            <Rect key={index} {...common} height={shape.height} rx={shape.rx} width={shape.width} x={shape.x} y={shape.y} />
+          );
         }
-        return <Path {...common} d={shape.d} />;
+        return <Path key={index} {...common} d={shape.d} />;
       })}
     </Svg>
   );
