@@ -148,7 +148,7 @@ const FEELING_DEVOTIONAL = {
 
 const DEVOTIONAL = {
   date: "2026-08-25",
-  catalogId: "qa-1",
+  catalogId: "08-25",
   verseRef: "Salmos 46:1",
   reflection:
     "Hay días en que lo único que se sostiene es que Dios está. No que todo salga bien: que Él está. Ese versículo no promete que la tierra no tiemble — promete que hay dónde ampararse cuando tiembla.",

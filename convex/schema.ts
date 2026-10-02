@@ -99,8 +99,13 @@ export default defineSchema({
   dailyDevotionals: defineTable({
     date: v.string(),
     catalogId: v.string(),
+    // Opcionales solo para que las filas del ciclo de cuatro semanas anterior
+    // sigan validando; `ensureWindow` las reemplaza y las queries no las sirven.
+    openingPrayer: v.optional(v.string()),
+    intro: v.optional(v.string()),
     verseRef: v.string(),
     reflection: v.string(),
+    closingPrayer: v.optional(v.string()),
     imageUrl: v.string(),
     imageAlt: v.string(),
     imageAttributionUrl: v.string(),
