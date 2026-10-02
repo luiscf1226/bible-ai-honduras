@@ -6,6 +6,7 @@ import { api } from "../convex/_generated/api";
 import { isValidYearInWordYear, yearInWordYear } from "../convex/yearInWordCore";
 import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
+import { PersonalLockGate } from "../src/components/PersonalLockGate";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import {
   isYearInWordEmpty,
@@ -29,7 +30,7 @@ import { tokens } from "../src/theme/tokens";
  * y el renglón de Mi espacio, la tarjeta de versículo de Guardados y
  * AppButton), con cero tokens nuevos. Sin confetti, sin rachas, sin ranking.
  */
-export default function TuAnoScreen() {
+function TuAnoScreen() {
   const { color } = useTheme();
   const params = useLocalSearchParams<{ anio?: string }>();
   const requested = Number(params.anio);
@@ -120,6 +121,15 @@ export default function TuAnoScreen() {
         </>
       )}
     </AppScreen>
+  );
+}
+
+/** Es parte de Mi espacio: con "Proteger lo personal" encendido, pide autenticar (#171). */
+export default function TuAnoRoute() {
+  return (
+    <PersonalLockGate>
+      <TuAnoScreen />
+    </PersonalLockGate>
   );
 }
 

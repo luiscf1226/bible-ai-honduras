@@ -18,6 +18,8 @@ import { bibleRowCopy, REMOVE_BIBLE_BODY, REMOVE_BIBLE_TITLE } from "../src/feat
 import { useOfflineSync } from "../src/features/offline/OfflineSyncProvider";
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
 import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
+import { lockSettingHint } from "../src/features/personal/personalLock";
+import { usePersonalLockSetting } from "../src/features/personal/personalLockStore";
 import { canEnterReferral, claimMessage } from "../src/lib/referralCopy";
 import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
@@ -97,6 +99,20 @@ export default function AjustesScreen() {
     if (manifest) void startBibleDownload(manifest);
   }
 
+  const personalLock = usePersonalLockSetting();
+  const [lockNotice, setLockNotice] = useState<string | null>(null);
+  const lockAvailable = personalLock.availability?.available === true;
+
+  // Proteger lo personal (#171): encender y apagar piden Face ID, huella o PIN.
+  async function toggleLock() {
+    setLockNotice(null);
+    const next = !personalLock.enabled;
+    const changed = await personalLock.setEnabled(next);
+    if (!changed && lockAvailable) {
+      setLockNotice("No se cambió: hace falta confirmar con Face ID, huella o el PIN del teléfono.");
+    }
+  }
+
   // Invitaciones (PRD §9b): en iPhone no hay forma automática de saber quién
   // mandó el link de la tienda, así que se puede escribir el código.
   async function submitReferral() {
@@ -157,6 +173,8 @@ export default function AjustesScreen() {
   function askDeleteAccount() {
     Alert.alert(DELETE_DIALOG_TITLE, DELETE_DIALOG_BODY, [
       { text: "Cancelar", style: "cancel" },
+      // #173: antes de borrar, poder llevarse lo propio.
+      { text: "Exportar primero", onPress: () => router.push("/exportar") },
       {
         text: "Continuar",
         style: "destructive",
@@ -242,6 +260,18 @@ export default function AjustesScreen() {
           <View style={styles.rowText}>
             <Text style={[styles.rowLabel, { color: color.ink }]}>Mi espacio</Text>
             <Text style={[styles.rowHint, { color: color.inkSoft }]}>Separador, guardados, subrayados y conversaciones</Text>
+          </View>
+          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/exportar")}
+          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
+          testID="ajustes-exportar"
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Exportar lo mío</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Guardados, notas y subrayados, en texto o PDF</Text>
           </View>
           <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
         </Pressable>
@@ -428,6 +458,41 @@ export default function AjustesScreen() {
         <Text style={[styles.privacyCopy, { color: color.inkMuted }]}>
           Tus conversaciones son privadas. Compartimos con proveedores de IA solo lo necesario para responderte.
         </Text>
+        {/* Mismo renglón con interruptor que "Modo noche suave". */}
+        <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]} testID="ajustes-proteger">
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: lockAvailable ? color.ink : color.inkSoft }]}>Proteger lo personal</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-proteger-hint">
+              {personalLock.availability ? lockSettingHint(personalLock.availability) : "…"}
+            </Text>
+            {lockNotice ? (
+              <Text accessibilityRole="alert" style={[styles.rowHint, { color: color.danger }]} testID="ajustes-proteger-aviso">
+                {lockNotice}
+              </Text>
+            ) : null}
+          </View>
+          <Pressable
+            accessibilityLabel="Proteger lo personal"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: personalLock.enabled, disabled: !lockAvailable && !personalLock.enabled }}
+            disabled={personalLock.loading || (!lockAvailable && !personalLock.enabled)}
+            onPress={() => void toggleLock()}
+            style={[
+              styles.switchTrack,
+              { backgroundColor: personalLock.enabled ? color.sage : color.border },
+              !lockAvailable && styles.versionPillDisabled,
+            ]}
+            testID="ajustes-proteger-switch"
+          >
+            <View
+              style={[
+                styles.switchKnob,
+                { backgroundColor: color.surface },
+                personalLock.enabled && styles.switchKnobActive,
+              ]}
+            />
+          </Pressable>
+        </View>
         <Pressable
           accessibilityHint="Abre la política en el navegador"
           accessibilityRole="link"
@@ -532,6 +597,14 @@ export default function AjustesScreen() {
               testID="ajustes-eliminar-cuenta-confirmar"
             >
               {busy === "delete" ? "Eliminando…" : "Eliminar mi cuenta para siempre"}
+            </AppButton>
+            <AppButton
+              disabled={busy === "delete"}
+              onPress={() => router.push("/exportar")}
+              testID="ajustes-eliminar-cuenta-exportar"
+              variant="secondary"
+            >
+              Exportar lo mío primero
             </AppButton>
             <AppButton
               disabled={busy === "delete"}

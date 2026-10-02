@@ -4,6 +4,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { AppScreen } from "../src/components/AppScreen";
+import { PersonalLockGate } from "../src/components/PersonalLockGate";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { buildMySpaceSections, type MySpaceDestination } from "../src/features/personal/mySpaceSections";
 import { yearInWordEntry } from "../src/features/personal/yearInWord";
@@ -29,7 +30,7 @@ function go(destination: MySpaceDestination) {
  * Mi espacio (#169): todo lo personal en un solo lugar, con la misma tarjeta y
  * renglón de Ajustes. Cada renglón lleva a la pantalla que ya existe.
  */
-export default function MiEspacioScreen() {
+function MiEspacioScreen() {
   const { color } = useTheme();
   const separator = useQuery(api.reading.separator, {});
   const bookmarks = useQuery(api.reading.bookmarks, {});
@@ -132,7 +133,32 @@ export default function MiEspacioScreen() {
           </Pressable>
         ))}
       </View>
+
+      {/* Exportar lo mío (#173): mismo renglón que "Mi espacio" en Ajustes. */}
+      <View style={[styles.card, styles.sections, { backgroundColor: color.surface, borderColor: color.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/exportar")}
+          style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+          testID="mi-espacio-exportar"
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Exportar lo mío</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Guardados, notas y subrayados, en texto o PDF</Text>
+          </View>
+          <Text style={[styles.chevron, { color: color.inkFaint }]}>›</Text>
+        </Pressable>
+      </View>
     </AppScreen>
+  );
+}
+
+/** "Proteger lo personal" (#171): si está encendido, nada se monta hasta autenticar. */
+export default function MiEspacioRoute() {
+  return (
+    <PersonalLockGate>
+      <MiEspacioScreen />
+    </PersonalLockGate>
   );
 }
 

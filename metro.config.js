@@ -16,6 +16,7 @@ const aliases = {
   "react-native-purchases": path.resolve(__dirname, "qa-harness/mocks/purchases.js"),
   "expo-notifications": path.resolve(__dirname, "qa-harness/mocks/notifications.js"),
   "@react-native-community/netinfo": path.resolve(__dirname, "qa-harness/mocks/netinfo.js"),
+  "expo-local-authentication": path.resolve(__dirname, "qa-harness/mocks/local-authentication.js"),
 };
 
 const defaultResolveRequest = config.resolver.resolveRequest;
