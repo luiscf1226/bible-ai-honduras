@@ -41,6 +41,13 @@ async function loadNative(): Promise<ShareNative> {
   return Share;
 }
 
+// Embudo (convex/telemetry.ts): solo que se compartió, nunca qué. Import
+// dinámico por lo mismo que `loadNative`, y nunca en tests.
+function trackShare(): void {
+  if (nativeOverride !== undefined) return;
+  void import("./telemetry").then(({ track }) => track("share_completed")).catch(() => undefined);
+}
+
 // Dueño único del share sheet nativo (regla dura #3 de CLAUDE.md) — todo módulo que
 // necesite compartir por WhatsApp importa esta función, no reimplementa su propia
 // variante. El import de react-native es dinámico (vía loadNative) para que
@@ -64,6 +71,7 @@ export async function shareContent(params: { text: string; referralCode: string 
     if (result.action === Share.dismissedAction) {
       return { status: "dismissed" };
     }
+    trackShare();
     return { status: "shared" };
   } catch (error) {
     return { status: "error", error };

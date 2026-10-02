@@ -19,6 +19,10 @@ export const tokens = {
     sage: "#7C8F7B",
     danger: "#B0603F",
     avatarInitial: "rgba(255,255,255,0.9)",
+    highlightAmber: "rgba(176,130,96,0.22)",
+    highlightSage: "rgba(124,143,123,0.24)",
+    highlightClay: "rgba(176,96,63,0.18)",
+    highlightSand: "rgba(189,180,166,0.38)",
   },
   night: {
     color: {
@@ -37,6 +41,10 @@ export const tokens = {
       sage: "#8FA48D",
       danger: "#B0603F",
       avatarInitial: "rgba(255,255,255,0.9)",
+      highlightAmber: "rgba(201,155,94,0.24)",
+      highlightSage: "rgba(143,164,141,0.24)",
+      highlightClay: "rgba(176,96,63,0.32)",
+      highlightSand: "rgba(189,180,166,0.18)",
     },
   },
   paywall: {

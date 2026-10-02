@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isUpdateAvailable, updateStoreName, updateUrls, versionLabel } from "./appVersion";
+import { isUpdateAvailable, isUpdateRequired, updateStoreName, updateUrls, versionLabel } from "./appVersion";
 
 describe("versionLabel", () => {
   it("muestra versión y build", () => {
@@ -46,5 +46,22 @@ describe("updateUrls", () => {
   it("Android abre Play con el package de app.json", () => {
     expect(updateUrls("android")[0]).toBe("market://details?id=com.bibleaihonduras.app");
     expect(updateStoreName("android")).toBe("Google Play");
+  });
+});
+
+describe("isUpdateRequired", () => {
+  it("bloquea solo cuando el build instalado queda debajo del piso", () => {
+    expect(isUpdateRequired("11", 12)).toBe(true);
+    expect(isUpdateRequired("12", 12)).toBe(false);
+    expect(isUpdateRequired("13", 12)).toBe(false);
+  });
+
+  it("compara números, no strings ('9' < 10)", () => {
+    expect(isUpdateRequired("9", 10)).toBe(true);
+  });
+
+  it("sin cualquiera de los dos números no bloquea", () => {
+    expect(isUpdateRequired(null, 12)).toBe(false);
+    expect(isUpdateRequired("11", null)).toBe(false);
   });
 });

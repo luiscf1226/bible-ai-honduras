@@ -16,6 +16,7 @@ import { api } from "../../convex/_generated/api";
 import { FEELINGS, OWN_WORDS_CHIP, feelingFromParam } from "../../src/features/feelings/feelings";
 import { journeyCtaLabel, journeyForFeelings } from "../../src/features/reading/feelingJourneys";
 import { openReadingPlan } from "../../src/lib/openPassage";
+import { track } from "../../src/lib/telemetry";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
@@ -59,10 +60,19 @@ export default function SentirScreen() {
   const [writingOwn, setWritingOwn] = useState(false);
   const freeTextRef = useRef<TextInput>(null);
   // Desde el inicio se puede llegar con un sentimiento ya elegido
-  // (`?feeling=Ansiedad`) o directo a escribir (`?escribir=1`).
-  const params = useLocalSearchParams<{ feeling?: string | string[]; escribir?: string | string[] }>();
+  // (`?feeling=Ansiedad`) o directo a escribir (`?escribir=1`). Desde Mi espacio
+  // se llega con "Los de antes" abierto (`?historial=1`).
+  const params = useLocalSearchParams<{
+    feeling?: string | string[];
+    escribir?: string | string[];
+    historial?: string | string[];
+  }>();
   const paramFeeling = feelingFromParam(params.feeling);
   const paramWrite = (Array.isArray(params.escribir) ? params.escribir[0] : params.escribir) === "1";
+  const paramHistory = (Array.isArray(params.historial) ? params.historial[0] : params.historial) === "1";
+  useEffect(() => {
+    if (paramHistory) setIsHistoryOpen(true);
+  }, [paramHistory]);
   useEffect(() => {
     if (paramFeeling) setSelectedFeelings((current) => (current.includes(paramFeeling) ? current : [...current, paramFeeling]));
   }, [paramFeeling]);
@@ -114,6 +124,7 @@ export default function SentirScreen() {
         return;
       }
       setDevotional(result.devotional);
+      track("feeling_devotional_generated");
     } catch (cause) {
       if (requestId !== generateRequestIdRef.current) {
         return;

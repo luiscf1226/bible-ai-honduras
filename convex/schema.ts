@@ -22,7 +22,21 @@ export default defineSchema({
     // tamaño sale siempre del token (regla dura #1).
     readingFontStep: v.optional(v.number()),
     readingSpacingStep: v.optional(v.number()),
-  }).index("by_clerk_id", ["clerkId"]),
+    // "Hace un año guardaste…" en el inicio (#172). Sin valor = encendido;
+    // se apaga en Ajustes. `savedMemoryDismissedWeek` es el lunes (YYYY-MM-DD,
+    // hora de Honduras) de la semana en que la persona la cerró.
+    savedMemoryEnabled: v.optional(v.boolean()),
+    savedMemoryDismissedWeek: v.optional(v.string()),
+    // Quién invitó a esta persona (PRD §9b): el `referralCode` de quien
+    // compartió el link. Sirve solo para medir cuántos registros y pagos vienen
+    // de compartir; no da premios ni se le muestra a nadie. Vive en la fila del
+    // usuario, así que el borrado de cuenta ya lo cubre.
+    referredBy: v.optional(v.string()),
+    referredVia: v.optional(v.union(v.literal("link"), v.literal("play"), v.literal("manual"))),
+    referredAt: v.optional(v.number()),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_referral_code", ["referralCode"]),
 
   // ── RAG (#5) ────────────────────────────────────────────
   verses: defineTable({
@@ -103,6 +117,9 @@ export default defineSchema({
     chapter: v.number(),
     verse: v.number(),
     createdAt: v.number(),
+    // Nota personal (#167): privada, nunca se comparte ni se manda a la IA.
+    // Entra en "Borrar mi historial" y en el borrado de cuenta.
+    note: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
@@ -118,6 +135,43 @@ export default defineSchema({
     verse: v.number(),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Subrayados del lector (#168): el resaltador de una Biblia de papel. Una
+  // fila por versículo subrayado; cambiar de color parchea la fila. `color` es
+  // una llave de la paleta `highlight` de design/tokens.json, nunca un hex:
+  // el tono real lo decide el tema (claro u oscuro) al pintar.
+  readingHighlights: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    color: v.union(v.literal("amber"), v.literal("sage"), v.literal("clay"), v.literal("sand")),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
+
+  // Diagnóstico (convex/telemetry.ts): eventos del embudo y errores de la app.
+  // Sin userId a propósito — `installId` es un id aleatorio del teléfono que no
+  // se une con la cuenta — y sin contenido. Se borran a los 90 días.
+  telemetryEvents: defineTable({
+    installId: v.string(),
+    name: v.string(),
+    module: v.optional(v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings"), v.literal("stories"))),
+    platform: v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
+    build: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_at", ["at"]),
+
+  clientErrors: defineTable({
+    installId: v.string(),
+    message: v.string(),
+    stack: v.optional(v.string()),
+    fatal: v.boolean(),
+    platform: v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
+    build: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_at", ["at"]),
 
   // Plan de lectura anual (#114). Contenido curado versionado en el repo
   // (docs/content/planes/canonico.json, cargado y validado por

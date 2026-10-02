@@ -163,6 +163,53 @@ dos variables. El número está en expo.dev → Builds, o en Ajustes → App →
 **Para soporte:** pedile al tester la línea "Versión 0.1.0 (build N)" de
 Ajustes → App antes de investigar un "no me aparece".
 
+### Obligar a actualizar — `MIN_*_BUILD`
+
+Si un cambio en el backend rompe builds viejos (por ejemplo, se quita un campo
+que esos builds todavía mandan), subí el piso. Todo build menor muestra
+**"Actualizá la app para seguir"** a pantalla completa, con un solo botón a
+TestFlight / Google Play:
+
+```bash
+npx convex env set MIN_IOS_BUILD 12
+npx convex env set MIN_ANDROID_BUILD 8
+```
+
+- Solo para cambios que de verdad rompen. Para "hay algo nuevo" alcanza con
+  `LATEST_*_BUILD`, que no bloquea.
+- Subilo **después** de que el build nuevo ya aparece en la tienda: si no,
+  bloqueás a gente que todavía no tiene a qué actualizar.
+- Solo lo respetan los builds que ya traen el bloqueo (este PR en adelante). Los
+  anteriores no se pueden bloquear.
+- Se vuelve a consultar cada vez que la app pasa a primer plano. Para deshacer:
+  `npx convex env remove MIN_IOS_BUILD`.
+
+## Diagnóstico — errores y embudo
+
+La app manda a Convex (`convex/telemetry.ts`) los errores de JS que nadie
+atrapó y unos pocos pasos del embudo, sin contenido y sin cuenta (ver la
+política de privacidad). En desarrollo (`__DEV__`) no manda nada. Para leerlo:
+
+```bash
+npx convex run telemetry:funnel '{"days": 7}'      # instalaciones por paso
+npx convex run telemetry:recentErrors '{"limit": 20}'
+```
+
+Invitaciones (PRD §9b): cuántos registros y cuántos Pro vienen de un link
+compartido, por canal y por quien invitó:
+
+```bash
+npx convex run referrals:summary
+```
+
+El código llega por el install referrer de Google Play (botón del sitio), por
+el link `bibleai://home?ref=…` ("abrila desde acá" en el sitio) o escrito a
+mano en Ajustes → ¿Te invitó alguien? (los primeros 30 días). En RevenueCat
+queda como atributo `referred_by`.
+
+Los cierres nativos (fuera de JS) siguen en TestFlight → Crashes y Play Console
+→ Android vitals. Las filas se borran a los 90 días (cron `purgar-diagnostico`).
+
 ## Build en la nube (alternativa)
 
 Sin instalar nada nativo, a costa de la cola de EAS:

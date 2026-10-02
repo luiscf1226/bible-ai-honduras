@@ -94,12 +94,22 @@ async function seedEverything(
       chapter: 3,
       verse: 16,
       createdAt: Date.now(),
+      // Nota personal (#167): tiene que irse con la cuenta.
+      note: `nota privada de ${label}`,
     });
     await ctx.db.insert("readingSeparators", {
       userId,
       book: "Salmos",
       chapter: 23,
       verse: 1,
+      updatedAt: Date.now(),
+    });
+    await ctx.db.insert("readingHighlights", {
+      userId,
+      book: "Salmos",
+      chapter: 23,
+      verse: 4,
+      color: "sage",
       updatedAt: Date.now(),
     });
     await ctx.db.insert("userPlanProgress", {
@@ -169,6 +179,7 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     readingRecents: await ctx.db.query("readingRecents").collect(),
     readingBookmarks: await ctx.db.query("readingBookmarks").collect(),
     readingSeparators: await ctx.db.query("readingSeparators").collect(),
+    readingHighlights: await ctx.db.query("readingHighlights").collect(),
     userPlanProgress: await ctx.db.query("userPlanProgress").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
@@ -203,7 +214,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingProgress).toHaveLength(1);
     expect(before.readingRecents).toHaveLength(1);
     expect(before.readingBookmarks).toHaveLength(1);
+    expect(before.readingBookmarks[0]?.note).toMatch(/^nota privada de /);
     expect(before.readingSeparators).toHaveLength(1);
+    expect(before.readingHighlights).toHaveLength(1);
     expect(before.userPlanProgress).toHaveLength(2);
     expect(before.storage).toHaveLength(1);
 
@@ -222,6 +235,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingRecents: 1,
       readingBookmarks: 1,
       readingSeparators: 1,
+      readingHighlights: 1,
       readingPlanProgress: 2,
       users: 1,
     });
@@ -238,6 +252,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
     expect(after.readingSeparators).toHaveLength(0);
+    expect(after.readingHighlights).toHaveLength(0);
     expect(after.userPlanProgress).toHaveLength(0);
 
     // El blob no queda huérfano.
@@ -276,6 +291,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents[0]?.userId).toBe(betoId);
     expect(after.readingBookmarks).toHaveLength(1);
     expect(after.readingBookmarks[0]?.userId).toBe(betoId);
+    expect(after.readingBookmarks[0]?.note).toContain("Beto");
     expect(after.userPlanProgress).toHaveLength(2);
     expect(after.userPlanProgress.every((row) => row.userId === betoId)).toBe(true);
 
@@ -435,6 +451,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingRecents: 0,
       readingBookmarks: 0,
       readingSeparators: 0,
+      readingHighlights: 0,
       readingPlanProgress: 0,
       users: 0,
     });

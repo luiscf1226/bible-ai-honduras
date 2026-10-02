@@ -1,10 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { QuotaModule } from "../../convex/quotas";
 import { limitBodyFor } from "../lib/limitCopy";
+import { track } from "../lib/telemetry";
 import { useTheme } from "../theme/ThemeProvider";
 import { tokens } from "../theme/tokens";
 
@@ -15,6 +17,11 @@ type LimitReachedProps = {
 
 export function LimitReached({ module, testID = "limit-reached" }: LimitReachedProps) {
   const { color } = useTheme();
+
+  // Paso clave del embudo: límite → paywall → compra.
+  useEffect(() => {
+    track("limit_reached", module);
+  }, [module]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]} testID={testID}>

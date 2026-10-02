@@ -23,6 +23,16 @@ export function isUpdateAvailable(installedBuild: string | null, latestBuild: nu
 }
 
 /**
+ * El build instalado quedó debajo del piso que acepta el backend. Igual que el
+ * aviso: sin alguno de los dos números no se bloquea. Bloquear por un dato que
+ * falta dejaría a alguien sin app por un error nuestro.
+ */
+export function isUpdateRequired(installedBuild: string | null, minBuild: number | null): boolean {
+  const installed = parseBuildNumber(installedBuild);
+  return installed !== null && minBuild !== null && installed < minBuild;
+}
+
+/**
  * A dónde mandar al tester. iOS abre la app de TestFlight en la ficha de esta
  * app (con su botón "Actualizar"); Android abre la ficha de Play, que para un
  * tester interno muestra el build de prueba.

@@ -26,6 +26,16 @@ y elimina información cuando usás la aplicación móvil.
   es gratis y estos datos no se envían a proveedores de IA.
 - **Historias:** historia elegida, estado de generación, escenas e imágenes
   creadas.
+- **Invitaciones:** si llegaste por el link de otra persona (o escribiste su
+  código), guardamos ese código en tu cuenta y se lo pasamos a RevenueCat, para
+  saber cuánta gente llega y se suscribe por invitación. No le avisamos a quien
+  te invitó ni le mostramos nada tuyo, y no hay premios por invitar.
+- **Diagnóstico:** cuando la app falla, el mensaje técnico del error; y pasos
+  sueltos de uso (por ejemplo, "abrió la app", "hizo una pregunta", "vio la
+  pantalla Pro"), con la plataforma y el número de build. Van con un
+  identificador aleatorio del teléfono que **no se une con tu cuenta**, y nunca
+  incluyen lo que escribís, tus notas, tus sentimientos ni los versículos. Se
+  borran solos a los 90 días.
 - **Notificaciones:** la app solicita permiso y programa el recordatorio diario
   en tu dispositivo. El código actual no almacena un token push del dispositivo.
 
@@ -76,6 +86,9 @@ su propia política. Esos datos se conservan mientras la cuenta esté activa o p
 el tiempo razonablemente necesario para prestar y proteger el servicio. Los
 registros exigidos por razones fiscales, antifraude o legales pueden conservarse
 durante el plazo aplicable.
+
+Los datos de diagnóstico se borran automáticamente a los 90 días. Como no están
+unidos a tu cuenta, no aparecen en el historial ni se pueden asociar a vos.
 
 ### Eliminación completa de la cuenta
 

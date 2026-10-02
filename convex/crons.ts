@@ -24,4 +24,21 @@ crons.daily(
   internal.readingPlans.ensurePlanSeeded,
 );
 
+// Confirma que cada versión de AVAILABLE_BIBLE_VERSIONS tiene los 31.102
+// versículos (#174). Solo lee; si falta texto deja un log de error en el
+// dashboard de Convex en vez de que los usuarios reciban cero citas en
+// silencio (#93 §4b).
+crons.daily(
+  "chequear-corpus-versiones",
+  { hourUTC: 6, minuteUTC: 15 },
+  internal.rag.corpusCheck.checkAvailableVersions,
+);
+
+// Diagnóstico: los eventos y errores viven 90 días (convex/telemetry.ts).
+crons.daily(
+  "purgar-diagnostico",
+  { hourUTC: 6, minuteUTC: 20 },
+  internal.telemetry.purgeOld,
+);
+
 export default crons;

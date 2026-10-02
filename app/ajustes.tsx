@@ -9,8 +9,12 @@ import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
+// Los números salen de las cuotas reales: el prototipo decía "3 preguntas y 2
+// devocionales", pero el límite es otro y la tarjeta mentía.
+import { QUOTA_LIMITS } from "../convex/quotas";
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
 import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
+import { canEnterReferral, claimMessage } from "../src/lib/referralCopy";
 import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
@@ -46,6 +50,10 @@ export default function AjustesScreen() {
   const updatePreferences = useMutation(api.users.updatePreferences);
   const deleteHistory = useMutation(api.history.deleteAll);
   const deleteAccount = useAction(api.users.deleteAccount);
+  const claimReferral = useMutation(api.referrals.claim);
+  const [referralDraft, setReferralDraft] = useState("");
+  const [referralNotice, setReferralNotice] = useState<string | null>(null);
+  const [claimingReferral, setClaimingReferral] = useState(false);
   const { signOut } = useAuth();
   const [cleared, setCleared] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -59,6 +67,21 @@ export default function AjustesScreen() {
   const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : DEFAULT_BIBLE_VERSION;
   const darkMode = user?.darkMode ?? false;
   const appUpdate = useAppUpdate();
+
+  // Invitaciones (PRD §9b): en iPhone no hay forma automática de saber quién
+  // mandó el link de la tienda, así que se puede escribir el código.
+  async function submitReferral() {
+    setClaimingReferral(true);
+    try {
+      const result = await claimReferral({ code: referralDraft, via: "manual" });
+      setReferralNotice(claimMessage(result.status));
+      if (result.status === "ok") setReferralDraft("");
+    } catch {
+      setReferralNotice("No pudimos guardarlo. Revisá tu conexión e intentá de nuevo.");
+    } finally {
+      setClaimingReferral(false);
+    }
+  }
 
   // Cerrar sesión de verdad: Clerk, RevenueCat y el recordatorio local. Si el
   // aviso diario sobreviviera, seguirían llegando notificaciones de una cuenta
@@ -164,11 +187,78 @@ export default function AjustesScreen() {
             {isPro ? "Pro activo" : "Plan gratis"}
           </Text>
           <Text style={[styles.planSub, { color: isPro ? color.inkSoft : color.inkFaint }]}>
-            {isPro ? "Sin límites de preguntas ni conversaciones" : "3 preguntas y 2 devocionales al día"}
+            {isPro
+              ? "Sin límites de preguntas ni conversaciones"
+              : `${QUOTA_LIMITS.qa} preguntas y ${QUOTA_LIMITS.feelings} devocionales al día`}
           </Text>
         </View>
         <Text style={[styles.planChevron, { color: color.accent }]}>›</Text>
       </Pressable>
+
+      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lo tuyo</Text>
+      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/mi-espacio")}
+          style={styles.row}
+          testID="ajustes-mi-espacio"
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Mi espacio</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Separador, guardados, subrayados y conversaciones</Text>
+          </View>
+          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
+        </Pressable>
+        {/* Mismo bloque que la confirmación de "Eliminar mi cuenta": copy,
+            campo y botón. Desaparece a los 30 días o cuando ya hay invitación. */}
+        {canEnterReferral(user) ? (
+          <View style={[styles.deleteBlock, styles.rowDivider, { borderTopColor: color.border }]} testID="ajustes-referral">
+            <View>
+              <Text style={[styles.rowLabel, { color: color.ink }]}>¿Te invitó alguien?</Text>
+              <Text style={[styles.rowHint, { color: color.inkSoft }]}>
+                Escribí su código (empieza con BAH-). Solo nos sirve para saber cómo llegaste; no le avisamos a nadie.
+              </Text>
+            </View>
+            <TextInput
+              accessibilityLabel="Código de quien te invitó"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={12}
+              onChangeText={(value) => {
+                setReferralDraft(value);
+                setReferralNotice(null);
+              }}
+              placeholder="BAH-"
+              placeholderTextColor={color.inkFaint}
+              style={[styles.deleteInput, { borderColor: color.borderStrong, color: color.ink }]}
+              testID="ajustes-referral-input"
+              value={referralDraft}
+            />
+            {referralNotice ? (
+              <Text accessibilityRole="alert" style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-referral-notice">
+                {referralNotice}
+              </Text>
+            ) : null}
+            <AppButton
+              disabled={claimingReferral || referralDraft.trim().length === 0}
+              onPress={() => void submitReferral()}
+              testID="ajustes-referral-save"
+              variant="secondary"
+            >
+              Guardar código
+            </AppButton>
+          </View>
+        ) : user?.referredBy && referralNotice ? (
+          // Recién guardado: la fila se va, pero el "Listo" se queda esta vez.
+          <Text
+            accessibilityRole="alert"
+            style={[styles.privacyCopy, styles.rowDivider, { borderTopColor: color.border, color: color.inkSoft }]}
+            testID="ajustes-referral-notice"
+          >
+            {referralNotice}
+          </Text>
+        ) : null}
+      </View>
 
       <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lectura</Text>
       <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
@@ -307,7 +397,7 @@ export default function AjustesScreen() {
           onPress={() => {
             Alert.alert(
               "¿Borrar tu historial?",
-              "Se eliminan de verdad tus conversaciones. No se puede deshacer.",
+              "Se eliminan de verdad tus conversaciones y las notas de tus versículos guardados. No se puede deshacer.",
               [
                 { text: "Cancelar", style: "cancel" },
                 {

@@ -24,6 +24,7 @@ import {
   useScrollToEndOnKeyboard,
 } from "../../../src/hooks/useKeyboardAvoidance";
 import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../../src/lib/keyboardAvoidance";
+import { track } from "../../../src/lib/telemetry";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -32,14 +33,16 @@ export default function VocesChatScreen() {
   const insets = useScreenInsets();
   const threadRef = useRef<ScrollView>(null);
   useScrollToEndOnKeyboard(threadRef);
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, borrador } = useLocalSearchParams<{ slug: string; borrador?: string }>();
   const characters = useQuery(api.voices.list);
   const character = characters?.find((item) => item.slug === slug);
   const thread = useQuery(api.voices.thread, slug ? { slug } : "skip");
   const currentUser = useQuery(api.users.current);
   const quota = useQuery(api.quotas.remaining, currentUser ? { module: "voices" } : "skip");
   const sendMessage = useAction(api.voices.sendMessage);
-  const [draft, setDraft] = useState("");
+  // Desde el lector llega un primer mensaje sugerido (`?borrador=`): queda en
+  // el campo, no se manda solo.
+  const [draft, setDraft] = useState(() => (typeof borrador === "string" ? borrador : ""));
   const [busy, setBusy] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
 
@@ -87,6 +90,8 @@ export default function VocesChatScreen() {
       const result = await sendMessage({ slug, text: trimmed });
       if (result.status === "limit_reached") {
         setLimitReached(true);
+      } else if (result.status === "ok") {
+        track("voices_message_sent");
       }
     } finally {
       setBusy(false);

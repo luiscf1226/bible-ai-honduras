@@ -54,6 +54,9 @@ export type RevenueCatNative = {
   getOfferings: () => Promise<{ current?: { monthly?: unknown } | null }>;
   purchasePackage: (pkg: unknown) => Promise<unknown>;
   restorePurchases: () => Promise<unknown>;
+  // Atributos del suscriptor en RevenueCat (`referred_by`). Opcional por lo
+  // mismo que `logOut`.
+  setAttributes?: (attributes: Record<string, string | null>) => Promise<unknown> | unknown;
 };
 
 type NativeOverride = RevenueCatNative | null | undefined;
@@ -156,6 +159,24 @@ export async function logIn(clerkUserId: string): Promise<PurchaseResult> {
   await ensureConfigured(native, clerkUserId);
   await native.logIn(clerkUserId);
   return { ok: true };
+}
+
+/**
+ * Deja en RevenueCat quién invitó a esta persona (PRD §9b), como atributo
+ * `referred_by`. Así el dashboard de RevenueCat puede cruzar pagos con
+ * invitaciones sin depender de Convex. Nunca lanza: medir no puede romper la
+ * compra.
+ */
+export async function setReferralAttribute(code: string): Promise<void> {
+  if (!purchasesConfigured()) return;
+  try {
+    const native = await loadNative();
+    if (!native?.setAttributes) return;
+    await ensureConfigured(native);
+    await native.setAttributes({ referred_by: code });
+  } catch {
+    // Sin atributo seguimos teniendo `users.referredBy` en Convex.
+  }
 }
 
 /**

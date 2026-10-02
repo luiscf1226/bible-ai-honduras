@@ -3,7 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
-import { internalMutation, query } from "../_generated/server";
+import { internalMutation, internalQuery, query } from "../_generated/server";
 import { EMBEDDING_DIMENSIONS } from "./embed";
 
 const DEFAULT_VERSION = DEFAULT_BIBLE_VERSION;
@@ -160,6 +160,27 @@ export const getById = query({
       version: row.version,
       text: row.text,
     };
+  },
+});
+
+/**
+ * Cuenta una página de versículos de una versión (#174). La usa
+ * `rag/corpusCheck` para confirmar que cada versión habilitada tiene el canon
+ * completo. Paginada a propósito: cada fila arrastra su embedding (~8 KB), así
+ * que un `collect` de 31.102 filas pasa el límite de lectura de una query.
+ */
+export const countByVersion = internalQuery({
+  args: {
+    version: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("verses")
+      .withIndex("by_ref", (q) => q.eq("version", args.version))
+      .paginate(args.paginationOpts);
+
+    return { count: result.page.length, isDone: result.isDone, continueCursor: result.continueCursor };
   },
 });
 

@@ -46,6 +46,26 @@ const db = {
   // Lectura (#112–#115 y separador): fixtures para ver el módulo en el harness.
   separator: isEmpty() ? null : { book: "Salmos", chapter: 46, verse: 1, updatedAt: Date.now() },
   readingProgress: isEmpty() ? null : { book: "Juan", chapter: 3, updatedAt: Date.now() },
+  // Guardados (#166) y notas (#167): cinco, para que Leer muestre 3 y "Ver todos (5)".
+  bookmarks: isEmpty()
+    ? []
+    : [
+        { book: "Salmos", chapter: 46, verse: 1, createdAt: Date.now() - 3600e3, note: "Lo predicó el pastor el domingo." },
+        { book: "Juan", chapter: 3, verse: 16, createdAt: Date.now() - 26 * 3600e3 },
+        { book: "Romanos", chapter: 8, verse: 28, createdAt: Date.now() - 3 * 24 * 3600e3 },
+        { book: "Filipenses", chapter: 4, verse: 13, createdAt: Date.now() - 9 * 24 * 3600e3 },
+        { book: "1 Pedro", chapter: 5, verse: 7, createdAt: Date.now() - 20 * 24 * 3600e3, note: "Me lo dijo mi mamá." },
+      ],
+  // Subrayados (#168): cuatro, en tres colores, para ver "Ver todos (4)" y el
+  // filtro por color de la pantalla Subrayados.
+  highlights: isEmpty()
+    ? []
+    : [
+        { book: "Salmos", chapter: 46, verse: 1, color: "amber", updatedAt: Date.now() - 3600e3 },
+        { book: "Juan", chapter: 3, verse: 16, color: "sage", updatedAt: Date.now() - 2 * 3600e3 },
+        { book: "Romanos", chapter: 8, verse: 28, color: "amber", updatedAt: Date.now() - 3 * 24 * 3600e3 },
+        { book: "Filipenses", chapter: 4, verse: 13, color: "clay", updatedAt: Date.now() - 9 * 24 * 3600e3 },
+      ],
   history: isEmpty()
     ? []
     : [
@@ -80,6 +100,18 @@ const DEVOTIONAL = {
   imageAttributionUrl: "https://unsplash.com/photos/1500534623283-312aade485b7",
 };
 
+const SAVED_TEXT = {
+  "Salmos 46:1": "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones.",
+  "Juan 3:16": "Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.",
+  "Romanos 8:28": "Y sabemos que á los que á Dios aman, todas las cosas les ayudan á bien, es á saber, á los que conforme al propósito son llamados.",
+  "Filipenses 4:13": "Todo lo puedo en Cristo que me fortalece.",
+  "1 Pedro 5:7": "Echando toda vuestra solicitud en él, porque él tiene cuidado de vosotros.",
+};
+
+function findBookmark(args) {
+  return db.bookmarks.findIndex((b) => b.book === args.book && b.chapter === args.chapter && b.verse === args.verse);
+}
+
 const VERSES = [
   { verse: 1, text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones." },
   { verse: 2, text: "Por tanto, no temeremos, aunque la tierra sea removida, y se traspasen los montes al corazón del mar;" },
@@ -100,10 +132,23 @@ const handlers = {
     _id: "u1",
     clerkId: "user_qa",
     referralCode: "HN4QA7",
+    // Cuenta de hace 3 días: Ajustes muestra "¿Te invitó alguien?".
+    _creationTime: Date.now() - 3 * 24 * 3600e3,
+    referredBy: db.referredBy,
     bibleVersion: db.bibleVersion,
     darkMode: db.darkMode,
     reminderHour: db.reminderHour,
   }),
+  // Invitaciones: BAH-QA00001 existe; el resto no.
+  "referrals:claim": (args) => {
+    if (db.referredBy) return { status: "already" };
+    const code = String(args.code).trim().toUpperCase();
+    if (!/^BAH-?[0-9A-Z]{7}$/.test(code)) return { status: "invalid" };
+    if (code.replace("BAH", "BAH-").replace("--", "-") !== "BAH-QA00001") return { status: "not_found" };
+    db.referredBy = "BAH-QA00001";
+    notify();
+    return { status: "ok" };
+  },
   "users:updatePreferences": (args) => {
     if (args.darkMode !== undefined) db.darkMode = args.darkMode;
     if (args.bibleVersion) db.bibleVersion = args.bibleVersion;
@@ -125,7 +170,49 @@ const handlers = {
       : VERSES.map((v) => ({ ...v, book: args.book, chapter: args.chapter, version: args.version })),
   "reading:progress": () => db.readingProgress,
   "reading:recents": () => (isEmpty() ? [] : [{ book: "Juan", chapter: 3, openedAt: Date.now() }]),
-  "reading:bookmarks": () => (isEmpty() ? [] : [{ book: "Romanos", chapter: 8, verse: 28, createdAt: Date.now() }]),
+  "reading:bookmarks": (args) => {
+    const sorted = [...db.bookmarks].sort((a, b) => b.createdAt - a.createdAt);
+    const items = sorted.slice(0, args?.limit ?? sorted.length).map((b) => ({
+      ...b,
+      version: db.bibleVersion,
+      text: db.bibleVersion === "RV1909" ? SAVED_TEXT[`${b.book} ${b.chapter}:${b.verse}`] ?? null : null,
+      note: b.note ?? null,
+    }));
+    return { total: sorted.length, items };
+  },
+  "reading:chapterBookmarks": (args) =>
+    db.bookmarks
+      .filter((b) => b.book === args.book && b.chapter === args.chapter)
+      .map((b) => ({ verse: b.verse, note: b.note ?? null })),
+  "reading:highlights": () => [...db.highlights].sort((a, b) => b.updatedAt - a.updatedAt),
+  "reading:highlightsForChapter": (args) =>
+    db.highlights
+      .filter((h) => h.book === args.book && h.chapter === args.chapter)
+      .map((h) => ({ verse: h.verse, color: h.color })),
+  "reading:highlightsWithText": (args) => {
+    const sorted = [...db.highlights].sort((a, b) => b.updatedAt - a.updatedAt);
+    const items = sorted.slice(0, args?.limit ?? sorted.length).map((h) => ({
+      ...h,
+      version: db.bibleVersion,
+      text: db.bibleVersion === "RV1909" ? SAVED_TEXT[`${h.book} ${h.chapter}:${h.verse}`] ?? null : null,
+    }));
+    return { total: sorted.length, items };
+  },
+  "reading:setHighlight": (args) => {
+    const index = db.highlights.findIndex((h) => h.book === args.book && h.chapter === args.chapter && h.verse === args.verse);
+    if (index >= 0) db.highlights[index] = { ...db.highlights[index], color: args.color, updatedAt: Date.now() };
+    else db.highlights.push({ ...args, updatedAt: Date.now() });
+    notify();
+    return "h1";
+  },
+  "reading:clearHighlight": (args) => {
+    db.highlights = db.highlights.filter((h) => !(h.book === args.book && h.chapter === args.chapter && h.verse === args.verse));
+    notify();
+    return null;
+  },
+  // Diagnóstico: en el harness no se manda nada.
+  "telemetry:track": () => null,
+  "telemetry:reportError": () => null,
   "reading:separator": () => db.separator,
   "reading:setSeparator": (args) => {
     db.separator = { ...args, updatedAt: Date.now() };
@@ -139,7 +226,27 @@ const handlers = {
   },
   "reading:saveProgress": () => null,
   "reading:recordRecent": () => null,
-  "reading:toggleBookmark": () => ({ saved: true }),
+  "reading:toggleBookmark": (args) => {
+    const index = findBookmark(args);
+    if (index >= 0) db.bookmarks.splice(index, 1);
+    else db.bookmarks.push({ ...args, createdAt: Date.now() });
+    notify();
+    return { saved: index < 0 };
+  },
+  "reading:removeBookmark": (args) => {
+    const index = findBookmark(args);
+    if (index >= 0) db.bookmarks.splice(index, 1);
+    notify();
+    return { removed: index >= 0 };
+  },
+  "reading:setBookmarkNote": (args) => {
+    const note = args.note.trim();
+    const index = findBookmark(args);
+    if (index >= 0) db.bookmarks[index] = { ...db.bookmarks[index], note: note || undefined };
+    else if (note) db.bookmarks.push({ book: args.book, chapter: args.chapter, verse: args.verse, createdAt: Date.now(), note });
+    notify();
+    return { saved: index >= 0 || Boolean(note), note: note || null };
+  },
   "readingPlans:catalog": (args) => {
     const plan = ALL_PLANS.find((p) => p.id === (args.planId ?? "canonico"));
     return plan ? { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays } : null;

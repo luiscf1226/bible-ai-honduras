@@ -23,6 +23,7 @@ import {
   useScrollToEndOnKeyboard,
 } from "../../../src/hooks/useKeyboardAvoidance";
 import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../../src/lib/keyboardAvoidance";
+import { track } from "../../../src/lib/telemetry";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -76,6 +77,8 @@ export default function PreguntarChatScreen() {
       }
       if (result.status === "limit_reached") {
         setLimitReached(true);
+      } else if (result.status === "ok") {
+        track("qa_asked");
       }
     } finally {
       if (requestId === requestIdRef.current) {
