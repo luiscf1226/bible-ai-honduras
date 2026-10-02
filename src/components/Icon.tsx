@@ -41,6 +41,11 @@ export const ICONS = {
     { kind: "circle", cx: 12, cy: 13, r: 4 },
     path("M12 4v2.5M4.5 13H3M21 13h-1.5M6.2 7.2 5.1 6.1M17.8 7.2l1.1-1.1M3 19h18"),
   ],
+  // Botón de Ajustes del inicio.
+  sun: [
+    { kind: "circle", cx: 12, cy: 12, r: 3.2 },
+    path("M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"),
+  ],
   bookmark: [path("M6.5 4h11v16.5L12 16.5 6.5 20.5z")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 8.5 }, path("M12 8v4.5l3 2")],
   lock: [{ kind: "rect", x: 5, y: 10.5, width: 14, height: 10, rx: 2.4 }, path("M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5")],
@@ -85,17 +90,16 @@ export function Icon({ name, color, size = "md", filled = false, testID }: IconP
       {ICONS[name].map((shape: Shape, index) => {
         const common = {
           fill,
-          key: index,
           stroke: color,
           strokeLinecap: "round" as const,
           strokeLinejoin: "round" as const,
           strokeWidth: tokens.size.iconStroke,
         };
-        if (shape.kind === "circle") return <Circle {...common} cx={shape.cx} cy={shape.cy} r={shape.r} />;
+        if (shape.kind === "circle") return <Circle key={index} {...common} cx={shape.cx} cy={shape.cy} r={shape.r} />;
         if (shape.kind === "rect") {
-          return <Rect {...common} height={shape.height} rx={shape.rx} width={shape.width} x={shape.x} y={shape.y} />;
+          return <Rect key={index} {...common} height={shape.height} rx={shape.rx} width={shape.width} x={shape.x} y={shape.y} />;
         }
-        return <Path {...common} d={shape.d} />;
+        return <Path key={index} {...common} d={shape.d} />;
       })}
     </Svg>
   );

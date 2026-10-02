@@ -9,3 +9,12 @@ type ShareableDevotional = {
 export function buildDevotionalShareText({ reflection, verseRef, version }: ShareableDevotional): string {
   return `Devocional de hoy · ${verseRef} (${version})\n\n${reflection}\n\nQue esta Palabra te acompañe hoy.`;
 }
+
+/**
+ * Texto que acompaña la imagen 9:16 (#161). Corto: en un estado de WhatsApp
+ * la imagen ya lleva el versículo, el texto solo dice de dónde viene.
+ * `shareImage` le agrega el link de referido.
+ */
+export function buildVerseImageShareText({ verseRef, version }: Pick<ShareableDevotional, "verseRef" | "version">): string {
+  return `Versículo de hoy · ${verseRef} (${version})`;
+}

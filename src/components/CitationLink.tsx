@@ -1,4 +1,4 @@
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, type StyleProp, type TextStyle } from "react-native";
 
 import { formatCitation } from "../lib/citation";
 import { openPassage } from "../lib/openPassage";
@@ -21,6 +21,8 @@ type CitationLinkProps = {
    * Cada una conserva el estilo que esa pantalla ya tenía.
    */
   variant?: "inline" | "block";
+  /** Ajuste de la pantalla que la usa (p. ej. `/hoy` la alinea con el versículo, sin sangría). */
+  style?: StyleProp<TextStyle>;
   testID?: string;
 };
 
@@ -29,7 +31,7 @@ type CitationLinkProps = {
  * versículo elegido. Transversal con un solo dueño (regla dura #3): ninguna
  * pantalla arma su propia cita tocable.
  */
-export function CitationLink({ book, chapter, verse, version, from, variant = "inline", testID }: CitationLinkProps) {
+export function CitationLink({ book, chapter, verse, version, from, variant = "inline", style, testID }: CitationLinkProps) {
   const { color } = useTheme();
 
   return (
@@ -40,11 +42,10 @@ export function CitationLink({ book, chapter, verse, version, from, variant = "i
         track("citation_opened", from === "today" ? undefined : from);
         openPassage({ book, chapter, verse });
       }}
-      style={
-        variant === "inline"
-          ? [styles.inline, { color: color.inkFaint }]
-          : [styles.block, { color: color.inkSoft }]
-      }
+      style={[
+        variant === "inline" ? [styles.inline, { color: color.inkFaint }] : [styles.block, { color: color.inkSoft }],
+        style,
+      ]}
       testID={testID}
     >
       {formatCitation({ book, chapter, verse, version })}

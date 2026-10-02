@@ -12,14 +12,35 @@ export function buildShareMessage(text: string, referralCode: string): string {
   return `${text}\n\n${buildReferralLink(referralCode)}`;
 }
 
+/** `captureRef` devuelve una ruta suelta en iOS; el share sheet necesita `file://`. */
+export function asFileUri(path: string): string {
+  return /^[a-z][a-z0-9+.-]*:/i.test(path) ? path : `file://${path}`;
+}
+
 export type ShareResult =
   | { status: "shared" }
   | { status: "dismissed" }
   | { status: "error"; error: unknown };
 
+/**
+ * Resultado de compartir una imagen. En Android el share sheet de archivos no
+ * lleva texto: el mensaje con el link de referido se copia al portapapeles
+ * (`textCopied`) para que la persona lo pegue como descripción del estado.
+ */
+export type ShareImageResult =
+  | { status: "shared"; textCopied: boolean }
+  | { status: "dismissed" }
+  | { status: "error"; error: unknown };
+
 export type ShareNative = {
-  share: (content: { message: string }) => Promise<{ action: string; activityType?: string | null }>;
+  share: (content: { message: string; url?: string }) => Promise<{ action: string; activityType?: string | null }>;
   dismissedAction: string;
+  /** `Platform.OS`. Sin él se asume el camino de iOS (`Share.share` con `url`). */
+  os?: string;
+  /** Share sheet de archivos (expo-sharing). Solo hace falta en Android. */
+  shareFile?: (fileUri: string, options: { mimeType: string; dialogTitle?: string; UTI?: string }) => Promise<void>;
+  /** Portapapeles, para el texto que Android no deja adjuntar a la imagen. */
+  copyText?: (text: string) => void;
 };
 
 let nativeOverride: ShareNative | undefined;
@@ -37,8 +58,17 @@ async function loadNative(): Promise<ShareNative> {
   if (nativeOverride !== undefined) {
     return nativeOverride;
   }
-  const { Share } = await import("react-native");
-  return Share;
+  const { Clipboard, Platform, Share } = await import("react-native");
+  return {
+    share: (content) => Share.share(content),
+    dismissedAction: Share.dismissedAction,
+    os: Platform.OS,
+    shareFile: async (fileUri, options) => {
+      const Sharing = await import("expo-sharing");
+      await Sharing.shareAsync(fileUri, options);
+    },
+    copyText: (text) => Clipboard.setString(text),
+  };
 }
 
 // Embudo (convex/telemetry.ts): solo que se compartió, nunca qué. Import
@@ -73,6 +103,52 @@ export async function shareContent(params: { text: string; referralCode: string 
     }
     trackShare();
     return { status: "shared" };
+  } catch (error) {
+    return { status: "error", error };
+  }
+}
+
+/**
+ * Comparte una imagen (la tarjeta 9:16 del versículo del día, #161) con el
+ * mismo mensaje y link de referido que `shareContent`. Vive acá y no en la
+ * pantalla por la regla dura #3: un solo dueño del share sheet.
+ *
+ * - **iOS:** `Share.share({ message, url })` manda la imagen y el texto juntos.
+ *   Cancelar devuelve `dismissedAction` → `dismissed`, no es error.
+ * - **Android:** `Share.share` de react-native no acepta archivos, así que la
+ *   imagen va por expo-sharing, que no lleva texto. El mensaje se copia antes
+ *   al portapapeles para no perder el `?ref=`. Android no avisa si se canceló:
+ *   se cuenta como `shared`, igual que en `shareContent`.
+ */
+export async function shareImage(params: { fileUri: string; text: string; referralCode: string }): Promise<ShareImageResult> {
+  try {
+    const native = await loadNative();
+    const message = buildShareMessage(params.text, params.referralCode);
+
+    if (native.os === "android") {
+      if (!native.shareFile) {
+        throw new Error("No hay share sheet de archivos en este dispositivo.");
+      }
+      let textCopied = false;
+      if (native.copyText) {
+        try {
+          native.copyText(message);
+          textCopied = true;
+        } catch {
+          // Sin portapapeles la imagen igual se comparte, solo sin el texto.
+        }
+      }
+      await native.shareFile(params.fileUri, { mimeType: "image/png", dialogTitle: "Compartir versículo" });
+      trackShare();
+      return { status: "shared", textCopied };
+    }
+
+    const result = await native.share({ message, url: params.fileUri });
+    if (result.action === native.dismissedAction) {
+      return { status: "dismissed" };
+    }
+    trackShare();
+    return { status: "shared", textCopied: false };
   } catch (error) {
     return { status: "error", error };
   }
