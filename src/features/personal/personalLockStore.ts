@@ -143,7 +143,7 @@ function useLockSnapshot() {
 
 export type GateStatus = "checking" | "locked" | "open";
 
-/** Para las pantallas protegidas (Mi espacio, Sentir, Exportar). */
+/** Para las pantallas protegidas (Mi espacio, Tu año en la Palabra, Sentir, Exportar). */
 export function usePersonalLockGate() {
   const state = useLockSnapshot();
   const ready = state.enabled !== null && state.availability !== null;
