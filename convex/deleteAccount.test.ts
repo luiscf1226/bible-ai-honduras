@@ -11,6 +11,8 @@ const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./users.ts": () => import("./users"),
   "./history.ts": () => import("./history"),
+  "./memorize.ts": () => import("./memorize"),
+  "./prayers.ts": () => import("./prayers"),
   "./reading.ts": () => import("./reading"),
   "./readingPlans.ts": () => import("./readingPlans"),
   "./readingPlanCatalog.ts": () => import("./readingPlanCatalog"),
@@ -69,6 +71,20 @@ async function seedEverything(
       conversationId: qaConversationId,
       role: "user",
       text: `segunda pregunta de ${label}`,
+    });
+    // Preguntar tiene una conversación por tema (#191): otra más, con título.
+    const qaTopicId = await ctx.db.insert("conversations", {
+      userId,
+      module: "qa",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      title: "Romanos 8",
+      passage: { book: "Romanos", chapter: 8 },
+    });
+    await ctx.db.insert("messages", {
+      conversationId: qaTopicId,
+      role: "user",
+      text: `pregunta sobre Romanos de ${label}`,
     });
 
     await ctx.db.insert("usage", { userId, module: "qa", day: "2026-09-10", count: 3 });
@@ -145,6 +161,30 @@ async function seedEverything(
       createdAt: Date.now(),
     });
     await ctx.db.insert("readingGroupMembers", { groupId, userId, joinedAt: Date.now() });
+    // Diario de oración (#159): una abierta y una respondida con nota.
+    await ctx.db.insert("prayerRequests", {
+      userId,
+      text: `petición privada de ${label}`,
+      createdAt: Date.now(),
+      verse: { book: "Mateo", chapter: 11, verse: 28 },
+    });
+    await ctx.db.insert("prayerRequests", {
+      userId,
+      text: `petición respondida de ${label}`,
+      createdAt: Date.now(),
+      answeredAt: Date.now(),
+      answerNote: `cómo respondió Dios a ${label}`,
+    });
+    // Memorizar (#158).
+    await ctx.db.insert("memoryVerses", {
+      userId,
+      book: "Salmos",
+      chapter: 23,
+      verse: 1,
+      level: 1,
+      nextReview: "2026-10-05",
+      createdAt: Date.now(),
+    });
 
     const storageId = await ctx.storage.store(
       new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
@@ -196,6 +236,8 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     userPlanProgress: await ctx.db.query("userPlanProgress").collect(),
     readingGroups: await ctx.db.query("readingGroups").collect(),
     readingGroupMembers: await ctx.db.query("readingGroupMembers").collect(),
+    prayerRequests: await ctx.db.query("prayerRequests").collect(),
+    memoryVerses: await ctx.db.query("memoryVerses").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
 }
@@ -221,8 +263,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 
     const before = await tableDump(t);
     expect(before.users).toHaveLength(1);
-    expect(before.conversations).toHaveLength(2);
-    expect(before.messages).toHaveLength(3);
+    expect(before.conversations).toHaveLength(3);
+    expect(before.messages).toHaveLength(4);
     expect(before.usage).toHaveLength(2);
     expect(before.entitlements).toHaveLength(1);
     expect(before.stories).toHaveLength(1);
@@ -235,6 +277,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.userPlanProgress).toHaveLength(2);
     expect(before.readingGroups).toHaveLength(1);
     expect(before.readingGroupMembers).toHaveLength(1);
+    expect(before.prayerRequests).toHaveLength(2);
+    expect(before.memoryVerses).toHaveLength(1);
     expect(before.storage).toHaveLength(1);
 
     stubClerkDelete();
@@ -242,8 +286,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 
     expect(result.status).toBe("ok");
     expect(result.deleted).toEqual({
-      messages: 3,
-      conversations: 2,
+      messages: 4,
+      conversations: 3,
       usage: 2,
       entitlements: 1,
       stories: 1,
@@ -255,6 +299,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingHighlights: 1,
       readingPlanProgress: 2,
       readingGroupMemberships: 1,
+      prayerRequests: 2,
+      memoryVerses: 1,
       users: 1,
     });
 
@@ -275,6 +321,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     // Era la única persona del grupo: el grupo (y su token) se va también.
     expect(after.readingGroups).toHaveLength(0);
     expect(after.readingGroupMembers).toHaveLength(0);
+    expect(after.prayerRequests).toHaveLength(0);
+    expect(after.memoryVerses).toHaveLength(0);
 
     // El blob no queda huérfano.
     expect(after.storage).toHaveLength(0);
@@ -297,8 +345,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     const after = await tableDump(t);
     expect(after.users.map((row) => row.clerkId)).toEqual(["user_beto_intacto"]);
     expect(after.conversations.every((row) => row.userId === betoId)).toBe(true);
-    expect(after.conversations).toHaveLength(2);
-    expect(after.messages).toHaveLength(3);
+    expect(after.conversations).toHaveLength(3);
+    expect(after.messages).toHaveLength(4);
     expect(after.messages.every((row) => row.text.includes("Beto"))).toBe(true);
     expect(after.usage).toHaveLength(2);
     expect(after.usage.every((row) => row.userId === betoId)).toBe(true);
@@ -317,6 +365,10 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.userPlanProgress.every((row) => row.userId === betoId)).toBe(true);
     expect(after.readingGroups.map((row) => row.ownerId)).toEqual([betoId]);
     expect(after.readingGroupMembers.map((row) => row.userId)).toEqual([betoId]);
+    expect(after.prayerRequests).toHaveLength(2);
+    expect(after.prayerRequests.every((row) => row.userId === betoId && row.text.includes("Beto"))).toBe(true);
+    expect(after.memoryVerses).toHaveLength(1);
+    expect(after.memoryVerses[0]?.userId).toBe(betoId);
 
     // El blob de Beto sobrevive; el de Ana no.
     expect(after.storage).toHaveLength(1);
@@ -346,6 +398,27 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     const betoView = await beto.query(api.readingGroups.detail, { groupId: created.groupId });
     expect(betoView?.isOwner).toBe(true);
     expect(betoView?.members).toHaveLength(1);
+  });
+
+  it("peticiones creadas, respondidas y borradas por la API: la tabla queda vacía (#159)", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_oracion_159");
+    await ana.mutation(api.users.upsert, {});
+    const first = await ana.mutation(api.prayers.create, { text: "Por mi familia" });
+    const second = await ana.mutation(api.prayers.create, { text: "Por el examen", verse: { book: "Filipenses", chapter: 4, verse: 6 } });
+    await ana.mutation(api.prayers.create, { text: "Por la iglesia" });
+    await ana.mutation(api.prayers.markAnswered, { id: second, note: "Pasé" });
+    await ana.mutation(api.prayers.remove, { id: first });
+    await ana.mutation(api.memorize.add, { book: "Juan", chapter: 3, verse: 16 });
+    expect(await ana.query(api.prayers.list, {})).toHaveLength(2);
+
+    stubClerkDelete();
+    const result = await ana.action(api.users.deleteAccount, {});
+
+    expect(result.deleted).toMatchObject({ prayerRequests: 2, memoryVerses: 1, users: 1 });
+    const after = await tableDump(t);
+    expect(after.prayerRequests).toHaveLength(0);
+    expect(after.memoryVerses).toHaveLength(0);
   });
 
   it("una cuenta con muchas filas se borra completa en varias pasadas", async () => {
@@ -455,6 +528,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingRecents).toHaveLength(0);
     expect(after.readingBookmarks).toHaveLength(0);
     expect(after.userPlanProgress).toHaveLength(0);
+    expect(after.prayerRequests).toHaveLength(0);
+    expect(after.memoryVerses).toHaveLength(0);
   });
 
   it("un 404 de Clerk cuenta como borrado: la identidad ya no existía", async () => {
@@ -502,6 +577,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingHighlights: 0,
       readingPlanProgress: 0,
       readingGroupMemberships: 0,
+      prayerRequests: 0,
+      memoryVerses: 0,
       users: 0,
     });
     const after = await tableDump(t);
@@ -511,7 +588,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 });
 
 describe("purgeAccountData", () => {
-  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans)", async () => {
+  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans, bibleOfflinePackages)", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_editorial_107");
     const userId = await authed.mutation(api.users.upsert, {});
@@ -549,6 +626,16 @@ describe("purgeAccountData", () => {
         totalDays: 1,
         days: [{ day: 1, readings: [{ book: "Génesis", chapter: 1 }] }],
       });
+      // La Biblia sin conexión (#160) no es de nadie: un paquete por libro.
+      const storageId = await ctx.storage.store(new Blob(["{}"], { type: "application/json" }));
+      await ctx.db.insert("bibleOfflinePackages", {
+        version: "RV1909",
+        book: "Éxodo",
+        storageId,
+        bytes: 2,
+        verses: 1,
+        builtAt: 1,
+      });
     });
 
     await t.mutation(internal.users.purgeAccountData, { clerkId: "user_editorial_107" });
@@ -558,11 +645,13 @@ describe("purgeAccountData", () => {
       commentaries: await ctx.db.query("commentaries").collect(),
       dailyDevotionals: await ctx.db.query("dailyDevotionals").collect(),
       readingPlans: await ctx.db.query("readingPlans").collect(),
+      bibleOfflinePackages: await ctx.db.query("bibleOfflinePackages").collect(),
     }));
     expect(editorial.verses).toHaveLength(1);
     expect(editorial.commentaries).toHaveLength(1);
     expect(editorial.dailyDevotionals).toHaveLength(1);
     expect(editorial.readingPlans).toHaveLength(1);
+    expect(editorial.bibleOfflinePackages).toHaveLength(1);
   });
 
   it("con un clerkId inexistente devuelve done sin borrar nada", async () => {

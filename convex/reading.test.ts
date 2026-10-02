@@ -319,3 +319,46 @@ describe("reading — subrayados con texto", () => {
     await expect(beto.query(api.reading.highlightsWithText, {})).resolves.toEqual({ total: 0, items: [] });
   });
 });
+
+describe("reading.saveBookmark — repetible para la cola sin conexión (#182)", () => {
+  it("guardar dos veces deja un solo guardado y no lo quita", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "reading_save_twice");
+    await ana.mutation(api.users.upsert, {});
+    const ref = { book: "Juan", chapter: 3, verse: 16 };
+
+    await expect(ana.mutation(api.reading.saveBookmark, ref)).resolves.toEqual({ saved: true, note: null });
+    await expect(ana.mutation(api.reading.saveBookmark, ref)).resolves.toEqual({ saved: true, note: null });
+    await expect(ana.query(api.reading.chapterBookmarks, { book: "Juan", chapter: 3 })).resolves.toEqual([
+      { verse: 16, note: null },
+    ]);
+  });
+
+  it("sin `note` no toca la nota; con texto la reemplaza; vacía la borra y deja el guardado", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "reading_save_note");
+    await ana.mutation(api.users.upsert, {});
+    const ref = { book: "Salmos", chapter: 46, verse: 1 };
+
+    await ana.mutation(api.reading.saveBookmark, { ...ref, note: "  Lo predicó el pastor  " });
+    await expect(ana.mutation(api.reading.saveBookmark, ref)).resolves.toEqual({ saved: true, note: "Lo predicó el pastor" });
+    await ana.mutation(api.reading.saveBookmark, { ...ref, note: "" });
+    await expect(ana.query(api.reading.chapterBookmarks, { book: "Salmos", chapter: 46 })).resolves.toEqual([
+      { verse: 1, note: null },
+    ]);
+  });
+
+  it("valida la referencia, el largo de la nota y la sesión", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "reading_save_invalid");
+    await ana.mutation(api.users.upsert, {});
+
+    await expect(ana.mutation(api.reading.saveBookmark, { book: "Juan", chapter: 0, verse: 1 })).rejects.toThrow();
+    await expect(
+      ana.mutation(api.reading.saveBookmark, { book: "Juan", chapter: 3, verse: 16, note: "x".repeat(501) }),
+    ).rejects.toThrow("hasta 500");
+    await expect(t.mutation(api.reading.saveBookmark, { book: "Juan", chapter: 3, verse: 16 })).rejects.toThrow(
+      "No autenticado",
+    );
+  });
+});

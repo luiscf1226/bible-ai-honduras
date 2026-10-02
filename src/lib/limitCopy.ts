@@ -1,7 +1,7 @@
 import { QUOTA_LIMITS, type QuotaModule } from "../../convex/quotas";
 
 const DAILY_TAIL =
-  "Vuelven mañana a las 6:00 a.m., y el devocional del día sigue abierto para ti.";
+  "Vuelven mañana a las 6:00 a.m., y el devocional del día sigue abierto para vos.";
 
 export function limitBodyFor(module: QuotaModule): string {
   if (module === "qa") {
@@ -13,5 +13,5 @@ export function limitBodyFor(module: QuotaModule): string {
   if (module === "feelings") {
     return `Usaste tus ${QUOTA_LIMITS.feelings} devocionales gratis de hoy. ${DAILY_TAIL}`;
   }
-  return "Ya usaste tu historia de muestra. Con Pro puedes ilustrar todas. El devocional del día sigue abierto para ti.";
+  return "Ya usaste tu historia de muestra. Con Pro podés ilustrar todas. El devocional del día sigue abierto para vos.";
 }

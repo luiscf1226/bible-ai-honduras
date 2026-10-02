@@ -4,12 +4,12 @@ import { tokens } from "../../theme/tokens";
  * Controles de lectura del lector (#113).
  *
  * Regla dura #1: acá no se declara ningún tamaño de fuente nuevo. La base es
- * `tokens.type.versePicker` — el mismo token con el que ya se pinta el texto
- * bíblico en el selector de pasaje de Preguntar — y los pasos son **factores**
- * sobre ese token, no valores absolutos. Subir la letra escala el token; no lo
+ * `tokens.type.readerBody` — el texto corrido del lector "Biblia de papel"
+ * (design/oleada-ux.md §U3, #195) — y los pasos son **factores** sobre ese
+ * token, no valores absolutos. Subir la letra escala el token; no lo
  * reemplaza por un número inventado.
  */
-export const READING_BASE_TYPE = tokens.type.versePicker;
+export const READING_BASE_TYPE = tokens.type.readerBody;
 
 /** Factores del tamaño de letra. El paso 1 es exactamente el token. */
 export const READING_FONT_SCALES = [0.85, 1, 1.2, 1.45] as const;

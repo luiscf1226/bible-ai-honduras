@@ -6,22 +6,49 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { QuotaModule } from "../../convex/quotas";
 import { limitBodyFor } from "../lib/limitCopy";
+import { Icon } from "./Icon";
 import { track } from "../lib/telemetry";
 import { useTheme } from "../theme/ThemeProvider";
 import { tokens } from "../theme/tokens";
 
 type LimitReachedProps = {
   module: QuotaModule;
+  /**
+   * `screen` (default): reemplaza la pantalla. `inline`: va en el lugar del
+   * composer de un chat (Sentir U5, Preguntar U6) y deja el hilo visible
+   * (design/oleada-ux.md). Un solo componente de límite (regla dura #3).
+   */
+  variant?: "screen" | "inline";
   testID?: string;
 };
 
-export function LimitReached({ module, testID = "limit-reached" }: LimitReachedProps) {
+export function LimitReached({ module, variant = "screen", testID = "limit-reached" }: LimitReachedProps) {
   const { color } = useTheme();
 
   // Paso clave del embudo: límite → paywall → compra.
   useEffect(() => {
     track("limit_reached", module);
   }, [module]);
+
+  if (variant === "inline") {
+    return (
+      <View style={[styles.inline, { backgroundColor: color.surfaceSunk, borderColor: color.border }]} testID={testID}>
+        <View style={styles.inlineHead}>
+          <Icon color={color.accent} name="clock" size="sm" />
+          <Text style={[styles.inlineTitle, { color: color.ink }]}>Por hoy llegaste al límite</Text>
+        </View>
+        <Text style={[styles.inlineBody, { color: color.inkMuted }]}>{limitBodyFor(module)}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/paywall")}
+          style={[styles.limitCta, styles.inlineCta, { backgroundColor: color.ink }]}
+          testID="limit-paywall"
+        >
+          <Text style={[styles.limitCtaLabel, { color: color.surface }]}>Seguir sin límite con Pro</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: color.surface }]} testID={testID}>
@@ -49,6 +76,16 @@ export function LimitReached({ module, testID = "limit-reached" }: LimitReachedP
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  inline: { borderRadius: tokens.radius.xl, borderWidth: 1, padding: tokens.cardPadding.horizontal },
+  inlineHead: { alignItems: "center", flexDirection: "row", gap: tokens.space.sm },
+  inlineTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
+  inlineBody: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+    marginTop: tokens.space.xs,
+  },
+  inlineCta: { marginTop: tokens.space.lg },
   limit: {
     flex: 1,
     justifyContent: "center",

@@ -11,7 +11,7 @@ import { track } from "../../src/lib/telemetry";
 import { tokens } from "../../src/theme/tokens";
 
 const steps = [
-  { body: "Cada mañana, un versículo. Si tienes tiempo, se abre en un devocional completo. Si no, con el versículo basta.", cta: "Continuar", title: "Un lugar tranquilo para leer" },
+  { body: "Cada mañana, un versículo. Si tenés tiempo, se abre en un devocional completo. Si no, con el versículo basta.", cta: "Continuar", title: "Un lugar tranquilo para leer" },
   { body: "Elige un pasaje y pregunta sobre él. Las respuestas citan siempre el texto bíblico, no opiniones sueltas.", cta: "Continuar", title: "Pregunta lo que no te atreves a preguntar" },
   { body: "Tus conversaciones son privadas. Compartimos con proveedores de IA solo lo necesario para responderte. Podés borrar el historial cuando querás.", cta: "Empezar", title: "Nadie te va a ver aquí" }
 ] as const;

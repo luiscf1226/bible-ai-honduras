@@ -27,6 +27,7 @@ normal.
 | `convex/react`, `convex/react-clerk` | fixtures deterministas por nombre de función (`users:current`, `qa:thread`, …) |
 | `react-native-purchases` | no-op |
 | `expo-notifications` | permisos siempre concedidos |
+| `expo-local-authentication` | Face ID que siempre pasa (ver `?auth=` abajo) |
 
 Los catálogos que se ven en pantalla **son los reales del repo**:
 `convex/voicesCatalog.ts` (Voces), `convex/stories.ts` (Historias ilustradas,
@@ -56,7 +57,20 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?qa=error` | `devotional:today` falla |
 | `?qa=loading` | todas las `useQuery` en `undefined` |
 | `?qa=dark` | `users.darkMode = true` |
+| `?temporada=reforma` / `gratitud` / `adviento` | `seasons.current` con esa temporada de muestra (#199); se combina con `?qa=dark`. Sin el parámetro, fuera de temporada |
+| `?lock=on` | "Proteger lo personal" encendido (Mi espacio, Tu año en la Palabra, Sentir y Exportar piden autenticar) |
+| `?auth=none` | el teléfono no tiene biometría ni bloqueo: la opción sale deshabilitada |
+| `?auth=pending` | el diálogo del sistema no contesta: se ve la pantalla de candado |
+| `?auth=cancel` | la persona cancela la autenticación: vuelve atrás |
 | `?ver=NVI` | versión de la Biblia = NVI (sin corpus, igual que en producción) |
+| `?net=off` | modo avión (#160, #182): NetInfo sin red, las `useQuery` quedan en `undefined` y las mutaciones no vuelven, como el cliente real de Convex sin conexión |
+| `?plan=1` | plan anual empezado, en el día 5 con los días 3 y 4 pendientes |
+
+La Biblia sin conexión se descarga de verdad desde Ajustes: el manifiesto del
+harness trae los 66 libros (con los versículos placeholder) como `data:` URLs y
+queda en `localStorage` (`offline/…`), igual que en el teléfono queda en
+archivos. La cola sin conexión también vive ahí (`offline/queue.json`). Para
+empezar de cero, borrá el `localStorage` del sitio.
 
 ## Limitaciones conocidas
 
@@ -73,7 +87,14 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
   muestra el aviso de Pro salvo con `?qa=pro`.
 - Las cuotas no decrementan al consumir: `quotas:remaining` es un fixture fijo,
   no una query reactiva. Usá `?qa=limit` para ver el estado agotado.
+- "Tu año en la Palabra" (#183): `/tu-ano` abre siempre; `yearInWord:summary`
+  es un fixture fijo (`?qa=empty` lo deja en cero). La entrada en Mi espacio
+  solo aparece del 1 de diciembre al 31 de enero: para verla, fijá el reloj
+  del navegador (Playwright `page.clock.setFixedTime("2026-12-05T12:00:00-06:00")`).
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
   historial" no aparece en el navegador. En iOS/Android sí.
+- "Proteger lo personal" guarda la preferencia en `localStorage` en web
+  (SecureStore en el teléfono): usá un perfil limpio del navegador entre
+  escenarios. Crear el PDF (`expo-print`) no funciona en web.
 - Los recordatorios devuelven `unsupported` en web (comportamiento real de
   `src/lib/dailyReminder.ts`).

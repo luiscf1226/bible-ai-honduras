@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -7,9 +7,14 @@ import { api } from "../../../convex/_generated/api";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppScreen } from "../../../src/components/AppScreen";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
+import { overlayPlanProgress } from "../../../src/features/offline/mutationQueue";
+import { PLAN_UNAVAILABLE_OFFLINE } from "../../../src/features/offline/offlineCopy";
+import { useOfflineSync } from "../../../src/features/offline/OfflineSyncProvider";
+import { usePersistedQuery } from "../../../src/features/offline/usePersistedQuery";
 import { isAnnualPlan, planOverline } from "../../../src/features/reading/annualPlans";
 import { formatReadingsLabel, readingTarget, type PlanReading } from "../../../src/features/reading/planReadingsLabel";
 import { openPassage } from "../../../src/lib/openPassage";
+import { refreshDailyRemindersIfActive } from "../../../src/lib/reminderSchedule";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -32,6 +37,7 @@ function openReading(reading: PlanReading) {
 
 export default function PlanScreen() {
   const { color } = useTheme();
+  const convex = useConvex();
   const params = useLocalSearchParams<{ planId?: string | string[] }>();
   const requestedPlanId = Array.isArray(params.planId) ? params.planId[0] : params.planId;
   const planArgs = requestedPlanId ? { planId: requestedPlanId } : {};
@@ -39,31 +45,36 @@ export default function PlanScreen() {
   // El canónico no muestra su nombre en "hoy" (#114); el plan para empezar sí,
   // para que se distinga cuál de los dos anuales está abierto.
   const showsPlanName = isJourney || (requestedPlanId !== undefined && requestedPlanId !== "canonico");
-  const catalog = useQuery(api.readingPlans.catalog, planArgs);
-  const progress = useQuery(api.readingPlans.myProgress, planArgs);
+  // Sin conexión (#160): el plan sale de lo último que se vio con señal, y
+  // marcar un día pasa por la cola (#182): se tacha al instante y se manda
+  // cuando vuelve la red.
+  const planKey = requestedPlanId ?? "canonico";
+  const catalog = usePersistedQuery(api.readingPlans.catalog, planArgs, `planCatalog:${planKey}`);
+  const { online, pending, run } = useOfflineSync();
+  const progress = overlayPlanProgress(
+    usePersistedQuery(api.readingPlans.myProgress, planArgs, `planProgress:${planKey}`),
+    pending,
+  );
   const startPlan = useMutation(api.readingPlans.start);
-  const markDayRead = useMutation(api.readingPlans.markDayRead);
   const [isStarting, setIsStarting] = useState(false);
-  const [markingDay, setMarkingDay] = useState<number | null>(null);
 
   const begin = async () => {
     if (!catalog || isStarting) return;
     setIsStarting(true);
     try {
       await startPlan({ planId: catalog.id });
+      // El aviso diario menciona la lectura del plan abierto más recientemente (#153).
+      void refreshDailyRemindersIfActive(convex);
     } finally {
       setIsStarting(false);
     }
   };
 
-  const markDay = async (day: number) => {
-    if (!catalog || markingDay !== null) return;
-    setMarkingDay(day);
-    try {
-      await markDayRead({ planId: catalog.id, day });
-    } finally {
-      setMarkingDay(null);
-    }
+  const markDay = (day: number) => {
+    if (!catalog) return;
+    run({ kind: "planDay", planId: catalog.id, day });
+    // El aviso diario menciona la lectura del plan (#153): se reprograma.
+    void refreshDailyRemindersIfActive(convex);
   };
 
   return (
@@ -75,7 +86,9 @@ export default function PlanScreen() {
           Este recorrido ya no está disponible.
         </Text>
       ) : progress === undefined ? (
-        <Text style={[styles.status, { color: color.inkSoft }]}>Preparando tu plan…</Text>
+        <Text style={[styles.status, { color: color.inkSoft }]} testID={online ? undefined : "plan-unavailable-offline"}>
+          {online ? "Preparando tu plan…" : PLAN_UNAVAILABLE_OFFLINE}
+        </Text>
       ) : progress === null ? (
         <View style={[styles.introCard, { backgroundColor: color.surface, borderColor: color.border }]} testID="plan-intro">
           <Text style={[styles.overline, { color: color.accent }]}>{planOverline(requestedPlanId)}</Text>
@@ -110,13 +123,12 @@ export default function PlanScreen() {
               </Text>
             ) : (
               <AppButton
-                disabled={markingDay !== null}
-                onPress={() => void markDay(progress.currentDay)}
+                onPress={() => markDay(progress.currentDay)}
                 style={styles.markButton}
                 testID="plan-mark-today"
                 variant="secondary"
               >
-                {markingDay === progress.currentDay ? "Marcando…" : "Marcar como leída"}
+                Marcar como leída
               </AppButton>
             )}
           </View>
@@ -171,13 +183,10 @@ export default function PlanScreen() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={markingDay !== null}
-                    onPress={() => void markDay(entry.day)}
+                    onPress={() => markDay(entry.day)}
                     style={({ pressed }) => [pressed && styles.pressed]}
                   >
-                    <Text style={[styles.pendingMark, { color: color.accent }]}>
-                      {markingDay === entry.day ? "Marcando…" : "Marcar leída"}
-                    </Text>
+                    <Text style={[styles.pendingMark, { color: color.accent }]}>Marcar leída</Text>
                   </Pressable>
                 </View>
               ))}

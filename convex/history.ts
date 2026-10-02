@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { deletePrayersForUser } from "./prayers";
 import { clearBookmarkNotesForUser } from "./reading";
 import { voiceCharacters } from "./voicesCatalog";
 
@@ -27,7 +28,7 @@ async function requireUser(ctx: AuthedCtx) {
   return user;
 }
 
-function titleFor(module: "qa" | "voices" | "feelings", characterId?: string) {
+function titleFor(module: "qa" | "voices" | "feelings", characterId?: string, title?: string) {
   if (module === "voices") {
     const character = voiceCharacters.find((item) => item.slug === characterId);
     return character?.name ?? "Voces";
@@ -35,14 +36,15 @@ function titleFor(module: "qa" | "voices" | "feelings", characterId?: string) {
   if (module === "feelings") {
     return "Sentimiento";
   }
-  return "Pregunta al texto";
+  // Preguntar tiene una conversación por tema (#191); la de antes no tiene título.
+  return title ?? "Pregunta al texto";
 }
 
 function initialFor(title: string) {
   return title[0]?.toUpperCase() ?? "?";
 }
 
-// Conversaciones del usuario autenticado, más recientes primero.
+// Conversaciones del usuario autenticado, con actividad más reciente primero.
 // Preview = último mensaje. No incluye filas de otros usuarios.
 export const list = query({
   args: {},
@@ -68,12 +70,13 @@ export const list = query({
           .withIndex("by_conversation", (q) => q.eq("conversationId", conversation._id))
           .collect();
         const last = messages[messages.length - 1];
-        const title = titleFor(conversation.module, conversation.characterId);
+        const title = titleFor(conversation.module, conversation.characterId, conversation.title);
         return {
           id: conversation._id,
           module: conversation.module,
           characterId: conversation.characterId,
           createdAt: conversation.createdAt,
+          updatedAt: conversation.updatedAt ?? conversation.createdAt,
           title,
           initial: initialFor(title),
           preview: last?.text ?? "",
@@ -81,7 +84,7 @@ export const list = query({
       }),
     );
 
-    return items.sort((a, b) => b.createdAt - a.createdAt);
+    return items.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
@@ -177,15 +180,18 @@ export async function deleteConversationsForUser(
   };
 }
 
-// Hard delete: borra messages y después conversations del usuario actual, y
-// las notas personales de los versículos guardados (#167) — los guardados en
-// sí se quedan. No escribe `deleted: true`. Lo que no es tuyo no se toca.
+// Hard delete: borra messages y después conversations del usuario actual, las
+// peticiones del diario de oración (#159) y las notas personales de los
+// versículos guardados (#167) — los guardados en sí se quedan, igual que los
+// versículos de Memorizar (#158). No escribe `deleted: true`. Lo que no es tuyo
+// no se toca.
 export const deleteAll = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
     const { deletedConversations, deletedMessages } = await deleteConversationsForUser(ctx, user._id);
+    const prayers = await deletePrayersForUser(ctx, user._id);
     const clearedNotes = await clearBookmarkNotesForUser(ctx, user._id);
-    return { deletedConversations, deletedMessages, clearedNotes };
+    return { deletedConversations, deletedMessages, deletedPrayers: prayers.deleted, clearedNotes };
   },
 });

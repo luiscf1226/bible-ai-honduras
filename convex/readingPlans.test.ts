@@ -1,9 +1,9 @@
 import { convexTest } from "convex-test";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import { canonicalReadingPlan, JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS } from "./readingPlanCatalog";
-import { currentPlanDay, nextStreakState } from "./readingPlans";
+import { currentPlanDay, MAX_REMINDER_DATES, nextStreakState, reminderDaysForPlan } from "./readingPlans";
 import schema from "./schema";
 
 const modules = {
@@ -473,5 +473,104 @@ describe("recorridos a la par del plan anual (#115)", () => {
 
     await expect(ana.mutation(api.readingPlans.markDayRead, { planId: "ansiedad", day: 8 })).rejects.toThrow("day");
     await expect(ana.mutation(api.readingPlans.markDayRead, { planId: "canonico", day: 8 })).resolves.toBeDefined();
+  });
+});
+
+describe("recordatorio diario con plan (#153)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const journey = JOURNEY_READING_PLANS.find((plan) => plan.id === "ansiedad")!;
+
+  it("reminderDaysForPlan da el día del plan de cada fecha y no clampea fuera del plan", () => {
+    const days = reminderDaysForPlan(journey, "2026-10-01", [2], ["2026-09-30", "2026-10-01", "2026-10-02", "2026-10-08"]);
+
+    expect(days.map(({ date, day, completed }) => ({ date, day, completed }))).toEqual([
+      { date: "2026-10-01", day: 1, completed: false },
+      { date: "2026-10-02", day: 2, completed: true },
+    ]);
+    expect(days[0].readings).toEqual(journey.days[0].readings);
+  });
+
+  it("reminderCandidates trae cada plan empezado con su lectura por fecha y su última actividad", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse("2026-10-01T15:00:00Z"));
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_recordatorio");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.readingPlans.start, { planId: "canonico" });
+    vi.setSystemTime(Date.parse("2026-10-01T16:00:00Z"));
+    await ana.mutation(api.readingPlans.start, { planId: "ansiedad" });
+
+    const candidates = await ana.query(api.readingPlans.reminderCandidates, {
+      dates: ["2026-10-02", "2026-10-08"],
+    });
+
+    expect(candidates.map((candidate) => candidate.planId)).toEqual(["canonico", "ansiedad"]);
+    const [annual, anxiety] = candidates;
+    expect(annual.planName).toBe(canonicalReadingPlan.name);
+    expect(annual.days.map((entry) => entry.day)).toEqual([2, 8]);
+    expect(annual.days[0].readings).toEqual(canonicalReadingPlan.days[1].readings);
+    // El recorrido de 7 días ya no corre el 8 de octubre.
+    expect(anxiety.days.map((entry) => entry.date)).toEqual(["2026-10-02"]);
+    expect(anxiety.lastActivityAt).toBeGreaterThan(annual.lastActivityAt);
+  });
+
+  it("marcar un día actualiza la última actividad del plan", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse("2026-10-01T15:00:00Z"));
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_actividad");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.readingPlans.start, { planId: "canonico" });
+    await ana.mutation(api.readingPlans.start, { planId: "anual-para-empezar" });
+    vi.setSystemTime(Date.parse("2026-10-01T20:00:00Z"));
+    await ana.mutation(api.readingPlans.markDayRead, { planId: "canonico", day: 1 });
+
+    const candidates = await ana.query(api.readingPlans.reminderCandidates, { dates: ["2026-10-01"] });
+    const byId = Object.fromEntries(candidates.map((candidate) => [candidate.planId, candidate]));
+    expect(byId.canonico.lastActivityAt).toBe(Date.parse("2026-10-01T20:00:00Z"));
+    expect(byId.canonico.lastActivityAt).toBeGreaterThan(byId["anual-para-empezar"].lastActivityAt);
+    expect(byId.canonico.completedCount).toBe(1);
+    expect(byId.canonico.days[0].completed).toBe(true);
+  });
+
+  it("una fila vieja sin lastActivityAt cae a su _creationTime", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_fila_vieja");
+    const userId = await ana.mutation(api.users.upsert, {});
+    const creationTime = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("userPlanProgress", {
+        userId,
+        planId: "canonico",
+        startedAt: "2026-01-01",
+        completedDays: [],
+        currentStreak: 0,
+        longestStreak: 0,
+      });
+      return (await ctx.db.get(id))!._creationTime;
+    });
+
+    const [annual] = await ana.query(api.readingPlans.reminderCandidates, { dates: ["2026-01-05"] });
+    expect(annual.lastActivityAt).toBe(creationTime);
+    expect(annual.days).toEqual([
+      { date: "2026-01-05", day: 5, completed: false, readings: canonicalReadingPlan.days[4].readings },
+    ]);
+  });
+
+  it("sin sesión devuelve una lista vacía", async () => {
+    const t = convexTest(schema, modules);
+    expect(await t.query(api.readingPlans.reminderCandidates, { dates: ["2026-10-01"] })).toEqual([]);
+  });
+
+  it("valida las fechas y el tope de la ventana", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_fechas");
+    await ana.mutation(api.users.upsert, {});
+
+    await expect(ana.query(api.readingPlans.reminderCandidates, { dates: ["2026-13-01"] })).rejects.toThrow("fecha");
+    const tooMany = Array.from({ length: MAX_REMINDER_DATES + 1 }, () => "2026-10-01");
+    await expect(ana.query(api.readingPlans.reminderCandidates, { dates: tooMany })).rejects.toThrow("hasta");
   });
 });

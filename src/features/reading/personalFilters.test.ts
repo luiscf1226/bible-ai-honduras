@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countByColor, filterBookmarks, filterHighlights, matchesQuery } from "./personalFilters";
+import { bookmarkFilterFromParam, countByColor, filterBookmarks, filterHighlights, matchesQuery } from "./personalFilters";
 
 const juan = { book: "Juan", chapter: 3, verse: 16, text: "Porque de tal manera amó Dios al mundo", note: null };
 const salmo = { book: "Salmos", chapter: 23, verse: 1, text: "Jehová es mi pastor; nada me faltará.", note: "Lo predicó el pastor el domingo" };
@@ -57,5 +57,17 @@ describe("filterHighlights", () => {
 
   it("countByColor cuenta todos los colores, aunque estén en cero", () => {
     expect(countByColor(items)).toEqual({ amber: 1, sage: 2, clay: 0, sand: 0 });
+  });
+});
+
+describe("bookmarkFilterFromParam (#193)", () => {
+  it("?filtro=con-nota abre Guardados con solo los que tienen nota", () => {
+    expect(bookmarkFilterFromParam("con-nota")).toBe("con-nota");
+    expect(bookmarkFilterFromParam(["con-nota"])).toBe("con-nota");
+  });
+
+  it("sin parámetro o con uno desconocido, muestra todos", () => {
+    expect(bookmarkFilterFromParam(undefined)).toBe("todos");
+    expect(bookmarkFilterFromParam("inventado")).toBe("todos");
   });
 });

@@ -27,6 +27,9 @@ export default defineSchema({
     // hora de Honduras) de la semana en que la persona la cerró.
     savedMemoryEnabled: v.optional(v.boolean()),
     savedMemoryDismissedWeek: v.optional(v.string()),
+    // Pista de primera vez del lector (#196): "Tocá un versículo para…". Vive
+    // en la cuenta para que no reaparezca al cambiar de teléfono.
+    readerHintSeen: v.optional(v.boolean()),
     // Quién invitó a esta persona (PRD §9b): el `referralCode` de quien
     // compartió el link. Sirve solo para medir cuántos registros y pagos vienen
     // de compartir; no da premios ni se le muestra a nadie. Vive en la fila del
@@ -61,6 +64,19 @@ export default defineSchema({
       filterFields: ["version", "book"],
     }),
 
+  // Biblia sin conexión (#160): un archivo JSON por libro en el storage de
+  // Convex, armado una vez desde `verses` con `offlineBible:buildPackages`.
+  // El teléfono baja estos archivos en vez de leer `verses` (cada fila arrastra
+  // ~8 KB de embedding). No es dato de nadie: no entra en el borrado de cuenta.
+  bibleOfflinePackages: defineTable({
+    version: v.string(),
+    book: v.string(),
+    storageId: v.id("_storage"),
+    bytes: v.number(),
+    verses: v.number(),
+    builtAt: v.number(),
+  }).index("by_version_book", ["version", "book"]),
+
   // Comentarios evangélicos de referencia (#6) — granularidad de capítulo,
   // no de versículo (así se publican). Segunda fuente de recuperación que
   // enriquece la respuesta de rag.answer; nunca reemplaza la cita bíblica.
@@ -83,12 +99,54 @@ export default defineSchema({
   dailyDevotionals: defineTable({
     date: v.string(),
     catalogId: v.string(),
+    // Opcionales solo para que las filas del ciclo de cuatro semanas anterior
+    // sigan validando; `ensureWindow` las reemplaza y las queries no las sirven.
+    openingPrayer: v.optional(v.string()),
+    intro: v.optional(v.string()),
     verseRef: v.string(),
     reflection: v.string(),
+    closingPrayer: v.optional(v.string()),
     imageUrl: v.string(),
     imageAlt: v.string(),
     imageAttributionUrl: v.string(),
   }).index("by_date", ["date"]),
+
+  // Temporadas (#199): un paquete por época (paleta, imagen, destacados) que
+  // se carga con `seasons:upsert` sin publicar un build. La validación vive en
+  // convex/seasons.ts; `seasons.current` resuelve cuál está activa.
+  seasons: defineTable({
+    slug: v.string(),
+    // Nombre visible ("Mes de gratitud"). Copy en español de Honduras.
+    name: v.string(),
+    // YYYY-MM-DD inclusivas, calendario de Honduras (igual que el devocional).
+    startDate: v.string(),
+    endDate: v.string(),
+    // Apagada = cargada pero invisible: deja lista la próxima temporada sin
+    // que la app la muestre.
+    enabled: v.boolean(),
+    // Desempate cuando dos temporadas se pisan (Semana Santa dentro de un mes
+    // temático). Mayor gana; sin valor cuenta como 0.
+    priority: v.optional(v.number()),
+    // Llave de una paleta de design/tokens.json (pendiente de #190). Nunca un
+    // hex: el servidor elige cuál, el tono lo decide el tema del cliente.
+    paletteKey: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    imageAlt: v.optional(v.string()),
+    imageAttributionUrl: v.optional(v.string()),
+    // Ciclo de devocionales de la temporada. Todavía no existe ninguno.
+    devotionalCycleId: v.optional(v.string()),
+    // Recorrido destacado en Leer (id de readingPlanCatalog).
+    readingPlanId: v.optional(v.string()),
+    // Personaje del mes en Voces (slug de voicesCatalog: solo humanos).
+    characterSlug: v.optional(v.string()),
+    // Historia destacada (catálogo ilustrado o de texto).
+    storyId: v.optional(v.string()),
+    // Preguntas de ejemplo en Preguntar.
+    sampleQuestions: v.optional(v.array(v.string())),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_end_date", ["endDate"]),
 
   // Marcador "seguí leyendo" del lector (#113). Una fila por usuario: el
   // lector no guarda un historial de lectura, guarda dónde quedó.
@@ -147,6 +205,36 @@ export default defineSchema({
     verse: v.number(),
     color: v.union(v.literal("amber"), v.literal("sage"), v.literal("clay"), v.literal("sand")),
     updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
+
+  // Diario de oración (#159): peticiones privadas, abiertas o respondidas.
+  // Nunca se comparten ni se mandan a la IA (ningún prompt lee esta tabla).
+  // Entran en "Borrar mi historial" y en el borrado de cuenta. `verse` es el
+  // versículo del devocional de Sentir desde el que se guardó, si vino de ahí.
+  prayerRequests: defineTable({
+    userId: v.id("users"),
+    text: v.string(),
+    createdAt: v.number(),
+    answeredAt: v.optional(v.number()),
+    answerNote: v.optional(v.string()),
+    verse: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.number() })),
+  }).index("by_user", ["userId"]),
+
+  // Versículos para memorizar (#158). Repaso espaciado: `level` es el escalón
+  // (hoy, 3, 7, 21 días; convex/memorizeSchedule.ts) y `nextReview` el día de
+  // Honduras (YYYY-MM-DD) del próximo repaso. Sin IA: el texto sale del corpus.
+  // Entra en el borrado de cuenta.
+  memoryVerses: defineTable({
+    userId: v.id("users"),
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    level: v.number(),
+    nextReview: v.string(),
+    createdAt: v.number(),
+    lastReviewedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
@@ -227,6 +315,10 @@ export default defineSchema({
     // racha se calcula contra el calendario real, no contra el día del plan,
     // para que ponerse al día en una sola sesión no infle la racha.
     lastCompletedDate: v.optional(v.string()),
+    // Última vez (ms) que el usuario empezó el plan o marcó un día — define
+    // cuál es "el plan abierto más recientemente" para el recordatorio diario
+    // (#153). Opcional: las filas viejas caen a `_creationTime`.
+    lastActivityAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_plan", ["userId", "planId"]),
@@ -289,7 +381,14 @@ export default defineSchema({
     module: v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings")),
     characterId: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_user_module", ["userId", "module"]),
+    // Preguntar (#191): una conversación por tema. Opcionales porque la
+    // conversación única de antes no los tiene — se resuelven al leer.
+    title: v.optional(v.string()),
+    passage: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.optional(v.number()) })),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user_module", ["userId", "module"])
+    .index("by_user_module_updated", ["userId", "module", "updatedAt"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),

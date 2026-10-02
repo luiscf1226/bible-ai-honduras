@@ -194,6 +194,7 @@ export const start = mutation({
       completedDays: [],
       currentStreak: 0,
       longestStreak: existing?.longestStreak ?? 0,
+      lastActivityAt: Date.now(),
     });
   },
 });
@@ -321,6 +322,96 @@ export const myPlans = query({
   },
 });
 
+/** Tope de fechas por consulta de `reminderCandidates`: la ventana es de 28 días. */
+export const MAX_REMINDER_DATES = 60;
+
+export type ReminderPlanDay = {
+  date: string;
+  day: number;
+  completed: boolean;
+  readings: ReadingPlanDay["readings"];
+};
+
+/**
+ * Un plan empezado, visto desde el recordatorio diario (#153): qué lectura le
+ * toca en cada fecha pedida. Elegir *cuál* plan menciona el aviso es lógica del
+ * cliente (`src/lib/planReminder.ts`), así se testea pura.
+ */
+export type ReminderPlanCandidate = {
+  planId: string;
+  planName: string;
+  totalDays: number;
+  completedCount: number;
+  lastActivityAt: number;
+  /** Solo las fechas pedidas que caen dentro del plan (día 1 a totalDays). */
+  days: ReminderPlanDay[];
+};
+
+/**
+ * Para cada fecha pedida, el día del plan que le corresponde según el
+ * calendario real y sus lecturas. A diferencia de `currentPlanDay`, acá no se
+ * clampea: una fecha antes del inicio o después del último día no tiene
+ * lectura, así un recorrido de 7 días deja de aparecer en el aviso cuando
+ * termina.
+ */
+export function reminderDaysForPlan(
+  plan: ReadingPlanDefinition,
+  startedAt: string,
+  completedDays: readonly number[],
+  dates: readonly string[],
+): ReminderPlanDay[] {
+  const completed = new Set(completedDays);
+  return dates.flatMap((date) => {
+    const day = daysBetween(startedAt, date) + 1;
+    if (day < 1 || day > plan.totalDays) {
+      return [];
+    }
+    return [{ date, day, completed: completed.has(day), readings: readingsForDay(plan, day) }];
+  });
+}
+
+/**
+ * Planes empezados del usuario con la lectura que les toca en cada una de
+ * `dates` (fechas YYYY-MM-DD del calendario de Honduras, las de
+ * `upcomingReminderDates`). Vacío sin sesión. Lo consume el armado del
+ * recordatorio diario (#153).
+ */
+export const reminderCandidates = query({
+  args: { dates: v.array(v.string()) },
+  handler: async (ctx, args): Promise<ReminderPlanCandidate[]> => {
+    if (args.dates.length > MAX_REMINDER_DATES) {
+      throw new ConvexError(`Se pueden pedir hasta ${MAX_REMINDER_DATES} fechas`);
+    }
+    for (const date of args.dates) {
+      parseDateKey(date);
+    }
+    const user = await requireUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const rows = await ctx.db
+      .query("userPlanProgress")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    return SUPPORTED_READING_PLANS.flatMap((plan) => {
+      const row = rows.find((candidate) => candidate.planId === plan.id);
+      if (!row) {
+        return [];
+      }
+      return [
+        {
+          planId: plan.id,
+          planName: plan.name,
+          totalDays: plan.totalDays,
+          completedCount: row.completedDays.length,
+          lastActivityAt: row.lastActivityAt ?? row._creationTime,
+          days: reminderDaysForPlan(plan, row.startedAt, row.completedDays, args.dates),
+        },
+      ];
+    });
+  },
+});
+
 /**
  * Marca un día de un plan como leído — puede ser el día de hoy o un día
  * pendiente de atrás (ponerse al día). La racha se actualiza contra la fecha
@@ -361,6 +452,7 @@ export const markDayRead = mutation({
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
       lastCompletedDate: streak.lastCompletedDate,
+      lastActivityAt: Date.now(),
     });
 
     return { completedDays, ...streak };
