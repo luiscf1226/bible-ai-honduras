@@ -42,6 +42,7 @@ export const TELEMETRY_EVENTS = [
   // personaje: solo que se vio la franja / se abrió la tarjeta.
   "season_shown",
   "featured_character_opened",
+  "bible_downloaded",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 

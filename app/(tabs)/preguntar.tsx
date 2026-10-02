@@ -32,6 +32,7 @@ import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../src/lib/ke
 import { track } from "../../src/lib/telemetry";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 
 const CONVERSATIONS_LIMIT = 30;
 
@@ -48,7 +49,7 @@ type QaConversationId = Id<"conversations">;
  *
  * Las respuestas salen solo de `api.qa.ask` → RAG (regla dura #4).
  */
-export default function PreguntarScreen() {
+function PreguntarScreenContent() {
   const { color } = useTheme();
   const insets = useScreenInsets();
   const threadRef = useRef<ScrollView>(null);
@@ -311,3 +312,12 @@ const styles = StyleSheet.create({
   thread: { gap: tokens.space.lg, padding: tokens.screenPadding.horizontal },
   pressed: { opacity: tokens.opacity.pressed },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function PreguntarScreen() {
+  return (
+    <RequiresConnection module="qa">
+      <PreguntarScreenContent />
+    </RequiresConnection>
+  );
+}

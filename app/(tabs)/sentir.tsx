@@ -33,6 +33,7 @@ import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../src/lib/ke
 import { track } from "../../src/lib/telemetry";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 
 // La única llamada de generación de Sentir (regla dura #4): no hay chat libre.
 const generateFeelingDevotional = makeFunctionReference<
@@ -58,7 +59,7 @@ function firstParam(value: string | string[] | undefined): string | undefined {
  * en el cajón de la izquierda. La lógica pura está en
  * `src/features/feelings/thread.ts`.
  */
-export default function SentirScreen() {
+function SentirScreenContent() {
   const { color } = useTheme();
   const insets = useScreenInsets();
   const threadRef = useRef<ScrollView>(null);
@@ -280,3 +281,12 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.space.md,
   },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function SentirScreen() {
+  return (
+    <RequiresConnection module="feelings">
+      <SentirScreenContent />
+    </RequiresConnection>
+  );
+}

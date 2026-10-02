@@ -18,6 +18,8 @@ import type * as feelings from "../feelings.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as images from "../images.js";
+import type * as offlineBible from "../offlineBible.js";
+import type * as offlineBiblePackage from "../offlineBiblePackage.js";
 import type * as qa from "../qa.js";
 import type * as quotas from "../quotas.js";
 import type * as rag_answer from "../rag/answer.js";
@@ -62,6 +64,8 @@ declare const fullApi: ApiFromModules<{
   history: typeof history;
   http: typeof http;
   images: typeof images;
+  offlineBible: typeof offlineBible;
+  offlineBiblePackage: typeof offlineBiblePackage;
   qa: typeof qa;
   quotas: typeof quotas;
   "rag/answer": typeof rag_answer;

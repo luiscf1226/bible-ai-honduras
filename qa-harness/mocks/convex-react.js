@@ -11,7 +11,9 @@ import {
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
-import { atLimit, isDark, isEmpty, isError, isLoading, isPro, seasonScenario } from "./scenario";
+import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
+import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
+import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
@@ -95,6 +97,7 @@ const db = {
   // Título y pasaje de cada conversación de Preguntar, como los guarda `qa.ask`.
   qaMeta: {},
   voiceThreads: {},
+  planCompleted: [1, 2],
   // Lectura (#112–#115 y separador): fixtures para ver el módulo en el harness.
   separator: isEmpty() ? null : { book: "Salmos", chapter: 46, verse: 1, updatedAt: Date.now() },
   readingProgress: isEmpty() ? null : { book: "Juan", chapter: 3, updatedAt: Date.now() },
@@ -198,6 +201,49 @@ const VERSES = [
 function chapterVerses(book, chapter) {
   const count = book === "Salmos" && chapter === 119 ? 176 : VERSES.length;
   return Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+}
+
+// Biblia sin conexión (#160): un paquete por libro con los mismos 4
+// versículos placeholder en cada capítulo, servido como data: URL. El tamaño
+// que se muestra es el estimado real (~3,9 KB por capítulo ≈ 4,6 MB en total),
+// no el del placeholder.
+const OFFLINE_MANIFEST = {
+  version: "RV1909",
+  books: BIBLE_BOOKS.map((book) => {
+    const rows = [];
+    for (let chapter = 1; chapter <= book.chapters; chapter += 1) {
+      for (const v of VERSES) rows.push({ chapter, verse: v.verse, text: v.text });
+    }
+    const json = serializeBookPackage(buildBookPackage("RV1909", book.name, rows));
+    return {
+      book: book.name,
+      bytes: book.chapters * 3900,
+      verses: rows.length,
+      url: `data:application/json;charset=utf-8,${encodeURIComponent(json)}`,
+      builtAt: 1,
+    };
+  }),
+};
+OFFLINE_MANIFEST.totalBytes = OFFLINE_MANIFEST.books.reduce((total, book) => total + book.bytes, 0);
+OFFLINE_MANIFEST.totalVerses = OFFLINE_MANIFEST.books.reduce((total, book) => total + book.verses, 0);
+
+// Plan anual empezado hace 5 días, con los días 3 y 4 sin marcar (`?plan=1`).
+function planProgress() {
+  const plan = ALL_PLANS.find((p) => p.id === "canonico");
+  const completed = new Set(db.planCompleted);
+  const currentDay = 5;
+  const days = plan.days.slice(0, currentDay - 1);
+  return {
+    plan: { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays },
+    startedAt: "2026-09-28",
+    currentDay,
+    todayReadings: plan.days[currentDay - 1].readings,
+    todayCompleted: completed.has(currentDay),
+    completedCount: completed.size,
+    currentStreak: 2,
+    longestStreak: 4,
+    pendingDays: days.filter((entry) => !completed.has(entry.day)),
+  };
 }
 
 function quota(module) {
@@ -327,6 +373,19 @@ const handlers = {
     notify();
     return { removed: index >= 0 };
   },
+  // Cola sin conexión (#182): guardar repetible, con o sin nota.
+  "reading:saveBookmark": (args) => {
+    const index = findBookmark(args);
+    const note = args.note === undefined ? undefined : args.note.trim() || undefined;
+    if (index >= 0) {
+      if (args.note !== undefined) db.bookmarks[index] = { ...db.bookmarks[index], note };
+    } else {
+      db.bookmarks.push({ book: args.book, chapter: args.chapter, verse: args.verse, createdAt: Date.now(), note });
+    }
+    notify();
+    return { saved: true, note: note ?? null };
+  },
+  "offlineBible:manifest": () => OFFLINE_MANIFEST,
   "reading:setBookmarkNote": (args) => {
     const note = args.note.trim();
     const index = findBookmark(args);
@@ -340,7 +399,12 @@ const handlers = {
     return plan ? { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays } : null;
   },
   "readingPlans:journeys": () => JOURNEY_READING_PLANS.map((p) => ({ id: p.id, name: p.name, description: p.description, totalDays: p.totalDays })),
-  "readingPlans:myProgress": () => null,
+  "readingPlans:myProgress": (args) => (hasPlan() && (args.planId ?? "canonico") === "canonico" ? planProgress() : null),
+  "readingPlans:markDayRead": (args) => {
+    if (!db.planCompleted.includes(args.day)) db.planCompleted.push(args.day);
+    notify();
+    return null;
+  },
   "readingPlans:myPlans": () => [],
   "voices:list": () => voiceCharacters,
   "voices:thread": (args) => db.voiceThreads[args.slug] ?? [],
@@ -465,9 +529,12 @@ export class ConvexReactClient {
     this.url = url;
   }
   query(ref, args) {
+    if (isOffline()) return new Promise(() => undefined);
     return isError() ? Promise.reject(new Error("qa-harness: error simulado")) : Promise.resolve(run(ref, args));
   }
   mutation(ref, args) {
+    // Sin red, Convex guarda la mutación y no vuelve hasta reconectar.
+    if (isOffline()) return new Promise(() => undefined);
     return Promise.resolve(run(ref, args));
   }
   action(ref, args) {
@@ -505,7 +572,7 @@ function useTick() {
 export function useQuery(ref, args) {
   useTick();
   if (args === "skip") return undefined;
-  if (isLoading()) return undefined;
+  if (isLoading() || isOffline()) return undefined;
   return run(ref, args);
 }
 
@@ -518,7 +585,7 @@ export function usePaginatedQuery(ref, args) {
 }
 
 export function useMutation(ref) {
-  return (args) => Promise.resolve(run(ref, args));
+  return (args) => (isOffline() ? new Promise(() => undefined) : Promise.resolve(run(ref, args)));
 }
 
 export function useAction(ref) {

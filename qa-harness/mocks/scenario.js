@@ -35,3 +35,16 @@ export function seasonScenario() {
   if (typeof window === "undefined") return null;
   return new URLSearchParams(window.location.search).get("temporada");
 }
+
+// Sin conexión (#160, #182): `?net=off`. Las queries quedan cargando y las
+// mutaciones no vuelven, como con el cliente real de Convex sin red.
+export function isOffline() {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("net") === "off";
+}
+
+// Plan anual empezado (para ver marcar el día): `?plan=1`.
+export function hasPlan() {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("plan") === "1";
+}
