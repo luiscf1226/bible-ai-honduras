@@ -27,8 +27,9 @@ import { keyboardBehaviorFor, keyboardVerticalOffsetFor } from "../../../src/lib
 import { track } from "../../../src/lib/telemetry";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
+import { RequiresConnection } from "../../../src/features/offline/RequiresConnection";
 
-export default function VocesChatScreen() {
+function VocesChatScreenContent() {
   const { color } = useTheme();
   const insets = useScreenInsets();
   const threadRef = useRef<ScrollView>(null);
@@ -323,3 +324,12 @@ const styles = StyleSheet.create({
   },
   sendIcon: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function VocesChatScreen() {
+  return (
+    <RequiresConnection module="voices">
+      <VocesChatScreenContent />
+    </RequiresConnection>
+  );
+}

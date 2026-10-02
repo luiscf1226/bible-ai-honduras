@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildDevotionalShareText } from "./shareDevotional";
+import { buildDevotionalShareText, buildVerseImageShareText } from "./shareDevotional";
 
 describe("buildDevotionalShareText", () => {
   it("incluye la referencia y reflexión editorial del devocional", () => {
@@ -27,5 +27,12 @@ describe("buildDevotionalShareText", () => {
 
     expect(message).toContain("Dios puede sostenerte mientras caminás paso a paso.\n\nSeñor, guiame hoy. Amén.");
     expect(message.endsWith("Que esta Palabra te acompañe hoy.")).toBe(true);
+  });
+});
+
+describe("buildVerseImageShareText (#161)", () => {
+  it("nombra el versículo y la versión citada, sin la reflexión", () => {
+    const message = buildVerseImageShareText({ verseRef: "Salmos 46:1", version: "RV1909" });
+    expect(message).toBe("Versículo de hoy · Salmos 46:1 (RV1909)");
   });
 });

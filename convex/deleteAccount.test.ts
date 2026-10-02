@@ -67,6 +67,20 @@ async function seedEverything(
       role: "user",
       text: `segunda pregunta de ${label}`,
     });
+    // Preguntar tiene una conversación por tema (#191): otra más, con título.
+    const qaTopicId = await ctx.db.insert("conversations", {
+      userId,
+      module: "qa",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      title: "Romanos 8",
+      passage: { book: "Romanos", chapter: 8 },
+    });
+    await ctx.db.insert("messages", {
+      conversationId: qaTopicId,
+      role: "user",
+      text: `pregunta sobre Romanos de ${label}`,
+    });
 
     await ctx.db.insert("usage", { userId, module: "qa", day: "2026-09-10", count: 3 });
     await ctx.db.insert("usage", { userId, module: "stories", day: "lifetime", count: 1 });
@@ -206,8 +220,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 
     const before = await tableDump(t);
     expect(before.users).toHaveLength(1);
-    expect(before.conversations).toHaveLength(2);
-    expect(before.messages).toHaveLength(3);
+    expect(before.conversations).toHaveLength(3);
+    expect(before.messages).toHaveLength(4);
     expect(before.usage).toHaveLength(2);
     expect(before.entitlements).toHaveLength(1);
     expect(before.stories).toHaveLength(1);
@@ -225,8 +239,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 
     expect(result.status).toBe("ok");
     expect(result.deleted).toEqual({
-      messages: 3,
-      conversations: 2,
+      messages: 4,
+      conversations: 3,
       usage: 2,
       entitlements: 1,
       stories: 1,
@@ -276,8 +290,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     const after = await tableDump(t);
     expect(after.users.map((row) => row.clerkId)).toEqual(["user_beto_intacto"]);
     expect(after.conversations.every((row) => row.userId === betoId)).toBe(true);
-    expect(after.conversations).toHaveLength(2);
-    expect(after.messages).toHaveLength(3);
+    expect(after.conversations).toHaveLength(3);
+    expect(after.messages).toHaveLength(4);
     expect(after.messages.every((row) => row.text.includes("Beto"))).toBe(true);
     expect(after.usage).toHaveLength(2);
     expect(after.usage.every((row) => row.userId === betoId)).toBe(true);
@@ -462,7 +476,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
 });
 
 describe("purgeAccountData", () => {
-  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans)", async () => {
+  it("no toca el contenido editorial global (verses, commentaries, dailyDevotionals, readingPlans, bibleOfflinePackages)", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_editorial_107");
     const userId = await authed.mutation(api.users.upsert, {});
@@ -500,6 +514,16 @@ describe("purgeAccountData", () => {
         totalDays: 1,
         days: [{ day: 1, readings: [{ book: "Génesis", chapter: 1 }] }],
       });
+      // La Biblia sin conexión (#160) no es de nadie: un paquete por libro.
+      const storageId = await ctx.storage.store(new Blob(["{}"], { type: "application/json" }));
+      await ctx.db.insert("bibleOfflinePackages", {
+        version: "RV1909",
+        book: "Éxodo",
+        storageId,
+        bytes: 2,
+        verses: 1,
+        builtAt: 1,
+      });
     });
 
     await t.mutation(internal.users.purgeAccountData, { clerkId: "user_editorial_107" });
@@ -509,11 +533,13 @@ describe("purgeAccountData", () => {
       commentaries: await ctx.db.query("commentaries").collect(),
       dailyDevotionals: await ctx.db.query("dailyDevotionals").collect(),
       readingPlans: await ctx.db.query("readingPlans").collect(),
+      bibleOfflinePackages: await ctx.db.query("bibleOfflinePackages").collect(),
     }));
     expect(editorial.verses).toHaveLength(1);
     expect(editorial.commentaries).toHaveLength(1);
     expect(editorial.dailyDevotionals).toHaveLength(1);
     expect(editorial.readingPlans).toHaveLength(1);
+    expect(editorial.bibleOfflinePackages).toHaveLength(1);
   });
 
   it("con un clerkId inexistente devuelve done sin borrar nada", async () => {

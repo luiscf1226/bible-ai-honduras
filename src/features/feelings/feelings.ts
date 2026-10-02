@@ -22,9 +22,6 @@ export const FEELINGS = [
 
 export type Feeling = (typeof FEELINGS)[number];
 
-/** Chip que lleva al campo libre: "mi sentimiento no está en la lista". */
-export const OWN_WORDS_CHIP = "Otro · lo escribo yo";
-
 /**
  * Sentimiento que llega por la ruta (`/sentir?feeling=Ansiedad`, desde los
  * atajos del inicio). Solo se acepta uno de la lista: un valor inventado en la

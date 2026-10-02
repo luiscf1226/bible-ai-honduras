@@ -44,8 +44,13 @@ export function SideDrawer({ children, onClose, testID, title, visible }: SideDr
       Animated.timing(offset, { duration: SLIDE_MS, toValue: 0, useNativeDriver: true }).start();
       return;
     }
-    Animated.timing(offset, { duration: SLIDE_MS, toValue: -drawerWidth, useNativeDriver: true }).start(() =>
-      setMounted(false),
+    // Solo se desmonta si la salida terminó. Si la interrumpe una apertura (p.
+    // ej. `?historial=1`, que abre el cajón apenas monta la pantalla), el
+    // callback llega con `finished: false` y desmontar ahí cerraba el cajón.
+    Animated.timing(offset, { duration: SLIDE_MS, toValue: -drawerWidth, useNativeDriver: true }).start(
+      ({ finished }) => {
+        if (finished) setMounted(false);
+      },
     );
   }, [drawerWidth, offset, visible]);
 
