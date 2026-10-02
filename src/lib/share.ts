@@ -8,8 +8,18 @@ export function buildReferralLink(referralCode: string): string {
   return `${SHARE_BASE_URL}?ref=${referralCode}`;
 }
 
-export function buildShareMessage(text: string, referralCode: string): string {
-  return `${text}\n\n${buildReferralLink(referralCode)}`;
+/**
+ * Invitación a un grupo de lectura (#185): el mismo link del sitio, con el
+ * token del grupo al lado del código de invitación. El sitio ofrece abrirlo en
+ * la app (`bibleai://grupo?token=…`) o instalarla primero.
+ */
+export function buildGroupInviteLink(referralCode: string, groupInviteToken: string): string {
+  return `${buildReferralLink(referralCode)}&grupo=${encodeURIComponent(groupInviteToken)}`;
+}
+
+export function buildShareMessage(text: string, referralCode: string, groupInviteToken?: string): string {
+  const link = groupInviteToken ? buildGroupInviteLink(referralCode, groupInviteToken) : buildReferralLink(referralCode);
+  return `${text}\n\n${link}`;
 }
 
 export type ShareResult =
@@ -62,10 +72,15 @@ function trackShare(): void {
 // iOS resuelve con { action: 'dismissedAction' } cuando el usuario cancela.
 // Android nunca reporta cancelación: siempre resuelve con { action: 'sharedAction' },
 // así que en Android un cierre de share sheet se cuenta como "shared", no como error.
-export async function shareContent(params: { text: string; referralCode: string }): Promise<ShareResult> {
+export async function shareContent(params: {
+  text: string;
+  referralCode: string;
+  /** Solo la invitación a un grupo (#185): agrega el token al link. */
+  groupInviteToken?: string;
+}): Promise<ShareResult> {
   try {
     const Share = await loadNative();
-    const message = buildShareMessage(params.text, params.referralCode);
+    const message = buildShareMessage(params.text, params.referralCode, params.groupInviteToken);
     const result = await Share.share({ message });
 
     if (result.action === Share.dismissedAction) {

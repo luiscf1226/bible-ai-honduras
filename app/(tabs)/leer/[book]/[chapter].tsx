@@ -238,6 +238,18 @@ export default function ReaderScreen() {
         </View>
       </View>
 
+      {/* #188: variante Pro de Preguntar, mismo pipeline y misma cuota. La
+          pantalla muestra el aviso de Pro a quien no lo tiene. */}
+      <Pressable
+        accessibilityHint="Arma un resumen y preguntas con cita para tu célula o escuela dominical."
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: "/leer/guia", params: { book: ref.book, chapter: String(ref.chapter) } })}
+        style={({ pressed }) => [styles.controlButton, styles.groupGuideEntry, { borderColor: color.border }, pressed && styles.pressed]}
+        testID="reading-group-guide"
+      >
+        <Text style={[styles.controlText, { color: color.inkMuted }]}>Preparar para mi grupo · Pro</Text>
+      </Pressable>
+
       <ScrollView contentContainerStyle={styles.verseList} keyboardShouldPersistTaps="handled">
         {verses === undefined ? <Text style={[styles.status, { color: color.inkSoft }]}>Abriendo el capítulo…</Text> : null}
         {verses?.length === 0 ? <Text style={[styles.status, { color: color.inkSoft }]}>Todavía no tenemos este capítulo en el corpus. Volvé a intentar cuando se haya indexado.</Text> : null}
@@ -423,6 +435,7 @@ const styles = StyleSheet.create({
   controlButtons: { flexDirection: "row", gap: tokens.space.xs },
   controlButton: { borderRadius: tokens.radius.pill, borderWidth: 1, paddingHorizontal: tokens.space.sm, paddingVertical: tokens.space.xxs },
   controlText: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
+  groupGuideEntry: { alignSelf: "flex-start" },
   verseList: { gap: tokens.space.sm, paddingBottom: tokens.space.lg },
   verseRow: { flexDirection: "row", gap: tokens.space.md, paddingVertical: tokens.space.sm },
   pressed: { opacity: tokens.opacity.pressed },

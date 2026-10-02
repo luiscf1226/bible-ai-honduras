@@ -6,6 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, query } from "./_generated/server";
 import type { Citation } from "./rag/answer";
+import type { GroupGuide } from "./rag/groupGuide";
 
 const citationArg = v.object({
   verseId: v.id("verses"),
@@ -143,5 +144,52 @@ export const ask = action({
     });
 
     return { status: "ok", answer: result.answer, citation: result.citation };
+  },
+});
+
+export type PrepareGroupGuideResult =
+  | { status: "pro_required" }
+  | { status: "limit_reached" }
+  | { status: "no_content" }
+  | { status: "not_grounded" }
+  | { status: "ok"; guide: GroupGuide };
+
+/**
+ * "Preparar para mi grupo" (#188): una variante de Preguntar, no una feature
+ * de generación libre. Mismo consentimiento, misma cuota
+ * (`quotas.checkAndConsume({ module: "qa" })`, regla dura #3) y mismo pipeline
+ * RAG con verificación de citas (`rag/groupGuide.ts`, regla dura #4).
+ *
+ * Es Pro: una cuenta gratis recibe `pro_required` antes de tocar la cuota o a
+ * cualquier proveedor. Para Pro la cuota de qa no tiene tope, así que pasar por
+ * ella hoy no limita nada, pero deja la guía bajo el mismo contador si algún
+ * día cambia la regla.
+ */
+export const prepareGroupGuide = action({
+  args: { book: v.string(), chapter: v.number() },
+  handler: async (ctx, args): Promise<PrepareGroupGuideResult> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("No autenticado");
+    }
+    await ctx.runQuery(api.users.requireAiConsent, {});
+
+    const entitlement = await ctx.runQuery(api.entitlements.mine, {});
+    if (!entitlement?.isPro) {
+      return { status: "pro_required" };
+    }
+
+    const quota = await ctx.runMutation(api.quotas.checkAndConsume, { module: "qa" });
+    if (!quota.allowed) {
+      return { status: "limit_reached" };
+    }
+
+    const user = await ctx.runQuery(api.users.current, {});
+    const version = resolveBibleVersion(user?.bibleVersion);
+    return await ctx.runAction(internal.rag.groupGuide.prepare, {
+      book: args.book,
+      chapter: args.chapter,
+      version,
+    });
   },
 });

@@ -11,6 +11,7 @@ import {
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
+import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from "../../convex/readingGroupCore";
 import { atLimit, isDark, isEmpty, isError, isLoading, isPro } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
@@ -23,6 +24,7 @@ const db = {
   darkMode: isDark(),
   bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
+  myGroups: isEmpty() ? [] : ["g1"],
   qaThread: isEmpty()
     ? []
     : [
@@ -118,6 +120,64 @@ const VERSES = [
   { verse: 3, text: "Aunque bramen y se turben sus aguas, y tiemblen los montes a causa de su braveza." },
   { verse: 4, text: "Del río sus corrientes alegran la ciudad de Dios, el santuario de las moradas del Altísimo." },
 ];
+
+// Plan en grupo (#185). `g1` es una célula con 5 personas en Ansiedad; el
+// token QAgrupe2345678ab invita a una familia en Duelo (para la pantalla de
+// invitación). Cualquier otro token → invitación vencida.
+const QA_INVITE_TOKEN = "QAgrupe2345678ab";
+const groupMembers = (me, others) =>
+  sortMembers([
+    { name: "Ana", isMe: true, completedCount: me, todayCompleted: me > 0, totalDays: 7 },
+    ...others,
+  ]);
+const GROUP_FIXTURES = {
+  g1: {
+    kind: "celula",
+    planId: "ansiedad",
+    isOwner: true,
+    inviteToken: "QAcentra2345678a",
+    members: groupMembers(3, [
+      { name: "Carlos", isMe: false, completedCount: 4, todayCompleted: true, totalDays: 7 },
+      { name: "Doña Marta", isMe: false, completedCount: 2, todayCompleted: false, totalDays: 7 },
+      { name: "José", isMe: false, completedCount: 7, todayCompleted: true, totalDays: 7 },
+      { name: "Rebeca", isMe: false, completedCount: null, todayCompleted: false, totalDays: 7 },
+    ]),
+  },
+  g2: {
+    kind: "familia",
+    planId: "duelo",
+    isOwner: false,
+    inviteToken: QA_INVITE_TOKEN,
+    members: groupMembers(0, [
+      { name: "Lucía", isMe: false, completedCount: 1, todayCompleted: true, totalDays: 7 },
+      { name: "Mario", isMe: false, completedCount: 0, todayCompleted: false, totalDays: 7 },
+    ]),
+  },
+};
+const planSummary = (planId) => {
+  const plan = ALL_PLANS.find((p) => p.id === planId);
+  return { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays };
+};
+const groupName = (group) => groupDisplayName(group.kind, planSummary(group.planId).name);
+
+const GUIDE_CITE = (verse) => ({ book: "Salmos", chapter: 46, verse, version: "RV1909", text: VERSES[verse - 1].text });
+const QA_GROUP_GUIDE = {
+  book: "Salmos",
+  chapter: 46,
+  version: "RV1909",
+  summary: {
+    text: "El salmista declara que Dios es refugio y fuerza en medio de la angustia. Aunque la tierra tiemble y el mar se agite, el pueblo no teme, porque Dios está en medio de su ciudad.",
+    citations: [GUIDE_CITE(1), GUIDE_CITE(2)],
+  },
+  questions: [
+    { text: "¿Qué palabras usa el versículo 1 para describir a Dios? ¿Cuál les dice más hoy?", citations: [GUIDE_CITE(1)] },
+    { text: "El salmo no dice que no habrá tormenta. ¿Qué cambia saber que Dios es auxilio en medio de ella?", citations: [GUIDE_CITE(2), GUIDE_CITE(3)] },
+    { text: "¿Qué imágenes de la naturaleza aparecen y qué dicen de lo que puede asustarnos?", citations: [GUIDE_CITE(3)] },
+    { text: "El versículo 4 habla de un río que alegra la ciudad. ¿Dónde ven esa alegría en su semana?", citations: [GUIDE_CITE(4)] },
+    { text: "¿Cómo pueden ayudarse como grupo a recordar este salmo cuando algo los preocupe?", citations: [GUIDE_CITE(1), GUIDE_CITE(4)] },
+  ],
+  truncatedAtVerse: null,
+};
 
 function quota(module) {
   const limits = { qa: 5, voices: 5, feelings: 3, stories: 1 };
@@ -254,6 +314,60 @@ const handlers = {
   "readingPlans:journeys": () => JOURNEY_READING_PLANS.map((p) => ({ id: p.id, name: p.name, description: p.description, totalDays: p.totalDays })),
   "readingPlans:myProgress": () => null,
   "readingPlans:myPlans": () => [],
+  "readingGroups:planChoices": () => ALL_PLANS.map((p) => planSummary(p.id)),
+  "readingGroups:mine": () =>
+    db.myGroups.map((id) => ({ id, name: groupName(GROUP_FIXTURES[id]), planId: GROUP_FIXTURES[id].planId, memberCount: GROUP_FIXTURES[id].members.length })),
+  "readingGroups:detail": (args) => {
+    const group = GROUP_FIXTURES[args.groupId];
+    if (!group || !db.myGroups.includes(args.groupId)) return null;
+    return {
+      id: args.groupId,
+      name: groupName(group),
+      kindLabel: groupKindLabel(group.kind),
+      plan: planSummary(group.planId),
+      isOwner: group.isOwner,
+      inviteToken: group.inviteToken,
+      maxMembers: GROUP_MAX_MEMBERS,
+      members: group.members,
+    };
+  },
+  "readingGroups:previewInvite": (args) => {
+    if (args.token !== QA_INVITE_TOKEN) return { status: "not_found" };
+    const group = GROUP_FIXTURES.g2;
+    const plan = planSummary(group.planId);
+    return {
+      status: "ok",
+      groupId: "g2",
+      name: groupName(group),
+      planName: plan.name,
+      planTotalDays: plan.totalDays,
+      memberCount: group.members.length - (db.myGroups.includes("g2") ? 0 : 1),
+      maxMembers: GROUP_MAX_MEMBERS,
+      alreadyMember: db.myGroups.includes("g2"),
+    };
+  },
+  "readingGroups:join": (args) => {
+    if (args.token !== QA_INVITE_TOKEN) return { status: "not_found" };
+    if (db.myGroups.includes("g2")) return { status: "already", groupId: "g2" };
+    db.myGroups = ["g2", ...db.myGroups];
+    notify();
+    return { status: "ok", groupId: "g2" };
+  },
+  "readingGroups:create": () => {
+    if (!db.myGroups.includes("g1")) db.myGroups = ["g1", ...db.myGroups];
+    notify();
+    return { status: "ok", groupId: "g1" };
+  },
+  "readingGroups:leave": (args) => {
+    db.myGroups = db.myGroups.filter((id) => id !== args.groupId);
+    notify();
+    return { left: true };
+  },
+  "readingGroups:rotateInvite": () => ({ inviteToken: "QAnueva23456789a" }),
+  "qa:prepareGroupGuide": () => {
+    if (!isPro()) return { status: "pro_required" };
+    return isEmpty() ? { status: "no_content" } : { status: "ok", guide: QA_GROUP_GUIDE };
+  },
   "voices:list": () => voiceCharacters,
   "voices:thread": (args) => db.voiceThreads[args.slug] ?? [],
   "voices:sendMessage": (args) => {

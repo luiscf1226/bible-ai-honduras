@@ -11,6 +11,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
 import { deleteReadingDataForUser } from "./reading";
+import { deleteReadingGroupDataForUser } from "./readingGroups";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
@@ -316,6 +317,8 @@ export type PurgeCounts = {
   readingSeparators: number;
   readingHighlights: number;
   readingPlanProgress: number;
+  /** Membresías en grupos de lectura (#185). El grupo pasa a otra persona o se borra si queda vacío. */
+  readingGroupMemberships: number;
   users: number;
 };
 
@@ -348,6 +351,7 @@ function emptyPurgeCounts(): PurgeCounts {
     readingSeparators: 0,
     readingHighlights: 0,
     readingPlanProgress: 0,
+    readingGroupMemberships: 0,
     users: 0,
   };
 }
@@ -475,6 +479,9 @@ export const purgeAccountData = internalMutation({
     const readingPlan = await deleteReadingPlanDataForUser(ctx, user._id);
     deleted.readingPlanProgress = readingPlan.deleted;
 
+    const readingGroups = await deleteReadingGroupDataForUser(ctx, user._id);
+    deleted.readingGroupMemberships = readingGroups.deleted;
+
     const childrenDone =
       conversations.done && stories.done && usage.done && entitlements.done && reading.done;
     if (!childrenDone) {
@@ -561,6 +568,7 @@ export const deleteAccount = action({
       deleted.readingSeparators += result.deleted.readingSeparators;
       deleted.readingHighlights += result.deleted.readingHighlights;
       deleted.readingPlanProgress += result.deleted.readingPlanProgress;
+      deleted.readingGroupMemberships += result.deleted.readingGroupMemberships;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

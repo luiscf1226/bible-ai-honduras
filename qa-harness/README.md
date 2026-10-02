@@ -66,6 +66,11 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 - Lectura: `reading:*` y `readingPlans:*` tienen fixtures (separador en
   Salmos 46:1, "seguí leyendo" en Juan 3). Cualquier capítulo muestra los mismos
   4 versículos de Salmos 46 como placeholder.
+- Grupos (#185): `readingGroups:*` tiene una célula (`/grupos/g1`) con 5
+  personas. `/grupo?token=QAgrupe2345678ab` es una invitación válida (familia
+  en Duelo); cualquier otro token muestra la invitación vencida. `?qa=empty`
+  deja "mis grupos" vacío. "Preparar para mi grupo" (`/leer/guia?book=Salmos&chapter=46`)
+  muestra el aviso de Pro salvo con `?qa=pro`.
 - Las cuotas no decrementan al consumir: `quotas:remaining` es un fixture fijo,
   no una query reactiva. Usá `?qa=limit` para ver el estado agotado.
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
