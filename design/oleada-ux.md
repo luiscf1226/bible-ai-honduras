@@ -137,6 +137,14 @@ Noche: todas las tarjetas usan la paleta `night`; la imagen conserva el scrim.
   marcado; testID `reading-separator-mark`.
 - **Pasar página:** deslizar horizontal (anterior/siguiente). Al final del
   capítulo, "‹ Génesis 1 · Génesis 3 ›" como botones pill (respaldo accesible).
+- *Notas de implementación (#195/#196):* React Native no tiene
+  `baselineOffset` para un `<Text>` anidado, así que el número voladito usa las
+  cifras superíndice de EB Garamond (¹²³…) en `accent`, al tamaño del cuerpo;
+  a `readerBody` 19 quedan a ~11, el `verseNumber` de la tabla. La capitular
+  baja hasta que su pie coincide con el del último renglón que abraza. La cinta
+  es `size.ribbon` con punta en V, centrada en el margen derecho a la altura del
+  renglón del versículo. El deslizar usa `PanResponder` + `Animated` (sin
+  dependencias nuevas).
 
 ### Índice `/leer`
 Arriba: tarjetas de separador / plan / "Seguí leyendo" (como hoy), y un campo
@@ -164,6 +172,11 @@ columnas. Tocar un libro → `ChapterGrid`.
 - **Marcas en el margen** (margen izquierdo, fuera del texto corrido): punto
   `size.marginMark` `accent` para guardado; ícono `note` `sm` `inkSoft` para
   nota. A la altura del renglón donde empieza el versículo.
+- *Notas de implementación:* la hoja se cierra con ✕ (`close`) arriba a la
+  derecha, en lugar del "Cancelar" de antes. El quinto círculo "sin color" es un
+  aro `borderStrong` con `close` `sm`, deshabilitado si no hay subrayado. Las
+  acciones salen de `src/features/reading/verseActions.ts` (registro: una
+  entrada por acción, para #202, #187, #158 y #201).
 
 ## U5 — Sentir tipo chat (#197)
 

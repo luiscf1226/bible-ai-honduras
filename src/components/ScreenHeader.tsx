@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, type StyleProp, type TextStyle, type ViewStyle, View } from "react-native";
 
 import { goBackOrHomeWith, type BackNavigator } from "../lib/navigation";
@@ -23,6 +24,13 @@ export type ScreenHeaderProps = {
   onImage?: boolean;
   testID?: string;
   style?: StyleProp<ViewStyle>;
+  /**
+   * Contenido centrado en lugar del título (lector "Biblia de papel", #195:
+   * "SALMOS · 46" + versión). Si viene, ocupa el centro y `title` se ignora.
+   */
+  center?: ReactNode;
+  /** Botón a la derecha, simétrico al ‹ (p. ej. "Aa" del lector). */
+  trailing?: ReactNode;
 };
 
 /** Desapila si hay historial; si no, aterriza en Home (arranque en frío / deep link). */
@@ -44,6 +52,8 @@ export function ScreenHeader({
   onImage = false,
   testID,
   style,
+  center,
+  trailing,
 }: ScreenHeaderProps) {
   const { color } = useTheme();
   const titleType = titleSize === "pick" ? tokens.type.qaPickTitle : tokens.type.title;
@@ -65,7 +75,8 @@ export function ScreenHeader({
         {onImage ? <View style={[StyleSheet.absoluteFill, styles.onImageFill, { backgroundColor: color.surface }]} /> : null}
         <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
       </Pressable>
-      {title ? (
+      {center ? <View style={styles.center}>{center}</View> : null}
+      {!center && title ? (
         <Text
           style={[
             styles.title,
@@ -76,7 +87,32 @@ export function ScreenHeader({
           {title}
         </Text>
       ) : null}
+      {trailing ?? (center ? <View style={styles.spacer} /> : null)}
     </View>
+  );
+}
+
+type HeaderIconButtonProps = {
+  accessibilityLabel: string;
+  onPress: () => void;
+  children: ReactNode;
+  testID?: string;
+};
+
+/** Botón circular del encabezado con la misma forma que el ‹ (para `trailing`). */
+export function HeaderIconButton({ accessibilityLabel, children, onPress, testID }: HeaderIconButtonProps) {
+  const { color } = useTheme();
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      hitSlop={tokens.space.sm}
+      onPress={onPress}
+      style={[styles.backButton, { borderColor: color.border }]}
+      testID={testID}
+    >
+      {children}
+    </Pressable>
   );
 }
 
@@ -104,4 +140,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: tokens.font.serif,
   },
+  center: { alignItems: "center", flex: 1 },
+  spacer: { width: tokens.size.backButton },
 });

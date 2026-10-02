@@ -40,6 +40,13 @@ export type PassageSearchProps = {
   onSelectPassage: (passage: PassageQuery) => void;
   /** Contenido opcional debajo de la lista (ej. "preguntar sin pasaje"). */
   footer?: ReactNode;
+  /**
+   * Qué se ve con el campo vacío. Por defecto, los 66 libros por testamento;
+   * Leer pasa su índice por secciones (#195) y la búsqueda queda como lupa.
+   */
+  emptyQueryContent?: ReactNode;
+  /** Campo compacto (ver `SearchField`). */
+  compact?: boolean;
 };
 
 export function PassageSearch({
@@ -48,6 +55,8 @@ export function PassageSearch({
   onSelectBook,
   onSelectPassage,
   footer,
+  emptyQueryContent,
+  compact = false,
 }: PassageSearchProps) {
   const { color } = useTheme();
   const [query, setQuery] = useState("");
@@ -81,6 +90,7 @@ export function PassageSearch({
     <View style={styles.container}>
       <SearchField
         accessibilityLabel="Buscar un pasaje"
+        compact={compact}
         onChangeText={setQuery}
         placeholder={placeholder}
         returnKeyType="search"
@@ -104,7 +114,9 @@ export function PassageSearch({
         </Pressable>
       ) : null}
 
-      {sections.map((section) => (
+      {emptyQueryContent !== undefined && trimmed.length === 0 ? emptyQueryContent : null}
+
+      {(emptyQueryContent === undefined || trimmed.length > 0 ? sections : []).map((section) => (
         <View key={section.testament} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: color.inkSoft }]}>{section.title.toUpperCase()}</Text>
           <View style={[styles.list, { backgroundColor: color.surface, borderColor: color.border }]}>

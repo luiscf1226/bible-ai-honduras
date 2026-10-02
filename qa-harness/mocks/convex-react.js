@@ -23,6 +23,10 @@ const db = {
   darkMode: isDark(),
   bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
+  // Lector (#113, #196). `?hint=seen` simula una cuenta que ya cerró la pista.
+  readingFontStep: undefined,
+  readingSpacingStep: undefined,
+  readerHintSeen: typeof window !== "undefined" && new URLSearchParams(window.location.search).get("hint") === "seen",
   // Preguntar: una conversación por tema (#191). `qa-seed` es la de ejemplo.
   qaThreads: isEmpty()
     ? {}
@@ -58,6 +62,8 @@ const db = {
         { book: "Romanos", chapter: 8, verse: 28, createdAt: Date.now() - 3 * 24 * 3600e3 },
         { book: "Filipenses", chapter: 4, verse: 13, createdAt: Date.now() - 9 * 24 * 3600e3 },
         { book: "1 Pedro", chapter: 5, verse: 7, createdAt: Date.now() - 20 * 24 * 3600e3, note: "Me lo dijo mi mamá." },
+        // Sin nota: el lector marca este con un punto en el margen (#196).
+        { book: "Salmos", chapter: 46, verse: 10, createdAt: Date.now() - 40 * 24 * 3600e3 },
       ],
   // Subrayados (#168): cuatro, en tres colores, para ver "Ver todos (4)" y el
   // filtro por color de la pantalla Subrayados.
@@ -119,6 +125,7 @@ const SAVED_TEXT = {
   "Romanos 8:28": "Y sabemos que á los que á Dios aman, todas las cosas les ayudan á bien, es á saber, á los que conforme al propósito son llamados.",
   "Filipenses 4:13": "Todo lo puedo en Cristo que me fortalece.",
   "1 Pedro 5:7": "Echando toda vuestra solicitud en él, porque él tiene cuidado de vosotros.",
+  "Salmos 46:10": "Estad quietos, y conoced que yo soy Dios: ensalzado he de ser entre las gentes, ensalzado seré en la tierra.",
 };
 
 function findBookmark(args) {
@@ -130,7 +137,23 @@ const VERSES = [
   { verse: 2, text: "Por tanto, no temeremos, aunque la tierra sea removida, y se traspasen los montes al corazón del mar;" },
   { verse: 3, text: "Aunque bramen y se turben sus aguas, y tiemblen los montes a causa de su braveza." },
   { verse: 4, text: "Del río sus corrientes alegran la ciudad de Dios, el santuario de las moradas del Altísimo." },
+  // Lector "Biblia de papel" (#195): el capítulo completo, para ver la prosa
+  // corrida, las marcas del margen y el scroll al versículo (#154).
+  { verse: 5, text: "Dios está en medio de ella; no será conmovida: Dios la ayudará al clarear la mañana." },
+  { verse: 6, text: "Bramaron las gentes, titubearon los reinos; dió él su voz, derritióse la tierra." },
+  { verse: 7, text: "Jehová de los ejércitos es con nosotros; nuestro refugio es el Dios de Jacob. (Selah.)" },
+  { verse: 8, text: "Venid, ved las obras de Jehová, que ha puesto asolamientos en la tierra." },
+  { verse: 9, text: "Que hace cesar las guerras hasta los fines de la tierra: que quiebra el arco, corta la lanza, y quema los carros en el fuego." },
+  { verse: 10, text: "Estad quietos, y conoced que yo soy Dios: ensalzado he de ser entre las gentes, ensalzado seré en la tierra." },
+  { verse: 11, text: "Jehová de los ejércitos es con nosotros; nuestro refugio es el Dios de Jacob. (Selah.)" },
 ];
+
+// Salmos 119 tiene 176 versículos: el harness repite el texto de arriba para
+// medir el scroll de un capítulo largo. El resto de capítulos usa los 11.
+function chapterVerses(book, chapter) {
+  const count = book === "Salmos" && chapter === 119 ? 176 : VERSES.length;
+  return Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+}
 
 function quota(module) {
   const limits = { qa: 5, voices: 5, feelings: 3, stories: 1 };
@@ -151,6 +174,9 @@ const handlers = {
     bibleVersion: db.bibleVersion,
     darkMode: db.darkMode,
     reminderHour: db.reminderHour,
+    readingFontStep: db.readingFontStep,
+    readingSpacingStep: db.readingSpacingStep,
+    readerHintSeen: db.readerHintSeen,
   }),
   // Invitaciones: BAH-QA00001 existe; el resto no.
   "referrals:claim": (args) => {
@@ -166,6 +192,9 @@ const handlers = {
     if (args.darkMode !== undefined) db.darkMode = args.darkMode;
     if (args.bibleVersion) db.bibleVersion = args.bibleVersion;
     if (args.reminderHour !== undefined) db.reminderHour = args.reminderHour;
+    if (args.readingFontStep !== undefined) db.readingFontStep = args.readingFontStep;
+    if (args.readingSpacingStep !== undefined) db.readingSpacingStep = args.readingSpacingStep;
+    if (args.readerHintSeen !== undefined) db.readerHintSeen = args.readerHintSeen;
     notify();
     return null;
   },
@@ -180,7 +209,7 @@ const handlers = {
   "rag/verses:listByChapter": (args) =>
     isEmpty() || args.version !== "RV1909"
       ? []
-      : VERSES.map((v) => ({ ...v, book: args.book, chapter: args.chapter, version: args.version })),
+      : chapterVerses(args.book, args.chapter).map((v) => ({ ...v, book: args.book, chapter: args.chapter, version: args.version })),
   "reading:progress": () => db.readingProgress,
   "reading:recents": () => (isEmpty() ? [] : [{ book: "Juan", chapter: 3, openedAt: Date.now() }]),
   "reading:bookmarks": (args) => {
