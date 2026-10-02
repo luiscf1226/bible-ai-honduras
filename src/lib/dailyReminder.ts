@@ -1,8 +1,9 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 
+import { DAILY_REMINDER_KIND, DAILY_REMINDER_PATHNAME, reminderRouteFor } from "./reminderRoute";
+
 const DAILY_REMINDER_CHANNEL = "daily-devotional";
-const DAILY_REMINDER_KIND = "daily-devotional";
 
 /**
  * Un aviso ya armado para una fecha. El texto lo decide `buildReminderContents`
@@ -63,6 +64,30 @@ export function configureDailyReminderNotifications() {
   });
 }
 
+/**
+ * Tocar el aviso diario abre `/hoy` (#194). Cubre las dos formas de llegar:
+ * con la app cerrada (la respuesta queda guardada y se lee al montar) y con la
+ * app abierta (listener). Cada respuesta se atiende una sola vez.
+ */
+export function subscribeToDailyReminderTaps(open: (pathname: string) => void): () => void {
+  if (Platform.OS === "web") return () => undefined;
+
+  const handle = (response: Notifications.NotificationResponse | null) => {
+    const pathname = reminderRouteFor(response?.notification.request.content.data);
+    if (!pathname) return;
+    Notifications.clearLastNotificationResponse();
+    open(pathname);
+  };
+
+  try {
+    handle(Notifications.getLastNotificationResponse());
+  } catch {
+    // Sin respuesta guardada (o módulo no disponible): no hay nada que abrir.
+  }
+  const subscription = Notifications.addNotificationResponseReceivedListener(handle);
+  return () => subscription.remove();
+}
+
 export async function cancelDailyDevotionalReminder() {
   if (Platform.OS === "web") return;
 
@@ -113,7 +138,7 @@ export async function scheduleDailyDevotionalReminders(
         data: {
           date: reminder.date,
           kind: DAILY_REMINDER_KIND,
-          pathname: "/home",
+          pathname: DAILY_REMINDER_PATHNAME,
           ...(reminder.planId ? { planId: reminder.planId } : {}),
         },
         title: reminder.title,

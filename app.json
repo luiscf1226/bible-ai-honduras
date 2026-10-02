@@ -26,6 +26,58 @@
           "resizeMode": "contain",
           "backgroundColor": "#E9E1D5"
         }
+      ],
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.bibleaihonduras.app",
+          "widgets": [
+            {
+              "name": "VersiculoDelDia",
+              "displayName": "Versículo del día",
+              "description": "El versículo de hoy. Tocalo para abrir el devocional.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/eb-garamond/400Regular/EBGaramond_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf"
+          ],
+          "widgets": [
+            {
+              "name": "VersiculoChico",
+              "label": "Versículo del día",
+              "description": "El versículo de hoy. Tocalo para abrir el devocional.",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 10800000
+            },
+            {
+              "name": "VersiculoMediano",
+              "label": "Versículo del día (mediano)",
+              "description": "El versículo de hoy. Tocalo para abrir el devocional.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 10800000
+            }
+          ]
+        }
       ]
     ],
     "experiments": {

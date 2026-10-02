@@ -6,10 +6,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
+import { FeaturedCharacterCard } from "../../src/features/voices/FeaturedCharacterCard";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 
-export default function VocesScreen() {
+function VocesScreenContent() {
   const { color } = useTheme();
   const characters = useQuery(api.voices.list);
 
@@ -26,6 +28,8 @@ export default function VocesScreen() {
       </Text>
 
       <View style={styles.list}>
+        {/* Personaje del mes (#200): arriba de la lista; la lista no cambia. */}
+        <FeaturedCharacterCard />
         {characters?.map((character) => (
           <Pressable
             accessibilityRole="button"
@@ -94,3 +98,12 @@ const styles = StyleSheet.create({
   notice: { borderRadius: tokens.radius.md, marginTop: tokens.space.xxl, paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
   noticeText: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function VocesScreen() {
+  return (
+    <RequiresConnection module="voices">
+      <VocesScreenContent />
+    </RequiresConnection>
+  );
+}

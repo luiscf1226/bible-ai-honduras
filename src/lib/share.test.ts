@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  asFileUri,
   buildReferralLink,
   buildShareMessage,
   resetShareNativeForTests,
   setShareNativeForTests,
   shareContent,
+  shareImage,
   type ShareNative,
 } from "./share";
 
@@ -105,5 +107,94 @@ describe("shareContent (#103 — dueño único del share sheet)", () => {
 
     vi.doUnmock("react-native");
     vi.resetModules();
+  });
+});
+
+describe("shareImage (#161 — imagen 9:16 por el mismo share sheet)", () => {
+  const params = { fileUri: "file:///tmp/versiculo.png", referralCode: "BAH-TEST01", text: "Salmos 46:1" };
+
+  afterEach(() => {
+    resetShareNativeForTests();
+  });
+
+  it("iOS: manda la imagen y el mensaje con el link de referido en un solo Share.share", async () => {
+    const native = mockNative({ os: "ios" });
+    setShareNativeForTests(native);
+
+    const result = await shareImage(params);
+
+    expect(result).toEqual({ status: "shared", textCopied: false });
+    expect(native.share).toHaveBeenCalledWith({
+      message: buildShareMessage("Salmos 46:1", "BAH-TEST01"),
+      url: "file:///tmp/versiculo.png",
+    });
+    expect(vi.mocked(native.share).mock.calls[0][0].message).toContain("?ref=BAH-TEST01");
+  });
+
+  it("iOS: cancelar el share sheet no es un error", async () => {
+    setShareNativeForTests(mockNative({ os: "ios", share: vi.fn().mockResolvedValue({ action: "dismissedAction" }) }));
+
+    await expect(shareImage(params)).resolves.toEqual({ status: "dismissed" });
+  });
+
+  it("sin plataforma conocida usa el camino de iOS (Share.share con url)", async () => {
+    const native = mockNative();
+    setShareNativeForTests(native);
+
+    await shareImage(params);
+
+    expect(native.share).toHaveBeenCalledTimes(1);
+  });
+
+  it("Android: comparte el PNG por el share sheet de archivos y copia el mensaje con el ?ref=", async () => {
+    const shareFile = vi.fn().mockResolvedValue(undefined);
+    const copyText = vi.fn();
+    const native = mockNative({ copyText, os: "android", shareFile });
+    setShareNativeForTests(native);
+
+    const result = await shareImage(params);
+
+    expect(result).toEqual({ status: "shared", textCopied: true });
+    expect(shareFile).toHaveBeenCalledWith("file:///tmp/versiculo.png", expect.objectContaining({ mimeType: "image/png" }));
+    expect(copyText).toHaveBeenCalledWith(buildShareMessage("Salmos 46:1", "BAH-TEST01"));
+    // Share.share de react-native no acepta archivos en Android: no se usa.
+    expect(native.share).not.toHaveBeenCalled();
+  });
+
+  it("Android: si el portapapeles falla, la imagen igual se comparte", async () => {
+    const shareFile = vi.fn().mockResolvedValue(undefined);
+    const copyText = vi.fn(() => {
+      throw new Error("sin portapapeles");
+    });
+    setShareNativeForTests(mockNative({ copyText, os: "android", shareFile }));
+
+    await expect(shareImage(params)).resolves.toEqual({ status: "shared", textCopied: false });
+    expect(shareFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("Android sin share sheet de archivos: devuelve error, no revienta", async () => {
+    setShareNativeForTests(mockNative({ os: "android" }));
+
+    const result = await shareImage(params);
+
+    expect(result.status).toBe("error");
+  });
+
+  it("un rechazo del share sheet se captura y devuelve status error (mismo contrato que #103)", async () => {
+    const failure = new Error("Share sheet no disponible");
+    setShareNativeForTests(mockNative({ os: "android", shareFile: vi.fn().mockRejectedValue(failure) }));
+
+    await expect(shareImage(params)).resolves.toEqual({ status: "error", error: failure });
+  });
+});
+
+describe("asFileUri", () => {
+  it("le pone file:// a una ruta suelta", () => {
+    expect(asFileUri("/var/mobile/tmp/x.png")).toBe("file:///var/mobile/tmp/x.png");
+  });
+
+  it("no toca lo que ya trae esquema", () => {
+    expect(asFileUri("file:///tmp/x.png")).toBe("file:///tmp/x.png");
+    expect(asFileUri("data:image/png;base64,AAA")).toBe("data:image/png;base64,AAA");
   });
 });

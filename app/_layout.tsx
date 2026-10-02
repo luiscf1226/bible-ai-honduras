@@ -8,6 +8,7 @@ import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 import { FullScreenNotice } from "../src/components/FullScreenNotice";
+import { OfflineSyncProvider } from "../src/features/offline/OfflineSyncProvider";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
@@ -15,6 +16,7 @@ import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
 import { useReferralAttribution } from "../src/hooks/useReferralAttribution";
 import { useRevenueCatLogin } from "../src/hooks/useRevenueCatLogin";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
+import { useVerseWidgetSync } from "../src/features/widget/useVerseWidgetSync";
 import { installGlobalErrorReporting, reportError, track } from "../src/lib/telemetry";
 import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 
@@ -33,6 +35,7 @@ const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as str
 function AppNavigator() {
   useSyncConvexUser();
   useRevenueCatLogin();
+  useVerseWidgetSync();
   useReferralAttribution();
   const { dark } = useTheme();
   const appUpdate = useAppUpdate();
@@ -105,7 +108,10 @@ export default function RootLayout() {
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
           <ThemeProvider>
-            <AppNavigator />
+            {/* Cola sin conexión del lector (#182): necesita Convex y la sesión. */}
+            <OfflineSyncProvider>
+              <AppNavigator />
+            </OfflineSyncProvider>
           </ThemeProvider>
         </ConvexProviderWithClerk>
       </ClerkLoaded>
