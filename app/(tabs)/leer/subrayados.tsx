@@ -7,6 +7,8 @@ import { AppScreen } from "../../../src/components/AppScreen";
 import { FilterPills, type FilterPillOption } from "../../../src/components/FilterPills";
 import { ScreenHeader, goBackOrHome } from "../../../src/components/ScreenHeader";
 import { SearchField } from "../../../src/components/SearchField";
+import { overlayHighlightPage } from "../../../src/features/offline/mutationQueue";
+import { useOfflineSync } from "../../../src/features/offline/OfflineSyncProvider";
 import { HighlightCard } from "../../../src/features/reading/HighlightCard";
 import { HIGHLIGHT_SWATCHES, highlightSwatch } from "../../../src/features/reading/highlightColors";
 import { countByColor, filterHighlights, type HighlightFilter } from "../../../src/features/reading/personalFilters";
@@ -20,7 +22,8 @@ import { tokens } from "../../../src/theme/tokens";
  */
 export default function SubrayadosScreen() {
   const { color } = useTheme();
-  const highlights = useQuery(api.reading.highlightsWithText, {});
+  const { pending } = useOfflineSync();
+  const highlights = overlayHighlightPage(useQuery(api.reading.highlightsWithText, {}), pending);
   const [query, setQuery] = useState("");
   const [colorFilter, setColorFilter] = useState<HighlightFilter>("todos");
 

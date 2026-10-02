@@ -19,6 +19,7 @@ import {
 import type { TextStoryListItem } from "../../convex/textStoriesCatalog";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 
 const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryListItem[]>(
   "textStories:list",
@@ -33,7 +34,7 @@ const listTextStories = makeFunctionReference<"query", Record<string, never>, re
  * Filtros: modo, testamento, búsqueda (sin acentos). Las píldoras reusan el
  * patrón visual de Ajustes (`versionPill`); las cards, el del prototipo de Historias.
  */
-export default function HistoriasScreen() {
+function HistoriasScreenContent() {
   const { color } = useTheme();
   const [mode, setMode] = useState<StoryModeFilter>("texto");
   const [testament, setTestament] = useState<TestamentFilter>("todos");
@@ -309,3 +310,12 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.space.xs,
   },
 });
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function HistoriasScreen() {
+  return (
+    <RequiresConnection module="stories">
+      <HistoriasScreenContent />
+    </RequiresConnection>
+  );
+}

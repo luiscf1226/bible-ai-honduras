@@ -12,22 +12,43 @@ const modules = {
 };
 
 describe("devotionalForDate", () => {
-  it("ofrece cuatro semanas completas de contenido curado", () => {
-    expect(devotionalCatalog).toHaveLength(28);
-    expect(devotionalCatalog.every((item) => item.verseRef && item.reflection && item.imageUrl)).toBe(true);
-  });
-
-  it("elige un devocional estable para una fecha y recorre todo el ciclo de cuatro semanas", () => {
+  it("elige el devocional por mes-día: el mismo cada año y distinto cada día", () => {
     expect(devotionalForDate("2026-01-01")).toMatchObject({
-      catalogId: devotionalCatalog[0].catalogId,
+      catalogId: "01-01",
+      date: "2026-01-01",
       verseRef: devotionalCatalog[0].verseRef,
     });
-    expect(devotionalForDate("2026-01-29").catalogId).toBe(devotionalCatalog[0].catalogId);
+    expect(devotionalForDate("2027-10-31").catalogId).toBe("10-31");
+    expect(devotionalForDate("2026-10-31").verseRef).toBe(devotionalForDate("2027-10-31").verseRef);
+    expect(devotionalForDate("2026-10-30").verseRef).not.toBe(devotionalForDate("2026-10-31").verseRef);
+  });
+
+  it("cubre el 29 de febrero de los bisiestos y el 31 de diciembre", () => {
+    expect(devotionalForDate("2028-02-29")).toMatchObject({ catalogId: "02-29", date: "2028-02-29" });
+    expect(devotionalForDate("2026-12-31")).toMatchObject({ catalogId: "12-31", date: "2026-12-31" });
+    expect(() => devotionalForDate("2027-02-29")).toThrow("date");
+  });
+
+  it("trae los cinco bloques de /hoy", () => {
+    const devotional = devotionalForDate("2026-10-02");
+    for (const field of ["openingPrayer", "intro", "verseRef", "reflection", "closingPrayer"] as const) {
+      expect(devotional[field]).toBeTruthy();
+    }
   });
 
   it("calcula el día editorial en la zona horaria de Honduras", () => {
     expect(hondurasDateKey(Date.UTC(2026, 0, 1, 5, 59))).toBe("2025-12-31");
     expect(hondurasDateKey(Date.UTC(2026, 0, 1, 6, 5))).toBe("2026-01-01");
+  });
+
+  it("es estable durante el día de Honduras y cambia a la medianoche de Tegucigalpa", () => {
+    const at = (utc: number) => devotionalForDate(hondurasDateKey(utc)).catalogId;
+    // 00:00–23:59 en Honduras = 06:00 UTC del día hasta 05:59 UTC del siguiente.
+    expect(at(Date.UTC(2026, 0, 1, 6, 0))).toBe("01-01");
+    expect(at(Date.UTC(2026, 0, 2, 5, 59))).toBe("01-01");
+    expect(at(Date.UTC(2026, 0, 2, 6, 0))).toBe("01-02");
+    expect(at(Date.UTC(2027, 0, 1, 5, 59))).toBe("12-31");
+    expect(at(Date.UTC(2028, 2, 1, 5, 59))).toBe("02-29");
   });
 
   it("rechaza fechas imposibles", () => {
@@ -36,13 +57,44 @@ describe("devotionalForDate", () => {
   });
 });
 
+// Fila sembrada por el ciclo de cuatro semanas anterior: sin oraciones ni
+// introducción.
+const legacyRow = {
+  catalogId: "esperanza",
+  date: "2026-01-01",
+  imageAlt: "Amanecer cálido entre montañas",
+  imageAttributionUrl: "https://unsplash.com/photos/1500534623283-312aade485b7",
+  imageUrl: "https://images.unsplash.com/photo-1500534623283-312aade485b7",
+  reflection: "Reflexión del ciclo anterior.",
+  verseRef: "Lamentaciones 3:22-23",
+};
+
 describe("devotional.byDate", () => {
-  it("sirve el catálogo aun antes de que el cron haya persistido el día", async () => {
+  it("sirve el catálogo aun antes de que el cron haya persistido el día, con los campos de /hoy", async () => {
     const t = convexTest(schema, modules);
+    const expected = devotionalForDate("2026-01-01");
+
+    await expect(t.query(api.devotional.byDate, { date: "2026-01-01" })).resolves.toEqual({
+      catalogId: "01-01",
+      closingPrayer: expected.closingPrayer,
+      date: "2026-01-01",
+      imageAlt: expected.imageAlt,
+      imageAttributionUrl: expected.imageAttributionUrl,
+      imageUrl: expected.imageUrl,
+      intro: expected.intro,
+      openingPrayer: expected.openingPrayer,
+      reflection: expected.reflection,
+      verseRef: expected.verseRef,
+    });
+  });
+
+  it("ignora filas del ciclo anterior que no traen oraciones", async () => {
+    const t = convexTest(schema, modules);
+    await t.run((ctx) => ctx.db.insert("dailyDevotionals", legacyRow));
 
     await expect(t.query(api.devotional.byDate, { date: "2026-01-01" })).resolves.toMatchObject({
-      date: "2026-01-01",
-      verseRef: "Lamentaciones 3:22-23",
+      catalogId: "01-01",
+      verseRef: devotionalForDate("2026-01-01").verseRef,
     });
   });
 
@@ -53,18 +105,53 @@ describe("devotional.byDate", () => {
   });
 });
 
+describe("devotional.today", () => {
+  it("sirve el devocional del día de Honduras", async () => {
+    const t = convexTest(schema, modules);
+    const today = hondurasDateKey();
+
+    await expect(t.query(api.devotional.today, {})).resolves.toMatchObject({
+      catalogId: today.slice(5),
+      date: today,
+      openingPrayer: devotionalForDate(today).openingPrayer,
+    });
+  });
+});
+
 describe("devotional.ensureWindow", () => {
-  it("siembra 28 días y es idempotente", async () => {
+  it("siembra 28 días completos y es idempotente", async () => {
     const t = convexTest(schema, modules);
 
     const first = await t.mutation(internal.devotional.ensureWindow, {});
     const second = await t.mutation(internal.devotional.ensureWindow, {});
     const rows = await t.run((ctx) => ctx.db.query("dailyDevotionals").collect());
 
-    expect(first.inserted).toBe(28);
-    expect(second.inserted).toBe(0);
+    expect(first).toMatchObject({ inserted: 28, updated: 0 });
+    expect(second).toMatchObject({ inserted: 0, updated: 0 });
     expect(rows).toHaveLength(28);
-    expect(rows.every((row) => row.imageUrl && row.imageAlt && row.verseRef && row.reflection)).toBe(true);
+    expect(
+      rows.every(
+        (row) => row.imageUrl && row.imageAlt && row.verseRef && row.reflection && row.openingPrayer && row.intro && row.closingPrayer,
+      ),
+    ).toBe(true);
+    expect(new Set(rows.map((row) => row.verseRef)).size).toBe(28);
+  });
+
+  it("reemplaza las filas del ciclo anterior con el devocional del calendario", async () => {
+    const t = convexTest(schema, modules);
+    const today = hondurasDateKey();
+    await t.run((ctx) => ctx.db.insert("dailyDevotionals", { ...legacyRow, date: today }));
+
+    const result = await t.mutation(internal.devotional.ensureWindow, {});
+    const row = await t.run((ctx) =>
+      ctx.db
+        .query("dailyDevotionals")
+        .withIndex("by_date", (q) => q.eq("date", today))
+        .unique(),
+    );
+
+    expect(result).toMatchObject({ inserted: 27, updated: 1 });
+    expect(row).toMatchObject(devotionalForDate(today));
   });
 });
 
