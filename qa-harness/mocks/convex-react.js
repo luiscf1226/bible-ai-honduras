@@ -43,6 +43,8 @@ const db = {
           ],
         },
       ] },
+  // Título y pasaje de cada conversación de Preguntar, como los guarda `qa.ask`.
+  qaMeta: {},
   voiceThreads: {},
   // Lectura (#112–#115 y separador): fixtures para ver el módulo en el harness.
   separator: isEmpty() ? null : { book: "Salmos", chapter: 46, verse: 1, updatedAt: Date.now() },
@@ -293,8 +295,9 @@ const handlers = {
       .reverse()
       .map(([id, messages]) => ({
         _id: id,
-        title: messages[0]?.text.slice(0, 40) ?? "",
-        passage: null,
+        // Como `conversationTitle` del backend: el pasaje si lo hubo, si no la pregunta.
+        title: db.qaMeta[id]?.title ?? messages[0]?.text.slice(0, 40) ?? "",
+        passage: db.qaMeta[id]?.passage ?? null,
         updatedAt: Date.now(),
         lastQuestion: [...messages].reverse().find((m) => m.role === "user")?.text ?? null,
       })),
@@ -302,6 +305,10 @@ const handlers = {
     if (atLimit()) return { status: "limit_reached", conversationId: args.conversationId ?? null };
     const conversationId = args.conversationId ?? `qa-${Object.keys(db.qaThreads).length + 1}`;
     const thread = db.qaThreads[conversationId] ?? [];
+    if (!db.qaThreads[conversationId] && args.passage) {
+      const { book, chapter, verse } = args.passage;
+      db.qaMeta[conversationId] = { title: `${book} ${chapter}${verse === undefined ? "" : `:${verse}`}`, passage: args.passage };
+    }
     db.qaThreads = {
       ...db.qaThreads,
       [conversationId]: [
