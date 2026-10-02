@@ -35,6 +35,9 @@ export const TELEMETRY_EVENTS = [
   "update_required_shown",
   "referral_claimed",
   "citation_opened",
+  // Oleada UX (#193, #194): tarjetas del inicio y la pantalla del versículo del día.
+  "home_card_opened",
+  "today_opened",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 

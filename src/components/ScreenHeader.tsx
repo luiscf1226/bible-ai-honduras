@@ -16,6 +16,11 @@ export type ScreenHeaderProps = {
   titleStyle?: StyleProp<TextStyle>;
   onBack?: () => void;
   accessibilityLabel?: string;
+  /**
+   * El ‹ va encima de una imagen (hero de `/hoy`): círculo con fondo
+   * `surface` al 90 % para que se lea sobre cualquier foto (oleada UX §U2).
+   */
+  onImage?: boolean;
   testID?: string;
   style?: StyleProp<ViewStyle>;
 };
@@ -36,6 +41,7 @@ export function ScreenHeader({
   titleStyle,
   onBack = goBackOrHome,
   accessibilityLabel = "Volver",
+  onImage = false,
   testID,
   style,
 }: ScreenHeaderProps) {
@@ -53,9 +59,10 @@ export function ScreenHeader({
         // 34 + 9*2 = 52. Al estar acá, aplica a las 5 pantallas de una.
         hitSlop={tokens.space.sm}
         onPress={onBack}
-        style={[styles.backButton, { borderColor: color.border }]}
+        style={[styles.backButton, { borderColor: onImage ? "transparent" : color.border }, onImage && styles.onImage]}
         testID={testID}
       >
+        {onImage ? <View style={[StyleSheet.absoluteFill, styles.onImageFill, { backgroundColor: color.surface }]} /> : null}
         <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
       </Pressable>
       {title ? (
@@ -87,6 +94,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: tokens.size.backButton,
   },
+  onImage: { overflow: "hidden" },
+  onImageFill: { opacity: tokens.opacity.imageButton },
   backIcon: {
     fontFamily: tokens.font.sans,
     fontSize: tokens.type.subtitle.size,
