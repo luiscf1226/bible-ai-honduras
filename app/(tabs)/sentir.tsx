@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
 import { BottomPanel } from "../../src/components/BottomPanel";
+import { CitationLink } from "../../src/components/CitationLink";
 import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingState";
 import { LimitReached } from "../../src/components/LimitReached";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
@@ -174,7 +175,6 @@ export default function SentirScreen() {
   }
 
   if (activeDevotional) {
-    const reference = `${activeDevotional.citation.book} ${activeDevotional.citation.chapter}:${activeDevotional.citation.verse} · ${activeDevotional.citation.version}`;
     return (
       <AppScreen scroll contentStyle={styles.resultContent}>
         <ScreenHeader
@@ -191,7 +191,15 @@ export default function SentirScreen() {
         <Text style={[styles.quote, { borderLeftColor: color.borderStrong, color: color.inkMuted }]}>
           “{activeDevotional.citation.text}”
         </Text>
-        <Text style={[styles.reference, { color: color.inkSoft }]}>{reference}</Text>
+        <CitationLink
+          book={activeDevotional.citation.book}
+          chapter={activeDevotional.citation.chapter}
+          from="feelings"
+          testID="sentir-citation"
+          variant="block"
+          verse={activeDevotional.citation.verse}
+          version={activeDevotional.citation.version}
+        />
         <Text style={[styles.reflection, { color: color.inkMuted }]}>{activeDevotional.reflection}</Text>
         <View style={[styles.prayerCard, { backgroundColor: color.surfaceSunk, borderColor: color.border }]}>
           <Text style={[styles.prayerKicker, { color: color.accent }]}>UNA ORACIÓN CORTA</Text>
@@ -502,12 +510,6 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.subtitle.size,
     fontStyle: "italic",
     lineHeight: tokens.type.subtitle.lineHeight,
-    paddingLeft: tokens.space.lg,
-  },
-  reference: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.caption.size,
-    lineHeight: tokens.type.caption.lineHeight,
     paddingLeft: tokens.space.lg,
   },
   reflection: {

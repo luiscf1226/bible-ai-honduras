@@ -34,6 +34,7 @@ export const TELEMETRY_EVENTS = [
   "reader_voice_opened",
   "update_required_shown",
   "referral_claimed",
+  "citation_opened",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 

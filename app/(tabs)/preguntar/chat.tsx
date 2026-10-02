@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { CitationLink } from "../../../src/components/CitationLink";
 import { LimitReached } from "../../../src/components/LimitReached";
 import { LoadingState, QA_ANSWER_STEPS } from "../../../src/components/LoadingState";
 import { ScreenHeader } from "../../../src/components/ScreenHeader";
@@ -175,9 +176,14 @@ export default function PreguntarChatScreen() {
                 {message.citation ? (
                   <View style={[styles.citation, { backgroundColor: color.surfaceSunk }]}>
                     <Text style={[styles.citationQuote, { color: color.inkMuted }]}>&ldquo;{message.citation.text}&rdquo;</Text>
-                    <Text style={[styles.citationRef, { color: color.inkFaint }]}>
-                      {message.citation.book} {message.citation.chapter}:{message.citation.verse} ({message.citation.version})
-                    </Text>
+                    <CitationLink
+                      book={message.citation.book}
+                      chapter={message.citation.chapter}
+                      from="qa"
+                      testID="qa-citation"
+                      verse={message.citation.verse}
+                      version={message.citation.version}
+                    />
                   </View>
                 ) : null}
                 {message.role === "assistant" && message.citation && message.question ? (
@@ -301,7 +307,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     lineHeight: tokens.type.body.lineHeight,
   },
-  citationRef: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, marginTop: tokens.space.sm },
   shareRow: {
     alignItems: "center",
     borderTopWidth: 1,
