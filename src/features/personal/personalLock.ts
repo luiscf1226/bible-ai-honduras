@@ -39,6 +39,21 @@ export function needsUnlock(enabled: boolean, available: boolean, session: LockS
 }
 
 /**
+ * Widget "Tu lectura de hoy" (#184): con "Proteger lo personal" encendido no
+ * muestra plan, lecturas ni racha. Sigue a la preferencia, no a la sesión:
+ * desbloquear Mi espacio no destapa el widget de la pantalla de inicio.
+ *
+ * Devuelve el valor a escribir, o null si no hay que tocar nada (todavía no se
+ * leyó la preferencia, o el widget ya está como corresponde). Así se repara
+ * también un widget que quedó desfasado, por ejemplo si el bloqueo se encendió
+ * en una versión anterior de la app.
+ */
+export function widgetLockUpdate(enabled: boolean | null, widgetLocked: boolean): boolean | null {
+  if (enabled === null || enabled === widgetLocked) return null;
+  return enabled;
+}
+
+/**
  * "Mis conversaciones" (Ajustes) lista también las de Sentir, con su último
  * mensaje. Esa pantalla no lleva candado (Preguntar y Voces quedan libres),
  * así que mientras lo personal no esté desbloqueado, las de Sentir no salen.

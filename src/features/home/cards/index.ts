@@ -4,6 +4,7 @@ import { HOME_CARD_ORDER, type HomeCardId } from "../homeCards";
 import { AskCard } from "./AskCard";
 import { CharactersCard } from "./CharactersCard";
 import { FeelingCard } from "./FeelingCard";
+import { PauseLink } from "./PauseLink";
 import { PersonalDateCard } from "./PersonalDateCard";
 import { ReadCard } from "./ReadCard";
 import { SavedMemoryCard } from "./SavedMemoryCard";
@@ -31,6 +32,7 @@ const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
   savedMemory: { Component: SavedMemoryCard },
   read: { Component: ReadCard },
   feeling: { Component: FeelingCard },
+  pause: { Component: PauseLink },
   ask: { Component: AskCard },
   characters: { Component: CharactersCard },
   stories: { Component: StoriesCard },
