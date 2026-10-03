@@ -1,15 +1,15 @@
-import { enero } from "./01-enero";
-import { febrero } from "./02-febrero";
-import { marzo } from "./03-marzo";
-import { abril } from "./04-abril";
-import { mayo } from "./05-mayo";
-import { junio } from "./06-junio";
-import { julio } from "./07-julio";
-import { agosto } from "./08-agosto";
-import { septiembre } from "./09-septiembre";
-import { octubre } from "./10-octubre";
-import { noviembre } from "./11-noviembre";
-import { diciembre } from "./12-diciembre";
+import { enero } from "./01_enero";
+import { febrero } from "./02_febrero";
+import { marzo } from "./03_marzo";
+import { abril } from "./04_abril";
+import { mayo } from "./05_mayo";
+import { junio } from "./06_junio";
+import { julio } from "./07_julio";
+import { agosto } from "./08_agosto";
+import { septiembre } from "./09_septiembre";
+import { octubre } from "./10_octubre";
+import { noviembre } from "./11_noviembre";
+import { diciembre } from "./12_diciembre";
 import type { DevotionalEntry } from "./types";
 
 export type { DevotionalEntry } from "./types";
