@@ -7,6 +7,7 @@ import { AppScreen } from "../src/components/AppScreen";
 import { PersonalLockGate } from "../src/components/PersonalLockGate";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { buildMySpaceSections, type MySpaceDestination } from "../src/features/personal/mySpaceSections";
+import { PersonalDatesSection } from "../src/features/personal/PersonalDatesSection";
 import { yearInWordEntry } from "../src/features/personal/yearInWord";
 import { PRIVACY_POLICY_URL } from "../src/lib/legalLinks";
 import { openPassage } from "../src/lib/openPassage";
@@ -36,6 +37,7 @@ function MiEspacioScreen() {
   const bookmarks = useQuery(api.reading.bookmarks, {});
   const highlights = useQuery(api.reading.highlights, {});
   const history = useQuery(api.history.list, {});
+  const me = useQuery(api.users.current, {});
   const memorize = useQuery(api.memorize.list, {});
   const prayers = useQuery(api.prayers.list, {});
   const loading =
@@ -149,6 +151,9 @@ function MiEspacioScreen() {
           <Text style={[styles.chevron, { color: color.inkFaint }]}>›</Text>
         </Pressable>
       </View>
+
+      {/* Tus fechas (#204): cumpleaños y bautismo o conversión. */}
+      <PersonalDatesSection user={me} />
     </AppScreen>
   );
 }

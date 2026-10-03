@@ -149,3 +149,38 @@ describe("buildReminderContents", () => {
     ]);
   });
 });
+
+describe("Tus fechas en el aviso (#204)", () => {
+  it("el día del cumpleaños saluda por título y conserva la lectura en el cuerpo", () => {
+    const contents = buildReminderContents(
+      [
+        { date: "2026-10-02", verseRef: "Juan 3:16" },
+        { date: DATE, verseRef: "Salmos 23:1" },
+      ],
+      [],
+      { dates: { birthday: "10-02" }, name: "Ana López" },
+    );
+    expect(contents).toEqual([
+      {
+        date: "2026-10-02",
+        title: "Feliz cumpleaños, Ana",
+        body: "Tenés un versículo para este día en el inicio. Lectura de hoy: Juan 3:16.",
+      },
+      { date: DATE, title: "Devocional de hoy", body: "Lectura de hoy: Salmos 23:1." },
+    ]);
+  });
+
+  it("con plan ese día, conserva el plan; el aniversario de bautismo también saluda", () => {
+    const [withPlan] = buildReminderContents([{ date: DATE, verseRef: "Juan 3:16" }], [beginner], {
+      dates: { faithDate: "2023-10-03", faithDateKind: "bautismo" },
+    });
+    expect(withPlan.title).toBe("Hoy hace 3 años de tu bautismo");
+    expect(withPlan.planId).toBe("anual-para-empezar");
+    expect(withPlan.body).toMatch(/^Tenés un versículo para este día en el inicio\. Hoy: /);
+  });
+
+  it("sin fechas, el aviso no cambia", () => {
+    const [plain] = buildReminderContents([{ date: DATE, verseRef: "Juan 3:16" }], [], { dates: {} });
+    expect(plain).toEqual({ date: DATE, title: "Devocional de hoy", body: "Lectura de hoy: Juan 3:16." });
+  });
+});

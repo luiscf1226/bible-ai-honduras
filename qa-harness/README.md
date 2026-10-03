@@ -64,6 +64,7 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?auth=cancel` | la persona cancela la autenticación: vuelve atrás |
 | `?ver=NVI` | versión de la Biblia = NVI (sin corpus, igual que en producción) |
 | `?net=off` | modo avión (#160, #182): NetInfo sin red, las `useQuery` quedan en `undefined` y las mutaciones no vuelven, como el cliente real de Convex sin conexión |
+| `?fechas=hoy` / `?fechas=1` | Tus fechas (#204): cumpleaños y bautismo que caen hoy (tarjeta arriba del inicio) o en otra fecha (solo se ven en Mi espacio). Sin el parámetro, sin fechas |
 | `?plan=1` | plan anual empezado, en el día 5 con los días 3 y 4 pendientes |
 
 La Biblia sin conexión se descarga de verdad desde Ajustes: el manifiesto del

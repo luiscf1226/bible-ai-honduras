@@ -12,8 +12,8 @@ import { upcomingReminderDates } from "./reminderDates";
 
 /**
  * Arma los avisos de la ventana de `upcomingReminderDates`: trae el versículo
- * de cada fecha y los planes empezados, y deja que `buildReminderContents`
- * decida qué dice cada uno (#153).
+ * de cada fecha, los planes empezados y Tus fechas (#204), y deja que
+ * `buildReminderContents` decida qué dice cada uno (#153).
  */
 export async function loadDailyReminders(
   convex: ConvexReactClient,
@@ -21,7 +21,7 @@ export async function loadDailyReminders(
   knownDevotional?: { date: string; verseRef: string },
 ): Promise<ScheduledReminder[]> {
   const dates = upcomingReminderDates(hour);
-  const [devotionals, candidates] = await Promise.all([
+  const [devotionals, candidates, user] = await Promise.all([
     Promise.all(
       dates.map(async (date) => {
         if (knownDevotional && date === knownDevotional.date) return knownDevotional;
@@ -30,13 +30,15 @@ export async function loadDailyReminders(
       }),
     ),
     convex.query(api.readingPlans.reminderCandidates, { dates }),
+    // Tus fechas (#204): el aviso de ese día saluda. Si falla, el aviso sale igual.
+    convex.query(api.users.current, {}).catch(() => null),
   ]);
-  return buildReminderContents(devotionals, candidates);
+  return buildReminderContents(devotionals, candidates, user ? { dates: user, name: user.name } : null);
 }
 
 /**
  * Reprograma los avisos en silencio cuando cambia algo que afecta su texto
- * (empezar un plan o marcar un día). Solo si el usuario ya tenía el
+ * (empezar un plan, marcar un día o cambiar Tus fechas). Solo si el usuario ya tenía el
  * recordatorio activo y el permiso concedido: nunca pide permiso ni activa
  * avisos que el usuario no pidió. Los errores se tragan — el aviso anterior
  * sigue programado y no vale la pena interrumpir la lectura por esto.
