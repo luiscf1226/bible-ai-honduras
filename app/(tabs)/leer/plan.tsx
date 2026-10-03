@@ -1,5 +1,5 @@
 import { useConvex, useMutation } from "convex/react";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -194,6 +194,17 @@ export default function PlanScreen() {
           ) : null}
         </>
       )}
+
+      {/* #185: el mismo plan, leído en un grupo cerrado (familia, célula). */}
+      {catalog ? (
+        <AppButton
+          onPress={() => router.push({ pathname: "/grupos/nuevo", params: { planId: catalog.id } })}
+          testID="plan-leer-en-grupo"
+          variant="quiet"
+        >
+          Leer este plan en grupo
+        </AppButton>
+      ) : null}
     </AppScreen>
   );
 }

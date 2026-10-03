@@ -8,8 +8,18 @@ export function buildReferralLink(referralCode: string): string {
   return `${SHARE_BASE_URL}?ref=${referralCode}`;
 }
 
-export function buildShareMessage(text: string, referralCode: string): string {
-  return `${text}\n\n${buildReferralLink(referralCode)}`;
+/**
+ * Invitación a un grupo de lectura (#185): el mismo link del sitio, con el
+ * token del grupo al lado del código de invitación. El sitio ofrece abrirlo en
+ * la app (`bibleai://grupo?token=…`) o instalarla primero.
+ */
+export function buildGroupInviteLink(referralCode: string, groupInviteToken: string): string {
+  return `${buildReferralLink(referralCode)}&grupo=${encodeURIComponent(groupInviteToken)}`;
+}
+
+export function buildShareMessage(text: string, referralCode: string, groupInviteToken?: string): string {
+  const link = groupInviteToken ? buildGroupInviteLink(referralCode, groupInviteToken) : buildReferralLink(referralCode);
+  return `${text}\n\n${link}`;
 }
 
 /** `captureRef` devuelve una ruta suelta en iOS; el share sheet necesita `file://`. */
@@ -92,10 +102,15 @@ function trackShare(): void {
 // iOS resuelve con { action: 'dismissedAction' } cuando el usuario cancela.
 // Android nunca reporta cancelación: siempre resuelve con { action: 'sharedAction' },
 // así que en Android un cierre de share sheet se cuenta como "shared", no como error.
-export async function shareContent(params: { text: string; referralCode: string }): Promise<ShareResult> {
+export async function shareContent(params: {
+  text: string;
+  referralCode: string;
+  /** Solo la invitación a un grupo (#185): agrega el token al link. */
+  groupInviteToken?: string;
+}): Promise<ShareResult> {
   try {
     const Share = await loadNative();
-    const message = buildShareMessage(params.text, params.referralCode);
+    const message = buildShareMessage(params.text, params.referralCode, params.groupInviteToken);
     const result = await Share.share({ message });
 
     if (result.action === Share.dismissedAction) {
@@ -149,6 +164,61 @@ export async function shareImage(params: { fileUri: string; text: string; referr
     }
     trackShare();
     return { status: "shared", textCopied: false };
+  } catch (error) {
+    return { status: "error", error };
+  }
+}
+
+/**
+ * Exportar lo mío (#173): el texto va sin link de referido. Es lo personal de
+ * la persona (guardados, notas), no una invitación, y no cuenta en el embudo
+ * de compartir. Mismo share sheet y misma política de errores que `shareContent`.
+ */
+export async function sharePlainText(text: string): Promise<ShareResult> {
+  try {
+    const Share = await loadNative();
+    const result = await Share.share({ message: text });
+    return result.action === Share.dismissedAction ? { status: "dismissed" } : { status: "shared" };
+  } catch (error) {
+    return { status: "error", error };
+  }
+}
+
+export type ShareFileNative = {
+  isAvailableAsync: () => Promise<boolean>;
+  shareAsync: (url: string, options?: { mimeType?: string; UTI?: string; dialogTitle?: string }) => Promise<void>;
+};
+
+let fileOverride: ShareFileNative | undefined;
+
+/** Solo para tests. */
+export function setShareFileNativeForTests(native: ShareFileNative | undefined): void {
+  fileOverride = native;
+}
+
+async function loadFileNative(): Promise<ShareFileNative> {
+  if (fileOverride !== undefined) return fileOverride;
+  return await import("expo-sharing");
+}
+
+/**
+ * Comparte un archivo del teléfono (el PDF de "Exportar lo mío") con la hoja
+ * del sistema. `expo-sharing` no distingue cancelar de compartir, así que solo
+ * hay `shared` o `error`. Nunca lanza.
+ */
+export async function shareFile(params: {
+  uri: string;
+  mimeType: string;
+  uti?: string;
+  dialogTitle: string;
+}): Promise<ShareResult> {
+  try {
+    const Sharing = await loadFileNative();
+    if (!(await Sharing.isAvailableAsync())) {
+      return { status: "error", error: new Error("sharing_unavailable") };
+    }
+    await Sharing.shareAsync(params.uri, { mimeType: params.mimeType, UTI: params.uti, dialogTitle: params.dialogTitle });
+    return { status: "shared" };
   } catch (error) {
     return { status: "error", error };
   }

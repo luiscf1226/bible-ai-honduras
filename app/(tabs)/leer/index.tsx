@@ -158,6 +158,20 @@ export default function LeerScreen() {
             <Text style={[styles.planLabel, { color: color.ink }]}>Dónde cae cada libro, de la creación a Apocalipsis</Text>
           </Pressable>
 
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/grupos")}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-groups-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>EN GRUPO</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Un plan con tu familia o tu célula</Text>
+          </Pressable>
+
           {progress ? (
             <Pressable
               accessibilityRole="button"

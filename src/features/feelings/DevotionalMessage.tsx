@@ -1,4 +1,5 @@
 import { useQuery } from "convex/react";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
@@ -7,8 +8,10 @@ import { Icon, type IconName } from "../../components/Icon";
 import { openPassage, openReadingPlan } from "../../lib/openPassage";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
+import { prayerDraft } from "../personal/prayerJournal";
 import { journeyCtaLabel, journeyForFeelings } from "../reading/feelingJourneys";
 import { shareVerse } from "../reading/shareVerse";
+import { SavePrayer } from "./SavePrayer";
 import type { DevotionalTurn } from "./thread";
 
 type DevotionalMessageProps = {
@@ -30,6 +33,8 @@ export function DevotionalMessage({ followUps, referralCode, turn }: DevotionalM
   // pidieron para este devocional.
   const journey = journeyForFeelings(turn.feelings);
   const journeyPlan = useQuery(api.readingPlans.catalog, journey ? { planId: journey.planId } : "skip");
+  // Diario de oración (#159): el campo se abre dentro del mismo mensaje.
+  const [isPrayerOpen, setIsPrayerOpen] = useState(false);
 
   return (
     <View style={styles.wrap}>
@@ -78,7 +83,21 @@ export function DevotionalMessage({ followUps, referralCode, turn }: DevotionalM
               testID="sentir-journey-cta"
             />
           ) : null}
+          <Action
+            hint="Lo guarda en tu diario de oración. Es privado."
+            icon="note"
+            label="Petición"
+            onPress={() => setIsPrayerOpen(true)}
+            testID="sentir-save-prayer"
+          />
         </View>
+        {isPrayerOpen ? (
+          <SavePrayer
+            draft={prayerDraft(turn.feelings, "")}
+            onCancel={() => setIsPrayerOpen(false)}
+            verse={{ book: citation.book, chapter: citation.chapter, verse: citation.verse }}
+          />
+        ) : null}
       </View>
       {followUps ? (
         <View style={styles.followUps}>

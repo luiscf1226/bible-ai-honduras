@@ -31,6 +31,9 @@ export type VerseActionContext = {
   toggleSave: () => void;
   openNote: () => void;
   toggleSeparator: () => void;
+  /** Memorizar (#158): el versículo ya está en el repaso. */
+  memorizing: boolean;
+  toggleMemorize: () => void;
 };
 
 export type VerseAction = {
@@ -81,6 +84,18 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     active: (ctx) => ctx.isSeparator,
     fillWhenActive: true,
     onPress: (ctx) => ctx.toggleSeparator(),
+  },
+  {
+    // Memorizar (#158): repaso espaciado. Se quita tocándolo otra vez.
+    id: "memorize",
+    icon: "refresh",
+    label: (ctx) => (ctx.memorizing ? "Memorizando" : "Memorizar"),
+    accessibilityHint: (ctx) =>
+      ctx.memorizing ? "Lo saca de tu repaso de Memorizar." : "Lo agrega a Memorizar. Aparece en tu repaso de mañana.",
+    testID: "reading-memorize-toggle",
+    visible: (ctx) => ctx.signedIn,
+    active: (ctx) => ctx.memorizing,
+    onPress: (ctx) => ctx.toggleMemorize(),
   },
   {
     id: "share",

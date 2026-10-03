@@ -199,6 +199,46 @@ export const start = mutation({
   },
 });
 
+/**
+ * Empieza el plan hoy si la persona todavía no lo tenía. Si ya lo venía
+ * leyendo, no toca nada: entrar a un grupo (#185) nunca reinicia el avance.
+ */
+export async function ensurePlanStarted(ctx: MutationCtx, userId: Id<"users">, planId: string): Promise<void> {
+  if (await findProgress(ctx, userId, planId)) {
+    return;
+  }
+  await ctx.db.insert("userPlanProgress", {
+    userId,
+    planId,
+    startedAt: hondurasDateKey(),
+    completedDays: [],
+    currentStreak: 0,
+    longestStreak: 0,
+  });
+}
+
+/**
+ * Lo único que un grupo (#185) ve del avance de cada miembro: cuántos días
+ * lleva leídos y si leyó el de hoy. Ni la racha, ni los días pendientes, ni
+ * cuándo empezó. null = todavía no empezó ese plan.
+ */
+export async function groupProgressFor(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  plan: ReadingPlanDefinition,
+  today: string,
+): Promise<{ completedCount: number; todayCompleted: boolean } | null> {
+  const progress = await findProgress(ctx, userId, plan.id);
+  if (!progress) {
+    return null;
+  }
+  const currentDay = currentPlanDay(progress.startedAt, today, plan.totalDays);
+  return {
+    completedCount: progress.completedDays.length,
+    todayCompleted: progress.completedDays.includes(currentDay),
+  };
+}
+
 export type MyPlanProgress = {
   plan: ReadingPlanSummary;
   startedAt: string;
