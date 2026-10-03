@@ -29,7 +29,7 @@ export function isDark() {
   return scenario() === "dark";
 }
 
-// Temporada (#199): ?temporada=reforma | gratitud | adviento. Se combina con
+// Temporada (#199): ?temporada=reforma | gratitud | adviento | anio-nuevo. Se combina con
 // ?qa=dark para la paleta de noche. Sin el parámetro, fuera de temporada.
 export function seasonScenario() {
   if (typeof window === "undefined") return null;

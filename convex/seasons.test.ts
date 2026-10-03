@@ -110,7 +110,14 @@ describe("Semana Santa móvil (borrador)", () => {
     const calendar = proposedSeasonCalendar(2026);
     expect(calendar).toHaveLength(7);
     expect(calendar.every((item) => item.enabled === false)).toBe(true);
-    expect(calendar.every((item) => !item.paletteKey && !item.imageUrl && !item.characterSlug)).toBe(true);
+    expect(calendar.every((item) => !item.imageUrl && !item.characterSlug)).toBe(true);
+    // Octubre a enero traen paleta y guirnalda; el resto todavía no.
+    expect(calendar.filter((item) => item.paletteKey).map((item) => item.paletteKey)).toEqual([
+      "reforma",
+      "gratitud",
+      "adviento",
+      "anio-nuevo",
+    ]);
     expect(calendar.map((item) => validateSeason(item).slug)).toContain("semana-santa-2027");
     // Encendido solo en un test: Semana Santa le gana a un mes temático que la pise.
     const enabled = calendar.map((item) => ({ ...item, enabled: true }));

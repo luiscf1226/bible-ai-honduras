@@ -61,6 +61,16 @@ const SEASONS = {
     characterSlug: null,
     sampleQuestions: [],
   },
+  "anio-nuevo": {
+    ...SEASON_BASE,
+    slug: "versiculo-del-anio-2027",
+    name: "Tu versículo del año",
+    startDate: "2027-01-01",
+    endDate: "2027-01-31",
+    paletteKey: "anio-nuevo",
+    characterSlug: null,
+    sampleQuestions: [],
+  },
 };
 const CURRENT_SEASON = SEASONS[seasonScenario()] ?? null;
 

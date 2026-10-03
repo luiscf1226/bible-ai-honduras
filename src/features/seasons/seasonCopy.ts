@@ -11,6 +11,7 @@ export const SEASON_LINES: Record<SeasonPaletteName, string> = {
   reforma: "Solo la Escritura: un mes para volver a la Palabra.",
   gratitud: "Un mes para dar gracias, con los Salmos en la mano.",
   adviento: "Preparamos el corazón para celebrar que Jesús vino.",
+  "anio-nuevo": "Escogé el versículo que te va a acompañar todo el año.",
 };
 
 const MONTHS = [

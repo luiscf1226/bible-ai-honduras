@@ -63,9 +63,36 @@ export const tokens = {
       day: { accent: "#B08A4E", accentDeep: "#866634", bg: "#EAE0CC", surfaceSunk: "#F4EDDD" },
       night: { accent: "#CDA766", accentDeep: "#866634", bg: "#22201C", surfaceSunk: "#28241F" },
     },
+    // Navidad (no morado litúrgico): rojo de flor de pascua apagado, como la decoración.
     adviento: {
-      day: { accent: "#7E5C74", accentDeep: "#5E4257", bg: "#E7DFDA", surfaceSunk: "#F3EEEA" },
-      night: { accent: "#A7849B", accentDeep: "#5E4257", bg: "#211E20", surfaceSunk: "#272325" },
+      day: { accent: "#9A4A42", accentDeep: "#6F332D", bg: "#E9DFD6", surfaceSunk: "#F4ECE5" },
+      night: { accent: "#C7766B", accentDeep: "#6F332D", bg: "#221E1D", surfaceSunk: "#282322" },
+    },
+    // Enero, "Tu versículo del año": cielo de madrugada.
+    "anio-nuevo": {
+      day: { accent: "#5F7A86", accentDeep: "#45606B", bg: "#E3E2DB", surfaceSunk: "#EFEEE8" },
+      night: { accent: "#8FA8B3", accentDeep: "#45606B", bg: "#1E2021", surfaceSunk: "#242729" },
+    },
+  },
+  // Guirnalda de temporada (design/oleada-ux.md §Decoración de temporada).
+  // Solo la dibuja `SeasonGarland`: calabaza/flor de pascua (`warm`), flores y
+  // estrellas (`gold`), hojas y pino (`leaf`), tallos y cordel (`deep`).
+  seasonDecor: {
+    reforma: {
+      day: { warm: "#C2703D", gold: "#D2A24C", leaf: "#8A9A6B", deep: "#7E4E2F" },
+      night: { warm: "#C98A55", gold: "#D9B163", leaf: "#93A47A", deep: "#A5683F" },
+    },
+    gratitud: {
+      day: { warm: "#C98545", gold: "#D4AE5C", leaf: "#8E9A6A", deep: "#866634" },
+      night: { warm: "#D19A5C", gold: "#DDBB70", leaf: "#97A479", deep: "#B08A4E" },
+    },
+    adviento: {
+      day: { warm: "#A8433B", gold: "#C9A04E", leaf: "#5F7A5E", deep: "#6F332D" },
+      night: { warm: "#C7766B", gold: "#D6B064", leaf: "#7E9A7C", deep: "#9A4A42" },
+    },
+    "anio-nuevo": {
+      day: { warm: "#D19A6A", gold: "#C9A04E", leaf: "#7C8F7B", deep: "#45606B" },
+      night: { warm: "#D9AA7E", gold: "#D6B064", leaf: "#8FA48D", deep: "#5F7A86" },
     },
   },
   paywall: {
@@ -119,7 +146,8 @@ export const tokens = {
     readerBody: { size: 19, lineHeight: 31 },
   },
   // Sobre imágenes (U2): botón volver con fondo surface al 90 % y textos al 85 %.
-  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85 },
+  // Cinta de satén del separador: brillo (`surface`), sombra (`ink`) y tejido de los bordes.
+  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
@@ -143,7 +171,11 @@ export const tokens = {
     hoyImage: 236,
     icon: { sm: 16, md: 20, lg: 24 },
     iconStroke: 1.3,
-    ribbon: { width: 14, height: 42 },
+    // Cinta de satén (separador físico): `height` es el largo mínimo; cuelga
+    // desde el borde de la página y `fade` es lo que tarda en aparecer arriba.
+    ribbon: { width: 16, height: 42, fade: 18, shadow: 1.5, weaveInset: 2.5 },
+    // Guirnalda de temporada del inicio: alto de la ilustración (viewBox 320 × 56).
+    seasonGarland: 56,
     marginMark: 5,
     actionTile: 64,
     // Anillo `accent` del personaje del mes (#200).

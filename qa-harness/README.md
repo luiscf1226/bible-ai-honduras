@@ -57,7 +57,7 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?qa=error` | `devotional:today` falla |
 | `?qa=loading` | todas las `useQuery` en `undefined` |
 | `?qa=dark` | `users.darkMode = true` |
-| `?temporada=reforma` / `gratitud` / `adviento` | `seasons.current` con esa temporada de muestra (#199); se combina con `?qa=dark`. Sin el parámetro, fuera de temporada |
+| `?temporada=reforma` / `gratitud` / `adviento` / `anio-nuevo` | `seasons.current` con esa temporada de muestra (#199); se combina con `?qa=dark`. Sin el parámetro, fuera de temporada |
 | `?lock=on` | "Proteger lo personal" encendido (Mi espacio, Tu año en la Palabra, Sentir y Exportar piden autenticar) |
 | `?auth=none` | el teléfono no tiene biometría ni bloqueo: la opción sale deshabilitada |
 | `?auth=pending` | el diálogo del sistema no contesta: se ve la pantalla de candado |
