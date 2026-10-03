@@ -11,6 +11,7 @@ import {
   needsUnlock,
   sessionOnBackground,
   sessionOnForeground,
+  widgetLockUpdate,
 } from "./personalLock";
 
 const unlocked = { unlocked: true, backgroundAt: null };
@@ -120,5 +121,25 @@ describe("hideLockedFeelings (#171 — Mis conversaciones)", () => {
   it("bloqueado o todavía revisando, las de Sentir no salen", () => {
     expect(hideLockedFeelings(items, "locked").map((item) => item.id)).toEqual(["1", "3"]);
     expect(hideLockedFeelings(items, "checking").map((item) => item.id)).toEqual(["1", "3"]);
+  });
+});
+
+describe("widgetLockUpdate (#184)", () => {
+  it("encender el candado vacía el widget", () => {
+    expect(widgetLockUpdate(true, false)).toBe(true);
+  });
+
+  it("apagarlo lo vuelve a llenar", () => {
+    expect(widgetLockUpdate(false, true)).toBe(false);
+  });
+
+  it("si ya coincide no escribe nada", () => {
+    expect(widgetLockUpdate(true, true)).toBeNull();
+    expect(widgetLockUpdate(false, false)).toBeNull();
+  });
+
+  it("mientras no se leyó la preferencia no toca el widget", () => {
+    expect(widgetLockUpdate(null, true)).toBeNull();
+    expect(widgetLockUpdate(null, false)).toBeNull();
   });
 });

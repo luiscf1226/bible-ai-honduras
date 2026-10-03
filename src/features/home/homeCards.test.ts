@@ -21,7 +21,22 @@ import {
 
 describe("orden de las tarjetas (#193)", () => {
   it("es exactamente el de la tabla del issue, con la franja de temporada arriba del versículo (#199)", () => {
-    expect(HOME_CARD_ORDER).toEqual(["dates", "season", "verse", "savedMemory", "read", "feeling", "ask", "characters", "stories"]);
+    expect(HOME_CARD_ORDER).toEqual([
+      "dates",
+      "season",
+      "verse",
+      "savedMemory",
+      "read",
+      "feeling",
+      "pause",
+      "ask",
+      "characters",
+      "stories",
+    ]);
+  });
+
+  it("la entrada a la pausa (#203) va justo debajo de ¿Cómo estás hoy?", () => {
+    expect(HOME_CARD_ORDER.indexOf("pause")).toBe(HOME_CARD_ORDER.indexOf("feeling") + 1);
   });
 
   it("cada tarjeta abre su módulo", () => {

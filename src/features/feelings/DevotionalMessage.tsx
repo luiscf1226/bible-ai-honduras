@@ -18,7 +18,7 @@ type DevotionalMessageProps = {
   turn: DevotionalTurn;
   referralCode: string | undefined;
   /** Chips de seguimiento: solo debajo del último devocional. */
-  followUps: null | { onAnother: (() => void) | null; onAsk: () => void };
+  followUps: null | { onAnother: (() => void) | null; onAsk: () => void; onPause: () => void };
 };
 
 /**
@@ -105,6 +105,8 @@ export function DevotionalMessage({ followUps, referralCode, turn }: DevotionalM
             <FollowUpChip label="Otro devocional" onPress={followUps.onAnother} testID="sentir-another" />
           ) : null}
           <FollowUpChip label="Tengo una pregunta sobre esto" onPress={followUps.onAsk} testID="sentir-ask" />
+          {/* Un minuto de pausa (#203) con el versículo de este devocional. */}
+          <FollowUpChip label="Un minuto de pausa" onPress={followUps.onPause} testID="sentir-pause" />
         </View>
       ) : null}
     </View>

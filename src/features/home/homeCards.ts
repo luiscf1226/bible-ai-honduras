@@ -13,8 +13,21 @@ import type { Feeling } from "../feelings/feelings";
  * Orden exacto de las tarjetas del inicio (#193). Una tarjeta nueva entra acá y en `cards/index.ts`.
  * `season` es la franja de temporada (#199): solo se ve con temporada activa.
  * `dates` es Tus fechas (#204): solo el día del cumpleaños o del bautismo.
+ * `pause` es la entrada callada al minuto de pausa (#203): una línea, no una
+ * tarjeta, justo debajo de "¿Cómo estás hoy?" (para quien llega cansado).
  */
-export const HOME_CARD_ORDER = ["dates", "season", "verse", "savedMemory", "read", "feeling", "ask", "characters", "stories"] as const;
+export const HOME_CARD_ORDER = [
+  "dates",
+  "season",
+  "verse",
+  "savedMemory",
+  "read",
+  "feeling",
+  "pause",
+  "ask",
+  "characters",
+  "stories",
+] as const;
 export type HomeCardId = (typeof HOME_CARD_ORDER)[number];
 
 /** Ruta en la forma que acepta `router.push`. */
@@ -75,6 +88,11 @@ export function feelingRoute(feeling: string): HomeRoute {
 }
 
 export const FEELING_WRITE_ROUTE: HomeRoute = { pathname: "/sentir", params: { escribir: "1" } };
+
+// ── Un minuto de pausa (#203) ────────────────────────────────────────────────
+
+export const PAUSE_LINK_LABEL = "Un minuto de pausa";
+export const PAUSE_LINK_CAPTION = "Sin leer ni escribir: un versículo y silencio";
 
 // ── Preguntar sobre la Biblia ────────────────────────────────────────────────
 

@@ -72,6 +72,9 @@ export default function AjustesScreen() {
   const storedVersion = user?.bibleVersion ?? DEFAULT_BIBLE_VERSION;
   const bibleVersion = bibleVersionIsAvailable(storedVersion) ? storedVersion : DEFAULT_BIBLE_VERSION;
   const darkMode = user?.darkMode ?? false;
+  // "Hace un año guardaste…" (#172): sin preferencia guardada está encendida,
+  // igual que en el servidor (`savedMemory.thisWeek` solo la apaga con false).
+  const savedMemoryEnabled = user?.savedMemoryEnabled !== false;
   const appUpdate = useAppUpdate();
   // Biblia sin conexión (#160). Leer es gratis: no pasa por cuotas.
   const { online, clearUserData, forgetNotes } = useOfflineSync();
@@ -275,6 +278,32 @@ export default function AjustesScreen() {
           </View>
           <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
         </Pressable>
+        {/* Mismo renglón con interruptor que "Modo noche suave". */}
+        <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}>
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: color.ink }]}>Recuerdos de tus guardados</Text>
+            <Text style={[styles.rowHint, { color: color.inkSoft }]}>
+              Una vez por semana, el inicio te trae un versículo que guardaste hace tiempo
+            </Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Recuerdos de tus guardados"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: savedMemoryEnabled, disabled: !user }}
+            disabled={!user}
+            onPress={() => void updatePreferences({ savedMemoryEnabled: !savedMemoryEnabled }).catch(() => undefined)}
+            style={[styles.switchTrack, { backgroundColor: savedMemoryEnabled ? color.sage : color.border }]}
+            testID="ajustes-recuerdos-switch"
+          >
+            <View
+              style={[
+                styles.switchKnob,
+                { backgroundColor: color.surface },
+                savedMemoryEnabled && styles.switchKnobActive,
+              ]}
+            />
+          </Pressable>
+        </View>
         {/* Mismo bloque que la confirmación de "Eliminar mi cuenta": copy,
             campo y botón. Desaparece a los 30 días o cuando ya hay invitación. */}
         {canEnterReferral(user) ? (

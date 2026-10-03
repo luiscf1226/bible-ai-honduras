@@ -11,10 +11,12 @@ import {
   needsUnlock,
   sessionOnBackground,
   sessionOnForeground,
+  widgetLockUpdate,
   type AuthOutcome,
   type LockAvailability,
   type LockSession,
 } from "./personalLock";
+import { getReadingWidgetLocked, setReadingWidgetLocked } from "../widget/readingWidgetPrivacy";
 
 /**
  * Estado del candado de "Proteger lo personal" (#171), uno solo para toda la
@@ -77,10 +79,25 @@ async function readAvailability(): Promise<LockAvailability> {
   }
 }
 
+/**
+ * El widget "Tu lectura de hoy" (#184) se vacía con el candado encendido y se
+ * vuelve a llenar al apagarlo. Solo escribe si cambió; un error no rompe el
+ * candado de la app.
+ */
+async function syncReadingWidget(enabled: boolean | null) {
+  try {
+    const next = widgetLockUpdate(enabled, await getReadingWidgetLocked());
+    if (next !== null) await setReadingWidgetLocked(next);
+  } catch {
+    // El widget se repara en la próxima vuelta a la app.
+  }
+}
+
 /** Se vuelve a leer al volver a la app: la persona pudo activar o quitar el bloqueo del teléfono. */
 async function refreshDevice() {
   const [enabled, availability] = await Promise.all([readEnabled(), readAvailability()]);
   update({ enabled, availability });
+  void syncReadingWidget(enabled);
 }
 
 function onAppState(next: AppStateStatus) {
@@ -179,6 +196,7 @@ export function usePersonalLockSetting() {
         return false;
       }
       update({ enabled: value });
+      void syncReadingWidget(value);
       return true;
     },
   };

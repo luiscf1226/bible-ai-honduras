@@ -15,6 +15,7 @@ import { FeelingsComposer } from "../../src/features/feelings/FeelingsComposer";
 import { HistoryDrawer } from "../../src/features/feelings/HistoryDrawer";
 import { SentirHeader } from "../../src/features/feelings/SentirHeader";
 import { feelingFromParam } from "../../src/features/feelings/feelings";
+import { goToPause } from "../../src/features/pause/goToPause";
 import {
   INITIAL_THREAD,
   bottomSlotFor,
@@ -209,6 +210,13 @@ function SentirScreenContent() {
                         onAnother: atLimit ? null : () => dispatch({ type: "anotherRequested" }),
                         onAsk: () =>
                           goToChat({
+                            book: turn.devotional.citation.book,
+                            chapter: turn.devotional.citation.chapter,
+                            verse: turn.devotional.citation.verse,
+                          }),
+                        // Solo la cita viaja a la pausa: nada de lo que la persona contó.
+                        onPause: () =>
+                          goToPause({
                             book: turn.devotional.citation.book,
                             chapter: turn.devotional.citation.chapter,
                             verse: turn.devotional.citation.verse,
