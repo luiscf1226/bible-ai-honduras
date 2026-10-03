@@ -19,6 +19,14 @@ export function openPassage(passage: PassageQuery) {
   });
 }
 
+/** Dedicar un versículo como imagen (#202): desde el lector y desde `/hoy`. */
+export function openDedication(passage: { book: string; chapter: number; verse: number }) {
+  router.push({
+    pathname: "/dedicar",
+    params: { book: passage.book, chapter: String(passage.chapter), verse: String(passage.verse) },
+  });
+}
+
 /** Pantalla de un plan de lectura: el anual o un recorrido corto (#115). */
 export function openReadingPlan(planId: string) {
   router.push({ pathname: "/leer/plan", params: { planId } });

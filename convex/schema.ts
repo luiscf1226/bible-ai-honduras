@@ -253,6 +253,8 @@ export default defineSchema({
     installId: v.string(),
     name: v.string(),
     module: v.optional(v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings"), v.literal("stories"))),
+    // `share_completed` desde "Dedicar" (#202). Lista cerrada en convex/telemetry.ts.
+    origin: v.optional(v.literal("dedicated")),
     platform: v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
     build: v.optional(v.string()),
     at: v.number(),

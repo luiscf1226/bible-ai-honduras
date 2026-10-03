@@ -26,7 +26,7 @@ import { useTodayDevotional, useTodayVerse } from "../src/features/home/useToday
 import { VerseStoryCard } from "../src/features/home/VerseStoryCard";
 import { storyCaptureSize } from "../src/features/home/verseStoryLayout";
 import { goToChat } from "../src/lib/goToChat";
-import { openPassage } from "../src/lib/openPassage";
+import { openDedication, openPassage } from "../src/lib/openPassage";
 import { asFileUri, shareContent, shareImage } from "../src/lib/share";
 import { track } from "../src/lib/telemetry";
 import { useTheme } from "../src/theme/ThemeProvider";
@@ -245,6 +245,12 @@ export default function HoyScreen() {
                   onPress={() => void onToggleBookmark()}
                   selected={isSaved}
                   testID="hoy-bookmark"
+                />
+                <ActionRow
+                  icon="gift"
+                  label="Dedicar este versículo"
+                  onPress={() => openDedication(passage)}
+                  testID="hoy-dedicate"
                 />
                 <ActionRow
                   icon="book"

@@ -69,6 +69,19 @@ export const ICONS = {
   ],
   textSize: [path("M3 18l4.5-11L12 18M4.6 14h5.8"), path("M14 18l3-7 3 7M15 15.8h4")],
   calendar: [{ kind: "rect", x: 4, y: 5.5, width: 16, height: 14.5, rx: 2.4 }, path("M4 10h16M8.5 3.5v4M15.5 3.5v4")],
+  // Escuchar el capítulo (#157, design/dedicar-y-escuchar.md).
+  listen: [
+    path("M4.5 15.5V12a7.5 7.5 0 0 1 15 0v3.5"),
+    { kind: "rect", x: 4.5, y: 13.5, width: 3.5, height: 6, rx: 1.4 },
+    { kind: "rect", x: 16, y: 13.5, width: 3.5, height: 6, rx: 1.4 },
+  ],
+  play: [path("M8.5 5.5v13l10-6.5z")],
+  pause: [path("M9 5.5v13M15 5.5v13")],
+  // Dedicar un versículo (#202).
+  gift: [
+    { kind: "rect", x: 4, y: 9, width: 16, height: 11, rx: 2 },
+    path("M3.5 9h17M12 9v11M12 9c-1.5-3.5-5.5-4-5.5-1.5S10 9 12 9zM12 9c1.5-3.5 5.5-4 5.5-1.5S14 9 12 9z"),
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof ICONS;

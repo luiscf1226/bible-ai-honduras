@@ -1,3 +1,5 @@
+import type { ShareOrigin } from "../../convex/telemetry";
+
 // Landing de GitHub Pages que ya se usa para privacidad (docs/store/privacy-policy.md,
 // app/ajustes.tsx). El dominio bibleaihonduras.app nunca se registró y no resuelve
 // (#103). La landing no tiene una ruta /r/<code>, así que el código de referido va
@@ -81,11 +83,27 @@ async function loadNative(): Promise<ShareNative> {
   };
 }
 
-// Embudo (convex/telemetry.ts): solo que se compartió, nunca qué. Import
-// dinámico por lo mismo que `loadNative`, y nunca en tests.
-function trackShare(): void {
-  if (nativeOverride !== undefined) return;
-  void import("./telemetry").then(({ track }) => track("share_completed")).catch(() => undefined);
+/** De dónde sale una imagen compartida, para el embudo. Solo "Dedicar" (#202) por ahora. */
+export type { ShareOrigin };
+
+// Embudo (convex/telemetry.ts): solo que se compartió (y, si importa, desde
+// dónde), nunca qué. Import dinámico por lo mismo que `loadNative`, y nunca en
+// tests: ahí se registra en `trackedShares` para poder verificarlo.
+const trackedShares: (ShareOrigin | null)[] = [];
+
+function trackShare(origin?: ShareOrigin): void {
+  if (nativeOverride !== undefined) {
+    trackedShares.push(origin ?? null);
+    return;
+  }
+  void import("./telemetry")
+    .then(({ track }) => track("share_completed", undefined, origin ? { origin } : undefined))
+    .catch(() => undefined);
+}
+
+/** Solo para tests: los `share_completed` que se habrían mandado, con su origen. */
+export function takeTrackedSharesForTests(): (ShareOrigin | null)[] {
+  return trackedShares.splice(0);
 }
 
 // Dueño único del share sheet nativo (regla dura #3 de CLAUDE.md) — todo módulo que
@@ -135,7 +153,13 @@ export async function shareContent(params: {
  *   al portapapeles para no perder el `?ref=`. Android no avisa si se canceló:
  *   se cuenta como `shared`, igual que en `shareContent`.
  */
-export async function shareImage(params: { fileUri: string; text: string; referralCode: string }): Promise<ShareImageResult> {
+export async function shareImage(params: {
+  fileUri: string;
+  text: string;
+  referralCode: string;
+  /** "dedicated" = versículo dedicado (#202): el embudo lo distingue. */
+  origin?: ShareOrigin;
+}): Promise<ShareImageResult> {
   try {
     const native = await loadNative();
     const message = buildShareMessage(params.text, params.referralCode);
@@ -154,7 +178,7 @@ export async function shareImage(params: { fileUri: string; text: string; referr
         }
       }
       await native.shareFile(params.fileUri, { mimeType: "image/png", dialogTitle: "Compartir versículo" });
-      trackShare();
+      trackShare(params.origin);
       return { status: "shared", textCopied };
     }
 
@@ -162,7 +186,7 @@ export async function shareImage(params: { fileUri: string; text: string; referr
     if (result.action === native.dismissedAction) {
       return { status: "dismissed" };
     }
-    trackShare();
+    trackShare(params.origin);
     return { status: "shared", textCopied: false };
   } catch (error) {
     return { status: "error", error };

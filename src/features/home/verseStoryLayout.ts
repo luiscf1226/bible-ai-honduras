@@ -36,10 +36,45 @@ const BRAND_BLOCK_EM = 4;
 // Con temporada (#199), su nombre arriba: un renglón + aire, en múltiplos de su tamaño.
 const SEASON_BLOCK_EM = 2;
 
-export type VerseStoryOptions = {
-  /** Hay temporada activa: su nombre ocupa la franja de arriba. */
-  withSeason?: boolean;
+export type StoryFormat = "story" | "square";
+
+/** Bloque "Para …" + dedicatoria del versículo dedicado (#202), ya medido. */
+export type DedicationBlock = {
+  /** Tamaño del "Para …", en píxeles de salida. */
+  toSize: number;
+  toLines: number;
+  /** Renglones de la dedicatoria (0 = sin dedicatoria). */
+  messageLines: number;
 };
+
+export type VerseStoryOptions = {
+  /** Hay temporada activa (o el título de la plantilla): ocupa la franja de arriba. */
+  withSeason?: boolean;
+  /** 9:16 para el estado (default) o cuadrado para el chat (#202). */
+  format?: StoryFormat;
+  /** Versículo dedicado (#202): su bloque resta alto y el versículo puede bajar hasta `dedicationVerseMin`. */
+  dedication?: DedicationBlock;
+};
+
+/** Alto y margen vertical de la imagen según el formato. */
+export function storyFrame(image: StoryImageTokens = tokens.storyImage, format: StoryFormat = "story") {
+  return format === "square"
+    ? { width: image.width, height: image.squareHeight, paddingY: image.squarePaddingY }
+    : { width: image.width, height: image.height, paddingY: image.paddingY };
+}
+
+/** Caracteres de EB Garamond que entran en un renglón de la imagen a `fontSize`. */
+export function serifCharsPerLine(fontSize: number, image: StoryImageTokens = tokens.storyImage): number {
+  return (image.width - image.paddingX * 2) / (fontSize * SERIF_CHAR_WIDTH_EM);
+}
+
+/** Alto del bloque de dedicatoria: "Para …", filete con su aire y la dedicatoria. */
+export function dedicationBlockHeight(block: DedicationBlock, image: StoryImageTokens = tokens.storyImage): number {
+  const to = block.toLines * block.toSize * image.verseLineHeight;
+  const rule = image.dedicationRule + block.toSize;
+  const message = block.messageLines > 0 ? block.messageLines * image.dedicationMessage * image.verseLineHeight + image.dedicationMessage : 0;
+  return to + rule + message;
+}
 
 /** Renglones que ocupa `text` partiendo por palabras con `charsPerLine` caracteres. */
 export function estimateLines(text: string, charsPerLine: number): number {
@@ -66,8 +101,10 @@ export function estimateLines(text: string, charsPerLine: number): number {
 
 /** Alto disponible para el versículo, descontando márgenes, cita, marca y, si hay, la temporada. */
 export function verseAreaHeight(image: StoryImageTokens = tokens.storyImage, options: VerseStoryOptions = {}): number {
+  const frame = storyFrame(image, options.format);
   const season = options.withSeason ? image.season * SEASON_BLOCK_EM : 0;
-  return image.height - image.paddingY * 2 - image.reference * REFERENCE_BLOCK_EM - image.brand * BRAND_BLOCK_EM - season;
+  const dedication = options.dedication ? dedicationBlockHeight(options.dedication, image) : 0;
+  return frame.height - frame.paddingY * 2 - image.reference * REFERENCE_BLOCK_EM - image.brand * BRAND_BLOCK_EM - season - dedication;
 }
 
 export function verseStoryLayout(
@@ -84,14 +121,16 @@ export function verseStoryLayout(
     return { fontSize, lineHeight, lines, maxLines: Math.max(1, Math.floor(availableHeight / lineHeight)) };
   };
 
-  for (let fontSize = image.verseMax; fontSize >= image.verseMin; fontSize -= FONT_STEP) {
+  // Un versículo dedicado nunca se corta (#202: "sin editar"): puede achicarse más.
+  const minFont = options.dedication ? image.dedicationVerseMin : image.verseMin;
+  for (let fontSize = image.verseMax; fontSize >= minFont; fontSize -= FONT_STEP) {
     const candidate = measure(fontSize);
     if (candidate.lines * candidate.lineHeight <= availableHeight) {
       return { ...candidate, truncated: false };
     }
   }
 
-  const smallest = measure(image.verseMin);
+  const smallest = measure(minFont);
   return { ...smallest, truncated: smallest.lines > smallest.maxLines };
 }
 
@@ -115,7 +154,13 @@ export function storyChrome(image: StoryImageTokens = tokens.storyImage) {
  * iOS lo toma en puntos y lo multiplica por la densidad de la pantalla;
  * Android (y web) lo toman en píxeles.
  */
-export function storyCaptureSize(os: string, pixelRatio: number, image: StoryImageTokens = tokens.storyImage) {
+export function storyCaptureSize(
+  os: string,
+  pixelRatio: number,
+  image: StoryImageTokens = tokens.storyImage,
+  format: StoryFormat = "story",
+) {
   const divisor = os === "ios" && pixelRatio > 0 ? pixelRatio : 1;
-  return { width: image.width / divisor, height: image.height / divisor };
+  const frame = storyFrame(image, format);
+  return { width: frame.width / divisor, height: frame.height / divisor };
 }
