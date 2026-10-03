@@ -12,8 +12,9 @@ import type { Feeling } from "../feelings/feelings";
 /**
  * Orden exacto de las tarjetas del inicio (#193). Una tarjeta nueva entra acá y en `cards/index.ts`.
  * `season` es la franja de temporada (#199): solo se ve con temporada activa.
+ * `dates` es Tus fechas (#204): solo el día del cumpleaños o del bautismo.
  */
-export const HOME_CARD_ORDER = ["season", "verse", "read", "feeling", "ask", "characters", "stories"] as const;
+export const HOME_CARD_ORDER = ["dates", "season", "verse", "savedMemory", "read", "feeling", "ask", "characters", "stories"] as const;
 export type HomeCardId = (typeof HOME_CARD_ORDER)[number];
 
 /** Ruta en la forma que acepta `router.push`. */

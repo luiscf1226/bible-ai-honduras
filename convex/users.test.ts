@@ -369,3 +369,53 @@ describe("users.upsert — red de seguridad de la migración (#124)", () => {
     expect((await t.run((ctx) => ctx.db.get(userId)))?.onboardedAt).toBeUndefined();
   });
 });
+
+describe("users.setPersonalDates — Tus fechas (#204)", () => {
+  it("guarda el cumpleaños (sin año) y el bautismo, y los borra con null", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_fechas");
+    const userId = await authed.mutation(api.users.upsert, {});
+
+    await authed.mutation(api.users.setPersonalDates, { birthday: "02-29" });
+    await authed.mutation(api.users.setPersonalDates, { faithDate: "2019-06-15", faithDateKind: "conversion" });
+    expect(await t.run((ctx) => ctx.db.get(userId))).toMatchObject({
+      birthday: "02-29",
+      faithDate: "2019-06-15",
+      faithDateKind: "conversion",
+    });
+
+    // Sin el campo no se toca; con null se borra.
+    await authed.mutation(api.users.setPersonalDates, { birthday: null });
+    const user = await t.run((ctx) => ctx.db.get(userId));
+    expect(user?.birthday).toBeUndefined();
+    expect(user?.faithDate).toBe("2019-06-15");
+
+    await authed.mutation(api.users.setPersonalDates, { faithDate: null, faithDateKind: null });
+    const cleared = await t.run((ctx) => ctx.db.get(userId));
+    expect(cleared?.faithDate).toBeUndefined();
+    expect(cleared?.faithDateKind).toBeUndefined();
+  });
+
+  it("no confía en el cliente: rechaza formatos y fechas que no existen", async () => {
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_fechas_malas");
+    await authed.mutation(api.users.upsert, {});
+
+    await expect(authed.mutation(api.users.setPersonalDates, { birthday: "1990-03-14" })).rejects.toThrow("birthday");
+    await expect(authed.mutation(api.users.setPersonalDates, { birthday: "02-30" })).rejects.toThrow("birthday");
+    await expect(authed.mutation(api.users.setPersonalDates, { faithDate: "2019-02-29" })).rejects.toThrow("faithDate");
+    await expect(authed.mutation(api.users.setPersonalDates, { faithDate: "3000-01-01" })).rejects.toThrow("futura");
+  });
+
+  it("requiere sesión y solo toca la fila propia", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.mutation(api.users.setPersonalDates, { birthday: "01-01" })).rejects.toThrow("No autenticado");
+
+    const ana = asUser(t, "user_ana_fechas");
+    const beto = asUser(t, "user_beto_fechas");
+    await ana.mutation(api.users.upsert, {});
+    const betoId = await beto.mutation(api.users.upsert, {});
+    await ana.mutation(api.users.setPersonalDates, { birthday: "07-04" });
+    expect((await t.run((ctx) => ctx.db.get(betoId)))?.birthday).toBeUndefined();
+  });
+});

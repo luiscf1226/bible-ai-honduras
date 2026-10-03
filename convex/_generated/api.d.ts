@@ -36,6 +36,7 @@ import type * as memorize from "../memorize.js";
 import type * as memorizeSchedule from "../memorizeSchedule.js";
 import type * as offlineBible from "../offlineBible.js";
 import type * as offlineBiblePackage from "../offlineBiblePackage.js";
+import type * as personalDates from "../personalDates.js";
 import type * as prayers from "../prayers.js";
 import type * as qa from "../qa.js";
 import type * as quotas from "../quotas.js";
@@ -107,6 +108,7 @@ declare const fullApi: ApiFromModules<{
   memorizeSchedule: typeof memorizeSchedule;
   offlineBible: typeof offlineBible;
   offlineBiblePackage: typeof offlineBiblePackage;
+  personalDates: typeof personalDates;
   prayers: typeof prayers;
   qa: typeof qa;
   quotas: typeof quotas;

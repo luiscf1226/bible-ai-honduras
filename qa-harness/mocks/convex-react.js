@@ -67,7 +67,28 @@ const CURRENT_SEASON = SEASONS[seasonScenario()] ?? null;
 const listeners = new Set();
 const notify = () => listeners.forEach((l) => l());
 
+// Tus fechas (#204): `?fechas=hoy` carga un cumpleaños y un bautismo (de hace
+// 3 años) que caen hoy en el reloj del navegador; `?fechas=1` los carga en
+// otra fecha (se ven en Mi espacio pero no en el inicio). Sin el parámetro,
+// sin fechas.
+function personalDatesScenario() {
+  if (typeof window === "undefined") return {};
+  const value = new URLSearchParams(window.location.search).get("fechas");
+  if (!value) return {};
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  if (value === "hoy") {
+    return {
+      birthday: `${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+      faithDate: `${now.getFullYear() - 3}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+      faithDateKind: "bautismo",
+    };
+  }
+  return { birthday: "02-29", faithDate: "2015-08-09", faithDateKind: "conversion" };
+}
+
 const db = {
+  ...personalDatesScenario(),
   darkMode: isDark(),
   bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
@@ -365,7 +386,18 @@ const handlers = {
     readingFontStep: db.readingFontStep,
     readingSpacingStep: db.readingSpacingStep,
     readerHintSeen: db.readerHintSeen,
+    name: "Ana López",
+    birthday: db.birthday,
+    faithDate: db.faithDate,
+    faithDateKind: db.faithDateKind,
   }),
+  "users:setPersonalDates": (args) => {
+    for (const key of ["birthday", "faithDate", "faithDateKind"]) {
+      if (args[key] !== undefined) db[key] = args[key] ?? undefined;
+    }
+    notify();
+    return null;
+  },
   // Invitaciones: BAH-QA00001 existe; el resto no.
   "referrals:claim": (args) => {
     if (db.referredBy) return { status: "already" };

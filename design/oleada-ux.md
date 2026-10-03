@@ -233,3 +233,38 @@ columnas. Tocar un libro → `ChapterGrid`.
   `subtitle`, una línea de quién fue, y fila de atajos con íconos `sm`
   (Su historia · Capítulos · Recorrido · Conversar). En el inicio: anillo en
   la tarjeta de Personajes (U1).
+
+## Un minuto de pausa `/pausa` (#203)
+
+Pantalla completa sobre `bg` (que ya trae la temporada, #199). Nada más que el
+versículo, el silencio y una salida.
+
+- **Encabezado:** ‹ de `ScreenHeader` ("Salir de la pausa": se puede salir en
+  cualquier momento) y al centro `UN MINUTO DE PAUSA` en `overline` `inkSoft`.
+- **Versículo:** centrado en el espacio libre, `verseHero` serif `ink`, con
+  comillas; debajo la cita · versión en `caption` medium `inkMuted`. Es el
+  versículo del día o el del devocional de Sentir del que se viene, siempre con
+  su texto del corpus (`rag.verses.citedForUser`), nunca generado.
+- **Paso del tiempo:** una sola línea de `size.pauseLine` al pie, pista
+  `border` y relleno `accent`, que avanza lineal durante el minuto. Sin números,
+  sin cuenta regresiva.
+- **Cierre:** "Amén" en `title` serif `accentDeep`, y dos salidas: **Leer el
+  capítulo** (`AppButton` primario, ícono `book`) y **Volver** (`quiet`). El
+  cierre ocupa su lugar invisible durante el minuto para que el versículo no
+  salte.
+- **Ritmo** (`motion`, ms): el versículo aparece tras `verseDelay` 600 en un
+  fundido de `verseFadeIn` 2400; el minuto es `pause` 60000; el cierre entra en
+  `closeFadeIn` 1200. Curvas suaves (`ease-out`), sin rebote. Con "reducir
+  movimiento" nada se anima: el versículo y el cierre aparecen de una y la línea
+  avanza a saltos de un segundo.
+- **No hay:** racha, contador de pausas, confetti ni sonido. La pantalla no se
+  apaga durante el minuto (`expo-keep-awake`) y vuelve a lo normal al terminar o
+  al salir. Al terminar solo se manda `track("pause_completed")`, sin contenido.
+
+| Token | Valor | Uso |
+|---|---|---|
+| `size.pauseLine` | 2 | Alto de la línea del tiempo |
+| `motion.pause` | 60000 | Duración del minuto |
+| `motion.verseDelay` | 600 | Respiro antes de que aparezca el versículo |
+| `motion.verseFadeIn` | 2400 | Fundido del versículo |
+| `motion.closeFadeIn` | 1200 | Fundido del "Amén" y las salidas |

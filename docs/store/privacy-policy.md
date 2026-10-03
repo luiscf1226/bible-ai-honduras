@@ -13,6 +13,11 @@ y elimina información cuando usás la aplicación móvil.
 - **Cuenta:** identificador de Clerk y, cuando están disponibles, correo y
   nombre.
 - **Preferencias:** versión bíblica, hora del recordatorio y modo oscuro.
+- **Tus fechas (opcional):** si las cargás en Mi espacio, el día y el mes de
+  tu cumpleaños (sin año) y la fecha de tu bautismo o conversión. Sirven solo
+  para saludarte ese día con un versículo en el inicio y en el recordatorio.
+  No se envían a proveedores de IA, ni a RevenueCat, ni van en los datos de
+  diagnóstico.
 - **Contenido que ingresás y recibís:** preguntas, mensajes, sentimientos o
   notas que escribís, conversaciones, respuestas y devocionales generados.
   Este contenido puede revelar creencias religiosas, estado emocional u otra
@@ -103,7 +108,8 @@ unidos a tu cuenta, no aparecen en el historial ni se pueden asociar a vos.
 
 Podés eliminar la cuenta **desde la app** en
 **Ajustes → Cuenta → Eliminar mi cuenta**. El flujo pide confirmación en dos
-pasos (incluido escribir la palabra ELIMINAR). Borra en cascada el perfil, las
+pasos (incluido escribir la palabra ELIMINAR). Borra en cascada el perfil (con
+tus fechas: cumpleaños y bautismo o conversión), las
 conversaciones y mensajes, los conteos de uso, el plan dentro de la app, los
 datos de lectura (progreso, guardados, separador y planes), el diario de
 oración, los versículos de Memorizar, las historias e imágenes generadas que

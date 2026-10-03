@@ -43,6 +43,8 @@ export const TELEMETRY_EVENTS = [
   "season_shown",
   "featured_character_opened",
   "bible_downloaded",
+  // Un minuto de pausa (#203): solo que se completó. Sin versículo ni conteo.
+  "pause_completed",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 
