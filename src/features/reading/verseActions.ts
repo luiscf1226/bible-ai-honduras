@@ -5,6 +5,8 @@ import { goToVoices } from "../../lib/goToVoices";
 import { openTimeline } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
+import { hasCrossReferences } from "./crossReferences";
+import { openRelatedPassages } from "./openRelatedPassages";
 import { buildVerseCopyText, shareVerse, type ReadingVerse } from "./shareVerse";
 import { eraForChapter } from "./timeline";
 
@@ -113,6 +115,16 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     accessibilityLabel: () => "Preguntar sobre esto",
     testID: "reading-action-ask",
     onPress: (ctx) => goToChat(ctx.verse),
+  },
+  {
+    // Referencias cruzadas (#187): índice fijo, no IA. Solo si el versículo tiene.
+    id: "related",
+    icon: "book",
+    label: () => "Relacionados",
+    accessibilityLabel: () => "Ver pasajes relacionados",
+    testID: "reading-action-related",
+    visible: (ctx) => hasCrossReferences(ctx.verse),
+    onPress: (ctx) => openRelatedPassages(ctx.verse),
   },
   {
     // Puente Lectura → Voces: si el capítulo lo vivió o lo escribió un

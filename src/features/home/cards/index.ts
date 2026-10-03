@@ -6,6 +6,7 @@ import { CharactersCard } from "./CharactersCard";
 import { FeelingCard } from "./FeelingCard";
 import { PersonalDateCard } from "./PersonalDateCard";
 import { ReadCard } from "./ReadCard";
+import { SavedMemoryCard } from "./SavedMemoryCard";
 import { SeasonStrip } from "./SeasonStrip";
 import { StoriesCard } from "./StoriesCard";
 import { VerseCard } from "./VerseCard";
@@ -27,6 +28,7 @@ const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
   dates: { Component: PersonalDateCard },
   season: { Component: SeasonStrip, visible: ({ season }) => season !== null },
   verse: { Component: VerseCard },
+  savedMemory: { Component: SavedMemoryCard },
   read: { Component: ReadCard },
   feeling: { Component: FeelingCard },
   ask: { Component: AskCard },
