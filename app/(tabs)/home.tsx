@@ -5,7 +5,7 @@ import { router, useLocalSearchParams, type Href } from "expo-router";
 import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
 import { Icon } from "../../src/components/Icon";
-import { visibleHomeCards } from "../../src/features/home/cards";
+import { homeRows, visibleHomeCards } from "../../src/features/home/cards";
 import { greetingFor, hondurasDate, hondurasHour } from "../../src/features/home/homeCards";
 import { hondurasToday } from "../../src/features/widget/verseWidget";
 import { useAppUpdate } from "../../src/hooks/useAppUpdate";
@@ -14,9 +14,13 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
 /**
- * Inicio en tarjetas (#193, design/oleada-ux.md §U1). Cada módulo dice qué
+ * Inicio en tarjetas (#193, design/oleada-ux.md §U1b). Cada módulo dice qué
  * ofrece en su tarjeta; el orden y el contenido viven en
  * `src/features/home/` para que esta pantalla no crezca con cada tarjeta.
+ *
+ * Todo entra en una pantalla: la tarjeta del versículo se estira con lo que
+ * sobra y los módulos van en una cuadrícula 2×2. El scroll queda solo de
+ * respaldo (teléfonos chicos, letra grande, o los días con tarjetas extra).
  */
 export default function HomeScreen() {
   const { color, dark, season } = useTheme();
@@ -36,7 +40,7 @@ export default function HomeScreen() {
   // con sesión, así que acá se atiende también el arranque desde el aviso.
   useEffect(() => subscribeToDailyReminderTaps((pathname) => router.push(pathname as Href)), []);
 
-  const cards = visibleHomeCards({ dateKey: hondurasToday(), season });
+  const rows = homeRows(visibleHomeCards({ dateKey: hondurasToday(), season }));
 
   return (
     <AppScreen contentStyle={styles.screen} style={{ backgroundColor: dark ? color.bg : color.surface }}>
@@ -88,26 +92,38 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {cards.map(({ Component, id }) => (
-          <Component key={id} />
-        ))}
+        {/* La tarjeta del versículo se estira sola (`flex: 1`) con el alto que sobra. */}
+        {rows.map(({ cards, key, tiles }) => {
+          const rendered = cards.map(({ Component, id }) => <Component key={id} />);
+          return tiles ? (
+            <View key={key} style={styles.tiles}>
+              {rendered}
+            </View>
+          ) : (
+            rendered
+          );
+        })}
       </ScrollView>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  // El scroll se lleva el padding horizontal.
-  screen: { paddingBottom: 0, paddingHorizontal: 0 },
+  // El scroll se lleva el padding horizontal; arriba, lo justo para que todo entre en una pantalla.
+  screen: { paddingBottom: 0, paddingHorizontal: 0, paddingTop: tokens.space.sm },
   scroll: { flex: 1 },
-  content: { gap: tokens.space.lg, paddingBottom: tokens.space.xxl, paddingHorizontal: tokens.screenPadding.horizontal },
+  content: {
+    flexGrow: 1,
+    gap: tokens.space.sm,
+    paddingBottom: tokens.space.sm,
+    paddingHorizontal: tokens.screenPadding.horizontal,
+  },
+  tiles: { flexDirection: "row", gap: tokens.space.sm },
   pressed: { opacity: tokens.opacity.pressed },
   header: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: tokens.space.xs,
-    marginTop: tokens.space.sm,
   },
   identity: { alignItems: "center", flexDirection: "row", flex: 1, gap: tokens.space.md },
   identityText: { flex: 1 },

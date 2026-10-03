@@ -1,4 +1,3 @@
-import type { IconName } from "../../components/Icon";
 import type { PassageQuery } from "../reading/bookSearch";
 import type { Feeling } from "../feelings/feelings";
 
@@ -15,20 +14,26 @@ import type { Feeling } from "../feelings/feelings";
  * `dates` es Tus fechas (#204): solo el día del cumpleaños o del bautismo.
  * `pause` es la entrada callada al minuto de pausa (#203): una línea, no una
  * tarjeta, justo debajo de "¿Cómo estás hoy?" (para quien llega cansado).
+ *
+ * Inicio compacto (U1b): todo entra en una pantalla sin scroll. Los cuatro
+ * módulos van al final como mosaicos de una cuadrícula 2×2 (`HOME_TILE_IDS`).
  */
 export const HOME_CARD_ORDER = [
   "dates",
   "season",
   "verse",
   "savedMemory",
-  "read",
   "feeling",
   "pause",
+  "read",
   "ask",
   "characters",
   "stories",
 ] as const;
 export type HomeCardId = (typeof HOME_CARD_ORDER)[number];
+
+/** Los módulos que se dibujan como mosaico en la cuadrícula 2×2 (U1b). */
+export const HOME_TILE_IDS = ["read", "ask", "characters", "stories"] as const satisfies readonly HomeCardId[];
 
 /** Ruta en la forma que acepta `router.push`. */
 export type HomeRoute = { pathname: string; params?: Record<string, string> };
@@ -43,18 +48,6 @@ export const HOME_ROUTES = {
 } as const satisfies Record<string, HomeRoute>;
 
 // ── Leer la Biblia ───────────────────────────────────────────────────────────
-
-export const READ_CARD_CAPTION = "Génesis a Apocalipsis, con tu separador y tus notas";
-
-export type ReadChip = { id: string; label: string; icon: IconName; route: HomeRoute };
-
-/** Lo que Leer ofrece además del lector, visible sin entrar (#193). */
-export const READ_CHIPS: readonly ReadChip[] = [
-  { id: "subrayados", label: "Subrayados", icon: "highlight", route: { pathname: "/leer/subrayados" } },
-  { id: "guardados", label: "Guardados", icon: "bookmark", route: { pathname: "/leer/guardados" } },
-  { id: "notas", label: "Notas", icon: "note", route: { pathname: "/leer/guardados", params: { filtro: "con-nota" } } },
-  { id: "planes", label: "Planes", icon: "calendar", route: { pathname: "/leer/plan" } },
-];
 
 type SeparatorLike = { book: string; chapter: number; verse: number } | null | undefined;
 type ProgressLike = { book: string; chapter: number } | null | undefined;
@@ -95,8 +88,6 @@ export const PAUSE_LINK_LABEL = "Un minuto de pausa";
 export const PAUSE_LINK_CAPTION = "Sin leer ni escribir: un versículo y silencio";
 
 // ── Preguntar sobre la Biblia ────────────────────────────────────────────────
-
-export const ASK_CARD_CAPTION = "Respuestas con cita, siempre desde el texto";
 
 /**
  * Preguntas de ejemplo, una por día. Son preguntas sobre el texto: la
@@ -141,19 +132,8 @@ export function askExampleRoute(question: string): HomeRoute {
   return { pathname: "/preguntar/chat", params: { pregunta: question } };
 }
 
-type QuotaLike = { remaining: number; isPro: boolean } | null | undefined;
-
-/** Línea de cuota de Preguntar. Solo lee `api.quotas.remaining` (regla dura #3). */
-export function askQuotaLine(quota: QuotaLike): string | null {
-  if (!quota) return null;
-  if (quota.isPro) return "Pro · sin límite";
-  if (quota.remaining <= 0) return "Ya usaste tus preguntas gratis de hoy";
-  return quota.remaining === 1 ? "1 pregunta gratis hoy" : `${quota.remaining} preguntas gratis hoy`;
-}
-
 // ── Personajes ───────────────────────────────────────────────────────────────
 
-export const CHARACTERS_CARD_CAPTION = "Conversá con Moisés, Ester, David…";
 export const HOME_CHARACTER_COUNT = 4;
 const PREFERRED_CHARACTERS = ["moises", "ester", "david", "pablo"];
 

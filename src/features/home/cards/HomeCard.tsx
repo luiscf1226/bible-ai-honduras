@@ -83,19 +83,99 @@ const styles = StyleSheet.create({
   body: { gap: tokens.space.md, marginTop: tokens.space.md },
 });
 
-/** Chip pill con ícono: borde `borderStrong`, tipo `chip`, `inkSoft` (U1). */
+type HomeTileProps = PropsWithChildren<{
+  icon: IconName;
+  title: string;
+  /** Rótulo `overline` `accent` arriba a la derecha (ej. "Del mes", #200). */
+  badge?: string;
+  onPress: () => void;
+  accessibilityHint: string;
+  testID: string;
+}>;
+
+/**
+ * Mosaico de la cuadrícula 2×2 del inicio compacto (U1b): la misma piel que
+ * `HomeCard` (`surface`, borde, `radius.xxl`, `cardPadding`), pero en columna
+ * para que entre en media pantalla: ícono `md` `accent` y chevron arriba,
+ * título serif `subtitle` y una sola pieza de contenido vivo abajo.
+ */
+export function HomeTile({ accessibilityHint, badge, children, icon, onPress, testID, title }: HomeTileProps) {
+  const { color } = useTheme();
+
+  return (
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={title}
+      accessibilityRole={Platform.OS === "web" ? undefined : "button"}
+      onPress={onPress}
+      style={({ pressed }) => [
+        tileStyles.tile,
+        { backgroundColor: color.surface, borderColor: color.border },
+        pressed && styles.pressed,
+      ]}
+      testID={testID}
+    >
+      <View style={tileStyles.top}>
+        <Icon color={color.accent} name={icon} size="md" />
+        {badge ? <Text style={[tileStyles.badge, { color: color.accent }]}>{badge}</Text> : null}
+        <Icon color={color.inkFaint} name="chevronRight" size="sm" />
+      </View>
+      <Text numberOfLines={1} style={[tileStyles.title, { color: color.ink }]}>
+        {title}
+      </Text>
+      {children}
+    </Pressable>
+  );
+}
+
+const tileStyles = StyleSheet.create({
+  tile: {
+    borderRadius: tokens.radius.xxl,
+    borderWidth: 1,
+    flex: 1,
+    paddingHorizontal: tokens.cardPadding.horizontal,
+    paddingVertical: tokens.space.md,
+  },
+  top: { alignItems: "center", flexDirection: "row", gap: tokens.space.xs, justifyContent: "space-between" },
+  badge: {
+    flex: 1,
+    fontFamily: tokens.font.sansMedium,
+    fontSize: tokens.type.overline.size,
+    letterSpacing: tokens.type.overline.letterSpacing,
+    lineHeight: tokens.type.overline.lineHeight,
+    textAlign: "right",
+    textTransform: "uppercase",
+  },
+  title: {
+    fontFamily: tokens.font.serif,
+    fontSize: tokens.type.subtitle.size,
+    lineHeight: tokens.type.subtitle.lineHeight,
+    marginBottom: tokens.space.xxs,
+    marginTop: tokens.space.sm,
+  },
+});
+
+/**
+ * Chip pill con ícono: borde `borderStrong`, tipo `chip`, `inkSoft` (U1).
+ * `fill` reparte el ancho entre los chips de una fila (U1b); sin `label` es un
+ * chip de solo ícono y necesita `accessibilityLabel`.
+ */
 export function HomeChip({
   accessibilityHint,
+  accessibilityLabel,
   dashed = false,
+  fill = false,
   icon,
   label,
   onPress,
   testID,
 }: {
   accessibilityHint: string;
+  accessibilityLabel?: string;
   dashed?: boolean;
+  fill?: boolean;
   icon?: IconName;
-  label: string;
+  label?: string;
   onPress: () => void;
   testID: string;
 }) {
@@ -103,18 +183,24 @@ export function HomeChip({
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         chipStyles.chip,
         { borderColor: color.borderStrong },
+        fill && chipStyles.fill,
         dashed && chipStyles.dashed,
         pressed && styles.pressed,
       ]}
       testID={testID}
     >
       {icon ? <Icon color={color.inkSoft} name={icon} size="sm" /> : null}
-      <Text style={[chipStyles.label, { color: color.inkSoft }]}>{label}</Text>
+      {label ? (
+        <Text numberOfLines={1} style={[chipStyles.label, { color: color.inkSoft }]}>
+          {label}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -129,6 +215,7 @@ const chipStyles = StyleSheet.create({
     paddingHorizontal: tokens.space.md,
     paddingVertical: tokens.space.sm,
   },
+  fill: { flex: 1, justifyContent: "center", paddingHorizontal: tokens.space.xxs },
   dashed: { borderStyle: "dashed" },
   label: { fontFamily: tokens.font.sans, fontSize: tokens.type.chip.size, lineHeight: tokens.type.chip.lineHeight },
 });
