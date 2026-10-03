@@ -4,14 +4,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { track } from "../../../lib/telemetry";
 import { useTheme } from "../../../theme/ThemeProvider";
 import { tokens } from "../../../theme/tokens";
-import { SeasonGarland } from "../../seasons/SeasonGarland";
 import { seasonLine } from "../../seasons/seasonCopy";
 
 /**
  * Franja de temporada (#199, design/oleada-ux.md §Temporadas): arriba de la
  * tarjeta del versículo, el nombre en `overline` `accent` y una línea
- * `bodySm` `inkMuted`, debajo de la guirnalda de la temporada (si su paleta
- * tiene una). No es tarjeta ni se toca. Sin temporada no existe
+ * `bodySm` `inkMuted`. La guirnalda de la temporada cuelga de la foto del
+ * versículo (`VerseCard`). No es tarjeta ni se toca. Sin temporada no existe
  * (`visible` en `cards/index.ts`), así que el inicio queda como siempre.
  */
 export function SeasonStrip() {
@@ -27,7 +26,6 @@ export function SeasonStrip() {
 
   return (
     <View accessibilityRole="header" style={styles.root} testID="home-season">
-      <SeasonGarland />
       <Text style={[styles.name, { color: color.accent }]}>{season.name}</Text>
       {line ? <Text style={[styles.line, { color: color.inkMuted }]}>{line}</Text> : null}
     </View>

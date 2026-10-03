@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 
 import { useTheme } from "../../theme/ThemeProvider";
@@ -157,24 +157,26 @@ const MOTIFS: Record<Motif, (paint: Paint) => ReactNode> = {
 
 /**
  * Guirnalda de temporada (design/oleada-ux.md §Decoración de temporada).
- * Ilustración plana arriba de la franja del inicio; los adornos salen de
- * `seasonDecor.ts` y los tonos de `tokens.seasonDecor`. Es decorativa: no se
- * lee ni se toca. Sin temporada con paleta, no existe.
+ * Cuelga del borde de arriba de la foto del versículo del día, como un adorno
+ * en un cuadro: no ocupa alto, así el inicio compacto (U1b) sigue entrando en
+ * una pantalla. Sobre la foto (con `imageScrim`) usa siempre los tonos de
+ * noche, que son los claros. Es decorativa: no se lee ni se toca. Sin
+ * temporada con paleta, no existe.
  */
 export function SeasonGarland() {
-  const { color, dark, season } = useTheme();
+  const { color, season } = useTheme();
   const paletteKey = season?.paletteKey;
   const garland = garlandFor(paletteKey);
   if (!garland || !isSeasonPalette(paletteKey)) return null;
 
-  const tones = decorTones(paletteKey, dark);
+  const tones = decorTones(paletteKey, true);
 
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={{ aspectRatio: GARLAND_WIDTH / GARLAND_HEIGHT, width: "100%" }}
+      style={[styles.root, { aspectRatio: GARLAND_WIDTH / GARLAND_HEIGHT }]}
       testID={`season-garland-${paletteKey}`}
     >
       <Svg height="100%" viewBox={`0 0 ${GARLAND_WIDTH} ${GARLAND_HEIGHT}`} width="100%">
@@ -193,3 +195,7 @@ export function SeasonGarland() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { left: 0, position: "absolute", right: 0, top: 0 },
+});

@@ -176,8 +176,8 @@ export const tokens = {
     // Cinta de satén (separador físico): `height` es el largo mínimo; cuelga
     // desde el borde de la página y `fade` es lo que tarda en aparecer arriba.
     ribbon: { width: 16, height: 42, fade: 18, shadow: 1.5, weaveInset: 2.5 },
-    // Guirnalda de temporada del inicio: alto de la ilustración (viewBox 320 × 56).
-    seasonGarland: 56,
+    // Guirnalda de temporada del inicio: alto de la ilustración (viewBox 320 × 32); bajita para que el inicio entre en una pantalla (U1b).
+    seasonGarland: 32,
     marginMark: 5,
     actionTile: 64,
     // Anillo `accent` del personaje del mes (#200).

@@ -29,7 +29,7 @@
 | `size.icon` | sm 16 · md 20 · lg 24 | | Íconos |
 | `size.iconStroke` | 1.3 | | Trazo de los íconos |
 | `size.ribbon` | 16 ancho · 42 largo mínimo · fade 18 · sombra 1.5 · tejido 2.5 | | Cinta de satén del separador (U3, §Separador físico) |
-| `size.seasonGarland` | 56 | | Alto de la guirnalda de temporada (lienzo 320 × 56) |
+| `size.seasonGarland` | 32 | | Alto de la guirnalda de temporada (lienzo 320 × 32) |
 | `opacity.ribbon*` | brillo 0.38 · sombra 0.16 · tejido 0.45 | | Satén de la cinta del separador |
 | `size.marginMark` | 5 | | Punto de "guardado" en el margen (U4) |
 | `size.actionTile` | 64 | | Celda de la barra de herramientas del versículo (U4) |
@@ -265,7 +265,7 @@ columnas. Tocar un libro → `ChapterGrid`.
   `surfaceSunk`; el resto queda igual (contraste del texto garantizado).
 - **Inicio con temporada:** arriba de la tarjeta del versículo, franja de
   temporada: `overline` `accent` con el nombre ("MES DE LA REFORMA") + una
-  línea `bodySm` `inkMuted`, debajo de la guirnalda de la temporada (ver
+  línea `bodySm` `inkMuted`. La guirnalda cuelga de la foto del versículo (ver
   §Decoración de temporada).
 - **9:16 con temporada:** el nombre de la temporada en `overline` arriba al
   centro, color `surface` al 85 %.
@@ -279,8 +279,10 @@ columnas. Tocar un libro → `ChapterGrid`.
 ## Decoración de temporada
 
 Cada mes con paleta trae una **guirnalda**: ilustración plana de
-`size.seasonGarland` de alto (lienzo 320 × 56, ancho completo) arriba de la
-franja de temporada del inicio. Decorativa: no se lee, no se toca. Adornos en
+`size.seasonGarland` de alto (lienzo 320 × 32, ancho completo) que **cuelga
+del borde de arriba de la foto del versículo del día**, como un adorno en un
+cuadro. No ocupa alto: el inicio compacto (U1b) sigue entrando en una
+pantalla. Sobre la foto usa siempre los tonos de noche (los claros). Decorativa: no se lee, no se toca. Adornos en
 `src/features/seasons/seasonDecor.ts`, dibujo en `SeasonGarland.tsx`, tonos en
 `tokens.seasonDecor[paleta][day|night]`.
 
@@ -296,7 +298,7 @@ franja de temporada del inicio. Decorativa: no se lee, no se toca. Adornos en
   a rojo de flor de pascua (`accent` `#9A4A42` de día, `#C7766B` de noche).
 - **Tonos:** `warm` calabaza / flor de pascua / esferas, `gold` flores, trigo y
   estrellas, `leaf` hojas, pino y olivo, `deep` tallos y cordel.
-- **Sin paleta conocida**, sin guirnalda: la franja queda solo con el texto.
+- **Sin paleta conocida**, sin guirnalda: la foto del versículo queda como siempre.
 
 ## Separador físico
 
