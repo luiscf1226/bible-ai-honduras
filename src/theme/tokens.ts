@@ -150,6 +150,10 @@ export const tokens = {
     ring: 1.5,
     // Línea del paso del tiempo en el minuto de pausa (#203).
     pauseLine: 2,
+    // Escuchar el capítulo (#157): botón reproducir/pausar (44 = área táctil
+    // mínima de iOS) y la línea de avance del capítulo.
+    audioButton: 44,
+    audioProgress: 2,
   },
   grid: { chapterColumns: 5, actionColumns: 4 },
   // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.

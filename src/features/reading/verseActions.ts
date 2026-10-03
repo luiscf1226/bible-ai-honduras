@@ -34,6 +34,8 @@ export type VerseActionContext = {
   /** Memorizar (#158): el versículo ya está en el repaso. */
   memorizing: boolean;
   toggleMemorize: () => void;
+  /** Escuchar el capítulo desde este versículo (#157). */
+  listenFrom: () => void;
 };
 
 export type VerseAction = {
@@ -107,6 +109,15 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
       if (!ctx.referralCode) return;
       void shareVerse({ verse: ctx.verse, referralCode: ctx.referralCode });
     },
+  },
+  {
+    // Escuchar (#157): voz del sistema desde este versículo. Gratis, sin cuota.
+    id: "listen",
+    icon: "listen",
+    label: () => "Escuchar",
+    accessibilityLabel: () => "Escuchar desde este versículo",
+    testID: "reading-action-listen",
+    onPress: (ctx) => ctx.listenFrom(),
   },
   {
     id: "ask",

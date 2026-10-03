@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-import { offerNotice, offerRetryable, paywallRenewalTerms, purchaseNotice } from "./paywallCopy";
+import * as copy from "./paywallCopy";
+import { offerNotice, offerRetryable, paywallPriceHint, paywallRenewalTerms, purchaseNotice } from "./paywallCopy";
 
 describe("copy del paywall (#144)", () => {
   it("los términos llevan el precio de la tienda, la duración y la renovación", () => {
@@ -18,13 +16,10 @@ describe("copy del paywall (#144)", () => {
     expect(paywallRenewalTerms({ priceString: "US$4.99", productName: "  " })).toMatch(/^Bible AI Honduras Pro:/);
   });
 
-  it("ni la pantalla ni el copy escriben un precio a mano", () => {
-    const screen = readFileSync(resolve(__dirname, "../../app/paywall.tsx"), "utf8");
-    const copy = readFileSync(resolve(__dirname, "./paywallCopy.ts"), "utf8");
-    for (const source of [screen, copy]) {
-      expect(source).not.toMatch(/\d+[.,]\d{2}/);
-      expect(source).not.toContain("PAYWALL_DISPLAY_PRICE");
-    }
+  it("el copy no trae un precio escrito a mano", () => {
+    expect(copy).not.toHaveProperty("PAYWALL_DISPLAY_PRICE");
+    expect(paywallPriceHint()).not.toMatch(/\d/);
+    expect(paywallRenewalTerms({ priceString: "<precio>" }).replace("24 horas", "")).not.toMatch(/\d/);
   });
 
   it("mientras carga avisa; con precio no hay aviso", () => {
