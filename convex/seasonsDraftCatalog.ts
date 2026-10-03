@@ -8,8 +8,10 @@ import type { SeasonInput } from "./seasons";
  * archivo: solo lo usan los tests y sirve de plantilla para cargar cada
  * temporada a mano con `npx convex run seasons:upsert '{...}'` cuando el
  * fundador ratifique el calendario y el tema de octubre. Todas salen con
- * `enabled: false` y sin paleta, imagen ni destacados (eso sale de Claude
- * Design, #190, y de la revisión pastoral).
+ * `enabled: false` y sin imagen ni destacados (revisión pastoral). Octubre a
+ * enero ya traen paleta: cada una tiene colores y guirnalda en
+ * `tokens.season` / `tokens.seasonDecor` (design/oleada-ux.md §Decoración de
+ * temporada).
  *
  * Ojo: octubre 2026 ya empezó. El plan de olas del issue recomienda que la
  * primera temporada real sea noviembre (Gratitud) o un octubre recortado.
@@ -58,10 +60,10 @@ function month(year: number, monthNumber: number): { startDate: string; endDate:
 export function proposedSeasonCalendar(year: number): SeasonInput[] {
   const next = year + 1;
   return [
-    { slug: `reforma-${year}`, name: "Mes de la Reforma", ...month(year, 10), enabled: false },
-    { slug: `gratitud-${year}`, name: "Mes de gratitud", ...month(year, 11), enabled: false },
-    { slug: `adviento-navidad-${year}`, name: "Adviento y Navidad", ...month(year, 12), enabled: false },
-    { slug: `versiculo-del-anio-${next}`, name: "Tu versículo del año", ...month(next, 1), enabled: false },
+    { slug: `reforma-${year}`, name: "Mes de la Reforma", ...month(year, 10), enabled: false, paletteKey: "reforma" },
+    { slug: `gratitud-${year}`, name: "Mes de gratitud", ...month(year, 11), enabled: false, paletteKey: "gratitud" },
+    { slug: `adviento-navidad-${year}`, name: "Adviento y Navidad", ...month(year, 12), enabled: false, paletteKey: "adviento" },
+    { slug: `versiculo-del-anio-${next}`, name: "Tu versículo del año", ...month(next, 1), enabled: false, paletteKey: "anio-nuevo" },
     { slug: `semana-santa-${next}`, name: "Semana Santa", ...holyWeekRange(next), enabled: false, priority: 1 },
     { slug: `dia-de-la-madre-${next}`, name: "Día de la Madre", ...month(next, 5), enabled: false },
     { slug: `patria-y-biblia-${next}`, name: "Mes de la Patria y de la Biblia", ...month(next, 9), enabled: false },

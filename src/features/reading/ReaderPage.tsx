@@ -10,7 +10,6 @@ import {
   type TextLayoutEventData,
   type TextStyle,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 
 import { Icon } from "../../components/Icon";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -29,6 +28,7 @@ import {
   type ReaderRun,
 } from "./readerPage";
 import type { ReadingTypeStyle } from "./readingSettings";
+import { SatinRibbon } from "./SatinRibbon";
 import { charsInFirstLinesFromDom, childLineTopsFromDom } from "./webTextMeasure";
 
 export type MarginMark = "saved" | "note";
@@ -219,12 +219,12 @@ export function ReaderPage({
       {separatorVerse !== null && verseTops[separatorVerse] !== undefined ? (
         <View
           accessibilityLabel={`Tu separador está en el versículo ${separatorVerse}`}
-          style={[styles.ribbon, { top: markTop(separatorVerse, tokens.size.ribbon.height) }]}
+          pointerEvents="none"
+          style={styles.ribbon}
           testID="reading-separator-mark"
         >
-          <Svg height={tokens.size.ribbon.height} width={tokens.size.ribbon.width}>
-            <Path d={RIBBON_PATH} fill={color.accent} />
-          </Svg>
+          {/* Cae desde el borde de la página; la punta termina al pie del renglón marcado. */}
+          <SatinRibbon length={Math.max(tokens.size.ribbon.height, verseTops[separatorVerse] + typeStyle.lineHeight)} />
         </View>
       ) : null}
 
@@ -245,10 +245,6 @@ export function ReaderPage({
     </View>
   );
 }
-
-const { width: RIBBON_W, height: RIBBON_H } = tokens.size.ribbon;
-/** Cinta con la punta en V, como la de una Biblia de papel. */
-const RIBBON_PATH = `M0 0H${RIBBON_W}V${RIBBON_H}L${RIBBON_W / 2} ${RIBBON_H - RIBBON_W / 2}L0 ${RIBBON_H}Z`;
 
 type ReaderRunTextProps = {
   run: ReaderRun;
@@ -358,8 +354,8 @@ const styles = StyleSheet.create({
   },
   noteMark: { left: (tokens.readerPadding.horizontal - tokens.size.icon.sm) / 2, position: "absolute" },
   // La cinta va en el margen derecho: nunca se monta sobre el texto, ni en el
-  // paso de letra más grande.
-  ribbon: { position: "absolute", right: (tokens.readerPadding.horizontal - tokens.size.ribbon.width) / 2 },
+  // paso de letra más grande. Arranca en el borde de arriba de la página.
+  ribbon: { position: "absolute", right: (tokens.readerPadding.horizontal - tokens.size.ribbon.width) / 2, top: 0 },
 });
 
 function sameTops(a: Record<number, number> | undefined, b: Record<number, number>): boolean {

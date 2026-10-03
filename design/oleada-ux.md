@@ -28,13 +28,16 @@
 | `size.hoyImage` | 236 | | Alto de la imagen en `/hoy` (U2) |
 | `size.icon` | sm 16 · md 20 · lg 24 | | Íconos |
 | `size.iconStroke` | 1.3 | | Trazo de los íconos |
-| `size.ribbon` | 14 × 42 | | Cinta del separador (U3) |
+| `size.ribbon` | 16 ancho · 42 largo mínimo · fade 18 · sombra 1.5 · tejido 2.5 | | Cinta de satén del separador (U3, §Separador físico) |
+| `size.seasonGarland` | 32 | | Alto de la guirnalda de temporada (lienzo 320 × 32) |
+| `opacity.ribbon*` | brillo 0.38 · sombra 0.16 · tejido 0.45 | | Satén de la cinta del separador |
 | `size.marginMark` | 5 | | Punto de "guardado" en el margen (U4) |
 | `size.actionTile` | 64 | | Celda de la barra de herramientas del versículo (U4) |
 | `size.ring` | 1.5 | | Anillo `accent` del personaje del mes (#200) |
 | `grid.actionColumns` | 4 | | Columnas de esa barra (U4) |
 | `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30, temporada 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
-| `season.{reforma,gratitud,adviento}` | ver `tokens.json` | | Capa de temporada (#199) |
+| `season.{reforma,gratitud,adviento,anio-nuevo}` | ver `tokens.json` | | Capa de temporada (#199) |
+| `seasonDecor.*` | warm · gold · leaf · deep, día y noche | | Tonos de la guirnalda de temporada |
 
 ## Íconos
 
@@ -170,9 +173,9 @@ Historias**. Separación `space.sm` entre renglones y entre mosaicos; arriba,
   versículos anidados. Número voladito `verseNumber` `accent` con un espacio
   fino después. **Prosa continua**, sin sangrías por versículo. Tamaño base
   `readerBody`, escalado por `readingSettings`.
-- **Cinta del separador:** `ribbon` (`size.ribbon`) en `accent`, colgando desde
-  el borde superior de la página en el margen derecho, a la altura del versículo
-  marcado; testID `reading-separator-mark`.
+- **Cinta del separador:** cinta de satén en el margen derecho que cae desde el
+  borde de arriba de la página hasta el versículo marcado (ver §Separador
+  físico); testID `reading-separator-mark`.
 - **Pasar página:** deslizar horizontal (anterior/siguiente). Al final del
   capítulo, "‹ Génesis 1 · Génesis 3 ›" como botones pill (respaldo accesible).
 - *Notas de implementación (#195/#196):* React Native no tiene
@@ -262,7 +265,8 @@ columnas. Tocar un libro → `ChapterGrid`.
   `surfaceSunk`; el resto queda igual (contraste del texto garantizado).
 - **Inicio con temporada:** arriba de la tarjeta del versículo, franja de
   temporada: `overline` `accent` con el nombre ("MES DE LA REFORMA") + una
-  línea `bodySm` `inkMuted`. Sin imagen nueva en v1.
+  línea `bodySm` `inkMuted`. La guirnalda cuelga de la foto del versículo (ver
+  §Decoración de temporada).
 - **9:16 con temporada:** el nombre de la temporada en `overline` arriba al
   centro, color `surface` al 85 %.
 - **Personaje del mes:** en Voces, tarjeta arriba de la lista: avatar
@@ -270,6 +274,50 @@ columnas. Tocar un libro → `ChapterGrid`.
   `subtitle`, una línea de quién fue, y fila de atajos con íconos `sm`
   (Su historia · Capítulos · Recorrido · Conversar). En el inicio: anillo en
   la tarjeta de Personajes (U1).
+
+
+## Decoración de temporada
+
+Cada mes con paleta trae una **guirnalda**: ilustración plana de
+`size.seasonGarland` de alto (lienzo 320 × 32, ancho completo) que **cuelga
+del borde de arriba de la foto del versículo del día**, como un adorno en un
+cuadro. No ocupa alto: el inicio compacto (U1b) sigue entrando en una
+pantalla. Sobre la foto usa siempre los tonos de noche (los claros). Decorativa: no se lee, no se toca. Adornos en
+`src/features/seasons/seasonDecor.ts`, dibujo en `SeasonGarland.tsx`, tonos en
+`tokens.seasonDecor[paleta][day|night]`.
+
+| Mes | Paleta | Guirnalda |
+|---|---|---|
+| Octubre | `reforma` (otoño) | Cordel con hojas que caen (óxido, oro), calabazas y flores |
+| Noviembre | `gratitud` (cosecha) | Trigo, calabazas, flores y hojas |
+| Diciembre | `adviento` (Navidad) | Ramas de pino, esferas, acebo, flor de pascua al centro y la estrella de Belén |
+| Enero | `anio-nuevo` ("Tu versículo del año") | Sin cordel: destellos de madrugada y dos ramas de olivo |
+
+- **Línea de producto:** nada de Halloween. Calabazas de cosecha, sin caras; la
+  estrella de Navidad es la de Belén. Diciembre deja el morado litúrgico y pasa
+  a rojo de flor de pascua (`accent` `#9A4A42` de día, `#C7766B` de noche).
+- **Tonos:** `warm` calabaza / flor de pascua / esferas, `gold` flores, trigo y
+  estrellas, `leaf` hojas, pino y olivo, `deep` tallos y cordel.
+- **Sin paleta conocida**, sin guirnalda: la foto del versículo queda como siempre.
+
+## Separador físico
+
+La cinta del separador es la de una Biblia de papel, no un ícono:
+
+- **Largo:** cae desde el borde de arriba de la página (`top: 0`) y la punta en
+  V termina al pie del renglón del versículo marcado. Largo mínimo
+  `size.ribbon.height`.
+- **Satén:** degradado horizontal `accentDeep` → `accent` → `accentDeep`, con
+  un brillo de `surface` al `opacity.ribbonSheen` corrido a la izquierda del
+  centro.
+- **Tejido:** dos puntadas finas de `accentDeep` al `opacity.ribbonWeave`, a
+  `size.ribbon.weaveInset` de cada borde.
+- **Sombra:** la misma cinta en `ink` al `opacity.ribbonShadow`, corrida
+  `size.ribbon.shadow` abajo a la derecha: se despega del papel.
+- **Entrada:** los primeros `size.ribbon.fade` px se funden con `paper`, como si
+  entrara por el canto del libro.
+- **Color:** sigue `accent`, así que toma el tono de la temporada (rojo en
+  Navidad, azul de madrugada en enero).
 
 ## Un minuto de pausa `/pausa` (#203)
 

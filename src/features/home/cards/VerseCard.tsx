@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../../../components/Icon";
 import { LoadingState } from "../../../components/LoadingState";
+import { SeasonGarland } from "../../seasons/SeasonGarland";
 import { useTheme } from "../../../theme/ThemeProvider";
 import { tokens } from "../../../theme/tokens";
 import { HOME_ROUTES } from "../homeCards";
@@ -54,6 +55,8 @@ export function VerseCard() {
             style={StyleSheet.absoluteFill}
           />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: color.imageScrim }]} />
+          {/* Temporada (#199): la guirnalda cuelga del borde de arriba de la foto. */}
+          <SeasonGarland />
         </>
       ) : null}
 
