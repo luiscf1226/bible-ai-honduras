@@ -32,6 +32,21 @@ describe("telemetry.track", () => {
     expect(JSON.stringify(rows[0])).not.toContain("ana@example.com");
   });
 
+  it("share_completed guarda el origen \"dedicated\" (#202); otros eventos no lo llevan", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(api.telemetry.track, { installId: INSTALL, name: "share_completed", origin: "dedicated", platform: "ios" });
+    await t.mutation(api.telemetry.track, { installId: INSTALL, name: "qa_asked", origin: "dedicated", platform: "ios" });
+    const rows = await t.run((ctx) => ctx.db.query("telemetryEvents").collect());
+    expect(rows.map((row) => [row.name, row.origin])).toEqual([
+      ["share_completed", "dedicated"],
+      ["qa_asked", undefined],
+    ]);
+    await expect(
+      // @ts-expect-error: el validador frena un origen fuera de la lista.
+      t.mutation(api.telemetry.track, { installId: INSTALL, name: "share_completed", origin: "para mamá", platform: "ios" }),
+    ).rejects.toThrow();
+  });
+
   it("funciona sin sesión (antes del login también hay embudo)", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(api.telemetry.track, { installId: INSTALL, name: "app_opened", platform: "android" });

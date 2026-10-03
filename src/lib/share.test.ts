@@ -12,6 +12,7 @@ import {
   shareContent,
   shareFile,
   shareImage,
+  takeTrackedSharesForTests,
   sharePlainText,
   type ShareNative,
 } from "./share";
@@ -142,6 +143,18 @@ describe("shareImage (#161 — imagen 9:16 por el mismo share sheet)", () => {
       url: "file:///tmp/versiculo.png",
     });
     expect(vi.mocked(native.share).mock.calls[0][0].message).toContain("?ref=BAH-TEST01");
+  });
+
+  it("versículo dedicado (#202): share_completed lleva el origen; cancelar no cuenta", async () => {
+    takeTrackedSharesForTests();
+    setShareNativeForTests(mockNative({ os: "ios" }));
+    await shareImage({ ...params, origin: "dedicated" });
+    await shareImage(params);
+    setShareNativeForTests(mockNative({ os: "android", shareFile: vi.fn().mockResolvedValue(undefined) }));
+    await shareImage({ ...params, origin: "dedicated" });
+    setShareNativeForTests(mockNative({ os: "ios", share: vi.fn().mockResolvedValue({ action: "dismissedAction" }) }));
+    await shareImage({ ...params, origin: "dedicated" });
+    expect(takeTrackedSharesForTests()).toEqual(["dedicated", null, "dedicated"]);
   });
 
   it("iOS: cancelar el share sheet no es un error", async () => {
