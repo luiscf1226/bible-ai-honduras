@@ -148,8 +148,12 @@ export const tokens = {
     actionTile: 64,
     // Anillo `accent` del personaje del mes (#200).
     ring: 1.5,
+    // Línea del paso del tiempo en el minuto de pausa (#203).
+    pauseLine: 2,
   },
   grid: { chapterColumns: 5, actionColumns: 4 },
+  // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.
+  motion: { pause: 60000, verseDelay: 600, verseFadeIn: 2400, closeFadeIn: 1200 },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
   storyImage: {
     width: 1080,

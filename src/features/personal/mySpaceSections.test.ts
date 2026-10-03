@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildMySpaceSections } from "./mySpaceSections";
 
-const empty = { separator: null, bookmarks: [], highlights: [], history: [] };
+const empty = { separator: null, bookmarks: [], highlights: [], history: [], memorize: { total: 0, dueCount: 0 }, prayers: [] };
 
 describe("Mi espacio (#169)", () => {
   it("muestra las secciones vacías con cómo empezar, en vez de esconderlas", () => {
@@ -11,7 +11,9 @@ describe("Mi espacio (#169)", () => {
       "separator",
       "bookmarks",
       "highlights",
+      "memorize",
       "feelings",
+      "prayers",
       "conversations",
     ]);
     for (const section of sections) {
@@ -21,13 +23,35 @@ describe("Mi espacio (#169)", () => {
     }
   });
 
-  it("no tiene secciones de features que todavía no existen", () => {
-    const titles = buildMySpaceSections(empty).map((section) => section.title.toLowerCase());
-    expect(titles.some((title) => title.includes("petici") || title.includes("memoriz") || title.includes("nota"))).toBe(false);
+  it("Memorizar (#158): repasar si hay versículos para hoy; si no, ver todo", () => {
+    const due = buildMySpaceSections({ ...empty, memorize: { total: 3, dueCount: 2 } }).find((s) => s.id === "memorize");
+    expect(due).toMatchObject({ count: 3, detail: "2 versículos para repasar hoy", action: "Repasar", destination: { href: "/memorizar" } });
+    const one = buildMySpaceSections({ ...empty, memorize: { total: 1, dueCount: 1 } }).find((s) => s.id === "memorize");
+    expect(one?.detail).toBe("1 versículo para repasar hoy");
+    const rest = buildMySpaceSections({ ...empty, memorize: { total: 3, dueCount: 0 } }).find((s) => s.id === "memorize");
+    expect(rest).toMatchObject({ action: "Ver todo", detail: "Nada para repasar hoy. Volvé mañana." });
+    const none = buildMySpaceSections(empty).find((s) => s.id === "memorize");
+    expect(none).toMatchObject({ action: "Empezar", destination: { href: "/leer" } });
+  });
+
+  it("Diario de oración (#159): muestra la última abierta, o cuántas fueron respondidas", () => {
+    const withOpen = buildMySpaceSections({
+      ...empty,
+      prayers: [
+        { text: "Por mi abuela", answeredAt: null },
+        { text: "Por el trabajo", answeredAt: 10 },
+      ],
+    }).find((s) => s.id === "prayers");
+    expect(withOpen).toMatchObject({ count: 2, detail: "Por mi abuela", action: "Ver todo", destination: { href: "/oracion" } });
+    const onlyAnswered = buildMySpaceSections({ ...empty, prayers: [{ text: "x", answeredAt: 1 }] }).find((s) => s.id === "prayers");
+    expect(onlyAnswered?.detail).toBe("1 petición respondida");
+    // Vacío también lleva al diario: ahí se puede escribir la primera.
+    expect(buildMySpaceSections(empty).find((s) => s.id === "prayers")?.destination).toEqual({ kind: "route", href: "/oracion" });
   });
 
   it("cuenta y lleva a la pantalla existente de cada sección", () => {
     const sections = buildMySpaceSections({
+      ...empty,
       separator: { book: "Salmos", chapter: 23, verse: 1 },
       bookmarks: [
         { book: "Juan", chapter: 3, verse: 16 },

@@ -102,6 +102,13 @@
             }
           ]
         }
+      ],
+      "expo-sharing",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos Face ID para proteger Mi espacio y Sentir cuando vos lo encendés en Ajustes."
+        }
       ]
     ],
     "experiments": {

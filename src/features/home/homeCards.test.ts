@@ -21,7 +21,7 @@ import {
 
 describe("orden de las tarjetas (#193)", () => {
   it("es exactamente el de la tabla del issue, con la franja de temporada arriba del versículo (#199)", () => {
-    expect(HOME_CARD_ORDER).toEqual(["season", "verse", "read", "feeling", "ask", "characters", "stories"]);
+    expect(HOME_CARD_ORDER).toEqual(["season", "verse", "savedMemory", "read", "feeling", "ask", "characters", "stories"]);
   });
 
   it("cada tarjeta abre su módulo", () => {

@@ -2,9 +2,13 @@ import type { IconName } from "../../components/Icon";
 import { copyToClipboard } from "../../lib/clipboard";
 import { goToChat } from "../../lib/goToChat";
 import { goToVoices } from "../../lib/goToVoices";
+import { openTimeline } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
+import { hasCrossReferences } from "./crossReferences";
+import { openRelatedPassages } from "./openRelatedPassages";
 import { buildVerseCopyText, shareVerse, type ReadingVerse } from "./shareVerse";
+import { eraForChapter } from "./timeline";
 
 /**
  * Registro de acciones del versículo (#196, U4). La hoja del lector pinta esta
@@ -27,6 +31,9 @@ export type VerseActionContext = {
   toggleSave: () => void;
   openNote: () => void;
   toggleSeparator: () => void;
+  /** Memorizar (#158): el versículo ya está en el repaso. */
+  memorizing: boolean;
+  toggleMemorize: () => void;
 };
 
 export type VerseAction = {
@@ -79,6 +86,18 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     onPress: (ctx) => ctx.toggleSeparator(),
   },
   {
+    // Memorizar (#158): repaso espaciado. Se quita tocándolo otra vez.
+    id: "memorize",
+    icon: "refresh",
+    label: (ctx) => (ctx.memorizing ? "Memorizando" : "Memorizar"),
+    accessibilityHint: (ctx) =>
+      ctx.memorizing ? "Lo saca de tu repaso de Memorizar." : "Lo agrega a Memorizar. Aparece en tu repaso de mañana.",
+    testID: "reading-memorize-toggle",
+    visible: (ctx) => ctx.signedIn,
+    active: (ctx) => ctx.memorizing,
+    onPress: (ctx) => ctx.toggleMemorize(),
+  },
+  {
     id: "share",
     icon: "share",
     label: () => "Compartir",
@@ -98,6 +117,16 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     onPress: (ctx) => goToChat(ctx.verse),
   },
   {
+    // Referencias cruzadas (#187): índice fijo, no IA. Solo si el versículo tiene.
+    id: "related",
+    icon: "book",
+    label: () => "Relacionados",
+    accessibilityLabel: () => "Ver pasajes relacionados",
+    testID: "reading-action-related",
+    visible: (ctx) => hasCrossReferences(ctx.verse),
+    onPress: (ctx) => openRelatedPassages(ctx.verse),
+  },
+  {
     // Puente Lectura → Voces: si el capítulo lo vivió o lo escribió un
     // personaje del catálogo. Voces sigue pasando por su cuota (regla dura
     // #3); acá solo se navega.
@@ -113,6 +142,23 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
       goToVoices(ctx.voice.slug, {
         draft: voiceDraftFor(`${ctx.verse.book} ${ctx.verse.chapter}:${ctx.verse.verse}`, ctx.voice.role),
       });
+    },
+  },
+  {
+    // Línea del tiempo (#201): abre en la época del capítulo (Rut 1 → Los
+    // jueces). Solo si el capítulo cae en alguna época curada.
+    id: "timeline",
+    icon: "clock",
+    label: () => "¿Cuándo pasó esto?",
+    accessibilityHint: (ctx) => {
+      const era = eraForChapter(ctx.verse.book, ctx.verse.chapter);
+      return era ? `Abre la línea del tiempo en ${era.name.toLowerCase()}.` : undefined;
+    },
+    testID: "reading-timeline",
+    visible: (ctx) => eraForChapter(ctx.verse.book, ctx.verse.chapter) !== null,
+    onPress: (ctx) => {
+      const era = eraForChapter(ctx.verse.book, ctx.verse.chapter);
+      if (era) openTimeline(era.id);
     },
   },
   {

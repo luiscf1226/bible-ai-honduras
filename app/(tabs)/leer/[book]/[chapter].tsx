@@ -122,6 +122,13 @@ export default function ReaderScreen() {
     ref?.chapter ?? 0,
   );
   const updatePreferences = useMutation(api.users.updatePreferences);
+  // Memorizar (#158): versículos del capítulo que ya están en el repaso.
+  const memorizing = useQuery(
+    api.memorize.chapterVerses,
+    ref && signedIn ? { book: ref.book, chapter: ref.chapter } : "skip",
+  );
+  const addToMemorize = useMutation(api.memorize.add);
+  const removeFromMemorize = useMutation(api.memorize.remove);
   const [selected, setSelected] = useState<ReadingVerse | null>(null);
   // Borrador de la nota (#167). null = la hoja muestra las acciones; string =
   // la hoja muestra el campo de nota.
@@ -370,6 +377,12 @@ export default function ReaderScreen() {
     });
     setNoteDraft(null);
   };
+  const selectedMemorizing = selected ? (memorizing ?? []).includes(selected.verse) : false;
+  const toggleMemorize = () => {
+    if (!selected) return;
+    const target = { book: selected.book, chapter: selected.chapter, verse: selected.verse };
+    void (selectedMemorizing ? removeFromMemorize(target) : addToMemorize(target)).catch(() => undefined);
+  };
   const actionContext: VerseActionContext | null = selected
     ? {
         verse: selected,
@@ -382,6 +395,8 @@ export default function ReaderScreen() {
         toggleSave: saveSelected,
         openNote: () => setNoteDraft(selectedBookmark?.note ?? ""),
         toggleSeparator,
+        memorizing: selectedMemorizing,
+        toggleMemorize,
       }
     : null;
 
@@ -466,6 +481,20 @@ export default function ReaderScreen() {
               </Text>
             </Pressable>
           ) : null}
+
+          {/* #188: variante Pro de Preguntar, mismo pipeline y misma cuota. La
+              pantalla muestra el aviso de Pro a quien no lo tiene. Misma píldora
+              que "Ir a tu separador". */}
+          <Pressable
+            accessibilityHint="Arma un resumen y preguntas con cita para tu célula o escuela dominical."
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/leer/guia", params: { book: ref.book, chapter: String(ref.chapter) } })}
+            style={({ pressed }) => [styles.separatorJump, { borderColor: color.border }, pressed && styles.pressed]}
+            testID="reading-group-guide"
+          >
+            <Icon color={color.accent} name="chat" size="sm" />
+            <Text style={[styles.jumpLabel, { color: color.inkMuted }]}>Preparar para mi grupo · Pro</Text>
+          </Pressable>
 
           {showHint && verses && verses.length > 0 ? (
             <View style={styles.inset}>
