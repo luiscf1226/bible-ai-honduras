@@ -5,8 +5,9 @@ import { FEELING_SHORTCUTS, FEELING_WRITE_ROUTE, feelingRoute, HOME_ROUTES } fro
 import { HomeCard, HomeChip, openFromHome } from "./HomeCard";
 
 /**
- * Tarjeta 3, ¿Cómo estás hoy? (U1), compacta: tres sentimientos y un chip
- * punteado para escribirlo con tus palabras. Nada más.
+ * Tarjeta ¿Cómo estás hoy? (U1b), compacta: tres sentimientos que se reparten
+ * el ancho y un chip punteado de solo lápiz para escribirlo con tus palabras,
+ * todo en una fila.
  */
 export function FeelingCard() {
   return (
@@ -21,6 +22,7 @@ export function FeelingCard() {
         {FEELING_SHORTCUTS.map((feeling) => (
           <HomeChip
             accessibilityHint={`Prepara un devocional para ${feeling.toLowerCase()}.`}
+            fill
             key={feeling}
             label={feeling}
             onPress={() => openFromHome(feelingRoute(feeling))}
@@ -29,8 +31,9 @@ export function FeelingCard() {
         ))}
         <HomeChip
           accessibilityHint="Abre Sentir para escribir cómo te sentís."
+          accessibilityLabel="Escribilo con tus palabras"
           dashed
-          label="Escribilo con tus palabras…"
+          icon="note"
           onPress={() => openFromHome(FEELING_WRITE_ROUTE)}
           testID="home-feeling-write"
         />
@@ -40,5 +43,5 @@ export function FeelingCard() {
 }
 
 const styles = StyleSheet.create({
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
+  chips: { flexDirection: "row", gap: tokens.space.xs },
 });
