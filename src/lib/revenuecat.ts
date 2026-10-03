@@ -9,7 +9,8 @@
  *
  * Contrato de producto (nombres estables):
  *   entitlement `pro` · offering `default` · Test Store product `pro_monthly`
- * El precio USD 4.99 / 1 mes vive en RevenueCat, no en este módulo ni en UI.
+ * El precio vive en App Store / Google Play y llega por RevenueCat ya
+ * localizado (`product.priceString`, #144). Ni este módulo ni la UI lo escriben.
  *
  * Expo Go y web no completan una compra real. Hace falta un development build.
  */
@@ -33,8 +34,24 @@ export type PurchaseResult =
         | "dev_build_required"
         | "user_cancelled"
         | "offering_unavailable"
+        | "network_error"
         | "purchase_failed";
     };
+
+/** Lo que el paywall necesita del paquete mensual, sin tipos del SDK. */
+export type MonthlyOffer = {
+  /** Precio localizado por la tienda, p. ej. "US$4.99" o "L 124.00". */
+  priceString: string;
+  /** Nombre del producto en la tienda (lo que Apple muestra en la hoja de compra). */
+  title: string | null;
+};
+
+export type MonthlyOfferResult =
+  | { ok: true; offer: MonthlyOffer }
+  | { ok: false; reason: "not_configured" | "dev_build_required" | "offering_unavailable" | "network_error" };
+
+/** Lo mínimo del paquete de RevenueCat que se lee acá. */
+type RevenueCatPackage = { product?: { priceString?: string; title?: string } | null };
 
 export class RevenueCatDevBuildRequiredError extends Error {
   constructor() {
@@ -51,7 +68,7 @@ export type RevenueCatNative = {
   // Opcional: no todas las versiones del binding lo exponen, y los fakes de
   // los tests que solo prueban compra no tienen por qué implementarlo.
   logOut?: () => Promise<unknown>;
-  getOfferings: () => Promise<{ current?: { monthly?: unknown } | null }>;
+  getOfferings: () => Promise<{ current?: { monthly?: RevenueCatPackage | null } | null }>;
   purchasePackage: (pkg: unknown) => Promise<unknown>;
   restorePurchases: () => Promise<unknown>;
   // Atributos del suscriptor en RevenueCat (`referred_by`). Opcional por lo
@@ -105,7 +122,9 @@ async function loadNative(): Promise<RevenueCatNative | null> {
 
   try {
     const { Platform } = await import("react-native");
-    if (Platform.OS === "web") {
+    // En web no hay compra. La excepción es el harness de QA
+    // (qa-harness/README.md), que mockea el SDK para fotografiar el paywall.
+    if (Platform.OS === "web" && process.env.EXPO_PUBLIC_QA_HARNESS !== "1") {
       return null;
     }
     const Constants = (await import("expo-constants")).default;
@@ -137,6 +156,15 @@ function isUserCancelled(error: unknown): boolean {
     "userCancelled" in error &&
     (error as { userCancelled?: boolean }).userCancelled === true
   );
+}
+
+// Códigos de `PURCHASES_ERROR_CODE` del SDK: sin red / sin conexión / la
+// tienda tardó demasiado. Se comparan como string para no importar el SDK.
+const NETWORK_ERROR_CODES = new Set(["10", "32", "35"]);
+
+function isNetworkError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) return false;
+  return NETWORK_ERROR_CODES.has(String((error as { code?: unknown }).code));
 }
 
 export function configure(): string {
@@ -204,6 +232,41 @@ export async function logOut(): Promise<PurchaseResult> {
   }
 }
 
+async function identify(native: RevenueCatNative, clerkUserId?: string): Promise<void> {
+  await ensureConfigured(native, clerkUserId);
+  if (clerkUserId) await native.logIn(clerkUserId);
+}
+
+function offerFrom(monthly: RevenueCatPackage | null | undefined): MonthlyOffer | null {
+  const priceString = monthly?.product?.priceString?.trim();
+  if (!priceString) return null;
+  const title = monthly?.product?.title?.trim();
+  return { priceString, title: title ? title : null };
+}
+
+/**
+ * Precio real del paquete mensual del offering `default` (#144). El paywall
+ * no muestra precio ni deja comprar hasta tener esto: Apple rechaza un precio
+ * escrito a mano que no coincide con el de la tienda.
+ */
+export async function getMonthlyOffer(clerkUserId?: string): Promise<MonthlyOfferResult> {
+  if (!purchasesConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
+  const native = await loadNative();
+  if (!native) {
+    return { ok: false, reason: "dev_build_required" };
+  }
+  try {
+    await ensureConfigured(native, clerkUserId);
+    const offerings = await native.getOfferings();
+    const offer = offerFrom(offerings.current?.monthly);
+    return offer ? { ok: true, offer } : { ok: false, reason: "offering_unavailable" };
+  } catch (error) {
+    return { ok: false, reason: isNetworkError(error) ? "network_error" : "offering_unavailable" };
+  }
+}
+
 export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseResult> {
   if (!purchasesConfigured()) {
     return { ok: false, reason: "not_configured" };
@@ -212,16 +275,10 @@ export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseRes
   if (!native) {
     return { ok: false, reason: "dev_build_required" };
   }
-  if (clerkUserId) {
-    const identified = await logIn(clerkUserId);
-    if (!identified.ok) {
-      return identified;
-    }
-  } else {
-    await ensureConfigured(native);
-  }
-
   try {
+    // `app_user_id` = Clerk userId antes de comprar. Dentro del try: sin red,
+    // `logIn` también falla y no puede escaparse como excepción.
+    await identify(native, clerkUserId);
     const offerings = await native.getOfferings();
     const monthly = offerings.current?.monthly;
     if (!monthly) {
@@ -232,6 +289,9 @@ export async function purchaseMonthly(clerkUserId?: string): Promise<PurchaseRes
   } catch (error) {
     if (isUserCancelled(error)) {
       return { ok: false, reason: "user_cancelled" };
+    }
+    if (isNetworkError(error)) {
+      return { ok: false, reason: "network_error" };
     }
     return { ok: false, reason: "purchase_failed" };
   }
@@ -245,18 +305,11 @@ export async function restorePurchases(clerkUserId?: string): Promise<PurchaseRe
   if (!native) {
     return { ok: false, reason: "dev_build_required" };
   }
-  if (clerkUserId) {
-    const identified = await logIn(clerkUserId);
-    if (!identified.ok) {
-      return identified;
-    }
-  } else {
-    await ensureConfigured(native);
-  }
   try {
+    await identify(native, clerkUserId);
     await native.restorePurchases();
     return { ok: true };
-  } catch {
-    return { ok: false, reason: "purchase_failed" };
+  } catch (error) {
+    return { ok: false, reason: isNetworkError(error) ? "network_error" : "purchase_failed" };
   }
 }

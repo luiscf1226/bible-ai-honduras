@@ -31,6 +31,8 @@ const harnessEnabled = process.env.QA_HARNESS === "1";
 if (harnessEnabled) {
   process.env.EXPO_PUBLIC_CONVEX_URL ||= "https://qa-harness.convex.cloud";
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||= "pk_test_qa_harness";
+  // Deja que `src/lib/revenuecat.ts` use el mock del SDK en web (#144).
+  process.env.EXPO_PUBLIC_QA_HARNESS = "1";
 }
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
