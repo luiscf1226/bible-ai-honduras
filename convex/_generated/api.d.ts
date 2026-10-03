@@ -18,20 +18,27 @@ import type * as feelings from "../feelings.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as images from "../images.js";
+import type * as memorize from "../memorize.js";
+import type * as memorizeSchedule from "../memorizeSchedule.js";
 import type * as offlineBible from "../offlineBible.js";
 import type * as offlineBiblePackage from "../offlineBiblePackage.js";
+import type * as prayers from "../prayers.js";
 import type * as qa from "../qa.js";
 import type * as quotas from "../quotas.js";
 import type * as rag_answer from "../rag/answer.js";
 import type * as rag_commentary from "../rag/commentary.js";
 import type * as rag_corpusCheck from "../rag/corpusCheck.js";
 import type * as rag_embed from "../rag/embed.js";
+import type * as rag_groupGuide from "../rag/groupGuide.js";
 import type * as rag_ingest from "../rag/ingest.js";
 import type * as rag_llm from "../rag/llm.js";
+import type * as rag_prompts_groupGuide from "../rag/prompts/groupGuide.js";
 import type * as rag_prompts_qa from "../rag/prompts/qa.js";
 import type * as rag_retrieve from "../rag/retrieve.js";
 import type * as rag_verses from "../rag/verses.js";
 import type * as reading from "../reading.js";
+import type * as readingGroupCore from "../readingGroupCore.js";
+import type * as readingGroups from "../readingGroups.js";
 import type * as readingPlanCatalog from "../readingPlanCatalog.js";
 import type * as readingPlans from "../readingPlans.js";
 import type * as referralCode from "../referralCode.js";
@@ -46,6 +53,8 @@ import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
 import type * as voicesGuardrail from "../voicesGuardrail.js";
 import type * as voicesPrompt from "../voicesPrompt.js";
+import type * as yearInWord from "../yearInWord.js";
+import type * as yearInWordCore from "../yearInWordCore.js";
 
 import type {
   ApiFromModules,
@@ -64,20 +73,27 @@ declare const fullApi: ApiFromModules<{
   history: typeof history;
   http: typeof http;
   images: typeof images;
+  memorize: typeof memorize;
+  memorizeSchedule: typeof memorizeSchedule;
   offlineBible: typeof offlineBible;
   offlineBiblePackage: typeof offlineBiblePackage;
+  prayers: typeof prayers;
   qa: typeof qa;
   quotas: typeof quotas;
   "rag/answer": typeof rag_answer;
   "rag/commentary": typeof rag_commentary;
   "rag/corpusCheck": typeof rag_corpusCheck;
   "rag/embed": typeof rag_embed;
+  "rag/groupGuide": typeof rag_groupGuide;
   "rag/ingest": typeof rag_ingest;
   "rag/llm": typeof rag_llm;
+  "rag/prompts/groupGuide": typeof rag_prompts_groupGuide;
   "rag/prompts/qa": typeof rag_prompts_qa;
   "rag/retrieve": typeof rag_retrieve;
   "rag/verses": typeof rag_verses;
   reading: typeof reading;
+  readingGroupCore: typeof readingGroupCore;
+  readingGroups: typeof readingGroups;
   readingPlanCatalog: typeof readingPlanCatalog;
   readingPlans: typeof readingPlans;
   referralCode: typeof referralCode;
@@ -92,6 +108,8 @@ declare const fullApi: ApiFromModules<{
   voicesCatalog: typeof voicesCatalog;
   voicesGuardrail: typeof voicesGuardrail;
   voicesPrompt: typeof voicesPrompt;
+  yearInWord: typeof yearInWord;
+  yearInWordCore: typeof yearInWordCore;
 }>;
 
 /**

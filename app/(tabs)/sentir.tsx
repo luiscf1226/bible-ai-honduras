@@ -8,6 +8,7 @@ import { makeFunctionReference } from "convex/server";
 import { api } from "../../convex/_generated/api";
 import { FEELING_GEN_STEPS, LoadingState } from "../../src/components/LoadingState";
 import { LimitReached } from "../../src/components/LimitReached";
+import { PersonalLockGate } from "../../src/components/PersonalLockGate";
 import { DevotionalMessage } from "../../src/features/feelings/DevotionalMessage";
 import { EmptyThread, UserBubble } from "../../src/features/feelings/FeelingMessages";
 import { FeelingsComposer } from "../../src/features/feelings/FeelingsComposer";
@@ -282,11 +283,17 @@ const styles = StyleSheet.create({
   },
 });
 
-/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+/**
+ * "Proteger lo personal" (#171): si está encendido, nada se monta hasta
+ * autenticar. Sin señal no puede responder: se avisa en vez de quedarse
+ * cargando (#160).
+ */
 export default function SentirScreen() {
   return (
-    <RequiresConnection module="feelings">
-      <SentirScreenContent />
-    </RequiresConnection>
+    <PersonalLockGate>
+      <RequiresConnection module="feelings">
+        <SentirScreenContent />
+      </RequiresConnection>
+    </PersonalLockGate>
   );
 }

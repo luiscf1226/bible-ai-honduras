@@ -16,7 +16,7 @@ import { BEGINNER_PLAN_ID } from "../../../src/features/reading/annualPlans";
 import { highlightSwatch } from "../../../src/features/reading/highlightColors";
 import { SavedVerseCard } from "../../../src/features/reading/SavedVerseCard";
 import { SAVED_PREVIEW_COUNT, seeAllLabel } from "../../../src/features/reading/savedVerses";
-import { openPassage, openReadingPlan } from "../../../src/lib/openPassage";
+import { openPassage, openReadingPlan, openTimeline } from "../../../src/lib/openPassage";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { tokens } from "../../../src/theme/tokens";
 
@@ -142,6 +142,35 @@ export default function LeerScreen() {
             <Text style={[styles.halfLabel, { color: color.ink }]}>Lecturas cortas por tema</Text>
           </Pressable>
           </View>
+
+          {/* Línea del tiempo (#201): misma tarjeta que Recorridos. */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => openTimeline()}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-timeline-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>LÍNEA DEL TIEMPO</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Dónde cae cada libro, de la creación a Apocalipsis</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/grupos")}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-groups-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>EN GRUPO</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Un plan con tu familia o tu célula</Text>
+          </Pressable>
 
           {progress ? (
             <Pressable

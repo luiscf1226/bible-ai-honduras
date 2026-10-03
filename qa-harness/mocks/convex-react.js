@@ -11,6 +11,7 @@ import {
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
+import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from "../../convex/readingGroupCore";
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
 import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
@@ -70,6 +71,7 @@ const db = {
   darkMode: isDark(),
   bibleVersion: (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ver")) || "RV1909",
   reminderHour: 6,
+  myGroups: isEmpty() ? [] : ["g1"],
   // Lector (#113, #196). `?hint=seen` simula una cuenta que ya cerró la pista.
   readingFontStep: undefined,
   readingSpacingStep: undefined,
@@ -122,6 +124,22 @@ const db = {
         { book: "Juan", chapter: 3, verse: 16, color: "sage", updatedAt: Date.now() - 2 * 3600e3 },
         { book: "Romanos", chapter: 8, verse: 28, color: "amber", updatedAt: Date.now() - 3 * 24 * 3600e3 },
         { book: "Filipenses", chapter: 4, verse: 13, color: "clay", updatedAt: Date.now() - 9 * 24 * 3600e3 },
+      ],
+  // Diario de oración (#159): dos abiertas (una desde Sentir) y una respondida.
+  prayers: isEmpty()
+    ? []
+    : [
+        { id: "p1", text: "Por la salud de mi abuela, que la operan el jueves.", createdAt: Date.now() - 3600e3, answeredAt: null, answerNote: null, verse: null },
+        { id: "p2", text: "Ansiedad · Sin trabajo", createdAt: Date.now() - 2 * 24 * 3600e3, answeredAt: null, answerNote: null, verse: { book: "Mateo", chapter: 11, verse: 28 } },
+        { id: "p3", text: "Que mi hermano encuentre trabajo.", createdAt: Date.now() - 20 * 24 * 3600e3, answeredAt: Date.now() - 26 * 3600e3, answerNote: "Lo llamaron de la maquila. ¡Gracias, Señor!", verse: null },
+      ],
+  // Memorizar (#158): dos tocan hoy y uno vuelve en 3 días.
+  memory: isEmpty()
+    ? []
+    : [
+        { id: "mv1", book: "Salmos", chapter: 46, verse: 1, level: 0, nextOffset: 0 },
+        { id: "mv2", book: "Filipenses", chapter: 4, verse: 13, level: 1, nextOffset: 0 },
+        { id: "mv3", book: "Juan", chapter: 3, verse: 16, level: 2, nextOffset: 3 },
       ],
   history: isEmpty()
     ? []
@@ -180,6 +198,28 @@ function findBookmark(args) {
   return db.bookmarks.findIndex((b) => b.book === args.book && b.chapter === args.chapter && b.verse === args.verse);
 }
 
+// Día de Honduras (YYYY-MM-DD) desplazado `offset` días, como `hondurasDateKey`.
+function hnDay(offset = 0) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tegucigalpa" }).format(new Date(Date.now() + offset * 24 * 3600e3));
+}
+
+function memoryList() {
+  const today = hnDay();
+  const items = db.memory.map((m) => ({
+    id: m.id,
+    book: m.book,
+    chapter: m.chapter,
+    verse: m.verse,
+    level: m.level,
+    nextReview: hnDay(m.nextOffset),
+    due: m.nextOffset <= 0,
+    version: db.bibleVersion,
+    text: db.bibleVersion === "RV1909" ? SAVED_TEXT[`${m.book} ${m.chapter}:${m.verse}`] ?? null : null,
+  }));
+  items.sort((a, b) => a.nextReview.localeCompare(b.nextReview));
+  return { today, dueCount: items.filter((i) => i.due).length, items };
+}
+
 const VERSES = [
   { verse: 1, text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones." },
   { verse: 2, text: "Por tanto, no temeremos, aunque la tierra sea removida, y se traspasen los montes al corazón del mar;" },
@@ -196,6 +236,63 @@ const VERSES = [
   { verse: 11, text: "Jehová de los ejércitos es con nosotros; nuestro refugio es el Dios de Jacob. (Selah.)" },
 ];
 
+// Plan en grupo (#185). `g1` es una célula con 5 personas en Ansiedad; el
+// token QAgrupe2345678ab invita a una familia en Duelo (para la pantalla de
+// invitación). Cualquier otro token → invitación vencida.
+const QA_INVITE_TOKEN = "QAgrupe2345678ab";
+const groupMembers = (me, others) =>
+  sortMembers([
+    { name: "Ana", isMe: true, completedCount: me, todayCompleted: me > 0, totalDays: 7 },
+    ...others,
+  ]);
+const GROUP_FIXTURES = {
+  g1: {
+    kind: "celula",
+    planId: "ansiedad",
+    isOwner: true,
+    inviteToken: "QAcentra2345678a",
+    members: groupMembers(3, [
+      { name: "Carlos", isMe: false, completedCount: 4, todayCompleted: true, totalDays: 7 },
+      { name: "Doña Marta", isMe: false, completedCount: 2, todayCompleted: false, totalDays: 7 },
+      { name: "José", isMe: false, completedCount: 7, todayCompleted: true, totalDays: 7 },
+      { name: "Rebeca", isMe: false, completedCount: null, todayCompleted: false, totalDays: 7 },
+    ]),
+  },
+  g2: {
+    kind: "familia",
+    planId: "duelo",
+    isOwner: false,
+    inviteToken: QA_INVITE_TOKEN,
+    members: groupMembers(0, [
+      { name: "Lucía", isMe: false, completedCount: 1, todayCompleted: true, totalDays: 7 },
+      { name: "Mario", isMe: false, completedCount: 0, todayCompleted: false, totalDays: 7 },
+    ]),
+  },
+};
+const planSummary = (planId) => {
+  const plan = ALL_PLANS.find((p) => p.id === planId);
+  return { id: plan.id, name: plan.name, description: plan.description, totalDays: plan.totalDays };
+};
+const groupName = (group) => groupDisplayName(group.kind, planSummary(group.planId).name);
+
+const GUIDE_CITE = (verse) => ({ book: "Salmos", chapter: 46, verse, version: "RV1909", text: VERSES[verse - 1].text });
+const QA_GROUP_GUIDE = {
+  book: "Salmos",
+  chapter: 46,
+  version: "RV1909",
+  summary: {
+    text: "El salmista declara que Dios es refugio y fuerza en medio de la angustia. Aunque la tierra tiemble y el mar se agite, el pueblo no teme, porque Dios está en medio de su ciudad.",
+    citations: [GUIDE_CITE(1), GUIDE_CITE(2)],
+  },
+  questions: [
+    { text: "¿Qué palabras usa el versículo 1 para describir a Dios? ¿Cuál les dice más hoy?", citations: [GUIDE_CITE(1)] },
+    { text: "El salmo no dice que no habrá tormenta. ¿Qué cambia saber que Dios es auxilio en medio de ella?", citations: [GUIDE_CITE(2), GUIDE_CITE(3)] },
+    { text: "¿Qué imágenes de la naturaleza aparecen y qué dicen de lo que puede asustarnos?", citations: [GUIDE_CITE(3)] },
+    { text: "El versículo 4 habla de un río que alegra la ciudad. ¿Dónde ven esa alegría en su semana?", citations: [GUIDE_CITE(4)] },
+    { text: "¿Cómo pueden ayudarse como grupo a recordar este salmo cuando algo los preocupe?", citations: [GUIDE_CITE(1), GUIDE_CITE(4)] },
+  ],
+  truncatedAtVerse: null,
+};
 // Salmos 119 tiene 176 versículos: el harness repite el texto de arriba para
 // medir el scroll de un capítulo largo. El resto de capítulos usa los 11.
 function chapterVerses(book, chapter) {
@@ -347,6 +444,60 @@ const handlers = {
   // Diagnóstico: en el harness no se manda nada.
   "telemetry:track": () => null,
   "telemetry:reportError": () => null,
+  "prayers:list": () => {
+    const open = db.prayers.filter((p) => p.answeredAt === null).sort((a, b) => b.createdAt - a.createdAt);
+    const answered = db.prayers.filter((p) => p.answeredAt !== null).sort((a, b) => b.answeredAt - a.answeredAt);
+    return [...open, ...answered];
+  },
+  "prayers:create": (args) => {
+    const id = `p${db.prayers.length + 10}`;
+    db.prayers.push({ id, text: args.text.trim(), createdAt: Date.now(), answeredAt: null, answerNote: null, verse: args.verse ?? null });
+    notify();
+    return id;
+  },
+  "prayers:markAnswered": (args) => {
+    db.prayers = db.prayers.map((p) => (p.id === args.id ? { ...p, answeredAt: Date.now(), answerNote: args.note?.trim() || null } : p));
+    notify();
+    return null;
+  },
+  "prayers:reopen": (args) => {
+    db.prayers = db.prayers.map((p) => (p.id === args.id ? { ...p, answeredAt: null, answerNote: null } : p));
+    notify();
+    return null;
+  },
+  "prayers:remove": (args) => {
+    db.prayers = db.prayers.filter((p) => p.id !== args.id);
+    notify();
+    return null;
+  },
+  "memorize:list": () => memoryList(),
+  "memorize:chapterVerses": (args) => db.memory.filter((m) => m.book === args.book && m.chapter === args.chapter).map((m) => m.verse),
+  "memorize:add": (args) => {
+    if (!db.memory.some((m) => m.book === args.book && m.chapter === args.chapter && m.verse === args.verse)) {
+      db.memory.push({ id: `mv${db.memory.length + 10}`, ...args, level: 0, nextOffset: 1 });
+      notify();
+    }
+    return { added: true, nextReview: hnDay(1) };
+  },
+  "memorize:remove": (args) => {
+    db.memory = db.memory.filter((m) => !(m.book === args.book && m.chapter === args.chapter && m.verse === args.verse));
+    notify();
+    return { removed: true };
+  },
+  // Mismo calendario que convex/memorizeSchedule.ts: acertar espacia (3, 7, 21), fallar vuelve a hoy.
+  "memorize:review": (args) => {
+    const steps = [0, 3, 7, 21];
+    let state = { level: 0, nextReview: hnDay() };
+    db.memory = db.memory.map((m) => {
+      if (m.id !== args.id) return m;
+      const level = args.correct ? Math.min(3, m.level + 1) : 0;
+      const offset = args.correct ? steps[level] : 0;
+      state = { level, nextReview: hnDay(offset) };
+      return { ...m, level, nextOffset: offset };
+    });
+    notify();
+    return state;
+  },
   "reading:separator": () => db.separator,
   "reading:setSeparator": (args) => {
     db.separator = { ...args, updatedAt: Date.now() };
@@ -406,6 +557,78 @@ const handlers = {
     return null;
   },
   "readingPlans:myPlans": () => [],
+  "readingGroups:planChoices": () => ALL_PLANS.map((p) => planSummary(p.id)),
+  "readingGroups:mine": () =>
+    db.myGroups.map((id) => ({ id, name: groupName(GROUP_FIXTURES[id]), planId: GROUP_FIXTURES[id].planId, memberCount: GROUP_FIXTURES[id].members.length })),
+  "readingGroups:detail": (args) => {
+    const group = GROUP_FIXTURES[args.groupId];
+    if (!group || !db.myGroups.includes(args.groupId)) return null;
+    return {
+      id: args.groupId,
+      name: groupName(group),
+      kindLabel: groupKindLabel(group.kind),
+      plan: planSummary(group.planId),
+      isOwner: group.isOwner,
+      inviteToken: group.inviteToken,
+      maxMembers: GROUP_MAX_MEMBERS,
+      members: group.members,
+    };
+  },
+  "readingGroups:previewInvite": (args) => {
+    if (args.token !== QA_INVITE_TOKEN) return { status: "not_found" };
+    const group = GROUP_FIXTURES.g2;
+    const plan = planSummary(group.planId);
+    return {
+      status: "ok",
+      groupId: "g2",
+      name: groupName(group),
+      planName: plan.name,
+      planTotalDays: plan.totalDays,
+      memberCount: group.members.length - (db.myGroups.includes("g2") ? 0 : 1),
+      maxMembers: GROUP_MAX_MEMBERS,
+      alreadyMember: db.myGroups.includes("g2"),
+    };
+  },
+  "readingGroups:join": (args) => {
+    if (args.token !== QA_INVITE_TOKEN) return { status: "not_found" };
+    if (db.myGroups.includes("g2")) return { status: "already", groupId: "g2" };
+    db.myGroups = ["g2", ...db.myGroups];
+    notify();
+    return { status: "ok", groupId: "g2" };
+  },
+  "readingGroups:create": () => {
+    if (!db.myGroups.includes("g1")) db.myGroups = ["g1", ...db.myGroups];
+    notify();
+    return { status: "ok", groupId: "g1" };
+  },
+  "readingGroups:leave": (args) => {
+    db.myGroups = db.myGroups.filter((id) => id !== args.groupId);
+    notify();
+    return { left: true };
+  },
+  "readingGroups:rotateInvite": () => ({ inviteToken: "QAnueva23456789a" }),
+  "qa:prepareGroupGuide": () => {
+    if (!isPro()) return { status: "pro_required" };
+    return isEmpty() ? { status: "no_content" } : { status: "ok", guide: QA_GROUP_GUIDE };
+  },
+  // Tu año en la Palabra (#183). Con ?qa=empty, todo en cero.
+  "yearInWord:summary": (args) =>
+    isEmpty()
+      ? { year: args.year, chaptersRead: 0, planDays: 0, savedVerses: 0, topHighlight: null }
+      : {
+          year: args.year,
+          chaptersRead: 148,
+          planDays: 212,
+          savedVerses: db.bookmarks.length,
+          topHighlight: {
+            book: "Salmos",
+            chapter: 46,
+            verse: 1,
+            chapterCount: 3,
+            version: db.bibleVersion,
+            text: db.bibleVersion === "RV1909" ? SAVED_TEXT["Salmos 46:1"] : null,
+          },
+        },
   "voices:list": () => voiceCharacters,
   "voices:thread": (args) => db.voiceThreads[args.slug] ?? [],
   "voices:sendMessage": (args) => {
@@ -481,6 +704,7 @@ const handlers = {
   }),
   "history:deleteAll": () => {
     db.history = [];
+    db.prayers = [];
     notify();
     return null;
   },

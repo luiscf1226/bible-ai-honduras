@@ -1,6 +1,6 @@
 # Política de privacidad — Bible AI Honduras
 
-**Vigente desde:** 30 de septiembre de 2026  
+**Vigente desde:** 2 de octubre de 2026  
 **Responsable:** Bible AI Honduras  
 **Contacto de privacidad:** [luiscf1226@gmail.com](mailto:luiscf1226@gmail.com)  
 **URL pública:** <https://luiscf1226.github.io/bible-ai-honduras/privacidad/>
@@ -24,6 +24,13 @@ y elimina información cuando usás la aplicación móvil.
 - **Lectura:** el último capítulo que abriste, capítulos recientes, versículos
   guardados, tu separador y el avance en planes de lectura y recorridos. Leer
   es gratis y estos datos no se envían a proveedores de IA.
+- **Diario de oración:** las peticiones que escribís o guardás al terminar un
+  devocional de Sentir, con su fecha, si la marcaste como respondida y la nota
+  opcional de cómo fue respondida. Es privado: solo lo ves vos, no se comparte,
+  no se publica y **nunca se envía a proveedores de IA**.
+- **Memorizar:** los versículos que elegiste memorizar, el nivel en el que vas y
+  la fecha del próximo repaso. Es gratis, no usa IA y el texto sale de la
+  Biblia guardada en la app.
 - **Historias:** historia elegida, estado de generación, escenas e imágenes
   creadas.
 - **Invitaciones:** si llegaste por el link de otra persona (o escribiste su
@@ -77,8 +84,10 @@ la ley; ese plazo no lo controla el botón de borrado de la app.
 
 Las conversaciones y mensajes se conservan mientras mantengás el historial.
 En **Ajustes → Privacidad → Borrar mi historial**, la app elimina de la base de
-datos las filas de conversaciones y mensajes de Preguntar, Voces y Sentir; no
-las oculta mediante una marca de borrado y la acción no se puede deshacer.
+datos las filas de conversaciones y mensajes de Preguntar, Voces y Sentir, las
+peticiones de tu diario de oración y las notas personales de tus versículos
+guardados (los versículos guardados y los de Memorizar se quedan); no las oculta
+mediante una marca de borrado y la acción no se puede deshacer.
 
 Ese botón no elimina tu cuenta, perfil, preferencias, conteos de uso, estado de
 suscripción, historias ni copias temporales que un proveedor de IA mantenga bajo
@@ -96,8 +105,9 @@ Podés eliminar la cuenta **desde la app** en
 **Ajustes → Cuenta → Eliminar mi cuenta**. El flujo pide confirmación en dos
 pasos (incluido escribir la palabra ELIMINAR). Borra en cascada el perfil, las
 conversaciones y mensajes, los conteos de uso, el plan dentro de la app, los
-datos de lectura (progreso, guardados, separador y planes), las historias e
-imágenes generadas que controlemos, y la identidad asociada en
+datos de lectura (progreso, guardados, separador y planes), el diario de
+oración, los versículos de Memorizar, las historias e imágenes generadas que
+controlemos, y la identidad asociada en
 Clerk. **Eliminar la cuenta no cancela la suscripción de la tienda**; eso se
 administra en App Store o Google Play. También podés cerrar sesión sin borrar
 datos en **Ajustes → Cuenta → Cerrar sesión**.

@@ -33,6 +33,13 @@
           <p>En Android, instalá desde el botón de Google Play y listo. En iPhone, cuando la tengás instalada, <a id="open-app" href="bibleai://home">abrila desde acá</a> o escribí el código en Ajustes → ¿Te invitó alguien?</p>
         </div>
 
+        <!-- Solo con &grupo=: invitación a un plan en grupo (#185). El token se
+             valida con el mismo patrón que convex/readingGroupCore.ts. -->
+        <div class="notice" id="group-invite" hidden>
+          <p><strong>Te invitaron a leer la Biblia en grupo.</strong> En el grupo solo se ve tu nombre y cuántos días del plan llevás leídos.</p>
+          <p>Si ya tenés la app, <a id="open-group" href="bibleai://grupo">abrí la invitación</a>. Si no, instalala primero y después volvé a tocar el link que te mandaron por WhatsApp.</p>
+        </div>
+
         <h2>Información disponible</h2>
         <p>Publicamos estas páginas para que las podás consultar dentro o fuera de la app.</p>
         <div class="actions">
@@ -56,6 +63,16 @@
       document.getElementById("open-app").href = "bibleai://home?ref=" + code;
       document.getElementById("invite-code").textContent = code;
       document.getElementById("invite").hidden = false;
+    })();
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var token = (params.get("grupo") || "").trim();
+      if (!/^[2-9a-kmnp-zA-HJ-NP-Z]{16}$/.test(token)) return;
+      var link = "bibleai://grupo?token=" + token;
+      var code = (params.get("ref") || "").trim().toUpperCase();
+      if (/^BAH-[0-9A-Z]{7}$/.test(code)) link += "&ref=" + code;
+      document.getElementById("open-group").href = link;
+      document.getElementById("group-invite").hidden = false;
     })();
   </script>
 </body>

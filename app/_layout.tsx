@@ -10,6 +10,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { FullScreenNotice } from "../src/components/FullScreenNotice";
 import { OfflineSyncProvider } from "../src/features/offline/OfflineSyncProvider";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
+import { useGroupInvite } from "../src/hooks/useGroupInvite";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
 import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
@@ -37,6 +38,7 @@ function AppNavigator() {
   useRevenueCatLogin();
   useVerseWidgetSync();
   useReferralAttribution();
+  useGroupInvite();
   const { dark } = useTheme();
   const appUpdate = useAppUpdate();
 
