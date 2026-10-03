@@ -5,6 +5,7 @@ import { AskCard } from "./AskCard";
 import { CharactersCard } from "./CharactersCard";
 import { FeelingCard } from "./FeelingCard";
 import { ReadCard } from "./ReadCard";
+import { SavedMemoryCard } from "./SavedMemoryCard";
 import { SeasonStrip } from "./SeasonStrip";
 import { StoriesCard } from "./StoriesCard";
 import { VerseCard } from "./VerseCard";
@@ -25,6 +26,7 @@ export type HomeCardEntry = {
 const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
   season: { Component: SeasonStrip, visible: ({ season }) => season !== null },
   verse: { Component: VerseCard },
+  savedMemory: { Component: SavedMemoryCard },
   read: { Component: ReadCard },
   feeling: { Component: FeelingCard },
   ask: { Component: AskCard },
