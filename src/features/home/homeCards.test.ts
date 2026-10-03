@@ -5,17 +5,16 @@ import {
   ASK_EXAMPLES,
   askExampleForDay,
   askExampleRoute,
-  askQuotaLine,
   FEELING_SHORTCUTS,
   FEELING_WRITE_ROUTE,
   feelingRoute,
   greetingFor,
   HOME_CARD_ORDER,
   HOME_ROUTES,
+  HOME_TILE_IDS,
   hondurasHour,
   pickForDay,
   pickHomeCharacters,
-  READ_CHIPS,
   readStatusLine,
 } from "./homeCards";
 
@@ -26,9 +25,9 @@ describe("orden de las tarjetas (#193)", () => {
       "season",
       "verse",
       "savedMemory",
-      "read",
       "feeling",
       "pause",
+      "read",
       "ask",
       "characters",
       "stories",
@@ -37,6 +36,11 @@ describe("orden de las tarjetas (#193)", () => {
 
   it("la entrada a la pausa (#203) va justo debajo de ¿Cómo estás hoy?", () => {
     expect(HOME_CARD_ORDER.indexOf("pause")).toBe(HOME_CARD_ORDER.indexOf("feeling") + 1);
+  });
+
+  it("los cuatro módulos cierran el inicio como mosaicos de la cuadrícula 2×2 (U1b)", () => {
+    expect(HOME_TILE_IDS).toEqual(["read", "ask", "characters", "stories"]);
+    expect(HOME_CARD_ORDER.slice(-HOME_TILE_IDS.length)).toEqual([...HOME_TILE_IDS]);
   });
 
   it("cada tarjeta abre su módulo", () => {
@@ -49,15 +53,6 @@ describe("orden de las tarjetas (#193)", () => {
 });
 
 describe("Leer la Biblia", () => {
-  it("los 4 chips abren la pantalla correcta, en orden", () => {
-    expect(READ_CHIPS.map((chip) => [chip.label, chip.route])).toEqual([
-      ["Subrayados", { pathname: "/leer/subrayados" }],
-      ["Guardados", { pathname: "/leer/guardados" }],
-      ["Notas", { pathname: "/leer/guardados", params: { filtro: "con-nota" } }],
-      ["Planes", { pathname: "/leer/plan" }],
-    ]);
-  });
-
   it("con separador, la línea de estado lo nombra y abre ese versículo", () => {
     const status = readStatusLine({ book: "Salmos", chapter: 46, verse: 1 }, { book: "Juan", chapter: 3 });
     expect(status).toEqual({
@@ -110,14 +105,6 @@ describe("Preguntar sobre la Biblia", () => {
 
   it("el ejemplo abre el chat con la pregunta escrita", () => {
     expect(askExampleRoute("¿Quién fue Rut?")).toEqual({ pathname: "/preguntar/chat", params: { pregunta: "¿Quién fue Rut?" } });
-  });
-
-  it("la cuota sale de quotas.remaining", () => {
-    expect(askQuotaLine(undefined)).toBeNull();
-    expect(askQuotaLine({ isPro: false, remaining: 3 })).toBe("3 preguntas gratis hoy");
-    expect(askQuotaLine({ isPro: false, remaining: 1 })).toBe("1 pregunta gratis hoy");
-    expect(askQuotaLine({ isPro: false, remaining: 0 })).toBe("Ya usaste tus preguntas gratis de hoy");
-    expect(askQuotaLine({ isPro: true, remaining: 5 })).toBe("Pro · sin límite");
   });
 });
 

@@ -23,6 +23,7 @@
 | `type.readerBody` | serif 19 / 31 | | Texto corrido del lector, en el paso "normal" de `readingSettings` |
 | `readerPadding` | h 26 · top 18 | | Márgenes de la página (U3) |
 | `size.cardAvatar` | 40 | | Avatares en la tarjeta de Personajes (U1) |
+| `size.tileAvatar` | 30 | | Avatares encimados en el mosaico de Personajes (U1b) |
 | `size.verseCardImage` | 176 | | Alto de la imagen de la tarjeta del versículo (U1) |
 | `size.hoyImage` | 236 | | Alto de la imagen en `/hoy` (U2) |
 | `size.icon` | sm 16 · md 20 · lg 24 | | Íconos |
@@ -91,6 +92,42 @@ ofrece en `bodySm` `inkMuted`. Contenido propio. Toda la tarjeta es tocable
    bíblicas en texto e imágenes".
 
 Noche: todas las tarjetas usan la paleta `night`; la imagen conserva el scrim.
+
+## U1b — Inicio compacto: todo en una pantalla
+
+Reemplaza el largo de U1: el inicio entra entero en una pantalla, sin scroll,
+en un iPhone 12–15 (390 × 763 útiles) y en un Android de 360 × 728, también con
+la franja de temporada. El `ScrollView` queda solo de respaldo (iPhone SE, letra
+grande, o los días con Tus fechas / "Hace un año guardaste…").
+
+Orden: encabezado → (temporada) → **Versículo del día** → ¿Cómo estás hoy? →
+Un minuto de pausa → cuadrícula 2×2 **Leer · Preguntar · Personajes ·
+Historias**. Separación `space.sm` entre renglones y entre mosaicos; arriba,
+`space.sm` en vez del `space.xxl` de `AppScreen`.
+
+1. **Versículo del día.** La imagen ocupa toda la tarjeta (`imageScrim`
+   encima) y es la única que se estira: se queda con el alto que sobra
+   (`flex: 1`, mínimo `size.verseCardImage`). Abajo, sobre la imagen y en
+   `surface`: `VERSÍCULO DEL DÍA` `overline`, el versículo en serif `verse`
+   (máx. 4 líneas) y una fila con cita · versión (`caption` medium, al
+   `opacity.imageMuted`) y "Una pausa para hoy ›" (`bodySm`). Cargando o con
+   error, fondo `surfaceSunk` y texto `ink`/`inkMuted`.
+2. **¿Cómo estás hoy?** `HomeCard` sin línea; los 3 chips se reparten el ancho
+   en una sola fila y "Escribilo con tus palabras" pasa a ser un chip punteado
+   de solo lápiz (`note`), con su `accessibilityLabel`.
+3. **Un minuto de pausa**, igual que antes.
+4. **Mosaicos** (`HomeTile`): misma piel que `HomeCard` (`surface`, borde,
+   `radius.xxl`, `cardPadding.horizontal`, `space.md` vertical). Arriba ícono
+   `md` `accent` y chevron `sm` `inkFaint`; título serif `subtitle` en una
+   línea; una sola pieza viva en `caption` light `inkMuted` (máx. 2 líneas):
+   - **Leer la Biblia**: cinta `ribbon` + "Tu separador · Salmos 46:1" (tocable,
+     abre el pasaje). Subrayados, Guardados, Notas y Planes viven en Leer.
+   - **Preguntar**: la pregunta de ejemplo del día (tocable, abre el chat con la
+     pregunta escrita). La cuota se ve adentro de Preguntar.
+   - **Personajes**: 4 avatares `size.tileAvatar` encimados `space.sm`. Con
+     personaje del mes (#200), anillo `accent` en el primero y `DEL MES`
+     `overline` `accent` arriba a la derecha.
+   - **Historias**: "Hoy: <título de la historia del día>".
 
 ## U2 — Versículo del día `/hoy` (#194)
 
