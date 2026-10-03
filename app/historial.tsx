@@ -5,6 +5,8 @@ import { api } from "../convex/_generated/api";
 import { voiceCharacters } from "../convex/voicesCatalog";
 import { AppScreen } from "../src/components/AppScreen";
 import { ScreenHeader } from "../src/components/ScreenHeader";
+import { hideLockedFeelings } from "../src/features/personal/personalLock";
+import { usePersonalLockGate } from "../src/features/personal/personalLockStore";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -31,7 +33,10 @@ function relativeWhen(createdAt: number) {
 
 export default function HistorialScreen() {
   const { color } = useTheme();
-  const items = useQuery(api.history.list);
+  // Con "Proteger lo personal" encendido y sin desbloquear, Sentir no se asoma acá (#171).
+  const lock = usePersonalLockGate();
+  const all = useQuery(api.history.list);
+  const items = all === undefined ? undefined : hideLockedFeelings(all, lock.status);
 
   return (
     <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
