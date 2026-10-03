@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ChapterSpeechController,
@@ -7,7 +7,12 @@ import {
   utteranceFor,
   type ChapterSpeechState,
   type SpeechEngine,
+  VOICE_LOOKUP_MS,
 } from "./chapterSpeech";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 type Spoken = { text: string; language: string; voice?: string; onDone: () => void; onStopped: () => void; onError: () => void };
 
@@ -140,6 +145,18 @@ describe("cola del capítulo", () => {
     await controller.play([{ verse: 1, text: "  " }]);
     expect(spoken).toHaveLength(0);
     expect(controller.current).toEqual({ status: "idle" });
+  });
+
+  it("si la lista de voces no llega nunca, habla igual en es-MX pasado el tope", async () => {
+    vi.useFakeTimers();
+    const fake = fakeEngine();
+    fake.engine.getVoices = () => new Promise(() => undefined);
+    const controller = new ChapterSpeechController(fake.engine, CHAPTER, () => undefined);
+    const playing = controller.play(VERSES);
+    await vi.advanceTimersByTimeAsync(VOICE_LOOKUP_MS);
+    await playing;
+    expect(fake.spoken).toHaveLength(1);
+    expect(fake.spoken[0]).toMatchObject({ language: "es-MX", voice: undefined });
   });
 
   it("si la persona para mientras se buscan las voces, no empieza a sonar", async () => {

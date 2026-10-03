@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -101,8 +101,10 @@ export function ReaderPage({
   const reportHeight = useCallback((key: string, height: number) => {
     setRunHeights((current) => (current[key] === height ? current : { ...current, [key]: height }));
   }, []);
+  // Mismas medidas = mismo estado: si no, cada medición (en web, en cada
+  // render) crea un objeto nuevo y el lector entra en un bucle de renders.
   const reportTops = useCallback((key: string, tops: Record<number, number>) => {
-    setRunTops((current) => ({ ...current, [key]: tops }));
+    setRunTops((current) => (sameTops(current[key], tops) ? current : { ...current, [key]: tops }));
   }, []);
 
   // Los bloques van uno debajo del otro sin espacio: la altura de cada uno sale
@@ -123,7 +125,12 @@ export function ReaderPage({
     return tops;
   }, [lead, pageRuns, runHeights, runTops]);
 
+  // Solo se avisa si las medidas cambiaron: si `verses` llega como un arreglo
+  // nuevo con el mismo contenido, avisar igual dispara un bucle de renders.
+  const reportedTops = useRef<Record<number, number> | undefined>(undefined);
   useEffect(() => {
+    if (sameTops(reportedTops.current, verseTops)) return;
+    reportedTops.current = verseTops;
     onVerseTops?.(verseTops);
   }, [onVerseTops, verseTops]);
 
@@ -354,3 +361,9 @@ const styles = StyleSheet.create({
   // paso de letra más grande.
   ribbon: { position: "absolute", right: (tokens.readerPadding.horizontal - tokens.size.ribbon.width) / 2 },
 });
+
+function sameTops(a: Record<number, number> | undefined, b: Record<number, number>): boolean {
+  if (!a) return false;
+  const keys = Object.keys(b);
+  return keys.length === Object.keys(a).length && keys.every((key) => a[Number(key)] === b[Number(key)]);
+}

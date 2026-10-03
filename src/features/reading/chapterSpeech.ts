@@ -32,6 +32,24 @@ export type ChapterSpeechState =
 /** Idioma que se le pide a la voz si no hay una en español instalada. */
 export const SPEECH_LANGUAGE = "es-MX";
 
+/**
+ * Tope para buscar la voz. Sin voces instaladas (o mientras el sistema las
+ * carga) la lista puede no llegar nunca; pasado el tope se habla con
+ * `SPEECH_LANGUAGE` y el sistema elige.
+ */
+export const VOICE_LOOKUP_MS = 1500;
+
+function voicesWithin(engine: SpeechEngine, ms: number): Promise<SpeechVoice[]> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve([]), ms);
+    engine
+      .getVoices()
+      .then((voices) => resolve(voices))
+      .catch(() => resolve([]))
+      .finally(() => clearTimeout(timer));
+  });
+}
+
 // Orden de preferencia: español de México y de EE. UU. (los más cercanos al
 // de Honduras que traen iOS y Android), después cualquier español
 // latinoamericano y, al final, cualquier español.
@@ -80,7 +98,7 @@ export class ChapterSpeechController {
   private state: ChapterSpeechState = { status: "idle" };
   private turn = 0;
   private verses: readonly SpeakableVerse[] = [];
-  private voice: SpeechVoice | null | undefined;
+  private voice: SpeechVoice | undefined;
 
   constructor(
     private readonly engine: SpeechEngine,
@@ -98,11 +116,9 @@ export class ChapterSpeechController {
     this.verses = playable;
     const turn = this.nextTurn();
     if (this.voice === undefined) {
-      try {
-        this.voice = chooseSpanishVoice(await this.engine.getVoices());
-      } catch {
-        this.voice = null;
-      }
+      const voice = chooseSpanishVoice(await voicesWithin(this.engine, VOICE_LOOKUP_MS));
+      // Si no llegó ninguna, se vuelve a buscar la próxima vez (pueden estar cargando).
+      if (voice) this.voice = voice;
       // Si mientras se buscaba la voz la persona paró o cambió de versículo, no se arranca.
       if (turn !== this.turn) return;
     }

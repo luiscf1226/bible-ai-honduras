@@ -6,14 +6,20 @@ import { AppState } from "react-native";
 import { ChapterSpeechController, type ChapterSpeechState, type SpeakableVerse, type SpeechEngine } from "./chapterSpeech";
 
 const engine: SpeechEngine = {
-  speak: (text, options) =>
-    Speech.speak(text, {
-      language: options.language,
-      voice: options.voice,
-      onDone: options.onDone,
-      onStopped: options.onStopped,
-      onError: options.onError,
-    }),
+  speak: (text, options) => {
+    try {
+      Speech.speak(text, {
+        language: options.language,
+        voice: options.voice,
+        onDone: options.onDone,
+        onStopped: options.onStopped,
+        onError: options.onError,
+      });
+    } catch {
+      // Una voz que el sistema rechaza no puede tumbar el lector: se trata como error del versículo.
+      options.onError();
+    }
+  },
   stop: () => void Speech.stop().catch(() => undefined),
   getVoices: () => Speech.getAvailableVoicesAsync(),
 };
