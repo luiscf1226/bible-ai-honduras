@@ -2,7 +2,7 @@ import type { IconName } from "../../components/Icon";
 import { copyToClipboard } from "../../lib/clipboard";
 import { goToChat } from "../../lib/goToChat";
 import { goToVoices } from "../../lib/goToVoices";
-import { openTimeline } from "../../lib/openPassage";
+import { openDedication, openTimeline } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
 import { hasCrossReferences } from "./crossReferences";
@@ -34,6 +34,8 @@ export type VerseActionContext = {
   /** Memorizar (#158): el versículo ya está en el repaso. */
   memorizing: boolean;
   toggleMemorize: () => void;
+  /** Escuchar el capítulo desde este versículo (#157). */
+  listenFrom: () => void;
 };
 
 export type VerseAction = {
@@ -107,6 +109,25 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
       if (!ctx.referralCode) return;
       void shareVerse({ verse: ctx.verse, referralCode: ctx.referralCode });
     },
+  },
+  {
+    // Dedicar (#202): imagen "Para …" por WhatsApp. Gratis: es el canal de crecimiento.
+    id: "dedicate",
+    icon: "gift",
+    label: () => "Dedicar",
+    accessibilityLabel: () => "Dedicar este versículo",
+    accessibilityHint: () => "Arma una imagen con el versículo y una dedicatoria para mandar por WhatsApp.",
+    testID: "reading-action-dedicate",
+    onPress: (ctx) => openDedication(ctx.verse),
+  },
+  {
+    // Escuchar (#157): voz del sistema desde este versículo. Gratis, sin cuota.
+    id: "listen",
+    icon: "listen",
+    label: () => "Escuchar",
+    accessibilityLabel: () => "Escuchar desde este versículo",
+    testID: "reading-action-listen",
+    onPress: (ctx) => ctx.listenFrom(),
   },
   {
     id: "ask",

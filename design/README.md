@@ -69,3 +69,8 @@ Por decisión del fundador (2026-10-02), las pantallas de U1–U6 y lo visual de
 #199/#200 se diseñaron directo en el repo, sin pasar por Claude Design:
 **`design/oleada-ux.md`** es su contrato visual, con los tokens nuevos ya en
 `tokens.json` y el set de íconos en `src/components/Icon.tsx`.
+
+## Dedicar (#202) y Escuchar (#157)
+
+Misma decisión del fundador (2026-10-03): **`design/dedicar-y-escuchar.md`**
+es el contrato visual del versículo dedicado y del control de audio del lector.

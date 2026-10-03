@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getMonthlyOffer,
   logIn,
   logOut,
   purchasesConfigured,
@@ -16,7 +17,7 @@ function mockNative(overrides: Partial<RevenueCatNative> = {}): RevenueCatNative
   return {
     configure: vi.fn(),
     getOfferings: vi.fn().mockResolvedValue({
-      current: { monthly: { identifier: "$rc_monthly" } },
+      current: { monthly: { identifier: "$rc_monthly", product: { priceString: "US$4.99", title: "Bible AI Honduras Pro" } } },
     }),
     logIn: vi.fn().mockResolvedValue({}),
     purchasePackage: vi.fn().mockResolvedValue({}),
@@ -191,5 +192,65 @@ describe("setReferralAttribute (PRD §9b)", () => {
 
     setRevenueCatNativeForTests(mockNative());
     await expect(setReferralAttribute("BAH-12AB34C")).resolves.toBeUndefined();
+  });
+});
+
+describe("precio real de la tienda (#144)", () => {
+  beforeEach(() => {
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "test_public_key");
+  });
+
+  afterEach(() => {
+    resetRevenueCatForTests();
+    vi.unstubAllEnvs();
+  });
+
+  it("devuelve el priceString localizado del paquete mensual, sin tocarlo", async () => {
+    const native = mockNative({
+      getOfferings: vi.fn().mockResolvedValue({
+        current: { monthly: { product: { priceString: "L 124.00", title: " Bible AI Honduras Pro " } } },
+      }),
+    });
+    setRevenueCatNativeForTests(native);
+
+    await expect(getMonthlyOffer("user_clerk_ana")).resolves.toEqual({
+      ok: true,
+      offer: { priceString: "L 124.00", title: "Bible AI Honduras Pro" },
+    });
+    expect(native.configure).toHaveBeenCalledWith({ apiKey: "test_public_key", appUserID: "user_clerk_ana" });
+  });
+
+  it("sin offering current, sin paquete mensual o sin precio: offering_unavailable", async () => {
+    for (const offerings of [{ current: null }, { current: {} }, { current: { monthly: { product: { priceString: "" } } } }]) {
+      resetRevenueCatForTests();
+      setRevenueCatNativeForTests(mockNative({ getOfferings: vi.fn().mockResolvedValue(offerings) }));
+      await expect(getMonthlyOffer()).resolves.toEqual({ ok: false, reason: "offering_unavailable" });
+    }
+  });
+
+  it("sin red distingue network_error de otros fallos del SDK", async () => {
+    setRevenueCatNativeForTests(mockNative({ getOfferings: vi.fn().mockRejectedValue({ code: "10" }) }));
+    await expect(getMonthlyOffer()).resolves.toEqual({ ok: false, reason: "network_error" });
+
+    resetRevenueCatForTests();
+    setRevenueCatNativeForTests(mockNative({ getOfferings: vi.fn().mockRejectedValue({ code: "23" }) }));
+    await expect(getMonthlyOffer()).resolves.toEqual({ ok: false, reason: "offering_unavailable" });
+  });
+
+  it("sin key ni módulo nativo no inventa un precio", async () => {
+    setRevenueCatNativeForTests(null);
+    await expect(getMonthlyOffer()).resolves.toEqual({ ok: false, reason: "dev_build_required" });
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_API_KEY", "");
+    await expect(getMonthlyOffer()).resolves.toEqual({ ok: false, reason: "not_configured" });
+  });
+
+  it("una compra o restauración sin red no desbloquea nada y no lanza", async () => {
+    setRevenueCatNativeForTests(mockNative({ purchasePackage: vi.fn().mockRejectedValue({ code: "35" }) }));
+    await expect(purchaseMonthly("user_x")).resolves.toEqual({ ok: false, reason: "network_error" });
+
+    resetRevenueCatForTests();
+    setRevenueCatNativeForTests(mockNative({ logIn: vi.fn().mockRejectedValue({ code: "10" }) }));
+    await expect(purchaseMonthly("user_x")).resolves.toEqual({ ok: false, reason: "network_error" });
+    await expect(restorePurchases("user_x")).resolves.toEqual({ ok: false, reason: "network_error" });
   });
 });

@@ -25,7 +25,7 @@ normal.
 |---|---|
 | `@clerk/expo`, `@clerk/expo/experimental` | sesión siempre iniciada, SSO y email-code que siempre pasan |
 | `convex/react`, `convex/react-clerk` | fixtures deterministas por nombre de función (`users:current`, `qa:thread`, …) |
-| `react-native-purchases` | no-op |
+| `react-native-purchases` | oferta mensual con precio localizado; ver `?rc=` abajo |
 | `expo-notifications` | permisos siempre concedidos |
 | `expo-local-authentication` | Face ID que siempre pasa (ver `?auth=` abajo) |
 
@@ -65,6 +65,7 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?ver=NVI` | versión de la Biblia = NVI (sin corpus, igual que en producción) |
 | `?net=off` | modo avión (#160, #182): NetInfo sin red, las `useQuery` quedan en `undefined` y las mutaciones no vuelven, como el cliente real de Convex sin conexión |
 | `?fechas=hoy` / `?fechas=1` | Tus fechas (#204): cumpleaños y bautismo que caen hoy (tarjeta arriba del inicio) o en otra fecha (solo se ven en Mi espacio). Sin el parámetro, sin fechas |
+| `?rc=none` / `?rc=error` / `?rc=cancel` · `?precio=L 124.00` | Paywall (#144). Solo si arrancaste con `EXPO_PUBLIC_REVENUECAT_API_KEY=qa_harness`: sin `?rc=` hay oferta mensual a `US$4.99` (o el `?precio=` que pases); `none` sin offering, `error` la tienda sin red, `cancel` la persona cancela la compra. Sin la key se ve "Pro todavía no está a la venta" |
 | `?plan=1` | plan anual empezado, en el día 5 con los días 3 y 4 pendientes |
 
 La Biblia sin conexión se descarga de verdad desde Ajustes: el manifiesto del

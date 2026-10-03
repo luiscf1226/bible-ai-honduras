@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 import { api } from "../../convex/_generated/api";
-import type { TelemetryEvent } from "../../convex/telemetry";
+import type { ShareOrigin, TelemetryEvent } from "../../convex/telemetry";
 import type { QuotaModule } from "../../convex/quotas";
 import { convexClient } from "./convexClient";
 import { describeError, makeInstallId } from "./telemetryCore";
@@ -48,10 +48,12 @@ function installId(): Promise<string> {
 }
 
 /** Un paso del embudo. Nunca lleva texto de la persona: solo el nombre y el módulo. */
-export function track(name: TelemetryEvent, module?: QuotaModule) {
+export function track(name: TelemetryEvent, module?: QuotaModule, extra?: { origin?: ShareOrigin }) {
   if (!enabled) return;
   void installId()
-    .then((id) => convexClient.mutation(api.telemetry.track, { installId: id, name, module, platform, build }))
+    .then((id) =>
+      convexClient.mutation(api.telemetry.track, { installId: id, name, module, origin: extra?.origin, platform, build }),
+    )
     .catch(() => undefined);
 }
 

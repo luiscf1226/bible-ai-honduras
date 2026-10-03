@@ -184,6 +184,12 @@ export const tokens = {
     ring: 1.5,
     // Línea del paso del tiempo en el minuto de pausa (#203).
     pauseLine: 2,
+    // Escuchar el capítulo (#157): botón reproducir/pausar (44 = área táctil
+    // mínima de iOS) y la línea de avance del capítulo.
+    audioButton: 44,
+    audioProgress: 2,
+    // Ancho de la vista previa en "Dedicar" (#202): 9:16 y cuadrada.
+    dedicationPreview: { story: 216, square: 280 },
   },
   grid: { chapterColumns: 5, actionColumns: 4 },
   // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.
@@ -201,6 +207,16 @@ export const tokens = {
     brand: 30,
     // Nombre de la temporada arriba al centro (#199).
     season: 30,
+    // Versículo dedicado (#202, design/dedicar-y-escuchar.md): formato
+    // cuadrado para el chat y el bloque "Para …" + dedicatoria.
+    squareHeight: 1080,
+    squarePaddingY: 104,
+    dedicationTo: 64,
+    dedicationToMin: 46,
+    dedicationMessage: 40,
+    dedicationVerseMin: 36,
+    dedicationRuleWidth: 120,
+    dedicationRule: 3,
   },
 } as const;
 

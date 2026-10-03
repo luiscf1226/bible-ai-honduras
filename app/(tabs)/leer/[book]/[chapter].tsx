@@ -34,6 +34,7 @@ import {
   takePageEnter,
   type SwipeDirection,
 } from "../../../../src/features/reading/pageSwipe";
+import { ListenBar } from "../../../../src/features/reading/ListenBar";
 import { ReaderHint } from "../../../../src/features/reading/ReaderHint";
 import { shouldShowReaderHint } from "../../../../src/features/reading/readerHint";
 import { readLocalHintSeen, writeLocalHintSeen } from "../../../../src/features/reading/readerHintStorage";
@@ -61,6 +62,7 @@ import { formatCitation } from "../../../../src/lib/citation";
 import { formatVerseReference, type ReadingVerse } from "../../../../src/features/reading/shareVerse";
 import type { VerseActionContext } from "../../../../src/features/reading/verseActions";
 import { VerseToolbar } from "../../../../src/features/reading/VerseToolbar";
+import { useChapterSpeech } from "../../../../src/features/reading/useChapterSpeech";
 import { openPassage } from "../../../../src/lib/openPassage";
 import { useTheme } from "../../../../src/theme/ThemeProvider";
 import { tokens } from "../../../../src/theme/tokens";
@@ -135,6 +137,9 @@ export default function ReaderScreen() {
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const openedVerse = useRef<string | null>(null);
+  // Escuchar el capítulo (#157): se corta al cambiar de capítulo o salir del lector.
+  const speech = useChapterSpeech(ref, verses);
+  const listeningVerse = speech.state.status === "idle" ? null : speech.state.verse;
 
   // Pista de primera vez (#196): en la cuenta con sesión, en el teléfono sin ella.
   const [localHintSeen, setLocalHintSeen] = useState<boolean | undefined>(undefined);
@@ -195,20 +200,22 @@ export default function ReaderScreen() {
   // scroll hasta él cuando ya se midió su renglón. Lo mismo al tocar uno: la
   // hoja achica el área de lectura y el versículo no debe quedar tapado. Solo
   // se mueve si no se ve, así el versículo 1 no salta.
+  // Mientras se escucha (#157), la página sigue al versículo que suena.
+  const focusVerse = selected?.verse ?? listeningVerse;
   useEffect(() => {
-    if (!selected || pageY === null || viewportHeight === 0) return;
-    const top = verseTops[selected.verse];
+    if (focusVerse == null || !ref || pageY === null || viewportHeight === 0) return;
+    const top = verseTops[focusVerse];
     if (top === undefined) return;
     const y = pageY + top;
     const hidden = y < scrollY.current || y + typeStyle.lineHeight > scrollY.current + viewportHeight;
-    const key = `${selected.book}-${selected.chapter}-${selected.verse}-${viewportHeight}`;
+    const key = `${ref.book}-${ref.chapter}-${focusVerse}-${viewportHeight}`;
     if (!hidden || revealed.current === key) return;
     revealed.current = key;
     // Un renglón de aire arriba para que se lea el versículo y la cinta.
     const target = Math.max(0, y - typeStyle.lineHeight);
     scrollY.current = target;
     scrollRef.current?.scrollTo({ y: target, animated: false });
-  }, [pageY, selected, typeStyle.lineHeight, verseTops, viewportHeight]);
+  }, [focusVerse, pageY, ref?.book, ref?.chapter, typeStyle.lineHeight, verseTops, viewportHeight]);
 
   // ── Pasar página deslizando (#195) ──────────────────────────────────────
   const translateX = useRef(new Animated.Value(0)).current;
@@ -275,10 +282,11 @@ export default function ReaderScreen() {
   const fills = useMemo(() => {
     const result: Record<number, string> = {};
     for (const item of highlights ?? []) result[item.verse] = highlightFill(color, item.color);
-    // El versículo tocado se ve mientras la hoja está abierta (§U4).
+    // El versículo que suena (#157) y el tocado se ven igual (§U4).
+    if (listeningVerse !== null) result[listeningVerse] = color.highlightSand;
     if (selected) result[selected.verse] = color.highlightSand;
     return result;
-  }, [color, highlights, selected]);
+  }, [color, highlights, listeningVerse, selected]);
   const highlightedVerses = useMemo(() => new Set((highlights ?? []).map((item) => item.verse)), [highlights]);
   const marks = useMemo(() => {
     const result: Record<number, MarginMark> = {};
@@ -397,6 +405,10 @@ export default function ReaderScreen() {
         toggleSeparator,
         memorizing: selectedMemorizing,
         toggleMemorize,
+        listenFrom: () => {
+          speech.play(selected.verse);
+          closeSheet();
+        },
       }
     : null;
 
@@ -440,16 +452,27 @@ export default function ReaderScreen() {
         onBack={goBackOrHome}
         style={styles.header}
         trailing={
-          <HeaderIconButton
-            accessibilityLabel="Tamaño de letra y espaciado"
-            onPress={() => {
-              setSelected(null);
-              setSettingsOpen((open) => !open);
-            }}
-            testID="reading-text-settings"
-          >
-            <Icon color={color.ink} name="textSize" />
-          </HeaderIconButton>
+          <View style={styles.headerActions}>
+            {verses && verses.length > 0 ? (
+              <HeaderIconButton
+                accessibilityLabel={listeningVerse === null ? "Escuchar el capítulo" : "Dejar de escuchar"}
+                onPress={() => (listeningVerse === null ? speech.play(null) : speech.stop())}
+                testID="reading-listen"
+              >
+                <Icon color={listeningVerse === null ? color.ink : color.accent} name="listen" />
+              </HeaderIconButton>
+            ) : null}
+            <HeaderIconButton
+              accessibilityLabel="Tamaño de letra y espaciado"
+              onPress={() => {
+                setSelected(null);
+                setSettingsOpen((open) => !open);
+              }}
+              testID="reading-text-settings"
+            >
+              <Icon color={color.ink} name="textSize" />
+            </HeaderIconButton>
+          </View>
         }
       />
 
@@ -571,6 +594,17 @@ export default function ReaderScreen() {
         </ScrollView>
       </Animated.View>
 
+      {speech.state.status !== "idle" && !selected && !settingsOpen ? (
+        <ListenBar
+          book={ref.book}
+          chapter={ref.chapter}
+          onPause={speech.pause}
+          onResume={speech.resume}
+          onStop={speech.stop}
+          state={speech.state}
+        />
+      ) : null}
+
       {settingsOpen && !selected ? (
         <ReaderTextSettings
           fontStep={fontStep}
@@ -640,6 +674,7 @@ const styles = StyleSheet.create({
   // La página va de borde a borde: los márgenes los pone `readerPadding`.
   screen: { paddingBottom: 0, paddingHorizontal: 0, paddingTop: tokens.space.md },
   header: { paddingBottom: tokens.space.sm, paddingHorizontal: tokens.screenPadding.horizontal },
+  headerActions: { flexDirection: "row", gap: tokens.space.sm },
   headerTitle: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.overline.size,

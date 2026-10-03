@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,8 +9,21 @@ import { api } from "../convex/_generated/api";
 import { Brand } from "../src/components/Brand";
 import { goBackOrHome } from "../src/components/ScreenHeader";
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
-import { PAYWALL_DISPLAY_PRICE, PAYWALL_FEATURES } from "../src/lib/paywallCopy";
-import { purchasesConfigured, purchaseMonthly, restorePurchases } from "../src/lib/revenuecat";
+import {
+  offerNotice,
+  offerRetryable,
+  PAYWALL_FEATURES,
+  paywallPriceHint,
+  paywallRenewalTerms,
+  purchaseNotice,
+} from "../src/lib/paywallCopy";
+import {
+  getMonthlyOffer,
+  purchasesConfigured,
+  purchaseMonthly,
+  restorePurchases,
+  type MonthlyOfferResult,
+} from "../src/lib/revenuecat";
 import { track } from "../src/lib/telemetry";
 import { tokens } from "../src/theme/tokens";
 
@@ -21,14 +34,29 @@ export default function PaywallScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [awaitingUnlock, setAwaitingUnlock] = useState(false);
-  // Sin RevenueCat configurado (#93/#108): sin key no hay compra. Se oculta
-  // precio y CTA en vez de dejarlos romper — Apple rechaza precio visible sin
-  // IAP funcional.
-  const canPurchase = purchasesConfigured();
+  // Precio real de la tienda (#144). Sin oferta no hay precio ni compra:
+  // Apple rechaza un precio escrito a mano o un CTA que no compra.
+  const [offer, setOffer] = useState<MonthlyOfferResult | undefined>(undefined);
+  const canRestore = purchasesConfigured();
+  const priceString = offer?.ok ? offer.offer.priceString : null;
+  const canPurchase = priceString !== null;
+
+  const loadOffer = useCallback(() => {
+    setOffer(undefined);
+    let alive = true;
+    void getMonthlyOffer(userId ?? undefined)
+      .catch((): MonthlyOfferResult => ({ ok: false, reason: "offering_unavailable" }))
+      .then((result) => alive && setOffer(result));
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
 
   useEffect(() => {
     track("paywall_viewed");
   }, []);
+
+  useEffect(() => (isPro ? undefined : loadOffer()), [isPro, loadOffer]);
 
   useEffect(() => {
     if (!awaitingUnlock || !isPro) {
@@ -43,23 +71,18 @@ export default function PaywallScreen() {
       goBackOrHome();
       return;
     }
+    if (!canPurchase) return;
     setBusy(true);
     setNotice(null);
     try {
       const result = await purchaseMonthly(userId ?? undefined);
       if (result.ok) {
         track("purchase_completed");
+        // Pro llega cuando el webhook escribe `entitlements.mine`; mientras, se espera.
         setAwaitingUnlock(true);
         return;
       }
-      if (result.reason === "user_cancelled") {
-        return;
-      }
-      if (result.reason === "dev_build_required") {
-        setNotice("La compra se completa en un development build. Seguí en la versión gratis por ahora.");
-        return;
-      }
-      setNotice("No pudimos completar la compra. Seguí en la versión gratis por ahora.");
+      setNotice(purchaseNotice(result, "purchase"));
     } catch {
       setNotice("No pudimos abrir la compra. Seguí en la versión gratis por ahora.");
     } finally {
@@ -76,17 +99,15 @@ export default function PaywallScreen() {
         setAwaitingUnlock(true);
         return;
       }
-      if (result.reason === "dev_build_required") {
-        setNotice("La restauración se completa en un development build. Seguí en la versión gratis por ahora.");
-        return;
-      }
-      setNotice("No encontramos una compra para restaurar. Seguí en la versión gratis por ahora.");
+      setNotice(purchaseNotice(result, "restore"));
     } catch {
       setNotice("No pudimos restaurar la compra. Seguí en la versión gratis por ahora.");
     } finally {
       setBusy(false);
     }
   };
+
+  const offerStatus = isPro ? null : offerNotice(offer);
 
   return (
     <LinearGradient
@@ -126,33 +147,41 @@ export default function PaywallScreen() {
           </View>
 
           {canPurchase ? (
-            <View style={styles.priceCard}>
-              <Text style={styles.price}>{PAYWALL_DISPLAY_PRICE}</Text>
-              <Text style={styles.priceHint}>al mes · cancela cuando quieras</Text>
+            <View style={styles.priceCard} testID="paywall-price">
+              <Text style={styles.price}>{priceString}</Text>
+              <Text style={styles.priceHint}>{paywallPriceHint()}</Text>
             </View>
           ) : null}
 
           {canPurchase || isPro ? (
             <Pressable
               accessibilityRole="button"
-              disabled={busy || !canPurchase}
+              accessibilityState={{ busy, disabled: busy }}
+              disabled={busy}
               onPress={() => void onSubscribe()}
-              style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.cta, pressed && styles.pressed, busy && styles.busy]}
               testID="paywall-subscribe"
             >
-              <Text style={styles.ctaLabel}>{isPro ? "Ya eres Pro" : "Empezar con Pro"}</Text>
+              <Text style={styles.ctaLabel}>{isPro ? "Ya eres Pro" : busy ? "Abriendo la tienda…" : "Empezar con Pro"}</Text>
             </Pressable>
-          ) : (
-            <Text style={styles.notice} testID="paywall-pro-notice">
-              Pro todavía no está a la venta. Escribinos y te lo activamos.
-            </Text>
-          )}
+          ) : offerStatus ? (
+            <View style={styles.offerStatus}>
+              <Text style={styles.notice} testID={offer === undefined ? "paywall-offer-loading" : "paywall-pro-notice"}>
+                {offerStatus}
+              </Text>
+              {offerRetryable(offer) ? (
+                <Pressable accessibilityRole="button" onPress={loadOffer} style={styles.skip} testID="paywall-offer-retry">
+                  <Text style={[styles.skipLabel, styles.legalLink]}>Intentar de nuevo</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
 
           <Pressable accessibilityRole="button" onPress={goBackOrHome} style={styles.skip}>
             <Text style={styles.skipLabel}>Seguir en la versión gratis</Text>
           </Pressable>
 
-          {canPurchase ? (
+          {canRestore && !isPro ? (
             <Pressable
               accessibilityRole="button"
               disabled={busy}
@@ -164,11 +193,15 @@ export default function PaywallScreen() {
             </Pressable>
           ) : null}
 
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+          {notice ? (
+            <Text accessibilityLiveRegion="polite" style={styles.notice} testID="paywall-notice">
+              {notice}
+            </Text>
+          ) : null}
 
-          {canPurchase ? (
-            <Text style={styles.legal}>
-              Se cobra a tu cuenta de App Store o Google Play. Puedes cancelar desde la tienda en cualquier momento.
+          {priceString ? (
+            <Text style={styles.legal} testID="paywall-renewal-terms">
+              {paywallRenewalTerms({ priceString, productName: offer?.ok ? offer.offer.title : null })}
             </Text>
           ) : null}
 
@@ -285,6 +318,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   pressed: { opacity: tokens.opacity.pressed },
+  busy: { opacity: tokens.opacity.imageMuted },
+  offerStatus: { marginTop: tokens.space.lg },
   skip: { marginTop: tokens.space.md, paddingVertical: tokens.space.lg },
   skipLabel: {
     color: tokens.paywall.color.skip,

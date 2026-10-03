@@ -48,6 +48,14 @@ export const TELEMETRY_EVENTS = [
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 
+/**
+ * De dónde salió un `share_completed` cuando importa distinguirlo (#202:
+ * "Dedicar"). Lista cerrada, como los nombres: nunca el texto compartido.
+ */
+export const SHARE_ORIGINS = ["dedicated"] as const;
+export type ShareOrigin = (typeof SHARE_ORIGINS)[number];
+export const shareOrigin = v.union(...SHARE_ORIGINS.map((origin) => v.literal(origin)));
+
 export const TELEMETRY_RETENTION_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -73,6 +81,7 @@ export const track = mutation({
     installId: v.string(),
     name: eventName,
     module: v.optional(telemetryModule),
+    origin: v.optional(shareOrigin),
     platform,
     build: v.optional(v.string()),
   },
@@ -85,6 +94,8 @@ export const track = mutation({
       installId: args.installId,
       name: args.name,
       module: args.module,
+      // El origen solo tiene sentido en `share_completed`.
+      origin: args.name === "share_completed" ? args.origin : undefined,
       platform: args.platform,
       build: args.build === undefined ? undefined : truncate(args.build, BUILD_MAX),
       at: Date.now(),
