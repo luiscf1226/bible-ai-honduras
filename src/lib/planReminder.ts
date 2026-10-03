@@ -1,3 +1,5 @@
+import { occasionsOn, type PersonalDates } from "../../convex/personalDates";
+import { OCCASION_REMINDER_LINE, occasionTitle } from "../features/personal/personalDates";
 import { formatReadingsLabel, type PlanReading } from "../features/reading/planReadingsLabel";
 
 /**
@@ -75,13 +77,28 @@ export function reminderContent(verseRef: string, plan: ReminderPlanReading | nu
   };
 }
 
+/** Tus fechas (#204) de la persona, para que el aviso de ese día la salude. */
+export type ReminderPersonal = { dates: PersonalDates; name?: string | null };
+
+/**
+ * El día de su cumpleaños o de su bautismo, el aviso la saluda por título y
+ * avisa que hay un versículo en el inicio; la lectura (plan o devocional)
+ * sigue en el cuerpo.
+ */
+export function withPersonalOccasion(date: string, content: ReminderContent, personal?: ReminderPersonal | null): ReminderContent {
+  const occasion = personal ? occasionsOn(personal.dates, date)[0] : undefined;
+  if (!occasion) return content;
+  return { ...content, title: occasionTitle(occasion, personal?.name), body: `${OCCASION_REMINDER_LINE} ${content.body}` };
+}
+
 /** Contenido del aviso de cada fecha, en el mismo orden que `devotionals`. */
 export function buildReminderContents(
   devotionals: readonly { date: string; verseRef: string }[],
   candidates: readonly ReminderPlanCandidate[],
+  personal?: ReminderPersonal | null,
 ): ({ date: string } & ReminderContent)[] {
   return devotionals.map(({ date, verseRef }) => ({
     date,
-    ...reminderContent(verseRef, pickReminderPlan(candidates, date)),
+    ...withPersonalOccasion(date, reminderContent(verseRef, pickReminderPlan(candidates, date)), personal),
   }));
 }

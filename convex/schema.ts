@@ -37,6 +37,13 @@ export default defineSchema({
     referredBy: v.optional(v.string()),
     referredVia: v.optional(v.union(v.literal("link"), v.literal("play"), v.literal("manual"))),
     referredAt: v.optional(v.number()),
+    // Tus fechas (#204). Datos personales y opcionales: viven en la fila del
+    // usuario (el borrado de cuenta ya los cubre) y no van a telemetría ni a
+    // RevenueCat. `birthday` es `MM-DD` (sin año); `faithDate` es `YYYY-MM-DD`.
+    // Formato y validación en convex/personalDates.ts.
+    birthday: v.optional(v.string()),
+    faithDate: v.optional(v.string()),
+    faithDateKind: v.optional(v.union(v.literal("bautismo"), v.literal("conversion"))),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_referral_code", ["referralCode"]),

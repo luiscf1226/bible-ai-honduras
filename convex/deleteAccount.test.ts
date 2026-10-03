@@ -661,3 +661,24 @@ describe("purgeAccountData", () => {
     ).resolves.toMatchObject({ done: true, deleted: { users: 0 } });
   });
 });
+
+describe("users.deleteAccount — Tus fechas (#204)", () => {
+  it("borrar la cuenta borra el cumpleaños y la fecha de bautismo", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_fechas_204");
+    await ana.mutation(api.users.upsert, {});
+    await ana.mutation(api.users.setPersonalDates, {
+      birthday: "02-29",
+      faithDate: "2015-08-09",
+      faithDateKind: "bautismo",
+    });
+    const before = await t.run((ctx) => ctx.db.query("users").collect());
+    expect(before[0]).toMatchObject({ birthday: "02-29", faithDate: "2015-08-09", faithDateKind: "bautismo" });
+
+    stubClerkDelete();
+    const result = await ana.action(api.users.deleteAccount, {});
+
+    expect(result.status).toBe("ok");
+    expect(await t.run((ctx) => ctx.db.query("users").collect())).toHaveLength(0);
+  });
+});

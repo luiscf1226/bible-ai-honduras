@@ -4,6 +4,7 @@ import { HOME_CARD_ORDER, type HomeCardId } from "../homeCards";
 import { AskCard } from "./AskCard";
 import { CharactersCard } from "./CharactersCard";
 import { FeelingCard } from "./FeelingCard";
+import { PersonalDateCard } from "./PersonalDateCard";
 import { ReadCard } from "./ReadCard";
 import { SavedMemoryCard } from "./SavedMemoryCard";
 import { SeasonStrip } from "./SeasonStrip";
@@ -24,6 +25,7 @@ export type HomeCardEntry = {
 };
 
 const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
+  dates: { Component: PersonalDateCard },
   season: { Component: SeasonStrip, visible: ({ season }) => season !== null },
   verse: { Component: VerseCard },
   savedMemory: { Component: SavedMemoryCard },

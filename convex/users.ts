@@ -6,12 +6,13 @@ import {
 } from "./bibleVersions";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
 import { deleteMemoryVersesForUser } from "./memorize";
 import { deletePrayersForUser } from "./prayers";
+import { parseBirthday, parseCalendarDate } from "./personalDates";
 import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingGroupDataForUser } from "./readingGroups";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
@@ -295,10 +296,55 @@ export const updatePreferences = mutation({
   },
 });
 
+/**
+ * Tus fechas (#204), desde Mi espacio. Las tres son opcionales: `undefined` no
+ * toca el campo y `null` lo borra. El formato se valida acá (no se confía en el
+ * cliente) con las mismas funciones que usa la tarjeta del inicio.
+ */
+export const setPersonalDates = mutation({
+  args: {
+    birthday: v.optional(v.union(v.string(), v.null())),
+    faithDate: v.optional(v.union(v.string(), v.null())),
+    faithDateKind: v.optional(v.union(v.literal("bautismo"), v.literal("conversion"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await requireIdentity(ctx);
+    const existing = await findByClerkId(ctx, identity.subject);
+    if (!existing) {
+      throw new ConvexError("Usuario no encontrado — llamá a users.upsert primero");
+    }
+
+    const patch: Partial<Pick<Doc<"users">, "birthday" | "faithDate" | "faithDateKind">> = {};
+    if (args.birthday !== undefined) {
+      if (args.birthday !== null && !parseBirthday(args.birthday)) {
+        throw new ConvexError("birthday debe ser MM-DD");
+      }
+      patch.birthday = args.birthday ?? undefined;
+    }
+    if (args.faithDate !== undefined) {
+      const faith = args.faithDate === null ? null : parseCalendarDate(args.faithDate);
+      if (args.faithDate !== null && !faith) {
+        throw new ConvexError("faithDate debe ser YYYY-MM-DD");
+      }
+      // Margen de un año por zonas horarias: la fecha la elige el teléfono.
+      if (faith && faith.year > new Date().getUTCFullYear() + 1) {
+        throw new ConvexError("faithDate no puede ser futura");
+      }
+      patch.faithDate = args.faithDate ?? undefined;
+    }
+    if (args.faithDateKind !== undefined) {
+      patch.faithDateKind = args.faithDateKind ?? undefined;
+    }
+    // En Convex, un campo en `undefined` dentro de `patch` se elimina de la fila.
+    await ctx.db.patch(existing._id, patch);
+  },
+});
+
 // ── Eliminar mi cuenta (#107 · App Store 5.1.1(v)) ──────────
 //
 // Tablas del schema que apuntan al usuario y por lo tanto se borran acá:
-//   users          → la fila espejo (última, cuando ya no queda nada más)
+//   users          → la fila espejo (última, cuando ya no queda nada más),
+//                    con Tus fechas (#204): cumpleaños y bautismo/conversión
 //   conversations  → vía history.deleteConversationsForUser (#35)
 //   messages       → idem (hijos de conversations)
 //   usage          → contadores de cuota (transversal #15/#20/#24/#29)
