@@ -167,6 +167,8 @@ export const tokens = {
     switchKnobOffset: 18,
     switchPadding: 3,
     cardAvatar: 40,
+    // Avatares encimados en el mosaico de Personajes del inicio compacto (U1b).
+    tileAvatar: 30,
     verseCardImage: 176,
     hoyImage: 236,
     icon: { sm: 16, md: 20, lg: 24 },
