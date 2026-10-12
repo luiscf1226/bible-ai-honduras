@@ -143,6 +143,21 @@ export default function LeerScreen() {
           </Pressable>
           </View>
 
+          {/* Versículos por tema: lista curada, sin IA. Misma tarjeta que la Línea del tiempo. */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/leer/temas")}
+            style={({ pressed }) => [
+              styles.planCard,
+              { backgroundColor: color.surfaceAlt, borderColor: color.border },
+              pressed && styles.pressed,
+            ]}
+            testID="leer-topics-entry"
+          >
+            <Text style={[styles.planOverline, { color: color.accent }]}>VERSÍCULOS POR TEMA</Text>
+            <Text style={[styles.planLabel, { color: color.ink }]}>Para la ansiedad, el miedo, tu familia o el trabajo</Text>
+          </Pressable>
+
           {/* Línea del tiempo (#201): misma tarjeta que Recorridos. */}
           <Pressable
             accessibilityRole="button"
