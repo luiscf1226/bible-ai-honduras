@@ -10,7 +10,7 @@ type Row = Omit<MetricRow, "day">;
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
   const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
-  return sorted[Math.max(0, index)];
+  return sorted[Math.max(0, index)] ?? 0;
 }
 
 /** Suma por dimensión y agrega el total del día (fila sin `dim`). */

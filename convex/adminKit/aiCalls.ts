@@ -100,7 +100,7 @@ export type AiUsageGroup = {
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
   const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
-  return sorted[Math.max(0, index)];
+  return sorted[Math.max(0, index)] ?? 0;
 }
 
 /** Agrupa por feature + proveedor + modelo, de mayor a menor costo. */
