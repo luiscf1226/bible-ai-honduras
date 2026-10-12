@@ -55,4 +55,97 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         Name
       >;
     };
+    counters: {
+      bump: FunctionReference<
+        "mutation",
+        "internal",
+        { by?: number; day: string; key: string },
+        any,
+        Name
+      >;
+      range: FunctionReference<
+        "query",
+        "internal",
+        { fromDay: string; toDay: string },
+        any,
+        Name
+      >;
+    };
+    events: {
+      funnel: FunctionReference<
+        "query",
+        "internal",
+        { days: number; names: Array<string> },
+        any,
+        Name
+      >;
+      importRows: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          errors: Array<{
+            at: number;
+            build?: string;
+            fatal: boolean;
+            installId: string;
+            message: string;
+            platform: string;
+            stack?: string;
+          }>;
+          events: Array<{
+            at: number;
+            build?: string;
+            installId: string;
+            module?: string;
+            name: string;
+            origin?: string;
+            platform: string;
+          }>;
+        },
+        any,
+        Name
+      >;
+      purgeOld: FunctionReference<
+        "mutation",
+        "internal",
+        { retentionDays: number },
+        any,
+        Name
+      >;
+      recentErrors: FunctionReference<
+        "query",
+        "internal",
+        { limit: number },
+        any,
+        Name
+      >;
+      reportError: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          build?: string;
+          fatal: boolean;
+          installId: string;
+          message: string;
+          platform: string;
+          stack?: string;
+        },
+        any,
+        Name
+      >;
+      track: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          build?: string;
+          installId: string;
+          module?: string;
+          name: string;
+          origin?: string;
+          platform: string;
+        },
+        any,
+        Name
+      >;
+    };
   };

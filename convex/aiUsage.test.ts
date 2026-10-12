@@ -38,7 +38,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-function stubProviders(anthropicStatus = 200) {
+function stubProviders(anthropicStatus = 200, citedVerse = 1) {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockImplementation((url: string) => {
@@ -49,7 +49,7 @@ function stubProviders(anthropicStatus = 200) {
         if (anthropicStatus !== 200) return Promise.resolve(jsonResponse({ error: {} }, anthropicStatus));
         const structured = {
           answer: "Dios cuida como un pastor.",
-          citations: [{ book: "Salmos", chapter: 23, verse: 1, version: "RV1909" }],
+          citations: [{ book: "Salmos", chapter: 23, verse: citedVerse, version: "RV1909" }],
         };
         return Promise.resolve(
           jsonResponse({
@@ -138,6 +138,33 @@ describe("costo de la IA (#235)", () => {
 
     const groups = await t.query(internal.aiUsage.summary, { days: 365 });
     expect(groups.map((group) => group.feature)).toEqual(["voices"]);
+  });
+});
+
+describe("resultados de la IA (#235)", () => {
+  it("cuenta la respuesta que cita fuera de lo recuperado y la que no encuentra pasaje", async () => {
+    const t = setup();
+    await seedVerse(t);
+    // El modelo cita Salmos 23:4, que no se le dio: cae a la respuesta segura.
+    stubProviders(200, 4);
+    await t.action(internal.rag.answer.ask, { question: "¿Quién es mi pastor?" });
+    await t.action(internal.rag.answer.ask, { question: "¿Quién es mi pastor?" });
+    // Sin versículos: no hay pasaje que citar.
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      book: "Salmos",
+      chapter: 23,
+      verse: 1,
+      version: "RV1909",
+      text: "Jehová es mi pastor; nada me faltará.",
+      embedding: PASTOR.map((value) => -value),
+    });
+    await t.action(internal.rag.answer.ask, { question: "Me siento solo", feature: "feelings" });
+
+    const counts = await t.query(internal.aiUsage.outcomes, { days: 1 });
+    expect(counts.map(({ key, count }) => [key, count]).sort()).toEqual([
+      ["feelings.no_content", 1],
+      ["qa.ungrounded", 2],
+    ]);
   });
 });
 

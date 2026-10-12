@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import type { AiMeter } from "../adminKit/meter";
-import { aiMeter } from "../aiUsage";
+import { aiMeter, countAiOutcome } from "../aiUsage";
 import { retrieveCommentary } from "./commentary";
 import { generateStructuredAnswer } from "./llm";
 import {
@@ -54,12 +54,14 @@ export const ask = internalAction({
     feature: v.optional(v.union(v.literal("qa"), v.literal("feelings"))),
   },
   handler: async (ctx, args): Promise<AskResult> => {
-    const meter = aiMeter(ctx, args.feature ?? "qa");
+    const feature = args.feature ?? "qa";
+    const meter = aiMeter(ctx, feature);
     const citations = args.passage
       ? await resolvePassage(ctx, args.passage, meter)
       : await retrieveTopVerses(ctx, { query: args.question, version: args.version, meter });
 
     if (citations.length === 0) {
+      await countAiOutcome(ctx, `${feature}.no_content`);
       return { answer: NO_RELEVANT_CONTENT_ANSWER, citation: null };
     }
 
@@ -76,6 +78,7 @@ export const ask = internalAction({
     });
 
     if (!isGrounded(structured, citations)) {
+      await countAiOutcome(ctx, `${feature}.ungrounded`);
       return { answer: buildFallbackAnswer(primary), citation: toCitation(primary) };
     }
 
