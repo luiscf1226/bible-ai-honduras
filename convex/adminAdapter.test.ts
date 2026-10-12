@@ -36,6 +36,12 @@ function kit<T>(t: ReturnType<typeof setup>, fn: (ctx: KitDb) => Promise<T>): Pr
   return runner.runInComponent("adminKit", fn);
 }
 
+type UsersBody = { users: Array<{ name?: string; email?: string }>; nextCursor?: string };
+
+async function users(path: string, t: ReturnType<typeof setup>): Promise<UsersBody> {
+  return (await (await get(path, t)).json()) as UsersBody;
+}
+
 function get(path: string, t: ReturnType<typeof setup>) {
   return t.fetch(path, { headers: { authorization: `Bearer ${TOKEN}` } });
 }
@@ -172,10 +178,10 @@ describe("adminAdapter (#235)", () => {
       await ctx.db.insert("usage", { userId: ana!._id, module: "stories", day: "lifetime", count: 1 });
     });
 
-    const first = await (await get("/admin/users?limit=2", t)).json();
-    expect(first.users.map((user: { name?: string }) => user.name)).toEqual(["Caro", undefined]);
+    const first = await users("/admin/users?limit=2", t);
+    expect(first.users.map((user) => user.name)).toEqual(["Caro", undefined]);
     expect(first.nextCursor).toBeDefined();
-    const second = await (await get(`/admin/users?limit=2&cursor=${encodeURIComponent(first.nextCursor)}`, t)).json();
+    const second = await users(`/admin/users?limit=2&cursor=${encodeURIComponent(first.nextCursor!)}`, t);
     expect(second.users).toHaveLength(1);
     expect(second.users[0]).toMatchObject({
       email: "ana@ejemplo.hn",
@@ -185,8 +191,8 @@ describe("adminAdapter (#235)", () => {
     });
     expect(second.nextCursor).toBeUndefined();
 
-    const search = await (await get("/admin/users?q=CARO", t)).json();
-    expect(search.users.map((user: { email?: string }) => user.email)).toEqual(["caro@ejemplo.hn"]);
+    const search = await users("/admin/users?q=CARO", t);
+    expect(search.users.map((user) => user.email)).toEqual(["caro@ejemplo.hn"]);
     expect((await t.fetch("/admin/users")).status).toBe(401);
   });
 
