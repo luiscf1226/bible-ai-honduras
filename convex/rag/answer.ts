@@ -4,6 +4,8 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+import type { AiMeter } from "../adminKit/meter";
+import { aiMeter } from "../aiUsage";
 import { retrieveCommentary } from "./commentary";
 import { generateStructuredAnswer } from "./llm";
 import {
@@ -47,11 +49,15 @@ export const ask = internalAction({
     question: v.string(),
     passage: v.optional(passageArg),
     version: v.optional(v.string()),
+    // Quién pregunta, para el costo por módulo en el dashboard (#235).
+    // Sentir reusa este pipeline; sin valor cuenta como Preguntar.
+    feature: v.optional(v.union(v.literal("qa"), v.literal("feelings"))),
   },
   handler: async (ctx, args): Promise<AskResult> => {
+    const meter = aiMeter(ctx, args.feature ?? "qa");
     const citations = args.passage
-      ? await resolvePassage(ctx, args.passage)
-      : await retrieveTopVerses(ctx, { query: args.question, version: args.version });
+      ? await resolvePassage(ctx, args.passage, meter)
+      : await retrieveTopVerses(ctx, { query: args.question, version: args.version, meter });
 
     if (citations.length === 0) {
       return { answer: NO_RELEVANT_CONTENT_ANSWER, citation: null };
@@ -61,11 +67,12 @@ export const ask = internalAction({
     // Segunda fuente de recuperación (#6) — enriquece la respuesta, nunca
     // la condiciona: si no hay comentario relevante, sigue igual con solo
     // el versículo. Nunca se busca sin una cita ya asegurada.
-    const commentary = await retrieveCommentary(ctx, { query: args.question, book: primary.book });
+    const commentary = await retrieveCommentary(ctx, { query: args.question, book: primary.book, meter });
     const structured = await generateStructuredAnswer({
       system: QA_SYSTEM_PROMPT,
       userPrompt: buildQaUserPrompt(args.question, citations, commentary),
       schema: QA_RESPONSE_SCHEMA,
+      meter,
     });
 
     if (!isGrounded(structured, citations)) {
@@ -112,6 +119,7 @@ function buildFallbackAnswer(verse: RetrievedVerse): string {
 async function resolvePassage(
   ctx: ActionCtx,
   passage: { version: string; book: string; chapter: number; verse: number },
+  meter: AiMeter,
 ): Promise<RetrievedVerse[]> {
   const verse = await ctx.runQuery(api.rag.verses.getByRef, passage);
   if (verse) {
@@ -124,5 +132,6 @@ async function resolvePassage(
   return retrieveTopVerses(ctx, {
     query: `${passage.book} ${passage.chapter}:${passage.verse}`,
     version: passage.version,
+    meter,
   });
 }

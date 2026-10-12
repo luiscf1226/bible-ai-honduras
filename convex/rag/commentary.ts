@@ -4,6 +4,8 @@ import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction, internalMutation, query } from "../_generated/server";
+import type { AiMeter } from "../adminKit/meter";
+import { aiMeter } from "../aiUsage";
 import { embedDocuments, embedQuery } from "./embed";
 import commentarySample from "./fixtures/commentary.sample.json";
 
@@ -91,7 +93,7 @@ export const ingestCommentary = internalAction({
     const pendingTexts = args.commentaries
       .filter((item) => item.embedding === undefined)
       .map((item) => item.text);
-    const embedded = await embedDocuments(pendingTexts);
+    const embedded = await embedDocuments(pendingTexts, aiMeter(ctx, "ingest"));
     let generatedIndex = 0;
     let upserted = 0;
     for (const item of args.commentaries) {
@@ -114,10 +116,10 @@ export const ingestCommentary = internalAction({
 // Nunca bloquea el pipeline: si no hay comentario relevante, devuelve [].
 export async function retrieveCommentary(
   ctx: ActionCtx,
-  args: { query: string; book?: string; limit?: number },
+  args: { query: string; book?: string; limit?: number; meter?: AiMeter },
 ): Promise<RetrievedCommentary[]> {
   const limit = args.limit ?? DEFAULT_LIMIT;
-  const embedding = await embedQuery(args.query);
+  const embedding = await embedQuery(args.query, args.meter);
   const book = args.book;
 
   const matches = await ctx.vectorSearch("commentaries", "by_embedding", {

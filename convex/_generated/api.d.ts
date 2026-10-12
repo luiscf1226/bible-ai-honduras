@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as aiUsage from "../aiUsage.js";
 import type * as appVersion from "../appVersion.js";
 import type * as bibleVersions from "../bibleVersions.js";
 import type * as crons from "../crons.js";
@@ -80,6 +81,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiUsage: typeof aiUsage;
   appVersion: typeof appVersion;
   bibleVersions: typeof bibleVersions;
   crons: typeof crons;
@@ -172,4 +174,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  adminKit: import("../adminKit/_generated/component.js").ComponentApi<"adminKit">;
+};

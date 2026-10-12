@@ -255,7 +255,7 @@ export const ask = action({
         ? { version, book: args.passage.book, chapter: args.passage.chapter, verse: args.passage.verse }
         : undefined;
 
-    const result = await ctx.runAction(internal.rag.answer.ask, { question, passage, version });
+    const result = await ctx.runAction(internal.rag.answer.ask, { question, passage, version, feature: "qa" });
 
     const conversationId = await ctx.runMutation(internal.qa.persistTurn, {
       conversationId: args.conversationId,
