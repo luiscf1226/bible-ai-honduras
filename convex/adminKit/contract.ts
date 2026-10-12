@@ -34,6 +34,8 @@ export type Manifest = {
   metrics: Record<string, MetricDescriptor>;
   /** Métricas de la pestaña Resumen, en orden. */
   highlights?: string[];
+  /** Nombres legibles para valores de dimensión y funciones ("qa" → "Preguntar"). */
+  labels?: Record<string, string>;
   capabilities?: Capability[];
 };
 
