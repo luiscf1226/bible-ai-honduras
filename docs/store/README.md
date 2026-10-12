@@ -6,13 +6,14 @@ Los trabajos de pagos #143/#144 no bloquean este envío.
 
 ## Ficha configurada mediante la API Apple
 
-Se cargaron en la ficha 1.0 (es-MX) el subtítulo, descripción de la edición
+Se cargaron en la ficha 1.0.0 (es-MX) el subtítulo, descripción de la edición
 gratuita, keywords, categoría Reference, copyright y lanzamiento manual.
 `app-store-config.json` reproduce esos campos sin credenciales, y
 `eas metadata:push --profile production --non-interactive` los sincroniza.
 Support URL usa temporalmente el inicio ya publicado (con contacto) hasta que
 Pages despliegue `/soporte/`. Esto no envía la app a revisión ni configura
-precio, países, App Privacy, capturas o acceso del revisor.
+App Privacy o capturas. Precio Free, Honduras, contacto y acceso del revisor
+se configuraron mediante la API; el build 26 ya se seleccionó tras procesado VALID.
 
 ## Materiales preparados
 
@@ -50,3 +51,31 @@ URLs después de publicar Pages:
 El ícono existente es 1024×1024 RGB. No faltan logo ni archivos de ficha por
 crear; sí falta comprobar el artefacto nativo y ejecutar los pasos externos.
 El backend temporal compartido está documentado en `docs/builds-beta.md` (#142).
+
+## Verificación externa del 12 de octubre de 2026
+
+- EAS build `ba1e624e-8d3e-461b-9713-0ff26f35b11d`: 1.0.0 (26), finalizada,
+  compilada con Xcode 26.6; envío `889b1f6b-c790-4fdd-b463-41e25925cfed` terminado.
+- Apple procesó el build como VALID e IN_BETA_TESTING. Se alineó la ficha a
+  1.0.0 y se seleccionó ese build. Todavía no se envió a App Review.
+- Precio base 0, disponibilidad Honduras, release manual, ficha es-MX y
+  contacto de revisión se verificaron mediante la API Apple.
+- Se creó una cuenta de revisión en Clerk y su perfil en Convex, con progreso
+  Salmos 23, un guardado con nota de prueba, separador y plan Ansiedad. Su
+  ingreso por email_code se verificó con el SDK/API. Las credenciales y el
+  teléfono de contacto están solo en App Store Connect, no en git.
+- Con otra cuenta desechable se probó la acción real de eliminación: devolvió
+  `status: ok`, `clerk: deleted`, y el perfil Convex quedó ausente. Esto prueba
+  el backend; falta recorrer las confirmaciones en la interfaz nativa.
+- Salmos 23 devolvió sus 6 versículos RV1909. No se certifica aquí el conteo
+  completo del corpus remoto.
+
+**Bloqueo de registro por correo:** un alta sin contraseña quedó en
+`missing_requirements` con `password` pendiente, mientras la UI solo pide
+email/código. El ingreso de cuentas existentes por código sí se comprobó.
+Hay que ajustar la configuración de alta de Clerk al flujo passwordless de la
+app (o implementar un paso de contraseña con su diseño y pruebas) antes de
+abrir el registro público. No resolverlo con un bypass de autenticación.
+
+Siguen pendientes: esa configuración, prueba del IPA y capturas de iPhone/iPad,
+publicar Pages, revisión de App Privacy/edad/derechos y App Review/publicación.
