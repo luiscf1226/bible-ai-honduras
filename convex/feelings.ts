@@ -145,6 +145,7 @@ export const generate = action({
       question: buildFeelingQuestion(args),
       // #93 §4b: NVI no tiene corpus; resolveBibleVersion degrada a RVR1960.
       version: resolveBibleVersion(user.bibleVersion),
+      feature: "feelings",
     });
 
     if (!result.citation) {

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { internalAction, internalQuery } from "../_generated/server";
+import { aiMeter } from "../aiUsage";
 import type { Citation } from "./answer";
 import { retrieveCommentary } from "./commentary";
 import { generateStructuredAnswer } from "./llm";
@@ -108,11 +109,13 @@ export const prepare = internalAction({
       return { status: "no_content" };
     }
     const context = all.slice(0, GUIDE_MAX_CONTEXT_VERSES);
-    const commentary = await retrieveCommentary(ctx, { query: `${args.book} ${args.chapter}`, book: args.book });
+    const meter = aiMeter(ctx, "group_guide");
+    const commentary = await retrieveCommentary(ctx, { query: `${args.book} ${args.chapter}`, book: args.book, meter });
     const structured = await generateStructuredAnswer({
       system: GROUP_GUIDE_SYSTEM_PROMPT,
       userPrompt: buildGroupGuideUserPrompt(args, context, commentary),
       schema: GROUP_GUIDE_RESPONSE_SCHEMA,
+      meter,
     });
 
     const grounded = groundGuide(structured, context);

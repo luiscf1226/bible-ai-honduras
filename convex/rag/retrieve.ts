@@ -5,6 +5,7 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+import type { AiMeter } from "../adminKit/meter";
 import { embedQuery } from "./embed";
 
 export type RetrievedVerse = {
@@ -28,11 +29,11 @@ export const RELEVANCE_THRESHOLD = 0.3;
 // directo, sin un viaje de red extra vía `ctx.runAction`.
 export async function retrieveTopVerses(
   ctx: ActionCtx,
-  args: { query: string; version?: string; limit?: number },
+  args: { query: string; version?: string; limit?: number; meter?: AiMeter },
 ): Promise<RetrievedVerse[]> {
   const version = args.version ?? DEFAULT_VERSION;
   const limit = args.limit ?? DEFAULT_LIMIT;
-  const embedding = await embedQuery(args.query);
+  const embedding = await embedQuery(args.query, args.meter);
 
   const matches = await ctx.vectorSearch("verses", "by_embedding", {
     vector: embedding,

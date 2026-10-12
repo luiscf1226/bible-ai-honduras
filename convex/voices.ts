@@ -5,6 +5,7 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, query } from "./_generated/server";
+import { aiMeter } from "./aiUsage";
 import { isGrounded } from "./rag/answer";
 import { generateStructuredAnswer } from "./rag/llm";
 import { retrieveTopVerses } from "./rag/retrieve";
@@ -142,9 +143,11 @@ export const sendMessage = action({
     const user = await ctx.runQuery(api.users.current, {});
     // #93 §4b: NVI no tiene corpus; resolveBibleVersion degrada a RVR1960.
     const version = resolveBibleVersion(user?.bibleVersion);
+    const meter = aiMeter(ctx, "voices");
     const verses = await retrieveTopVerses(ctx, {
       query: `${character.name}: ${args.text}`,
       version,
+      meter,
     });
 
     if (verses.length === 0) {
@@ -162,6 +165,7 @@ export const sendMessage = action({
       system: buildVoicesSystemPrompt(character),
       userPrompt: buildVoicesUserPrompt(character, args.text, verses),
       schema: VOICE_RESPONSE_SCHEMA,
+      meter,
     });
     // Si el modelo cita algo fuera del contexto recuperado, esa prosa nunca
     // llega al usuario (regla dura #4) — cae a una respuesta segura anclada

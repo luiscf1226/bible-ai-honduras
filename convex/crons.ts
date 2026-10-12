@@ -41,4 +41,11 @@ crons.daily(
   internal.telemetry.purgeOld,
 );
 
+// Costo de la IA (convex/aiUsage.ts): mismas reglas, 90 días.
+crons.daily(
+  "purgar-uso-ia",
+  { hourUTC: 6, minuteUTC: 25 },
+  internal.aiUsage.purgeOld,
+);
+
 export default crons;
