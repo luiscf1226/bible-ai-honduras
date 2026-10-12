@@ -11,6 +11,10 @@ import { PersonalLockGate } from "../../src/components/PersonalLockGate";
 import { HeaderIconButton, ScreenHeader } from "../../src/components/ScreenHeader";
 import { buildMySpaceSections, MY_SPACE_GROUPS, type MySpaceDestination } from "../../src/features/personal/mySpaceSections";
 import { PersonalDatesSection } from "../../src/features/personal/PersonalDatesSection";
+import { profileStats } from "../../src/features/personal/profile";
+import { ProfileHeader } from "../../src/features/personal/ProfileHeader";
+import { usePersonalLockGate } from "../../src/features/personal/personalLockStore";
+import { useSignOut } from "../../src/features/auth/useSignOut";
 import { yearInWordEntry } from "../../src/features/personal/yearInWord";
 import { sermonDisplayTitle } from "../../src/features/sermonNotes/sermonNotes";
 import { useSermonNotes } from "../../src/features/sermonNotes/useSermonNotes";
@@ -29,13 +33,13 @@ function go(destination: MySpaceDestination) {
 }
 
 /**
- * Pestaña Mi espacio (#169, #232): todo lo personal en un solo lugar, en tres
- * grupos (Tu Biblia, Tu vida de fe, Conversaciones), más Exportar y Tus
- * fechas. Memorizar, Tu año, Oración, Notas de prédica, Mis conversaciones y
- * Exportar quedan a un toque. Cada renglón es un `ListRow` y lleva a la
- * pantalla que ya existe.
+ * Lo personal de Mi espacio (#169, #232), en tres grupos (Tu Biblia, Tu vida
+ * de fe, Conversaciones), más Exportar y Tus fechas. Memorizar, Tu año,
+ * Oración, Notas de prédica, Mis conversaciones y Exportar quedan a un toque.
+ * Cada renglón es un `ListRow` y lleva a la pantalla que ya existe. Va detrás
+ * del candado; el perfil de arriba, no.
  */
-function MiEspacioScreen() {
+function MiEspacioSections() {
   const { color } = useTheme();
   const separator = useQuery(api.reading.separator, {});
   const bookmarks = useQuery(api.reading.bookmarks, {});
@@ -72,18 +76,7 @@ function MiEspacioScreen() {
   });
 
   return (
-    <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
-      <ScreenHeader
-        showBack={false}
-        style={styles.header}
-        title="Mi espacio"
-        trailing={
-          <HeaderIconButton accessibilityLabel="Ajustes" onPress={() => router.push("/ajustes")} testID="mi-espacio-ajustes">
-            <Icon color={color.inkMuted} name="gear" size="sm" />
-          </HeaderIconButton>
-        }
-      />
-
+    <>
       <ListCard testID="mi-espacio-privacidad" tone="sunk">
         <Text style={[styles.privacyCopy, { color: color.inkMuted }]}>
           Solo vos ves esto. Se guarda en tu cuenta y se borra si eliminás la cuenta.
@@ -144,7 +137,7 @@ function MiEspacioScreen() {
 
       {/* Tus fechas (#204): cumpleaños y bautismo o conversión. */}
       <PersonalDatesSection user={me} />
-    </AppScreen>
+    </>
   );
 }
 
@@ -157,12 +150,66 @@ function GroupBlock({ children, label }: { children: ReactNode; label: string })
   );
 }
 
-/** "Proteger lo personal" (#171): si está encendido, nada se monta hasta autenticar. */
+/**
+ * Pestaña Mi espacio como perfil (a la manera de Instagram): foto, números,
+ * nombre y Ajustes arriba; lo personal abajo; Cerrar sesión y Eliminar mi
+ * cuenta al final. Ajustes y la cuenta quedan fuera del candado de "Proteger
+ * lo personal" (#171): con el candado cerrado o si Face ID falla, se sigue
+ * pudiendo entrar a Ajustes, apagarlo, cerrar sesión o borrar la cuenta.
+ */
 export default function MiEspacioRoute() {
+  const { color } = useTheme();
+  const me = useQuery(api.users.current, {});
+  const { askSignOut, signingOut } = useSignOut();
+  // Los números son de lo personal: con el candado cerrado ni se piden.
+  const open = usePersonalLockGate().status === "open";
+  const bookmarks = useQuery(api.reading.bookmarks, open ? {} : "skip");
+  const highlights = useQuery(api.reading.highlights, open ? {} : "skip");
+  const sermonNotes = useQuery(api.sermonNotes.list, open ? {} : "skip");
+  const stats =
+    bookmarks === undefined || highlights === undefined || sermonNotes === undefined
+      ? null
+      : profileStats({ bookmarks: bookmarks.items.length, highlights: highlights.length, sermonNotes: sermonNotes.length });
+
   return (
-    <PersonalLockGate>
-      <MiEspacioScreen />
-    </PersonalLockGate>
+    <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
+      <ScreenHeader
+        showBack={false}
+        style={styles.header}
+        title="Mi espacio"
+        trailing={
+          <HeaderIconButton accessibilityLabel="Ajustes" onPress={() => router.push("/ajustes")} testID="mi-espacio-ajustes">
+            <Icon color={color.inkMuted} name="gear" size="sm" />
+          </HeaderIconButton>
+        }
+      />
+
+      <ProfileHeader email={me?.email} name={me?.name} stats={stats} />
+
+      <PersonalLockGate inline>
+        <MiEspacioSections />
+      </PersonalLockGate>
+
+      <ListSectionLabel>Cuenta</ListSectionLabel>
+      <ListCard>
+        <ListRow
+          disabled={signingOut}
+          onPress={askSignOut}
+          testID="mi-espacio-cerrar-sesion"
+          title={signingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+          trailing={null}
+        />
+        {/* La confirmación de dos pasos (#107) vive en Ajustes; se abre directo. */}
+        <ListRow
+          disabled={signingOut}
+          onPress={() => router.push({ pathname: "/ajustes", params: { eliminar: "1" } })}
+          testID="mi-espacio-eliminar-cuenta"
+          title="Eliminar mi cuenta"
+          tone="danger"
+          trailing={null}
+        />
+      </ListCard>
+    </AppScreen>
   );
 }
 

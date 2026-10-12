@@ -1,7 +1,6 @@
 import { useAction, useMutation, useQuery } from "convex/react";
-import { router } from "expo-router";
-import { useAuth } from "@clerk/expo";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
@@ -20,12 +19,11 @@ import { removeOfflineBible, startBibleDownload, useOfflineBible } from "../src/
 import { bibleRowCopy, REMOVE_BIBLE_BODY, REMOVE_BIBLE_TITLE } from "../src/features/offline/offlineCopy";
 import { useOfflineSync } from "../src/features/offline/OfflineSyncProvider";
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from "../src/lib/legalLinks";
-import { cancelDailyDevotionalReminder } from "../src/lib/dailyReminder";
 import { lockSettingHint } from "../src/features/personal/personalLock";
 import { usePersonalLockSetting } from "../src/features/personal/personalLockStore";
 import { canEnterReferral, claimMessage } from "../src/lib/referralCopy";
-import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
+import { useSignOut } from "../src/features/auth/useSignOut";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
 import { withPressed } from "../src/theme/pressed";
 import { useTheme } from "../src/theme/ThemeProvider";
@@ -64,11 +62,12 @@ export default function AjustesScreen() {
   const [referralDraft, setReferralDraft] = useState("");
   const [referralNotice, setReferralNotice] = useState<string | null>(null);
   const [claimingReferral, setClaimingReferral] = useState(false);
-  const { signOut } = useAuth();
+  const { askSignOut, endSession, signingOut } = useSignOut();
   const [cleared, setCleared] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteKeyword, setDeleteKeyword] = useState("");
-  const [busy, setBusy] = useState<"signOut" | "delete" | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const busy = signingOut ? "signOut" : deleting ? "delete" : null;
   const keywordMatches = deleteKeyword.trim().toUpperCase() === DELETE_KEYWORD;
   const isPro = entitlement?.isPro === true;
   // Una preferencia sin corpus (RVR1960/NVI) se muestra como RV1909, que es lo
@@ -81,7 +80,7 @@ export default function AjustesScreen() {
   const savedMemoryEnabled = user?.savedMemoryEnabled !== false;
   const appUpdate = useAppUpdate();
   // Biblia sin conexión (#160). Leer es gratis: no pasa por cuotas.
-  const { online, clearUserData, forgetNotes } = useOfflineSync();
+  const { online, forgetNotes } = useOfflineSync();
   const offlineBible = useOfflineBible();
   const manifest = useQuery(api.offlineBible.manifest, { version: bibleVersion });
   const bibleState = bibleDownloadState(offlineBible.index, manifest);
@@ -135,48 +134,6 @@ export default function AjustesScreen() {
     }
   }
 
-  // Cerrar sesión de verdad: Clerk, RevenueCat y el recordatorio local. Si el
-  // aviso diario sobreviviera, seguirían llegando notificaciones de una cuenta
-  // desconectada. Ningún paso puede bloquear a los otros.
-  async function endSession() {
-    try {
-      // La cola sin conexión y lo último visto son de esta cuenta (#182). La
-      // Biblia descargada no es de nadie: se queda en el teléfono.
-      await clearUserData();
-    } catch {
-      // Un archivo que no se pudo borrar no bloquea el cierre de sesión.
-    }
-    try {
-      await cancelDailyDevotionalReminder();
-    } catch {
-      // Sin permiso de notificaciones no hay nada agendado que cancelar.
-    }
-    try {
-      await purchasesLogOut();
-    } catch {
-      // logOut ya devuelve el error en vez de lanzarlo; esto es cinturón.
-    }
-    try {
-      await signOut();
-    } finally {
-      router.replace("/splash");
-    }
-  }
-
-  function askSignOut() {
-    Alert.alert("¿Cerrar sesión?", "Volvés a la pantalla de inicio. Tus datos siguen en tu cuenta.", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar sesión",
-        style: "destructive",
-        onPress: () => {
-          setBusy("signOut");
-          void endSession().finally(() => setBusy(null));
-        },
-      },
-    ]);
-  }
-
   function askDeleteAccount() {
     Alert.alert(DELETE_DIALOG_TITLE, DELETE_DIALOG_BODY, [
       { text: "Cancelar", style: "cancel" },
@@ -193,15 +150,24 @@ export default function AjustesScreen() {
     ]);
   }
 
+  // El perfil de Mi espacio abre Ajustes con `?eliminar=1`: la confirmación de
+  // dos pasos vive solo acá, pero se llega en un toque desde el perfil.
+  const params = useLocalSearchParams<{ eliminar?: string }>();
+  useEffect(() => {
+    if (params.eliminar !== "1") return;
+    router.setParams({ eliminar: undefined });
+    askDeleteAccount();
+  }, [params.eliminar]);
+
   async function confirmDeleteAccount() {
     if (!keywordMatches) {
       return;
     }
-    setBusy("delete");
+    setDeleting(true);
     try {
       const result = await deleteAccount({});
       if (result.status === "datos_incompletos") {
-        setBusy(null);
+        setDeleting(false);
         Alert.alert(
           "No pudimos borrar todo",
           "Quedaron datos sin borrar, así que tu cuenta sigue activa. Probá de nuevo en un rato.",
@@ -221,7 +187,7 @@ export default function AjustesScreen() {
       }
       await endSession();
     } catch {
-      setBusy(null);
+      setDeleting(false);
       Alert.alert("No pudimos eliminar tu cuenta", "Revisá tu conexión e intentá de nuevo.");
     }
   }
