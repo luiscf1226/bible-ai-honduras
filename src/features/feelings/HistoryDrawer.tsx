@@ -1,7 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../../components/Icon";
-import { SideDrawer } from "../../components/SideDrawer";
+import { router } from "expo-router";
+
+import { DRAWER_RECENT_COUNT, DrawerSeeAll, SideDrawer } from "../../components/SideDrawer";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
 
@@ -47,7 +49,7 @@ export function HistoryDrawer({ items, onClose, onNew, onOpen, visible }: Histor
           Acá van a quedar tus devocionales. Solo los ves vos.
         </Text>
       ) : null}
-      {items.map((item, index) => (
+      {items.slice(0, DRAWER_RECENT_COUNT).map((item, index) => (
         <Pressable
           accessibilityHint="Abre este devocional anterior."
           accessibilityRole="button"
@@ -68,6 +70,16 @@ export function HistoryDrawer({ items, onClose, onNew, onOpen, visible }: Histor
           <Icon color={color.inkFaint} name="chevronRight" size="sm" />
         </Pressable>
       ))}
+      {items.length > 0 ? (
+        <DrawerSeeAll
+          label="Ver todo en Mis conversaciones"
+          onPress={() => {
+            onClose();
+            router.push({ pathname: "/historial", params: { filtro: "feelings" } });
+          }}
+          testID="sentir-history-see-all"
+        />
+      ) : null}
     </SideDrawer>
   );
 }

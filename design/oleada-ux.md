@@ -10,6 +10,12 @@
 > Vocabulario visual: el mismo del prototipo (tarjetas `surface` con borde
 > `border`, radio `xxl`, títulos en EB Garamond, UI en DM Sans light, chips pill,
 > acento `accent`). Esta oleada no inventa un estilo nuevo, reordena el que ya hay.
+>
+> **Ampliación (2026-10-12, #232):** el fundador pidió diseñar directo en el
+> repo también el orden de la app (barra de pestañas, inicio con una sola
+> tarjeta de contexto, selector de Conversar, "Más" de la hoja del versículo,
+> Mis conversaciones) y las pantallas de Notas de prédica. Están en
+> §Orden de la app y §Notas de prédica, al final.
 
 ## Tokens nuevos
 
@@ -34,7 +40,9 @@
 | `size.marginMark` | 5 | | Punto de "guardado" en el margen (U4) |
 | `size.actionTile` | 64 | | Celda de la barra de herramientas del versículo (U4) |
 | `size.ring` | 1.5 | | Anillo `accent` del personaje del mes (#200) |
-| `grid.actionColumns` | 4 | | Columnas de esa barra (U4) |
+| `grid.actionColumns` | 4 | | Columnas de esa barra (U4); desde #232, las acciones que despliega "Más" |
+| `grid.primaryActionColumns` | 5 | | Fila de arriba de la hoja del versículo: 4 acciones + "Más" (#232) |
+| `size.noteEditorMin` | 180 | | Alto mínimo del campo "Mis notas" del editor de prédica (#232) |
 | `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30, temporada 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
 | `season.{reforma,gratitud,adviento,anio-nuevo}` | ver `tokens.json` | | Capa de temporada (#199) |
 | `seasonDecor.*` | warm · gold · leaf · deep, día y noche | | Tonos de la guirnalda de temporada |
@@ -45,7 +53,9 @@
 prototipo (volver, chevrons, cerrar, enviar, check, libro, chat, WhatsApp,
 imagen, amanecer, guardado, reloj, candado, refrescar) se copiaron tal cual.
 Los nuevos siguen el mismo trazo de 1.3 sobre 24: `menu`, `search`, `plus`,
-`note`, `highlight`, `ribbon`, `share`, `copy`, `voice`, `textSize`, `calendar`.
+`note`, `highlight`, `ribbon`, `share`, `copy`, `voice`, `textSize`, `calendar`;
+y desde #232 `home`, `person`, `gear` (Ajustes: el sol se leía como "modo
+día/noche"), `more` (tres puntos) y `sermon` (cuaderno con renglones).
 Color siempre desde `useTheme().color`. **No se usan emojis como íconos.**
 
 ---
@@ -353,3 +363,114 @@ versículo, el silencio y una salida.
 | `motion.verseDelay` | 600 | Respiro antes de que aparezca el versículo |
 | `motion.verseFadeIn` | 2400 | Fundido del versículo |
 | `motion.closeFadeIn` | 1200 | Fundido del "Amén" y las salidas |
+
+---
+
+## Orden de la app (#232)
+
+### Barra de pestañas
+
+`src/components/TabBar.tsx`, layout en `app/(tabs)/_layout.tsx`. Fondo
+`surface`, borde de arriba 1 `border`, `paddingTop` `space.sm` y abajo el
+inset del teléfono (mínimo `space.sm`). Cinco pestañas de igual ancho: ícono
+`md` y nombre en `caption`.
+
+| Pestaña | Ícono | Rutas |
+|---|---|---|
+| Inicio | `home` | `/home` |
+| Biblia | `book` | `/leer` |
+| Conversar | `chat` | `/preguntar`, `/sentir`, `/voces` (vuelve a la última usada) |
+| Historias | `image` | `/historias` |
+| Mi espacio | `person` | `/mi-espacio` |
+
+Encendida: ícono `accent`, nombre `ink` en `sansMedium`. Apagada: ícono y
+nombre `inkSoft`. Sin badges ni contadores. Todo lo que no es de primer nivel
+(lector, chat con un personaje, una historia, Ajustes, notas…) se apila encima
+sin barra. Las pantallas que son pestaña no llevan ‹ (`ScreenHeader
+showBack={false}`); Biblia muestra el ‹ solo para volver del capítulo al índice.
+
+### Selector de Conversar
+
+`src/features/navigation/ConversationSwitcher.tsx`, arriba de Preguntar,
+Sentir y Personajes: riel `surfaceSunk` pill con `space.xxs` de padding; la
+opción elegida es una pill `surface` con borde `borderStrong` y texto `ink`
+`sansMedium` `chip`; las otras, texto `inkSoft`. Preguntar y Sentir ya no
+llevan ✕ (son pestaña); el ☰ sigue a la izquierda.
+
+### Inicio
+
+Orden: encabezado (logo, fecha, saludo y **engranaje** de Ajustes) →
+**una sola tarjeta de contexto** → versículo del día (pie "Leer el
+devocional") → ¿Cómo estás hoy? → mosaicos 2×2. La tarjeta de contexto sale
+de `pickHomeContext` con esta prioridad: actualización > nota de prédica
+(domingos) > fecha personal > temporada > recuerdo guardado. La guirnalda de
+temporada sigue colgando de la foto del versículo aunque la franja no salga.
+Una tarjeta, un destino: el mosaico Leer abre el pasaje de su línea de
+estado; el de Preguntar abre Preguntar con la pregunta del día escrita.
+"Un minuto de pausa" vive en la vista vacía de Sentir.
+
+### Biblia (`/leer`)
+
+Búsqueda → "Tu separador" o "Seguí leyendo" (`EntryCard`) con los recientes
+como `Chip` serif `sm` → una sola `EntryCard` "Planes y recorridos" con
+chevron → índice de libros. Los planes viven en `/leer/planes` (las mismas
+tarjetas de antes). Guardados, subrayados y separador viven en Mi espacio.
+
+### Hoja del versículo
+
+Fila de arriba (`grid.primaryActionColumns`): Guardar, Nota, Compartir,
+Preguntar y **Más** (`more`). "Más" se vuelve "Menos" en `accent` y despliega
+el resto abajo, separado por una línea `border`, en `grid.actionColumns`.
+
+### Mi espacio
+
+Encabezado sin ‹ con el engranaje a la derecha (`HeaderIconButton`). Bloque
+de privacidad (`ListCard tone="sunk"`) y tres grupos con `ListSectionLabel`:
+**Tu Biblia** (Separador, Guardados, Subrayados), **Tu vida de fe**
+(Memorizar, Diario de oración, Notas de prédica, Tu año en la Palabra) y
+**Conversaciones** (Mis conversaciones). Después "Llevártelo" (Exportar) y
+Tus fechas.
+
+### Mis conversaciones (`/historial`)
+
+El único historial. `FilterPills` Todo · Preguntar · Sentir · Personajes y
+una `ListCard` con avatar, título serif, vista previa, fecha y chevron. Cada
+renglón abre la conversación donde se tuvo. Los cajones de Preguntar y Sentir
+muestran las 6 últimas y un "Ver todo en Mis conversaciones" (`DrawerSeeAll`).
+
+### Componentes compartidos
+
+| Componente | Reemplaza |
+|---|---|
+| `ListCard`, `ListRow`, `ListSectionLabel` (`src/components/ListRow.tsx`) | `card`/`row`/`rowDivider` de Ajustes, Mi espacio, Historial, Exportar, Tu año, Memorizar, Tus fechas y Grupos |
+| `EntryCard` | las 6 `planCard` de Leer |
+| `Chip` | los chips del inicio, Leer, Línea del tiempo, Memorizar, Sentir (×2) y el chip de pasaje |
+| `Switch` | el interruptor que vivía dentro de Ajustes |
+| `withPressed` (`src/theme/pressed.ts`) | `pressed: { opacity }` copiado por archivo |
+
+## Notas de prédica (#232)
+
+Sin IA (regla dura #4): la app no resume, no corrige ni opina.
+
+**Lista `/notas`** (Mi espacio → Notas de prédica): `ScreenHeader`, una línea
+`bodySm` `inkSoft`, `AppButton` primario "Nueva nota" con `plus`, `SearchField`
+compacto (título, predicador o pasaje) y una `ListCard`: título `label`, los
+pasajes en serif y la fecha · predicador · iglesia en `caption`. Lo que espera
+señal dice "Se sube cuando haya señal". Vacía: bloque `surfaceSunk` con el
+ícono `sermon` `lg` y "Tu cuaderno de prédicas".
+
+**Editor `/notas/[noteId]`** (`nueva` para una nota nueva): título en serif
+`title` sin borde; `ListCard` con Fecha (‹ › con `HeaderIconButton`, no pasa
+de hoy), Predicador e Iglesia (se recuerdan los últimos); PASAJES como `Chip`
+serif con ícono `book` `accent` y ✕, más un `Chip` punteado "Agregar pasaje"
+que abre la hoja de pasajes de Preguntar; MIS NOTAS en un campo serif
+`versePicker` con `size.noteEditorMin`; "¿QUÉ ME LLEVO?" en un bloque
+`surfaceSunk` con rótulo `accent`. Se guarda solo (cola sin conexión).
+Abajo: interruptor "Incluir mis notas al compartir", "Compartir por WhatsApp"
+(secundario, ícono `whatsapp`) y "Borrar nota" (quieto, con confirmación).
+
+**Desde el lector:** "Nota de prédica" en "Más" abre `/notas/agregar`:
+"Nueva nota con este pasaje" o sumarlo a una de las 5 últimas.
+
+**Domingo en el inicio:** `HomeCard` con ícono `sermon`, "Nueva nota de
+prédica" y una línea; abre el editor vacío.

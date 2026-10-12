@@ -18,7 +18,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Icon } from "../../src/components/Icon";
 import { LoadingState, QA_ANSWER_STEPS } from "../../src/components/LoadingState";
-import { goBackOrHome } from "../../src/components/ScreenHeader";
+import { ConversationSwitcher } from "../../src/features/navigation/ConversationSwitcher";
 import { PassageSheet } from "../../src/features/qa/PassageSheet";
 import { QaComposer } from "../../src/features/qa/QaComposer";
 import { QaDrawer } from "../../src/features/qa/QaDrawer";
@@ -190,6 +190,7 @@ function PreguntarScreenContent() {
         keyboardVerticalOffset={keyboardVerticalOffsetFor({ insets, platform: Platform.OS })}
         style={styles.flex}
       >
+        <ConversationSwitcher current="preguntar" />
         <View style={[styles.header, { backgroundColor: color.surface, borderBottomColor: color.border }]}>
           <Pressable
             accessibilityLabel="Tus preguntas"
@@ -207,16 +208,8 @@ function PreguntarScreenContent() {
             </Text>
             {quotaLabel ? <Text style={[styles.quota, { color: color.inkSoft }]}>{quotaLabel}</Text> : null}
           </View>
-          <Pressable
-            accessibilityLabel="Volver"
-            accessibilityRole="button"
-            hitSlop={tokens.space.sm}
-            onPress={goBackOrHome}
-            style={({ pressed }) => [styles.round, { borderColor: color.border }, pressed && styles.pressed]}
-            testID="preguntar-chat-back"
-          >
-            <Icon color={color.ink} name="close" size="sm" />
-          </Pressable>
+          {/* Es una pestaña (#232): no lleva ✕ ni ‹. El espacio mantiene el título al centro. */}
+          <View style={styles.spacer} />
         </View>
 
         <ScrollView
@@ -306,6 +299,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: tokens.size.backButton,
   },
+  spacer: { height: tokens.size.backButton, width: tokens.size.backButton },
   headerText: { alignItems: "center", flex: 1 },
   title: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   quota: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },

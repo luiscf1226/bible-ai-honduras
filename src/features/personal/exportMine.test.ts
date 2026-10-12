@@ -67,7 +67,7 @@ describe("buildExportDocument", () => {
 
   it("cuenta guardados, notas y subrayados; la nota va con su guardado", () => {
     const doc = sample();
-    expect(doc.counts).toEqual({ saved: 4, notes: 1, highlights: 2, prayers: 0 });
+    expect(doc.counts).toEqual({ saved: 4, notes: 1, highlights: 2, prayers: 0, sermonNotes: 0 });
     expect(doc.total).toBe(6);
     expect(doc.books[0].entries[0].note).toBe("Mi primer guardado");
   });
@@ -194,6 +194,39 @@ describe("helpers", () => {
   });
 
   it("exportSummary en singular y plural", () => {
-    expect(exportSummary({ saved: 1, notes: 0, highlights: 2, prayers: 0 })).toBe("1 guardado · 2 subrayados");
+    expect(exportSummary({ saved: 1, notes: 0, highlights: 2, prayers: 0, sermonNotes: 0 })).toBe("1 guardado · 2 subrayados");
+    expect(exportSummary({ saved: 0, notes: 0, highlights: 0, prayers: 0, sermonNotes: 2 })).toBe("2 notas de prédica");
+  });
+
+  it("las notas de prédica salen en su sección, en texto y en el PDF (#232)", () => {
+    const doc = buildExportDocument({
+      bookmarks: [],
+      highlights: [],
+      sermonNotes: [
+        {
+          date: "2026-10-11",
+          title: "Dios es nuestro amparo",
+          church: "Iglesia Bethel",
+          preacher: "Pastor Daniel",
+          passages: [{ book: "Salmos", chapter: 46, verse: 1 }, { book: "Juan", chapter: 3 }],
+          notes: "Refugio, fuerza, ayuda.",
+          takeaway: "No tengo que esperar a que pase la tormenta.",
+        },
+        { date: "2026-10-04", title: "", passages: [{ book: "Rut", chapter: 1 }], notes: "<b>sin escapar</b>", takeaway: "" },
+      ],
+      generatedAt: Date.UTC(2026, 9, 12, 15),
+    });
+    expect(doc.total).toBe(2);
+    const text = buildExportText(doc);
+    expect(text).toContain("NOTAS DE PRÉDICA");
+    expect(text).toContain("Dios es nuestro amparo");
+    expect(text).toContain("11 de octubre de 2026 · Pastor Daniel · Iglesia Bethel");
+    expect(text).toContain("Pasajes: Salmos 46:1, Juan 3");
+    expect(text).toContain("Me llevo: No tengo que esperar a que pase la tormenta.");
+    // La más vieja primero, como un cuaderno; sin título, el pasaje hace de título.
+    expect(text.indexOf("Rut 1")).toBeLessThan(text.indexOf("Dios es nuestro amparo"));
+    const html = buildExportHtml(doc);
+    expect(html).toContain("Notas de prédica");
+    expect(html).toContain("&lt;b&gt;sin escapar&lt;/b&gt;");
   });
 });

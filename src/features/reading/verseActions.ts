@@ -2,7 +2,7 @@ import type { IconName } from "../../components/Icon";
 import { copyToClipboard } from "../../lib/clipboard";
 import { goToChat } from "../../lib/goToChat";
 import { goToVoices } from "../../lib/goToVoices";
-import { openDedication, openTimeline } from "../../lib/openPassage";
+import { openDedication, openSermonNotePicker, openTimeline } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
 import { hasCrossReferences } from "./crossReferences";
@@ -19,6 +19,10 @@ import { eraForChapter } from "./timeline";
  * Las acciones que tocan estado del lector (guardar, nota, separador) llaman a
  * los manejadores que la pantalla pone en el contexto; las que solo navegan o
  * comparten se resuelven acá con el versículo.
+ *
+ * Desde #232 (Fase 3) la hoja muestra solo las `primary` (Guardar, Nota,
+ * Compartir, Preguntar) y un "Más" que despliega el resto. Una acción nueva
+ * entra en "Más" salvo que se decida otra cosa: la fila de arriba no crece.
  */
 export type VerseActionContext = {
   verse: ReadingVerse;
@@ -52,12 +56,15 @@ export type VerseAction = {
   active?: (ctx: VerseActionContext) => boolean;
   /** Activo y además relleno (design/oleada-ux.md §U4). */
   fillWhenActive?: boolean;
+  /** Va en la fila de arriba; el resto queda detrás de "Más" (#232). */
+  primary?: boolean;
   onPress: (ctx: VerseActionContext) => void;
 };
 
 export const VERSE_ACTIONS: readonly VerseAction[] = [
   {
     id: "save",
+    primary: true,
     icon: "bookmark",
     label: (ctx) => (ctx.saved ? "Guardado" : "Guardar"),
     accessibilityLabel: (ctx) => (ctx.saved ? "Guardado. Tocá para quitarlo" : "Guardar"),
@@ -68,6 +75,7 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
   },
   {
     id: "note",
+    primary: true,
     icon: "note",
     label: () => "Nota",
     accessibilityLabel: (ctx) => (ctx.hasNote ? "Editar nota" : "Agregar nota"),
@@ -101,6 +109,7 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
   },
   {
     id: "share",
+    primary: true,
     icon: "share",
     label: () => "Compartir",
     testID: "reading-action-share",
@@ -131,6 +140,7 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
   },
   {
     id: "ask",
+    primary: true,
     icon: "chat",
     label: () => "Preguntar",
     accessibilityLabel: () => "Preguntar sobre esto",
@@ -183,6 +193,18 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     },
   },
   {
+    // Notas de prédica (#232): suma el versículo a una nota (nueva o reciente).
+    // Va en "Más", sin sumar una acción principal.
+    id: "sermon",
+    icon: "sermon",
+    label: () => "Nota de prédica",
+    accessibilityLabel: () => "Agregar a nota de prédica",
+    accessibilityHint: () => "Elegí una nota de prédica o empezá una nueva con este versículo.",
+    testID: "reading-action-sermon",
+    visible: (ctx) => ctx.signedIn,
+    onPress: (ctx) => openSermonNotePicker(ctx.verse),
+  },
+  {
     id: "copy",
     icon: "copy",
     label: () => "Copiar",
@@ -193,4 +215,12 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
 
 export function visibleVerseActions(ctx: VerseActionContext, actions: readonly VerseAction[] = VERSE_ACTIONS): VerseAction[] {
   return actions.filter((action) => action.visible?.(ctx) ?? true);
+}
+
+/** Las acciones de la fila de arriba y las de "Más", en el orden del registro (#232). */
+export function splitVerseActions(actions: readonly VerseAction[]): { primary: VerseAction[]; more: VerseAction[] } {
+  return {
+    primary: actions.filter((action) => action.primary === true),
+    more: actions.filter((action) => action.primary !== true),
+  };
 }

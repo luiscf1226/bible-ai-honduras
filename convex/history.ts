@@ -4,6 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { deletePrayersForUser } from "./prayers";
+import { deleteSermonNotesForUser } from "./sermonNotes";
 import { clearBookmarkNotesForUser } from "./reading";
 import { voiceCharacters } from "./voicesCatalog";
 
@@ -181,7 +182,7 @@ export async function deleteConversationsForUser(
 }
 
 // Hard delete: borra messages y después conversations del usuario actual, las
-// peticiones del diario de oración (#159) y las notas personales de los
+// peticiones del diario de oración (#159), las notas de prédica (#232) y las notas personales de los
 // versículos guardados (#167) — los guardados en sí se quedan, igual que los
 // versículos de Memorizar (#158). No escribe `deleted: true`. Lo que no es tuyo
 // no se toca.
@@ -191,7 +192,14 @@ export const deleteAll = mutation({
     const user = await requireUser(ctx);
     const { deletedConversations, deletedMessages } = await deleteConversationsForUser(ctx, user._id);
     const prayers = await deletePrayersForUser(ctx, user._id);
+    const sermonNotes = await deleteSermonNotesForUser(ctx, user._id);
     const clearedNotes = await clearBookmarkNotesForUser(ctx, user._id);
-    return { deletedConversations, deletedMessages, deletedPrayers: prayers.deleted, clearedNotes };
+    return {
+      deletedConversations,
+      deletedMessages,
+      deletedPrayers: prayers.deleted,
+      deletedSermonNotes: sermonNotes.deleted,
+      clearedNotes,
+    };
   },
 });

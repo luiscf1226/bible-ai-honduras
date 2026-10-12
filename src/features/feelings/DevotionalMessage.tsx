@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
+import { Chip } from "../../components/Chip";
 import { CitationLink } from "../../components/CitationLink";
 import { Icon, type IconName } from "../../components/Icon";
 import { openPassage, openReadingPlan } from "../../lib/openPassage";
@@ -150,21 +151,7 @@ function Action({
 }
 
 function FollowUpChip({ label, onPress, testID }: { label: string; onPress: () => void; testID: string }) {
-  const { color } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.chip,
-        { backgroundColor: color.surface, borderColor: color.borderStrong },
-        pressed && styles.pressed,
-      ]}
-      testID={testID}
-    >
-      <Text style={[styles.chipLabel, { color: color.inkMuted }]}>{label}</Text>
-    </Pressable>
-  );
+  return <Chip label={label} onPress={onPress} testID={testID} />;
 }
 
 const styles = StyleSheet.create({
@@ -222,16 +209,5 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
   },
   followUps: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
-  chip: {
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: tokens.space.lg,
-    paddingVertical: tokens.space.sm,
-  },
-  chipLabel: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.chip.size,
-    lineHeight: tokens.type.chip.lineHeight,
-  },
   pressed: { opacity: tokens.opacity.pressed },
 });

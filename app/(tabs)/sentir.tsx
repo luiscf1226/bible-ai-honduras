@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useAction, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 
@@ -13,6 +13,7 @@ import { DevotionalMessage } from "../../src/features/feelings/DevotionalMessage
 import { EmptyThread, UserBubble } from "../../src/features/feelings/FeelingMessages";
 import { FeelingsComposer } from "../../src/features/feelings/FeelingsComposer";
 import { HistoryDrawer } from "../../src/features/feelings/HistoryDrawer";
+import { ConversationSwitcher } from "../../src/features/navigation/ConversationSwitcher";
 import { SentirHeader } from "../../src/features/feelings/SentirHeader";
 import { feelingFromParam } from "../../src/features/feelings/feelings";
 import { goToPause } from "../../src/features/pause/goToPause";
@@ -84,12 +85,14 @@ function SentirScreenContent() {
   const nextTurnId = () => `t${++turnIdRef.current}`;
 
   // Desde el inicio se llega con un sentimiento ya elegido (`?feeling=Ansiedad`)
-  // o directo a escribir (`?escribir=1`). Desde Mi espacio, con "Los de antes"
-  // abierto (`?historial=1`).
+  // o directo a escribir (`?escribir=1`). Con "Los de antes" abierto
+  // (`?historial=1`) o con uno de ellos ya abierto desde Mis conversaciones
+  // (`?devocional=<id>`, #232).
   const params = useLocalSearchParams<{
     feeling?: string | string[];
     escribir?: string | string[];
     historial?: string | string[];
+    devocional?: string | string[];
   }>();
   const paramFeeling = feelingFromParam(params.feeling);
   const paramWrite = firstParam(params.escribir) === "1";
@@ -97,6 +100,12 @@ function SentirScreenContent() {
   useEffect(() => {
     if (paramHistory) setIsDrawerOpen(true);
   }, [paramHistory]);
+  const paramDevotional = firstParam(params.devocional);
+  useEffect(() => {
+    if (!paramDevotional) return;
+    requestIdRef.current += 1;
+    setSelectedHistoryId(paramDevotional);
+  }, [paramDevotional]);
   useEffect(() => {
     if (paramFeeling) setSelectedFeelings((current) => withFeeling(current, paramFeeling));
   }, [paramFeeling]);
@@ -183,7 +192,8 @@ function SentirScreenContent() {
         keyboardVerticalOffset={keyboardVerticalOffsetFor({ insets, platform: Platform.OS })}
         style={styles.flex}
       >
-        <SentirHeader onClose={() => router.replace("/home")} onOpenDrawer={() => setIsDrawerOpen(true)} />
+        <ConversationSwitcher current="sentir" />
+        <SentirHeader onOpenDrawer={() => setIsDrawerOpen(true)} />
 
         <ScrollView
           contentContainerStyle={isEmpty ? styles.emptyContent : styles.thread}

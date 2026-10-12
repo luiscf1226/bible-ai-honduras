@@ -65,8 +65,8 @@ function HistoriasScreenContent() {
 
   return (
     <AppScreen scroll>
-      <ScreenHeader accessibilityLabel="Volver al inicio" style={styles.header} testID="historias-back" />
-      <Text style={[styles.title, { color: color.ink }]}>Historias</Text>
+      {/* Es una pestaña (#232): título sin ‹. */}
+      <ScreenHeader showBack={false} title="Historias" />
       <Text style={[styles.subtitle, { color: color.inkMuted }]}>
         {mode === "texto"
           ? "Leé la Biblia en narrativa. Gratis. Después preguntá el texto en Voces o en Preguntar."
@@ -249,12 +249,6 @@ function IllustratedStoryList({
 }
 
 const styles = StyleSheet.create({
-  header: { marginBottom: tokens.space.xl },
-  title: {
-    fontFamily: tokens.font.serif,
-    fontSize: tokens.type.title.size,
-    lineHeight: tokens.type.title.lineHeight,
-  },
   subtitle: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,

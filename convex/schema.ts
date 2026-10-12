@@ -229,6 +229,25 @@ export default defineSchema({
     verse: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.number() })),
   }).index("by_user", ["userId"]),
 
+  // Notas de prédica (#232). Privadas, sin IA (convex/sermonNotes.ts). `clientId`
+  // lo pone el teléfono para que la cola sin conexión no duplique al reenviar.
+  // Entran en "Borrar mi historial" y en el borrado de cuenta.
+  sermonNotes: defineTable({
+    userId: v.id("users"),
+    clientId: v.string(),
+    date: v.string(),
+    church: v.optional(v.string()),
+    preacher: v.optional(v.string()),
+    title: v.string(),
+    passages: v.array(v.object({ book: v.string(), chapter: v.number(), verse: v.optional(v.number()) })),
+    notes: v.string(),
+    takeaway: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_client", ["userId", "clientId"]),
+
   // Versículos para memorizar (#158). Repaso espaciado: `level` es el escalón
   // (hoy, 3, 7, 21 días; convex/memorizeSchedule.ts) y `nextReview` el día de
   // Honduras (YYYY-MM-DD) del próximo repaso. Sin IA: el texto sale del corpus.

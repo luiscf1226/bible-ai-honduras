@@ -82,6 +82,27 @@ export const ICONS = {
     { kind: "rect", x: 4, y: 9, width: 16, height: 11, rx: 2 },
     path("M3.5 9h17M12 9v11M12 9c-1.5-3.5-5.5-4-5.5-1.5S10 9 12 9zM12 9c1.5-3.5 5.5-4 5.5-1.5S14 9 12 9z"),
   ],
+  // Barra de pestañas y orden de la app (#232, design/oleada-ux.md §Orden).
+  home: [path("M4 11l8-6.5 8 6.5"), path("M6 9.5v10h4.5v-5h3v5H18v-10")],
+  person: [{ kind: "circle", cx: 12, cy: 8.5, r: 3.5 }, path("M5 20a7 7 0 0 1 14 0")],
+  // Ajustes: engranaje (el sol se leía como "modo día/noche").
+  gear: [
+    path(
+      "M18.44 10.55L20.53 10.94L20.53 13.06L18.44 13.45L17.58 15.53L18.78 17.28L17.28 18.78L15.53 17.58L13.45 18.44L13.06 20.53L10.94 20.53L10.55 18.44L8.47 17.58L6.72 18.78L5.22 17.28L6.42 15.53L5.56 13.45L3.47 13.06L3.47 10.94L5.56 10.55L6.42 8.47L5.22 6.72L6.72 5.22L8.47 6.42L10.55 5.56L10.94 3.47L13.06 3.47L13.45 5.56L15.53 6.42L17.28 5.22L18.78 6.72L17.58 8.47Z",
+    ),
+    { kind: "circle", cx: 12, cy: 12, r: 2.8 },
+  ],
+  // "Más" de la hoja del versículo.
+  more: [
+    { kind: "circle", cx: 6, cy: 12, r: 1.1 },
+    { kind: "circle", cx: 12, cy: 12, r: 1.1 },
+    { kind: "circle", cx: 18, cy: 12, r: 1.1 },
+  ],
+  // Notas de prédica: cuaderno con renglones.
+  sermon: [
+    { kind: "rect", x: 5, y: 3.5, width: 14, height: 17, rx: 2 },
+    path("M9 3.5v17M11.5 8.5h4M11.5 12h4M11.5 15.5h2.5"),
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof ICONS;

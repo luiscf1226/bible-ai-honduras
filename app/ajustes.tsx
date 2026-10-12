@@ -7,6 +7,9 @@ import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from "re
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
+import { Icon } from "../src/components/Icon";
+import { ListCard, ListRow, ListSectionLabel } from "../src/components/ListRow";
+import { Switch } from "../src/components/Switch";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
 // Los números salen de las cuotas reales: el prototipo decía "3 preguntas y 2
@@ -24,6 +27,7 @@ import { canEnterReferral, claimMessage } from "../src/lib/referralCopy";
 import { logOut as purchasesLogOut } from "../src/lib/revenuecat";
 import { REMINDER_HOURS } from "../src/lib/reminderHours";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
+import { withPressed } from "../src/theme/pressed";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -233,10 +237,7 @@ export default function AjustesScreen() {
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push("/paywall")}
-        style={[
-          styles.planCard,
-          { backgroundColor: isPro ? color.surfaceSunk : color.ink },
-        ]}
+        style={withPressed(styles.planCard, { backgroundColor: isPro ? color.surfaceSunk : color.ink })}
         testID="ajustes-plan"
       >
         <View style={styles.planText}>
@@ -249,65 +250,29 @@ export default function AjustesScreen() {
               : `${QUOTA_LIMITS.qa} preguntas y ${QUOTA_LIMITS.feelings} devocionales al día`}
           </Text>
         </View>
-        <Text style={[styles.planChevron, { color: color.accent }]}>›</Text>
+        <Icon color={color.accent} name="chevronRight" size="sm" />
       </Pressable>
 
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lo tuyo</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/mi-espacio")}
-          style={styles.row}
-          testID="ajustes-mi-espacio"
-        >
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Mi espacio</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Separador, guardados, subrayados y conversaciones</Text>
-          </View>
-          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/exportar")}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
-          testID="ajustes-exportar"
-        >
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Exportar lo mío</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Guardados, notas y subrayados, en texto o PDF</Text>
-          </View>
-          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
-        </Pressable>
-        {/* Mismo renglón con interruptor que "Modo noche suave". */}
-        <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}>
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Recuerdos de tus guardados</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]}>
-              Una vez por semana, el inicio te trae un versículo que guardaste hace tiempo
-            </Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Recuerdos de tus guardados"
-            accessibilityRole="switch"
-            accessibilityState={{ checked: savedMemoryEnabled, disabled: !user }}
-            disabled={!user}
-            onPress={() => void updatePreferences({ savedMemoryEnabled: !savedMemoryEnabled }).catch(() => undefined)}
-            style={[styles.switchTrack, { backgroundColor: savedMemoryEnabled ? color.sage : color.border }]}
-            testID="ajustes-recuerdos-switch"
-          >
-            <View
-              style={[
-                styles.switchKnob,
-                { backgroundColor: color.surface },
-                savedMemoryEnabled && styles.switchKnobActive,
-              ]}
+      {/* Mi espacio, Exportar y Mis conversaciones viven en la pestaña Mi espacio (#232). */}
+      <ListSectionLabel>Lo tuyo</ListSectionLabel>
+      <ListCard>
+        <ListRow
+          hint="Una vez por semana, el inicio te trae un versículo que guardaste hace tiempo"
+          title="Recuerdos de tus guardados"
+          trailing={
+            <Switch
+              accessibilityLabel="Recuerdos de tus guardados"
+              disabled={!user}
+              onChange={(next) => void updatePreferences({ savedMemoryEnabled: next }).catch(() => undefined)}
+              testID="ajustes-recuerdos-switch"
+              value={savedMemoryEnabled}
             />
-          </Pressable>
-        </View>
+          }
+        />
         {/* Mismo bloque que la confirmación de "Eliminar mi cuenta": copy,
             campo y botón. Desaparece a los 30 días o cuando ya hay invitación. */}
         {canEnterReferral(user) ? (
-          <View style={[styles.deleteBlock, styles.rowDivider, { borderTopColor: color.border }]} testID="ajustes-referral">
+          <View style={styles.deleteBlock} testID="ajustes-referral">
             <View>
               <Text style={[styles.rowLabel, { color: color.ink }]}>¿Te invitó alguien?</Text>
               <Text style={[styles.rowHint, { color: color.inkSoft }]}>
@@ -345,18 +310,14 @@ export default function AjustesScreen() {
           </View>
         ) : user?.referredBy && referralNotice ? (
           // Recién guardado: la fila se va, pero el "Listo" se queda esta vez.
-          <Text
-            accessibilityRole="alert"
-            style={[styles.privacyCopy, styles.rowDivider, { borderTopColor: color.border, color: color.inkSoft }]}
-            testID="ajustes-referral-notice"
-          >
+          <Text accessibilityRole="alert" style={[styles.privacyCopy, { color: color.inkSoft }]} testID="ajustes-referral-notice">
             {referralNotice}
           </Text>
         ) : null}
-      </View>
+      </ListCard>
 
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lectura</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+      <ListSectionLabel>Lectura</ListSectionLabel>
+      <ListCard>
         <View style={styles.versionBlock}>
           <Text style={[styles.rowLabel, { color: color.ink }]}>Versión de la Biblia</Text>
           <View style={styles.versionPicker}>
@@ -397,53 +358,40 @@ export default function AjustesScreen() {
           </Text>
         </View>
 
-        {/* Mismo renglón que "Mi espacio": título, pista y glifo a la derecha. */}
-        <Pressable
+        <ListRow
           accessibilityHint={bibleCopy.hint}
-          accessibilityRole="button"
-          accessibilityState={{ busy: offlineBible.downloading !== null, disabled: !bibleCopy.actionable }}
           disabled={!bibleCopy.actionable}
           onPress={onBibleRow}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-biblia-sin-conexion"
-        >
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Leer sin conexión</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-biblia-sin-conexion-estado">
-              {bibleCopy.hint}
+          title="Leer sin conexión"
+          trailing={
+            <Text style={[styles.glyph, { color: bibleState.kind === "ready" ? color.sage : color.inkFaint }]}>
+              {bibleCopy.glyph}
             </Text>
-          </View>
-          <Text style={[styles.planChevron, { color: bibleState.kind === "ready" ? color.sage : color.inkFaint }]}>
-            {bibleCopy.glyph}
+          }
+        >
+          <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-biblia-sin-conexion-estado">
+            {bibleCopy.hint}
           </Text>
-        </Pressable>
+        </ListRow>
 
-        <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}>
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Modo noche suave</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]}>Para el devocional antes de dormir</Text>
-          </View>
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityState={{ checked: darkMode }}
-            onPress={() => updatePreferences({ darkMode: !darkMode })}
-            style={[styles.switchTrack, { backgroundColor: darkMode ? color.sage : color.border }]}
-            testID="ajustes-dark-mode"
-          >
-            <View
-              style={[
-                styles.switchKnob,
-                { backgroundColor: color.surface },
-                darkMode && styles.switchKnobActive,
-              ]}
+        <ListRow
+          hint="Para el devocional antes de dormir"
+          title="Modo noche suave"
+          trailing={
+            <Switch
+              accessibilityLabel="Modo noche suave"
+              onChange={(next) => void updatePreferences({ darkMode: next })}
+              testID="ajustes-dark-mode"
+              value={darkMode}
             />
-          </Pressable>
-        </View>
-      </View>
+          }
+        />
+      </ListCard>
 
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Recordatorio</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
-        <View style={styles.row}>
+      <ListSectionLabel>Recordatorio</ListSectionLabel>
+      <ListCard>
+        <View style={styles.reminderRow}>
           <Text style={[styles.rowLabel, { color: color.ink }]}>Aviso del versículo</Text>
           <View style={styles.hourPicker}>
             {REMINDER_HOURS.map((option) => {
@@ -471,84 +419,60 @@ export default function AjustesScreen() {
             })}
           </View>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/historial")}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
-          testID="ajustes-historial"
-        >
-          <Text style={[styles.rowLabel, { color: color.ink }]}>Mis conversaciones</Text>
-          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
-        </Pressable>
-      </View>
+      </ListCard>
 
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Privacidad</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+      <ListSectionLabel>Privacidad</ListSectionLabel>
+      <ListCard>
         <Text style={[styles.privacyCopy, { color: color.inkMuted }]}>
           Tus conversaciones son privadas. Compartimos con proveedores de IA solo lo necesario para responderte.
         </Text>
-        {/* Mismo renglón con interruptor que "Modo noche suave". */}
-        <View style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]} testID="ajustes-proteger">
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: lockAvailable ? color.ink : color.inkSoft }]}>Proteger lo personal</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-proteger-hint">
-              {personalLock.availability ? lockSettingHint(personalLock.availability) : "…"}
+        <ListRow
+          testID="ajustes-proteger"
+          title="Proteger lo personal"
+          tone={lockAvailable ? "ink" : "soft"}
+          trailing={
+            <View style={!lockAvailable ? styles.versionPillDisabled : undefined}>
+              <Switch
+                accessibilityLabel="Proteger lo personal"
+                disabled={personalLock.loading || (!lockAvailable && !personalLock.enabled)}
+                onChange={() => void toggleLock()}
+                testID="ajustes-proteger-switch"
+                value={personalLock.enabled}
+              />
+            </View>
+          }
+        >
+          <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-proteger-hint">
+            {personalLock.availability ? lockSettingHint(personalLock.availability) : "…"}
+          </Text>
+          {lockNotice ? (
+            <Text accessibilityRole="alert" style={[styles.rowHint, { color: color.danger }]} testID="ajustes-proteger-aviso">
+              {lockNotice}
             </Text>
-            {lockNotice ? (
-              <Text accessibilityRole="alert" style={[styles.rowHint, { color: color.danger }]} testID="ajustes-proteger-aviso">
-                {lockNotice}
-              </Text>
-            ) : null}
-          </View>
-          <Pressable
-            accessibilityLabel="Proteger lo personal"
-            accessibilityRole="switch"
-            accessibilityState={{ checked: personalLock.enabled, disabled: !lockAvailable && !personalLock.enabled }}
-            disabled={personalLock.loading || (!lockAvailable && !personalLock.enabled)}
-            onPress={() => void toggleLock()}
-            style={[
-              styles.switchTrack,
-              { backgroundColor: personalLock.enabled ? color.sage : color.border },
-              !lockAvailable && styles.versionPillDisabled,
-            ]}
-            testID="ajustes-proteger-switch"
-          >
-            <View
-              style={[
-                styles.switchKnob,
-                { backgroundColor: color.surface },
-                personalLock.enabled && styles.switchKnobActive,
-              ]}
-            />
-          </Pressable>
-        </View>
-        <Pressable
+          ) : null}
+        </ListRow>
+        <ListRow
           accessibilityHint="Abre la política en el navegador"
           accessibilityRole="link"
           onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-politica-privacidad"
-        >
-          <Text style={[styles.rowLabel, { color: color.ink }]}>Política de privacidad</Text>
-          <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
-        </Pressable>
-        <Pressable
+          title="Política de privacidad"
+          trailing={<Text style={[styles.glyph, { color: color.inkFaint }]}>↗</Text>}
+        />
+        <ListRow
           accessibilityHint="Abre los términos en el navegador"
           accessibilityRole="link"
           onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-terminos"
-        >
-          <Text style={[styles.rowLabel, { color: color.ink }]}>Términos de uso</Text>
-          <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
+          title="Términos de uso"
+          trailing={<Text style={[styles.glyph, { color: color.inkFaint }]}>↗</Text>}
+        />
+        <ListRow
           disabled={cleared}
           onPress={() => {
             Alert.alert(
               "¿Borrar tu historial?",
-              "Se eliminan de verdad tus conversaciones, tu diario de oración y las notas de tus versículos guardados. No se puede deshacer.",
+              "Se eliminan de verdad tus conversaciones, tu diario de oración, tus notas de prédica y las notas de tus versículos guardados. No se puede deshacer.",
               [
                 { text: "Cancelar", style: "cancel" },
                 {
@@ -562,48 +486,36 @@ export default function AjustesScreen() {
               ],
             );
           }}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-borrar-historial"
-        >
-          <Text style={[styles.rowLabel, { color: cleared ? color.inkSoft : color.danger }]}>
-            {cleared ? "Historial borrado" : "Borrar mi historial"}
-          </Text>
-        </Pressable>
-      </View>
+          title={cleared ? "Historial borrado" : "Borrar mi historial"}
+          tone={cleared ? "soft" : "danger"}
+          trailing={null}
+        />
+      </ListCard>
 
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Cuenta</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Correo</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-correo">
-              {user?.email ?? "Sin correo registrado"}
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          accessibilityRole="button"
+      <ListSectionLabel>Cuenta</ListSectionLabel>
+      <ListCard>
+        <ListRow title="Correo">
+          <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-correo">
+            {user?.email ?? "Sin correo registrado"}
+          </Text>
+        </ListRow>
+        <ListRow
           disabled={busy !== null}
           onPress={askSignOut}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-cerrar-sesion"
-        >
-          <Text style={[styles.rowLabel, { color: color.ink }]}>
-            {busy === "signOut" ? "Cerrando sesión…" : "Cerrar sesión"}
-          </Text>
-          <Text style={[styles.planChevron, { color: color.inkFaint }]}>›</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
+          title={busy === "signOut" ? "Cerrando sesión…" : "Cerrar sesión"}
+        />
+        <ListRow
           disabled={busy !== null}
           onPress={askDeleteAccount}
-          style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
           testID="ajustes-eliminar-cuenta"
-        >
-          <Text style={[styles.rowLabel, { color: color.danger }]}>Eliminar mi cuenta</Text>
-        </Pressable>
+          title="Eliminar mi cuenta"
+          tone="danger"
+          trailing={null}
+        />
         {confirmingDelete ? (
-          <View style={[styles.deleteBlock, styles.rowDivider, { borderTopColor: color.border }]}>
+          <View style={styles.deleteBlock}>
             <Text style={[styles.deleteCopy, { color: color.inkMuted }]}>{DELETE_CONFIRM_COPY}</Text>
             <TextInput
               accessibilityLabel={`Escribí ${DELETE_KEYWORD} para confirmar`}
@@ -627,6 +539,7 @@ export default function AjustesScreen() {
             >
               {busy === "delete" ? "Eliminando…" : "Eliminar mi cuenta para siempre"}
             </AppButton>
+            {/* La única otra entrada a Exportar, además de Mi espacio (#232). */}
             <AppButton
               disabled={busy === "delete"}
               onPress={() => router.push("/exportar")}
@@ -648,41 +561,33 @@ export default function AjustesScreen() {
             </AppButton>
           </View>
         ) : null}
-      </View>
+      </ListCard>
 
       {/* Versión visible para soporte: "¿qué build tenés?" se contesta desde acá. */}
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>App</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={[styles.rowLabel, { color: color.ink }]}>Versión instalada</Text>
-            <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-version-app">
-              {appUpdate.label}
-            </Text>
-          </View>
-        </View>
+      <ListSectionLabel>App</ListSectionLabel>
+      <ListCard>
+        <ListRow title="Versión instalada">
+          <Text style={[styles.rowHint, { color: color.inkSoft }]} testID="ajustes-version-app">
+            {appUpdate.label}
+          </Text>
+        </ListRow>
         {appUpdate.storeName ? (
-          <Pressable
+          <ListRow
             accessibilityHint={`Abre ${appUpdate.storeName}`}
             accessibilityRole="link"
+            hint={
+              appUpdate.updateAvailable
+                ? `Actualizá en ${appUpdate.storeName} para ver lo último`
+                : `Abre ${appUpdate.storeName}`
+            }
             onPress={() => void appUpdate.openStore()}
-            style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}
             testID="ajustes-actualizar-app"
-          >
-            <View style={styles.rowText}>
-              <Text style={[styles.rowLabel, { color: appUpdate.updateAvailable ? color.accentDeep : color.ink }]}>
-                {appUpdate.updateAvailable ? "Hay una versión nueva" : "Buscar actualizaciones"}
-              </Text>
-              <Text style={[styles.rowHint, { color: color.inkSoft }]}>
-                {appUpdate.updateAvailable
-                  ? `Actualizá en ${appUpdate.storeName} para ver lo último`
-                  : `Abre ${appUpdate.storeName}`}
-              </Text>
-            </View>
-            <Text style={[styles.planChevron, { color: color.inkFaint }]}>↗</Text>
-          </Pressable>
+            title={appUpdate.updateAvailable ? "Hay una versión nueva" : "Buscar actualizaciones"}
+            tone={appUpdate.updateAvailable ? "accent" : "ink"}
+            trailing={<Text style={[styles.glyph, { color: color.inkFaint }]}>↗</Text>}
+          />
         ) : null}
-      </View>
+      </ListCard>
 
       <Text style={[styles.disclaimer, { color: color.inkFaint }]}>
         Esta app acompaña tu lectura; no sustituye el consejo pastoral. La IA puede cometer errores.
@@ -706,16 +611,7 @@ const styles = StyleSheet.create({
   planText: { flex: 1 },
   planTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   planSub: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs },
-  planChevron: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
-  sectionLabel: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.overline.size,
-    letterSpacing: tokens.type.overline.letterSpacing,
-    marginBottom: tokens.space.md,
-    marginTop: tokens.space.xxl + tokens.space.xs,
-    textTransform: "uppercase",
-  },
-  card: { borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
+  glyph: { fontFamily: tokens.font.sans, fontSize: tokens.type.body.size },
   versionBlock: { paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
   versionPicker: { flexDirection: "row", gap: tokens.space.sm, marginTop: tokens.space.lg },
   versionPill: { borderRadius: tokens.radius.sm, borderWidth: 1, flex: 1, paddingVertical: tokens.space.md },
@@ -727,23 +623,18 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
     marginTop: tokens.space.sm,
   },
-  row: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
-  rowDivider: { borderTopWidth: 1 },
-  rowText: { flex: 1, paddingRight: tokens.space.md },
+  reminderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: tokens.cardPadding.horizontal,
+    paddingVertical: tokens.cardPadding.vertical,
+  },
   rowLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
   rowHint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs },
   hourPicker: { flexDirection: "row", gap: tokens.space.xs },
   hourPill: { borderRadius: tokens.radius.sm, borderWidth: 1, paddingHorizontal: tokens.space.md, paddingVertical: tokens.space.sm },
   hourPillLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
-  switchTrack: {
-    borderRadius: tokens.radius.pill,
-    height: tokens.size.switchTrack.height,
-    justifyContent: "center",
-    padding: tokens.size.switchPadding,
-    width: tokens.size.switchTrack.width,
-  },
-  switchKnob: { borderRadius: tokens.radius.pill, height: tokens.size.switchKnob, width: tokens.size.switchKnob },
-  switchKnobActive: { transform: [{ translateX: tokens.size.switchKnobOffset }] },
   deleteBlock: {
     gap: tokens.space.md,
     paddingHorizontal: tokens.cardPadding.horizontal,

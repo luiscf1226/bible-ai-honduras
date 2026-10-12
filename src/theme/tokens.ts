@@ -188,10 +188,14 @@ export const tokens = {
     // mínima de iOS) y la línea de avance del capítulo.
     audioButton: 44,
     audioProgress: 2,
+    // Alto mínimo del campo de notas libres del editor de prédica (#232).
+    noteEditorMin: 180,
     // Ancho de la vista previa en "Dedicar" (#202): 9:16 y cuadrada.
     dedicationPreview: { story: 216, square: 280 },
   },
-  grid: { chapterColumns: 5, actionColumns: 4 },
+  // Hoja del versículo (#232): la fila de arriba lleva 4 acciones + "Más" (5 × `actionTile` = el ancho útil
+  // de 360); lo que despliega "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
+  grid: { chapterColumns: 5, actionColumns: 4, primaryActionColumns: 5 },
   // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.
   motion: { pause: 60000, verseDelay: 600, verseFadeIn: 2400, closeFadeIn: 1200 },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
