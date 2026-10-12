@@ -160,6 +160,8 @@ export const tokens = {
     dot: 6,
     dotActive: 22,
     avatar: 48,
+    // Foto de perfil de Mi espacio (perfil tipo Instagram). Mismo diámetro que `logoMedium`.
+    avatarLarge: 76,
     backButton: 34,
     sendButton: 30,
     switchTrack: { width: 46, height: 28 },

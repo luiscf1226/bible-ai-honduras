@@ -474,3 +474,24 @@ Abajo: interruptor "Incluir mis notas al compartir", "Compartir por WhatsApp"
 
 **Domingo en el inicio:** `HomeCard` con ícono `sermon`, "Nueva nota de
 prédica" y una línea; abre el editor vacío.
+
+### Mi espacio como perfil (tipo Instagram)
+
+Pedido directo del fundador (12 de octubre de 2026), fuera de Claude Design
+como el resto de esta oleada. Solo suma un token: `size.avatarLarge` (76, el
+mismo diámetro que `logoMedium`).
+
+- Cabecera de perfil (`src/features/personal/ProfileHeader.tsx`): foto
+  `avatarLarge` con la inicial en serif `display` color `avatarInitial` sobre
+  `accent`; a la derecha tres números (Guardados, Subrayados, Notas) en serif
+  `title` `ink` con su nombre en `caption` `inkSoft`. Abajo el nombre
+  (`sansMedium` `label`), el correo (`caption` `inkSoft`) y un `AppButton`
+  `secondary` ancho "Ajustes y cuenta" con ícono `gear`.
+- La cabecera y la tarjeta **Cuenta** del final (Cerrar sesión, Eliminar mi
+  cuenta en `danger`) quedan **fuera del candado** de "Proteger lo personal".
+  Con el candado cerrado, lo personal se reemplaza por una `ListCard` `sunk`
+  con "Esto es solo tuyo" (serif `subtitle`), el texto del candado (`bodySm`
+  `inkMuted`) y "Desbloquear" (`secondary`, ícono `lock`); cancelar ya no saca
+  de la pestaña, y los números no se muestran.
+- "Eliminar mi cuenta" abre Ajustes directo en la confirmación de dos pasos
+  (`/ajustes?eliminar=1`); la confirmación sigue viviendo en un solo lugar.
