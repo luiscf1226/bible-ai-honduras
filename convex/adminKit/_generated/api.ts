@@ -9,6 +9,8 @@
  */
 
 import type * as aiCalls from "../aiCalls.js";
+import type * as counters from "../counters.js";
+import type * as events from "../events.js";
 import type * as meter from "../meter.js";
 import type * as pricing from "../pricing.js";
 
@@ -21,6 +23,8 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   aiCalls: typeof aiCalls;
+  counters: typeof counters;
+  events: typeof events;
   meter: typeof meter;
   pricing: typeof pricing;
 }> = anyApi as any;

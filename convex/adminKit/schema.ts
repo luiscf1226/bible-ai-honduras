@@ -23,4 +23,36 @@ export default defineSchema({
     errorKind: v.optional(v.string()),
     at: v.number(),
   }).index("by_at", ["at"]),
+
+  // Embudo de la app: eventos de una lista cerrada que define la app. Sin
+  // cuenta: `installId` es un id aleatorio del teléfono que no se une con
+  // nadie. Sin contenido. Vive 90 días.
+  events: defineTable({
+    installId: v.string(),
+    name: v.string(),
+    module: v.optional(v.string()),
+    origin: v.optional(v.string()),
+    platform: v.string(),
+    build: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_at", ["at"]),
+
+  // Errores de JS de la app (los cierres nativos los ven TestFlight y Play).
+  errors: defineTable({
+    installId: v.string(),
+    message: v.string(),
+    stack: v.optional(v.string()),
+    fatal: v.boolean(),
+    platform: v.string(),
+    build: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_at", ["at"]),
+
+  // Contadores diarios del servidor ("voices.refused", "qa.ungrounded"…).
+  // `day` lo calcula la app (YYYY-MM-DD en su zona horaria). Vive 90 días.
+  counters: defineTable({
+    day: v.string(),
+    key: v.string(),
+    count: v.number(),
+  }).index("by_day_key", ["day", "key"]),
 });

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { internalAction, internalQuery } from "../_generated/server";
-import { aiMeter } from "../aiUsage";
+import { aiMeter, countAiOutcome } from "../aiUsage";
 import type { Citation } from "./answer";
 import { retrieveCommentary } from "./commentary";
 import { generateStructuredAnswer } from "./llm";
@@ -120,6 +120,7 @@ export const prepare = internalAction({
 
     const grounded = groundGuide(structured, context);
     if (!grounded) {
+      await countAiOutcome(ctx, "group_guide.not_grounded");
       return { status: "not_grounded" };
     }
     return {
