@@ -4,6 +4,16 @@ Bible AI Honduras se prepara como app gratuita, sin compras ni suscripciones.
 El plan único vive en [#234](https://github.com/luiscf1226/bible-ai-honduras/issues/234).
 Los trabajos de pagos #143/#144 no bloquean este envío.
 
+## Ficha configurada mediante la API Apple
+
+Se cargaron en la ficha 1.0 (es-MX) el subtítulo, descripción de la edición
+gratuita, keywords, categoría Reference, copyright y lanzamiento manual.
+`app-store-config.json` reproduce esos campos sin credenciales, y
+`eas metadata:push --profile production --non-interactive` los sincroniza.
+Support URL usa temporalmente el inicio ya publicado (con contacto) hasta que
+Pages despliegue `/soporte/`. Esto no envía la app a revisión ni configura
+precio, países, App Privacy, capturas o acceso del revisor.
+
 ## Materiales preparados
 
 - `listing-es-HN.md`: copy sin ofertas Pro, con cuotas reales; adaptar al idioma

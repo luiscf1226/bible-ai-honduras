@@ -72,7 +72,8 @@
       "android": {
         "serviceAccountKeyPath": "./play-service-account.json",
         "track": "production"
-      }
+      },
+      "metadataPath": "docs/store/app-store-config.json"
     }
   }
 }

@@ -1,0 +1,36 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0",
+    "copyright": "2026 Luis Flores",
+    "categories": [
+      "REFERENCE"
+    ],
+    "release": {
+      "automaticRelease": false
+    },
+    "info": {
+      "es-MX": {
+        "title": "Bible AI Honduras",
+        "subtitle": "Biblia, fe y devocionales",
+        "description": "Acercate a la Biblia con una experiencia creada para la lectura y reflexión\ndiaria en español.\n\nBible AI Honduras reúne en un solo lugar:\n\n• un devocional diario con pasaje y reflexión;\n• preguntas sobre la Biblia con referencias visibles;\n• conversaciones educativas con personajes bíblicos humanos;\n• devocionales según cómo te sentís;\n• historias bíblicas para leer, gratis y sin límite;\n• historias bíblicas ilustradas con inteligencia artificial;\n• recordatorios y preferencias de lectura;\n• controles para revisar y borrar tu historial, cerrar sesión o eliminar tu cuenta.\n\nLas respuestas se apoyan en contexto bíblico, pero la inteligencia artificial\npuede equivocarse. La app acompaña tu lectura personal y no sustituye consejo\npastoral, atención médica, salud mental ni servicios de emergencia.\n\nLa experiencia tiene un enfoque cristiano evangélico/protestante. Las\nconversaciones en primera persona se limitan a personajes bíblicos humanos: la\nIA no se presenta como Dios, Jesús ni el Espíritu Santo.\n\nLa app es gratuita, sin compras ni suscripciones. Leé la Biblia RV1909,\nseguí planes de lectura, guardá versículos y repasá con Memorizar. Las funciones\ncon IA incluyen 5 preguntas, 5 mensajes de Voces y 3 devocionales de Sentir por\ndía; estos cupos se renuevan a medianoche de Honduras. Podés generar una\nhistoria ilustrada por cuenta; ese cupo no se renueva cada día. El catálogo de\nhistorias en texto sigue disponible sin límite.\n\nTus conversaciones y notas son privadas. Antes de usar IA te pedimos permiso\npara enviar el texto necesario a sus proveedores. Podés borrar tu historial o\neliminar tu cuenta desde Ajustes.\n\nPolítica de privacidad:\nhttps://luiscf1226.github.io/bible-ai-honduras/privacidad/",
+        "keywords": [
+          "biblia",
+          "devocional",
+          "fe",
+          "oración",
+          "Jesús",
+          "cristiano",
+          "versículos",
+          "historias",
+          "preguntas",
+          "reflexión",
+          "Honduras"
+        ],
+        "supportUrl": "https://luiscf1226.github.io/bible-ai-honduras/",
+        "marketingUrl": "https://luiscf1226.github.io/bible-ai-honduras/",
+        "privacyPolicyUrl": "https://luiscf1226.github.io/bible-ai-honduras/privacidad/"
+      }
+    }
+  }
+}
