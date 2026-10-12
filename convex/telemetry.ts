@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
 
 /**
@@ -17,6 +17,8 @@ import { internalMutation, internalQuery, mutation } from "./_generated/server";
  *
  * Vive en Convex y no en un servicio de terceros a propósito: no suma una
  * dependencia nativa ni otra cuenta, y los datos no salen de nuestro backend.
+ * Desde #235 las filas viven en el kit de admin (convex/adminKit, tablas
+ * `events` y `errors`); este archivo valida y recorta antes de guardar.
  * Los cierres nativos (crash fuera de JS) los siguen reportando TestFlight y
  * Play Console.
  */
@@ -61,7 +63,6 @@ export type ShareOrigin = (typeof SHARE_ORIGINS)[number];
 export const shareOrigin = v.union(...SHARE_ORIGINS.map((origin) => v.literal(origin)));
 
 export const TELEMETRY_RETENTION_DAYS = 90;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const ERROR_MESSAGE_MAX = 300;
 const ERROR_STACK_MAX = 2000;
@@ -94,15 +95,14 @@ export const track = mutation({
     if (!isValidInstallId(args.installId)) {
       return null;
     }
-    await ctx.db.insert("telemetryEvents", {
+    await ctx.runMutation(components.adminKit.events.track, {
       installId: args.installId,
       name: args.name,
-      module: args.module,
+      ...(args.module !== undefined ? { module: args.module } : {}),
       // El origen solo tiene sentido en `share_completed`.
-      origin: args.name === "share_completed" ? args.origin : undefined,
+      ...(args.name === "share_completed" && args.origin !== undefined ? { origin: args.origin } : {}),
       platform: args.platform,
-      build: args.build === undefined ? undefined : truncate(args.build, BUILD_MAX),
-      at: Date.now(),
+      ...(args.build !== undefined ? { build: truncate(args.build, BUILD_MAX) } : {}),
     });
     return null;
   },
@@ -121,90 +121,96 @@ export const reportError = mutation({
     if (!isValidInstallId(args.installId)) {
       return null;
     }
-    await ctx.db.insert("clientErrors", {
+    await ctx.runMutation(components.adminKit.events.reportError, {
       installId: args.installId,
       message: truncate(args.message, ERROR_MESSAGE_MAX),
-      stack: args.stack === undefined ? undefined : truncate(args.stack, ERROR_STACK_MAX),
+      ...(args.stack !== undefined ? { stack: truncate(args.stack, ERROR_STACK_MAX) } : {}),
       fatal: args.fatal,
       platform: args.platform,
-      build: args.build === undefined ? undefined : truncate(args.build, BUILD_MAX),
-      at: Date.now(),
+      ...(args.build !== undefined ? { build: truncate(args.build, BUILD_MAX) } : {}),
     });
     return null;
   },
 });
+
+export type FunnelStep = { name: string; installs: number; events: number };
 
 /**
  * Embudo de los últimos `days` días: cuántas instalaciones distintas pasaron
  * por cada evento. Se lee desde la terminal:
  *
  *   npx convex run telemetry:funnel '{"days": 7}'
- *
- * Lee todas las filas del rango: alcanza para la beta y el lanzamiento suave.
- * Si el volumen crece, esto pasa a una tabla de agregados diarios.
  */
 export const funnel = internalQuery({
   args: { days: v.optional(v.number()) },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<FunnelStep[]> => {
     const days = args.days !== undefined && args.days > 0 ? args.days : 7;
-    const since = Date.now() - days * DAY_MS;
-    const rows = await ctx.db
-      .query("telemetryEvents")
-      .withIndex("by_at", (q) => q.gte("at", since))
-      .collect();
-    return summarizeFunnel(rows);
+    return await ctx.runQuery(components.adminKit.events.funnel, { days, names: [...TELEMETRY_EVENTS] });
   },
 });
 
-export function summarizeFunnel(rows: ReadonlyArray<{ installId: string; name: string }>) {
-  const installsByEvent = new Map<string, Set<string>>();
-  const eventsByName = new Map<string, number>();
-  for (const row of rows) {
-    const installs = installsByEvent.get(row.name) ?? new Set<string>();
-    installs.add(row.installId);
-    installsByEvent.set(row.name, installs);
-    eventsByName.set(row.name, (eventsByName.get(row.name) ?? 0) + 1);
-  }
-  return TELEMETRY_EVENTS.map((name) => ({
-    name,
-    installs: installsByEvent.get(name)?.size ?? 0,
-    events: eventsByName.get(name) ?? 0,
-  }));
-}
+export type RecentError = { message: string; stack?: string; fatal: boolean; platform: string; build?: string; at: number };
 
 /** Últimos errores, del más nuevo al más viejo: `npx convex run telemetry:recentErrors`. */
 export const recentErrors = internalQuery({
   args: { limit: v.optional(v.number()) },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<RecentError[]> => {
     const limit = args.limit !== undefined && args.limit > 0 ? Math.min(args.limit, 200) : 50;
-    const rows = await ctx.db.query("clientErrors").withIndex("by_at").order("desc").take(limit);
-    return rows.map(({ message, stack, fatal, platform, build, at }) => ({ message, stack, fatal, platform, build, at }));
+    return await ctx.runQuery(components.adminKit.events.recentErrors, { limit });
   },
 });
 
-const PURGE_BATCH = 500;
+const MIGRATE_BATCH = 200;
 
 /**
- * Borra lo que tiene más de 90 días. Una tanda por tabla por corrida; si quedó
- * algo, se reprograma sola hasta terminar.
+ * Mueve las filas de `telemetryEvents` y `clientErrors` (antes de #235) al kit
+ * de admin, conservando su fecha, y las borra de la app. Una tanda por corrida;
+ * se reprograma sola hasta vaciarlas. La dispara `purgeOld` (cron diario), así
+ * que no hace falta correrla a mano. Cuando las dos tablas estén vacías en
+ * producción se pueden quitar del schema.
  */
+export const migrateToKit = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const events = await ctx.db.query("telemetryEvents").take(MIGRATE_BATCH);
+    const errors = await ctx.db.query("clientErrors").take(MIGRATE_BATCH);
+    if (events.length === 0 && errors.length === 0) {
+      return { events: 0, errors: 0 };
+    }
+    await ctx.runMutation(components.adminKit.events.importRows, {
+      events: events.map(({ installId, name, module, origin, platform, build, at }) => ({
+        installId,
+        name,
+        ...(module !== undefined ? { module } : {}),
+        ...(origin !== undefined ? { origin } : {}),
+        platform,
+        ...(build !== undefined ? { build } : {}),
+        at,
+      })),
+      errors: errors.map(({ installId, message, stack, fatal, platform, build, at }) => ({
+        installId,
+        message,
+        ...(stack !== undefined ? { stack } : {}),
+        fatal,
+        platform,
+        ...(build !== undefined ? { build } : {}),
+        at,
+      })),
+    });
+    for (const row of events) await ctx.db.delete(row._id);
+    for (const row of errors) await ctx.db.delete(row._id);
+    if (events.length === MIGRATE_BATCH || errors.length === MIGRATE_BATCH) {
+      await ctx.scheduler.runAfter(0, internal.telemetry.migrateToKit, {});
+    }
+    return { events: events.length, errors: errors.length };
+  },
+});
+
+/** Borra lo que tiene más de 90 días (y termina de migrar lo que quede). */
 export const purgeOld = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const cutoff = Date.now() - TELEMETRY_RETENTION_DAYS * DAY_MS;
-    const events = await ctx.db
-      .query("telemetryEvents")
-      .withIndex("by_at", (q) => q.lt("at", cutoff))
-      .take(PURGE_BATCH);
-    const errors = await ctx.db
-      .query("clientErrors")
-      .withIndex("by_at", (q) => q.lt("at", cutoff))
-      .take(PURGE_BATCH);
-    for (const row of events) await ctx.db.delete(row._id);
-    for (const row of errors) await ctx.db.delete(row._id);
-    if (events.length === PURGE_BATCH || errors.length === PURGE_BATCH) {
-      await ctx.scheduler.runAfter(0, internal.telemetry.purgeOld, {});
-    }
-    return { events: events.length, errors: errors.length };
+    await ctx.scheduler.runAfter(0, internal.telemetry.migrateToKit, {});
+    return await ctx.runMutation(components.adminKit.events.purgeOld, { retentionDays: TELEMETRY_RETENTION_DAYS });
   },
 });

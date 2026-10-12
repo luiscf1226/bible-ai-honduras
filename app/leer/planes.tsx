@@ -33,6 +33,13 @@ export default function PlanesScreen() {
         <EntryCard half onPress={() => router.push("/leer/plan")} overline="Plan de lectura" testID="leer-plan-entry" title="De Génesis a Apocalipsis" />
         <EntryCard half onPress={() => router.push("/leer/recorridos")} overline="Recorridos" testID="leer-journeys-entry" title="Lecturas cortas por tema" />
       </EntryCardRow>
+      {/* Versículos por tema: lista curada, sin IA. */}
+      <EntryCard
+        onPress={() => router.push("/leer/temas")}
+        overline="Versículos por tema"
+        testID="leer-topics-entry"
+        title="Para la ansiedad, el miedo, tu familia o el trabajo"
+      />
       {/* Línea del tiempo (#201). */}
       <EntryCard
         onPress={() => openTimeline()}

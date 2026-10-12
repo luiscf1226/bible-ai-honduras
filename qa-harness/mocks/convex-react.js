@@ -10,6 +10,7 @@ import {
   TEXT_STORY_CATALOG,
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
+import TOPIC_VERSES from "./topic-verses.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
 import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from "../../convex/readingGroupCore";
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
@@ -362,7 +363,14 @@ const QA_GROUP_GUIDE = {
 // medir el scroll de un capítulo largo. El resto de capítulos usa los 11.
 function chapterVerses(book, chapter) {
   const count = book === "Salmos" && chapter === 119 ? 176 : VERSES.length;
-  return Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+  const placeholder = Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+  // Versículos por tema: las citas del catálogo traen su texto RV1909 real,
+  // para que las tarjetas no repitan el placeholder. Salmos 46 ya es el placeholder.
+  const real = book === "Salmos" && chapter === 46 ? null : TOPIC_VERSES[`${book} ${chapter}`];
+  if (!real) return placeholder;
+  const merged = new Map(placeholder.map((v) => [v.verse, v.text]));
+  for (const [verse, text] of Object.entries(real)) merged.set(Number(verse), text);
+  return [...merged].sort((a, b) => a[0] - b[0]).map(([verse, text]) => ({ verse, text }));
 }
 
 // Biblia sin conexión (#160): un paquete por libro con los mismos 4

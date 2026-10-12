@@ -81,7 +81,9 @@ empezar de cero, borrá el `localStorage` del sitio.
   (#156). No crees `public/index.html`.
 - Lectura: `reading:*` y `readingPlans:*` tienen fixtures (separador en
   Salmos 46:1, "seguí leyendo" en Juan 3). Cualquier capítulo muestra los mismos
-  4 versículos de Salmos 46 como placeholder.
+  4 versículos de Salmos 46 como placeholder, salvo las citas de Versículos por
+  tema (`/leer/temas`), que traen su texto RV1909 real desde
+  `mocks/topic-verses.json`.
 - Grupos (#185): `readingGroups:*` tiene una célula (`/grupos/g1`) con 5
   personas. `/grupo?token=QAgrupe2345678ab` es una invitación válida (familia
   en Duelo); cualquier otro token muestra la invitación vencida. `?qa=empty`

@@ -5,6 +5,7 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, query } from "./_generated/server";
+import { aiMeter, countAiOutcome } from "./aiUsage";
 import { isGrounded } from "./rag/answer";
 import { generateStructuredAnswer } from "./rag/llm";
 import { retrieveTopVerses } from "./rag/retrieve";
@@ -129,6 +130,7 @@ export const sendMessage = action({
     const verdict = assertVoiceTurn({ slug: args.slug, userText: args.text });
     if (!character || !verdict.ok) {
       const refusal = !verdict.ok ? verdict.refusal : DIVINE_REFUSAL;
+      await countAiOutcome(ctx, "voices.refused");
       return { status: "refused" as const, answer: refusal, citation: null };
     }
 
@@ -142,12 +144,15 @@ export const sendMessage = action({
     const user = await ctx.runQuery(api.users.current, {});
     // #93 §4b: NVI no tiene corpus; resolveBibleVersion degrada a RVR1960.
     const version = resolveBibleVersion(user?.bibleVersion);
+    const meter = aiMeter(ctx, "voices");
     const verses = await retrieveTopVerses(ctx, {
       query: `${character.name}: ${args.text}`,
       version,
+      meter,
     });
 
     if (verses.length === 0) {
+      await countAiOutcome(ctx, "voices.no_content");
       const answer = voicesNoContextReply(character);
       await ctx.runMutation(internal.voices.persistTurn, {
         slug: args.slug,
@@ -162,14 +167,16 @@ export const sendMessage = action({
       system: buildVoicesSystemPrompt(character),
       userPrompt: buildVoicesUserPrompt(character, args.text, verses),
       schema: VOICE_RESPONSE_SCHEMA,
+      meter,
     });
     // Si el modelo cita algo fuera del contexto recuperado, esa prosa nunca
     // llega al usuario (regla dura #4) — cae a una respuesta segura anclada
     // solo en el texto realmente recuperado.
-    let answer = isGrounded(structured, verses)
-      ? structured.answer
-      : `"${primary.text}"\n\n${formatVoiceCitation(primary)}`;
+    const grounded = isGrounded(structured, verses);
+    if (!grounded) await countAiOutcome(ctx, "voices.ungrounded");
+    let answer = grounded ? structured.answer : `"${primary.text}"\n\n${formatVoiceCitation(primary)}`;
     if (assistantSpeaksAsDivine(answer)) {
+      await countAiOutcome(ctx, "voices.divine_blocked");
       answer = DIVINE_REFUSAL;
     }
 

@@ -2,6 +2,8 @@
 // consultas (`input_type` de Voyage); ambos usan exactamente el mismo modelo.
 // Esa perdida se mide con scripts/evaluate-rag-retrieval.mjs antes de liberar.
 
+import { AiCallError, type AiMeter, httpErrorKind, metered } from "../adminKit/meter";
+
 export const EMBEDDING_DIMENSIONS = 1024;
 export const OPENAI_EMBEDDING_MODEL = "text-embedding-3-small";
 export const OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
@@ -21,24 +23,30 @@ function requireApiKey(): string {
   return apiKey;
 }
 
-export async function embedDocument(text: string): Promise<number[]> {
-  const result = await embedDocuments([text]);
+export async function embedDocument(text: string, meter?: AiMeter): Promise<number[]> {
+  const result = await embedDocuments([text], meter);
   return result.embeddings[0];
 }
 
-export async function embedQuery(text: string): Promise<number[]> {
-  const result = await embedTexts([text]);
+export async function embedQuery(text: string, meter?: AiMeter): Promise<number[]> {
+  const result = await embedTexts([text], meter);
   return result.embeddings[0];
 }
 
 // La ingesta usa entradas por lote para no hacer 31.102 viajes de red.
-export async function embedDocuments(texts: string[]): Promise<EmbeddingBatch> {
-  return embedTexts(texts);
+export async function embedDocuments(texts: string[], meter?: AiMeter): Promise<EmbeddingBatch> {
+  return embedTexts(texts, meter);
 }
 
-async function embedTexts(texts: string[]): Promise<EmbeddingBatch> {
+async function embedTexts(texts: string[], meter?: AiMeter): Promise<EmbeddingBatch> {
   if (texts.length === 0) return { embeddings: [], totalTokens: 0 };
+  return metered(meter, { provider: "openai", model: OPENAI_EMBEDDING_MODEL }, (note) => requestEmbeddings(texts, note));
+}
 
+async function requestEmbeddings(
+  texts: string[],
+  note: (usage: { inputTokens: number; outputTokens: number }) => void,
+): Promise<EmbeddingBatch> {
   const response = await fetch(OPENAI_EMBEDDINGS_URL, {
     method: "POST",
     headers: {
@@ -53,19 +61,20 @@ async function embedTexts(texts: string[]): Promise<EmbeddingBatch> {
     }),
   });
 
-  if (!response.ok) throw new Error(`OpenAI embeddings fallo: ${response.status}`);
+  if (!response.ok) throw new AiCallError(httpErrorKind(response.status), `OpenAI embeddings fallo: ${response.status}`);
 
   const payload = (await response.json()) as {
     data?: Array<{ embedding?: number[]; index?: number }>;
     usage?: { total_tokens?: number };
   };
+  note({ inputTokens: payload.usage?.total_tokens ?? 0, outputTokens: 0 });
   const ordered = [...(payload.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
   const embeddings = ordered.map((item) => item.embedding);
   if (
     embeddings.length !== texts.length ||
     embeddings.some((embedding) => !embedding || embedding.length !== EMBEDDING_DIMENSIONS)
   ) {
-    throw new Error("OpenAI devolvio embeddings invalidos");
+    throw new AiCallError("invalid_response", "OpenAI devolvio embeddings invalidos");
   }
 
   return {

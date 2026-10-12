@@ -77,7 +77,7 @@ export default function LeerScreen() {
       ) : null}
       <EntryCard
         chevron
-        description="Un año completo, de Génesis a Apocalipsis, por tema, la línea del tiempo y en grupo."
+        description="Un año completo, de Génesis a Apocalipsis, versículos por tema, la línea del tiempo y en grupo."
         onPress={() => router.push("/leer/planes")}
         overline="Planes y recorridos"
         testID="leer-plans-entry"

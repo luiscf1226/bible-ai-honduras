@@ -3,6 +3,7 @@ import { makeFunctionReference, type FunctionReference } from "convex/server";
 
 import { api } from "./_generated/api";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { aiMeter } from "./aiUsage";
 import { generateStoryImage } from "./images";
 import type { QuotaModule } from "./quotas";
 
@@ -362,9 +363,10 @@ export const generateImages = action({
     if (!story) return null;
     const catalog = findStoryById(story.catalogId);
     if (!catalog) return null;
+    const meter = aiMeter(ctx, "stories");
     for (const scene of catalog.scenes) {
       try {
-        const storageId = await ctx.storage.store(await generateStoryImage(scene.imagePrompt));
+        const storageId = await ctx.storage.store(await generateStoryImage(scene.imagePrompt, meter));
         await ctx.runMutation(saveSceneRef, { storyId: story._id, sceneId: scene.id, storageId });
       } catch {
         await ctx.runMutation(saveSceneRef, { storyId: story._id, sceneId: scene.id, failed: true });
