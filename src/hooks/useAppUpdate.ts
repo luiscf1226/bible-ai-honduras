@@ -13,6 +13,8 @@ import {
   type UpdatePlatform,
 } from "../lib/appVersion";
 
+import { IOS_UPDATE_CHECKS_ENABLED } from "../lib/releaseConfig";
+
 const platform: UpdatePlatform | null =
   Platform.OS === "ios" || Platform.OS === "android" ? Platform.OS : null;
 
@@ -33,7 +35,7 @@ export function useAppUpdate() {
   // Se vuelve a consultar cada vez que la app pasa a primer plano: así un piso
   // nuevo (`MIN_*_BUILD`) llega también a quien deja la app abierta días.
   useEffect(() => {
-    if (!platform) return;
+    if (!platform || (platform === "ios" && !IOS_UPDATE_CHECKS_ENABLED)) return;
     let isCurrent = true;
     const check = () =>
       convex.query(api.appVersion.latest, { platform }).then(
@@ -62,7 +64,7 @@ export function useAppUpdate() {
         await Linking.openURL(url);
         return;
       } catch {
-        // Sin la app de TestFlight / Play instalada falla el esquema nativo:
+        // Si falla el esquema nativo de App Store / Play:
         // probamos con el link web.
       }
     }
@@ -72,7 +74,7 @@ export function useAppUpdate() {
     label: versionLabel(Application.nativeApplicationVersion, installedBuild),
     openStore,
     storeName: platform ? updateStoreName(platform) : null,
-    updateAvailable: isUpdateAvailable(installedBuild, latestBuild),
-    updateRequired: isUpdateRequired(installedBuild, minBuild),
+    updateAvailable: (platform !== "ios" || IOS_UPDATE_CHECKS_ENABLED) && isUpdateAvailable(installedBuild, latestBuild),
+    updateRequired: (platform !== "ios" || IOS_UPDATE_CHECKS_ENABLED) && isUpdateRequired(installedBuild, minBuild),
   };
 }

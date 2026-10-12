@@ -32,17 +32,13 @@ export function isUpdateRequired(installedBuild: string | null, minBuild: number
   return installed !== null && minBuild !== null && installed < minBuild;
 }
 
-/**
- * A dónde mandar al tester. iOS abre la app de TestFlight en la ficha de esta
- * app (con su botón "Actualizar"); Android abre la ficha de Play, que para un
- * tester interno muestra el build de prueba.
- */
+/** Ficha pública de cada plataforma; nunca envía al usuario de tienda a TestFlight. */
 export function updateUrls(platform: UpdatePlatform): string[] {
   return platform === "ios"
-    ? [`itms-beta://beta.itunes.apple.com/v1/app/${ASC_APP_ID}`, `https://beta.itunes.apple.com/v1/app/${ASC_APP_ID}`]
+    ? [`itms-apps://apps.apple.com/app/id${ASC_APP_ID}`, `https://apps.apple.com/app/id${ASC_APP_ID}`]
     : [`market://details?id=${ANDROID_PACKAGE}`, `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`];
 }
 
 export function updateStoreName(platform: UpdatePlatform): string {
-  return platform === "ios" ? "TestFlight" : "Google Play";
+  return platform === "ios" ? "App Store" : "Google Play";
 }

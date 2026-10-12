@@ -35,12 +35,12 @@ describe("isUpdateAvailable", () => {
 });
 
 describe("updateUrls", () => {
-  it("iOS abre TestFlight en la ficha de la app, con fallback web", () => {
+  it("iOS abre App Store en la ficha de la app, con fallback web", () => {
     expect(updateUrls("ios")).toEqual([
-      "itms-beta://beta.itunes.apple.com/v1/app/6807627270",
-      "https://beta.itunes.apple.com/v1/app/6807627270",
+      "itms-apps://apps.apple.com/app/id6807627270",
+      "https://apps.apple.com/app/id6807627270",
     ]);
-    expect(updateStoreName("ios")).toBe("TestFlight");
+    expect(updateStoreName("ios")).toBe("App Store");
   });
 
   it("Android abre Play con el package de app.json", () => {

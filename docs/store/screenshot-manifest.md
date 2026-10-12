@@ -18,7 +18,7 @@ producción (#102).
 3. Cargar contenido de prueba permitido y verificar que cada pantalla muestra
    texto en español, sin errores, datos personales ni identificadores de
    pruebas.
-4. Si se muestra el paywall, usar la configuración sandbox correspondiente.
+4. La edición 1.0 gratuita no muestra paywall ni ofertas Pro.
    No presentar una compra de prueba como una compra de producción.
 5. Ocultar notificaciones del sistema, barras con datos personales y cualquier
    correo/código de autenticación antes de tomar la captura.
@@ -76,7 +76,6 @@ esos requisitos son externos al repositorio y cambian con el tiempo.
 | `{{platform}}-voces-{{locale}}-{{build}}.png` | Catálogo de personajes | Solo personajes humanos, si están disponibles | Confusión con una suplantación de Dios, Jesús o el Espíritu Santo |
 | `{{platform}}-sentir-{{locale}}-{{build}}.png` | Selector de sentimiento o devocional resultante | Reflexión, versículo y límite de acompañamiento | Confundirlo con atención médica o de crisis |
 | `{{platform}}-historias-{{locale}}-{{build}}.png` | Catálogo o visor de historia ilustrada | Escena bíblica, referencia y atribución de ilustración generada | No revelar que la imagen es generada por IA |
-| `{{platform}}-pro-{{locale}}-{{build}}.png` | Paywall/plan Pro, si compra verificada | Beneficios, precio localizado y restauración | Afirmar precio o compra sin configuración final |
 | `{{platform}}-privacidad-{{locale}}-{{build}}.png` | Ajustes > Privacidad | Mensaje de privacidad y borrado de historial | Contradecir la política publicada |
 | `{{platform}}-cuenta-{{locale}}-{{build}}.png` | Ajustes > Cuenta | Correo, **Cerrar sesión** y **Eliminar mi cuenta** | Afirmar que falta borrado in-app (guideline 5.1.1(v)) |
 
@@ -88,10 +87,22 @@ Para cada plataforma, registrar junto a las imágenes:
 - identificador de build y commit probado;
 - fecha, zona horaria y persona que ejecutó la prueba;
 - resultado del onboarding, de los cinco módulos, de borrar historial, de
-  cerrar sesión / eliminar cuenta (#107), de compra/restore sandbox y de la
+  cerrar sesión / eliminar cuenta (#107), de ausencia de ofertas/compras y de la
   navegación a la política publicada;
 - defectos o divergencias entre la imagen y la build.
 
 Una captura solo se marca como aprobada cuando coinciden la imagen, la build y
 el comportamiento en el dispositivo. Conservar los originales sin edición y
 usar versiones recortadas únicamente si el portal lo exige.
+
+## Tamaños y alcance de la edición gratuita 1.0
+
+Apple requiere al menos una captura y admite hasta diez por tamaño. Preparar
+3–5 como objetivo de la ficha. Usar los tamaños vigentes que muestra Media
+Manager para iPhone y, mientras `supportsTablet: true`, iPad de 13 pulgadas.
+Por ejemplo, consultar 1179×2556 para iPhone y 2064×2752 o 2048×2732 para iPad
+en la [especificación Apple](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications).
+
+Capturar la instalación nativa del build 1.0 final. La exportación Expo iOS
+valida el bundle JS, pero no produce capturas de dispositivo ni certifica el IPA.
+No mostrar funciones Pro excluidas ni datos de una cuenta personal.

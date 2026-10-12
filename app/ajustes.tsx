@@ -1,3 +1,4 @@
+import { PAYMENTS_ENABLED } from "../src/lib/releaseConfig";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { router } from "expo-router";
 import { useAuth } from "@clerk/expo";
@@ -43,11 +44,11 @@ const DELETE_KEYWORD = "ELIMINAR";
 const DELETE_DIALOG_TITLE = "¿Eliminar tu cuenta?";
 const DELETE_DIALOG_BODY =
   "Se borra para siempre tu perfil, tus conversaciones, tus devocionales guardados, " +
-  "tus historias con sus ilustraciones y tu plan dentro de la app. Esto no se puede deshacer.\n\n" +
-  "Ojo: eliminar la cuenta NO cancela tu suscripción. Eso se hace desde App Store o Google Play.";
+  "tus historias con sus ilustraciones y tus datos de lectura. Esto no se puede deshacer." +
+  (PAYMENTS_ENABLED ? "\n\nOjo: eliminar la cuenta NO cancela tu suscripción. Eso se hace desde App Store o Google Play." : "");
 const DELETE_CONFIRM_COPY =
   `Último paso: escribí ${DELETE_KEYWORD} para confirmar que querés borrar todo. ` +
-  "Acordate de cancelar la suscripción en App Store o Google Play: acá no se cancela.";
+  (PAYMENTS_ENABLED ? "Acordate de cancelar la suscripción en App Store o Google Play: acá no se cancela." : "Esta acción no se puede deshacer.");
 
 export default function AjustesScreen() {
   const { color } = useTheme();
@@ -230,27 +231,38 @@ export default function AjustesScreen() {
         title="Ajustes"
       />
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push("/paywall")}
-        style={[
-          styles.planCard,
-          { backgroundColor: isPro ? color.surfaceSunk : color.ink },
-        ]}
-        testID="ajustes-plan"
-      >
-        <View style={styles.planText}>
-          <Text style={[styles.planTitle, { color: isPro ? color.ink : color.surface }]}>
-            {isPro ? "Pro activo" : "Plan gratis"}
-          </Text>
-          <Text style={[styles.planSub, { color: isPro ? color.inkSoft : color.inkFaint }]}>
-            {isPro
-              ? "Sin límites de preguntas ni conversaciones"
-              : `${QUOTA_LIMITS.qa} preguntas y ${QUOTA_LIMITS.feelings} devocionales al día`}
-          </Text>
+      {PAYMENTS_ENABLED ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/paywall")}
+          style={[
+            styles.planCard,
+            { backgroundColor: isPro ? color.surfaceSunk : color.ink },
+          ]}
+          testID="ajustes-plan"
+        >
+          <View style={styles.planText}>
+            <Text style={[styles.planTitle, { color: isPro ? color.ink : color.surface }]}>
+              {isPro ? "Pro activo" : "Plan gratis"}
+            </Text>
+            <Text style={[styles.planSub, { color: isPro ? color.inkSoft : color.inkFaint }]}>
+              {isPro
+                ? "Sin límites de preguntas ni conversaciones"
+                : `${QUOTA_LIMITS.qa} preguntas y ${QUOTA_LIMITS.feelings} devocionales al día`}
+            </Text>
+          </View>
+          <Text style={[styles.planChevron, { color: color.accent }]}>›</Text>
+        </Pressable>
+      ) : (
+        <View style={[styles.planCard, { backgroundColor: color.surfaceSunk }]} testID="ajustes-plan-gratis">
+          <View style={styles.planText}>
+            <Text style={[styles.planTitle, { color: color.ink }]}>Gratis, sin pagos</Text>
+            <Text style={[styles.planSub, { color: color.inkSoft }]}>
+              {isPro ? "Acceso de cortesía sin límite de IA" : `${QUOTA_LIMITS.qa} preguntas, ${QUOTA_LIMITS.voices} mensajes de Voces y ${QUOTA_LIMITS.feelings} devocionales de Sentir al día. Una historia ilustrada por cuenta.`}
+            </Text>
+          </View>
         </View>
-        <Text style={[styles.planChevron, { color: color.accent }]}>›</Text>
-      </Pressable>
+      )}
 
       <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Lo tuyo</Text>
       <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>

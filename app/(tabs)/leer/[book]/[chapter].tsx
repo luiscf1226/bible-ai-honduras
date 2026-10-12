@@ -1,3 +1,4 @@
+import { PAYMENTS_ENABLED } from "../../../../src/lib/releaseConfig";
 import { useMutation, useQuery } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -505,19 +506,18 @@ export default function ReaderScreen() {
             </Pressable>
           ) : null}
 
-          {/* #188: variante Pro de Preguntar, mismo pipeline y misma cuota. La
-              pantalla muestra el aviso de Pro a quien no lo tiene. Misma píldora
-              que "Ir a tu separador". */}
-          <Pressable
-            accessibilityHint="Arma un resumen y preguntas con cita para tu célula o escuela dominical."
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: "/leer/guia", params: { book: ref.book, chapter: String(ref.chapter) } })}
-            style={({ pressed }) => [styles.separatorJump, { borderColor: color.border }, pressed && styles.pressed]}
-            testID="reading-group-guide"
-          >
-            <Icon color={color.accent} name="chat" size="sm" />
-            <Text style={[styles.jumpLabel, { color: color.inkMuted }]}>Preparar para mi grupo · Pro</Text>
-          </Pressable>
+          {PAYMENTS_ENABLED ? (
+            <Pressable
+              accessibilityHint="Arma un resumen y preguntas con cita para tu célula o escuela dominical."
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: "/leer/guia", params: { book: ref.book, chapter: String(ref.chapter) } })}
+              style={({ pressed }) => [styles.separatorJump, { borderColor: color.border }, pressed && styles.pressed]}
+              testID="reading-group-guide"
+            >
+              <Icon color={color.accent} name="chat" size="sm" />
+              <Text style={[styles.jumpLabel, { color: color.inkMuted }]}>Preparar para mi grupo · Pro</Text>
+            </Pressable>
+          ) : null}
 
           {showHint && verses && verses.length > 0 ? (
             <View style={styles.inset}>

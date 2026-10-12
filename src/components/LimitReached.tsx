@@ -5,7 +5,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { QuotaModule } from "../../convex/quotas";
-import { limitBodyFor } from "../lib/limitCopy";
+import { limitBodyFor, limitTitleFor } from "../lib/limitCopy";
+import { PAYMENTS_ENABLED } from "../lib/releaseConfig";
 import { Icon } from "./Icon";
 import { track } from "../lib/telemetry";
 import { useTheme } from "../theme/ThemeProvider";
@@ -35,16 +36,16 @@ export function LimitReached({ module, variant = "screen", testID = "limit-reach
       <View style={[styles.inline, { backgroundColor: color.surfaceSunk, borderColor: color.border }]} testID={testID}>
         <View style={styles.inlineHead}>
           <Icon color={color.accent} name="clock" size="sm" />
-          <Text style={[styles.inlineTitle, { color: color.ink }]}>Por hoy llegaste al límite</Text>
+          <Text style={[styles.inlineTitle, { color: color.ink }]}>{limitTitleFor(module)}</Text>
         </View>
         <Text style={[styles.inlineBody, { color: color.inkMuted }]}>{limitBodyFor(module)}</Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push("/paywall")}
+          onPress={() => router.push(PAYMENTS_ENABLED ? "/paywall" : "/leer")}
           style={[styles.limitCta, styles.inlineCta, { backgroundColor: color.ink }]}
           testID="limit-paywall"
         >
-          <Text style={[styles.limitCtaLabel, { color: color.surface }]}>Seguir sin límite con Pro</Text>
+          <Text style={[styles.limitCtaLabel, { color: color.surface }]}>{PAYMENTS_ENABLED ? "Seguir sin límite con Pro" : "Seguir leyendo la Biblia"}</Text>
         </Pressable>
       </View>
     );
@@ -56,18 +57,18 @@ export function LimitReached({ module, variant = "screen", testID = "limit-reach
         <View style={[styles.limitIcon, { borderColor: color.borderStrong }]}>
           <Text style={[styles.limitIconMark, { color: color.accent }]}>◷</Text>
         </View>
-        <Text style={[styles.limitTitle, { color: color.ink }]}>Por hoy llegaste al límite</Text>
+        <Text style={[styles.limitTitle, { color: color.ink }]}>{limitTitleFor(module)}</Text>
         <Text style={[styles.limitBody, { color: color.inkMuted }]}>{limitBodyFor(module)}</Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push("/paywall")}
+          onPress={() => router.push(PAYMENTS_ENABLED ? "/paywall" : "/leer")}
           style={[styles.limitCta, { backgroundColor: color.ink }]}
           testID="limit-paywall"
         >
-          <Text style={[styles.limitCtaLabel, { color: color.surface }]}>Seguir sin límite con Pro</Text>
+          <Text style={[styles.limitCtaLabel, { color: color.surface }]}>{PAYMENTS_ENABLED ? "Seguir sin límite con Pro" : "Seguir leyendo la Biblia"}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.replace("/home")} testID="limit-home">
-          <Text style={[styles.limitSkip, { color: color.inkSoft }]}>Mañana vuelvo</Text>
+          <Text style={[styles.limitSkip, { color: color.inkSoft }]}>Volver al inicio</Text>
         </Pressable>
       </LinearGradient>
     </SafeAreaView>

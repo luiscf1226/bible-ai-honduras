@@ -120,7 +120,7 @@ function PreguntarScreenContent() {
   const threadLoading = conversationId !== undefined && thread === undefined;
 
   const title = conversations?.find((item) => item._id === conversationId)?.title ?? "Preguntar";
-  const quotaLabel = !quota ? null : quota.isPro ? "Pro · sin límite" : `${quota.remaining} de ${quota.limit} preguntas gratis hoy`;
+  const quotaLabel = !quota ? null : quota.isPro ? "Acceso sin límite" : `${quota.remaining} de ${quota.limit} preguntas gratis hoy`;
   const atLimit = limitReached || (quota !== undefined && !quota.isPro && quota.remaining === 0);
 
   /** Hilo limpio: cualquier respuesta en vuelo del hilo anterior se ignora. */

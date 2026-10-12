@@ -70,7 +70,7 @@ function HistoriasScreenContent() {
       <Text style={[styles.subtitle, { color: color.inkMuted }]}>
         {mode === "texto"
           ? "Leé la Biblia en narrativa. Gratis. Después preguntá el texto en Voces o en Preguntar."
-          : "Escenas ilustradas con IA. Incluyen una muestra gratis; el resto es Pro."}
+          : "Escenas ilustradas con IA. Incluyen una generación gratis por cuenta, sin pagos."}
       </Text>
 
       <FilterPills<StoryModeFilter>
