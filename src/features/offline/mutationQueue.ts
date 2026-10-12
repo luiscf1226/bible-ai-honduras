@@ -1,8 +1,10 @@
+import type { SermonNoteInput } from "../../../convex/sermonNotesCore";
 import type { HighlightColor } from "../reading/highlightColors";
 
 /**
  * Cola sin conexión de lo personal del lector (#182): guardar / quitar,
- * subrayar / quitar, separador, nota y marcar el día del plan.
+ * subrayar / quitar, separador, nota y marcar el día del plan. Desde #232,
+ * también las notas de prédica (se escriben en el templo, con mala señal).
  *
  * Lógica pura, sin React: la usa `OfflineSyncProvider` y se prueba sola.
  *
@@ -27,7 +29,9 @@ export type OfflineAction =
   | { kind: "bookmark"; ref: VerseRef; saved: boolean; note?: string | null }
   | { kind: "highlight"; ref: VerseRef; color: HighlightColor | null }
   | { kind: "separator"; ref: VerseRef | null }
-  | { kind: "planDay"; planId: string; day: number };
+  | { kind: "planDay"; planId: string; day: number }
+  /** Nota de prédica completa (upsert por `clientId`), o `note: null` para borrarla. */
+  | { kind: "sermonNote"; clientId: string; note: SermonNoteInput | null };
 
 export type QueuedAction = OfflineAction & { seq: number; queuedAt: number; attempts: number };
 
@@ -55,6 +59,8 @@ export function actionKey(action: OfflineAction): string {
       return "separator";
     case "planDay":
       return `planDay:${action.planId}|${action.day}`;
+    case "sermonNote":
+      return `sermonNote:${action.clientId}`;
   }
 }
 
@@ -134,9 +140,10 @@ export function afterFailure(queue: OfflineQueue, seq: number, error: unknown): 
 export function forgetPendingNotes(queue: OfflineQueue): OfflineQueue {
   return {
     ...queue,
-    items: queue.items.map((item) =>
-      item.kind === "bookmark" && typeof item.note === "string" ? { ...item, note: undefined } : item,
-    ),
+    items: queue.items
+      // Las notas de prédica también son historial (#232): las que esperaban señal se van.
+      .filter((item) => item.kind !== "sermonNote")
+      .map((item) => (item.kind === "bookmark" && typeof item.note === "string" ? { ...item, note: undefined } : item)),
   };
 }
 
@@ -150,7 +157,7 @@ export function restoreQueue(raw: unknown): OfflineQueue {
       typeof item === "object" &&
       item !== null &&
       typeof item.seq === "number" &&
-      ["bookmark", "highlight", "separator", "planDay"].includes(item.kind),
+      ["bookmark", "highlight", "separator", "planDay", "sermonNote"].includes(item.kind),
   );
   return { userId: typeof value.userId === "string" ? value.userId : null, nextSeq: value.nextSeq, items };
 }
@@ -163,7 +170,9 @@ export type SyncCall =
   | { fn: "reading.clearHighlight"; args: VerseRef }
   | { fn: "reading.setSeparator"; args: VerseRef }
   | { fn: "reading.clearSeparator"; args: Record<string, never> }
-  | { fn: "readingPlans.markDayRead"; args: { planId: string; day: number } };
+  | { fn: "readingPlans.markDayRead"; args: { planId: string; day: number } }
+  | { fn: "sermonNotes.save"; args: SermonNoteInput }
+  | { fn: "sermonNotes.remove"; args: { clientId: string } };
 
 export function syncCallFor(action: OfflineAction): SyncCall {
   switch (action.kind) {
@@ -186,6 +195,10 @@ export function syncCallFor(action: OfflineAction): SyncCall {
         : { fn: "reading.setSeparator", args: { book: action.ref.book, chapter: action.ref.chapter, verse: action.ref.verse } };
     case "planDay":
       return { fn: "readingPlans.markDayRead", args: { planId: action.planId, day: action.day } };
+    case "sermonNote":
+      return action.note === null
+        ? { fn: "sermonNotes.remove", args: { clientId: action.clientId } }
+        : { fn: "sermonNotes.save", args: action.note };
   }
 }
 
@@ -326,4 +339,40 @@ export function overlayPlanProgress<T extends PlanProgressLike>(
     pendingDays,
     completedCount: progress.completedCount + caughtUp + (todayNewlyDone ? 1 : 0),
   };
+}
+
+type SermonNoteLike = SermonNoteInput & { createdAt?: number; updatedAt?: number };
+
+/**
+ * Notas de prédica como `sermonNotes:list`, con lo que todavía está en la cola
+ * (#232): una nota escrita sin señal aparece al instante, una editada muestra
+ * lo último y una borrada desaparece. `pending` marca las que no llegaron al
+ * servidor todavía. Mismo orden que el servidor: fecha del culto, la más nueva arriba.
+ */
+export function overlaySermonNotes<T extends SermonNoteLike>(
+  server: readonly T[] | undefined,
+  items: readonly QueuedAction[],
+): Array<(T | SermonNoteLike) & { pending: boolean }> | undefined {
+  const actions = items.filter((item): item is Extract<QueuedAction, { kind: "sermonNote" }> => item.kind === "sermonNote");
+  if (server === undefined && actions.length === 0) return undefined;
+  const byClient = new Map<string, (T | SermonNoteLike) & { pending: boolean }>(
+    (server ?? []).map((row) => [row.clientId, { ...row, pending: false }]),
+  );
+  for (const action of actions) {
+    if (action.note === null) {
+      byClient.delete(action.clientId);
+      continue;
+    }
+    const previous = byClient.get(action.clientId);
+    byClient.set(action.clientId, {
+      ...(previous ?? {}),
+      ...action.note,
+      createdAt: previous?.createdAt ?? action.queuedAt,
+      updatedAt: action.queuedAt,
+      pending: true,
+    });
+  }
+  return [...byClient.values()].sort(
+    (a, b) => b.date.localeCompare(a.date) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+  );
 }

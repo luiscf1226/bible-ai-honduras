@@ -1,0 +1,178 @@
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useQuery } from "convex/react";
+
+import { api } from "../../convex/_generated/api";
+import { AppButton } from "../../src/components/AppButton";
+import { AppScreen } from "../../src/components/AppScreen";
+import { LoadingState } from "../../src/components/LoadingState";
+import { ScreenHeader, goBackOrHome } from "../../src/components/ScreenHeader";
+import { StoryViewer } from "../../src/features/stories/StoryPanels";
+import { shareStory } from "../../src/features/stories/storyShare";
+import { storiesApi } from "../../src/features/stories/contracts";
+import { useTheme } from "../../src/theme/ThemeProvider";
+import { tokens } from "../../src/theme/tokens";
+import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
+
+function StoryViewerScreenContent() {
+  const { color } = useTheme();
+  const { storyId } = useLocalSearchParams<{ storyId?: string | string[] }>();
+  const selectedStoryId = Array.isArray(storyId) ? storyId[0] : storyId;
+  const [viewerEpoch, setViewerEpoch] = useState(0);
+  const storyArgs =
+    selectedStoryId && viewerEpoch >= 0 ? { storyId: selectedStoryId } : ("skip" as const);
+  const story = useQuery(storiesApi.stories.getById, storyArgs);
+  const generated = useQuery(storiesApi.stories.latestForViewer, storyArgs === "skip" ? "skip" : storyArgs);
+  const currentUser = useQuery(api.users.current);
+  const [shareFailed, setShareFailed] = useState(false);
+
+  const retryViewer = () => {
+    setViewerEpoch(-1);
+    requestAnimationFrame(() => setViewerEpoch((value) => (value < 0 ? 0 : value + 1)));
+  };
+
+  if (!selectedStoryId) {
+    return <ViewerState detail="No recibimos una historia para mostrar." title="Historia no encontrada" />;
+  }
+
+  if (story === undefined || viewerEpoch < 0) {
+    return (
+      <AppScreen contentStyle={styles.stateContent} style={{ backgroundColor: color.surfaceAlt }}>
+        <LoadingState
+          detail="Estamos preparando los paneles de esta historia."
+          message="Cargando historia…"
+          onRetry={retryViewer}
+          testID="historias-viewer-loading"
+        />
+      </AppScreen>
+    );
+  }
+
+  if (story === null) {
+    return <ViewerState detail="Esta historia no está disponible en el catálogo." title="Historia no encontrada" />;
+  }
+
+  return (
+    <AppScreen scroll style={{ backgroundColor: color.surfaceAlt }}>
+      <ScreenHeader
+        accessibilityLabel="Volver a historias"
+        onBack={goBackOrHome}
+        style={styles.header}
+        testID="historias-viewer-back"
+        title={story.title}
+        titleStyle={styles.title}
+      />
+      <Pressable
+        accessibilityHint={
+          currentUser?.referralCode
+            ? "Abre las opciones para compartir esta historia."
+            : "Esperá mientras cargamos tu perfil."
+        }
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !currentUser?.referralCode }}
+        disabled={!currentUser?.referralCode}
+        onPress={() => {
+          if (!currentUser?.referralCode) {
+            return;
+          }
+          setShareFailed(false);
+          void shareStory({ referralCode: currentUser.referralCode, story }).then((result) => {
+            // Cancelar el share sheet (dismissedAction en iOS, o el usuario cierra
+            // en Android) es un flujo normal: no es error y no se muestra nada.
+            if (result.status === "error") setShareFailed(true);
+          });
+        }}
+        style={styles.share}
+        testID="historias-share-story"
+      >
+        <Text style={[styles.shareIcon, { color: color.accent }]}>↗</Text>
+        <Text style={[styles.shareLabel, { color: color.accent }]}>Compartir esta historia</Text>
+      </Pressable>
+      {shareFailed ? (
+        <Text style={[styles.shareErrorText, { color: color.danger }]} testID="historias-share-story-error">
+          No pudimos abrir el compartir. Probá de nuevo.
+        </Text>
+      ) : null}
+      <StoryViewer
+        images={Object.fromEntries(
+          (generated?.scenes ?? []).map((scene) => [
+            scene.id,
+            scene.status === "ready" && scene.uri
+              ? { status: "ready", uri: scene.uri }
+              : scene.status === "generating"
+                ? { status: "generating" }
+                : { status: "unavailable" },
+          ]),
+        )}
+        story={story}
+      />
+    </AppScreen>
+  );
+}
+
+function ViewerState({ detail, title }: { detail: string; title: string }) {
+  const { color } = useTheme();
+
+  return (
+    <AppScreen contentStyle={styles.stateContent} style={{ backgroundColor: color.surfaceAlt }}>
+      <View style={styles.stateCopy}>
+        <Text style={[styles.title, { color: color.ink }]}>{title}</Text>
+        <Text style={[styles.detail, { color: color.inkMuted }]}>{detail}</Text>
+      </View>
+      <AppButton onPress={() => router.replace("/historias")} variant="secondary">
+        Volver a historias
+      </AppButton>
+    </AppScreen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { marginBottom: tokens.space.xl },
+  title: {
+    flex: 1,
+    fontFamily: tokens.font.serif,
+    fontSize: tokens.type.subtitle.size,
+    lineHeight: tokens.type.subtitle.lineHeight,
+  },
+  share: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: tokens.space.sm,
+    marginBottom: tokens.space.lg,
+  },
+  shareIcon: {
+    fontFamily: tokens.font.sans,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+  },
+  shareLabel: {
+    fontFamily: tokens.font.sans,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+  },
+  shareErrorText: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.bodySm.size,
+    lineHeight: tokens.type.bodySm.lineHeight,
+    marginBottom: tokens.space.lg,
+  },
+  stateContent: { justifyContent: "space-between" },
+  stateCopy: { flex: 1, justifyContent: "center" },
+  detail: {
+    fontFamily: tokens.font.sansLight,
+    fontSize: tokens.type.body.size,
+    lineHeight: tokens.type.body.lineHeight,
+    marginTop: tokens.space.lg,
+  },
+});
+
+/** Sin señal no puede responder: se avisa en vez de quedarse cargando (#160). */
+export default function StoryViewerScreen() {
+  return (
+    <RequiresConnection module="stories">
+      <StoryViewerScreenContent />
+    </RequiresConnection>
+  );
+}

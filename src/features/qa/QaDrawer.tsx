@@ -1,7 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../../components/Icon";
-import { SideDrawer } from "../../components/SideDrawer";
+import { router } from "expo-router";
+
+import { DRAWER_RECENT_COUNT, DrawerSeeAll, SideDrawer } from "../../components/SideDrawer";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
 
@@ -46,7 +48,7 @@ export function QaDrawer({ activeId, conversations, onClose, onNew, onOpen, visi
         </Text>
       ) : null}
 
-      {(conversations ?? []).map((conversation) => {
+      {(conversations ?? []).slice(0, DRAWER_RECENT_COUNT).map((conversation) => {
         const active = conversation._id === activeId;
         return (
           <Pressable
@@ -76,6 +78,16 @@ export function QaDrawer({ activeId, conversations, onClose, onNew, onOpen, visi
           </Pressable>
         );
       })}
+      {conversations && conversations.length > 0 ? (
+        <DrawerSeeAll
+          label="Ver todo en Mis conversaciones"
+          onPress={() => {
+            onClose();
+            router.push({ pathname: "/historial", params: { filtro: "qa" } });
+          }}
+          testID="qa-drawer-see-all"
+        />
+      ) : null}
     </SideDrawer>
   );
 }

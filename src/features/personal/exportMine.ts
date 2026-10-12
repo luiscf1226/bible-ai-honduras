@@ -33,16 +33,25 @@ export type ExportHighlight = {
   text: string | null;
 };
 
-/**
- * Peticiones de oración (#159). Todavía no existen en el backend; cuando
- * lleguen, la pantalla las pasa acá y salen en su propia sección.
- */
+/** Peticiones de oración (#159): salen en su propia sección. */
 export type ExportPrayer = { text: string; createdAt: number; answeredAt?: number | null };
+
+/** Notas de prédica (#232): salen en su propia sección, con todo lo que escribió la persona. */
+export type ExportSermonNote = {
+  date: string;
+  title: string;
+  church?: string;
+  preacher?: string;
+  passages: Array<{ book: string; chapter: number; verse?: number }>;
+  notes: string;
+  takeaway: string;
+};
 
 export type ExportInput = {
   bookmarks: ExportBookmark[];
   highlights: ExportHighlight[];
   prayers?: ExportPrayer[];
+  sermonNotes?: ExportSermonNote[];
   generatedAt: number;
 };
 
@@ -58,14 +67,15 @@ export type ExportEntry = {
   highlight: { color: HighlightColor; at: number } | null;
 };
 
-export type ExportCounts = { saved: number; notes: number; highlights: number; prayers: number };
+export type ExportCounts = { saved: number; notes: number; highlights: number; prayers: number; sermonNotes: number };
 
 export type ExportDocument = {
   generatedAt: number;
   books: Array<{ book: string; entries: ExportEntry[] }>;
   prayers: ExportPrayer[];
+  sermonNotes: ExportSermonNote[];
   counts: ExportCounts;
-  /** Elementos exportables: guardados + subrayados + peticiones (la nota va con su guardado). */
+  /** Elementos exportables: guardados + subrayados + peticiones + notas de prédica (la nota va con su guardado). */
   total: number;
 };
 
@@ -85,17 +95,18 @@ function compareRefs(a: ExportEntry, b: ExportEntry): number {
   return ao - bo || a.book.localeCompare(b.book) || a.chapter - b.chapter || a.verse - b.verse;
 }
 
-export function exportCounts(input: Pick<ExportInput, "bookmarks" | "highlights" | "prayers">): ExportCounts {
+export function exportCounts(input: Pick<ExportInput, "bookmarks" | "highlights" | "prayers" | "sermonNotes">): ExportCounts {
   return {
     saved: input.bookmarks.length,
     notes: input.bookmarks.filter((item) => (item.note ?? "").trim().length > 0).length,
     highlights: input.highlights.length,
     prayers: input.prayers?.length ?? 0,
+    sermonNotes: input.sermonNotes?.length ?? 0,
   };
 }
 
 export function exportTotal(counts: ExportCounts): number {
-  return counts.saved + counts.highlights + counts.prayers;
+  return counts.saved + counts.highlights + counts.prayers + counts.sermonNotes;
 }
 
 /** Un versículo guardado y subrayado sale una sola vez, con las dos marcas. */
@@ -140,8 +151,10 @@ export function buildExportDocument(input: ExportInput): ExportDocument {
   }
 
   const prayers = [...(input.prayers ?? [])].sort((a, b) => a.createdAt - b.createdAt);
+  // Las notas de prédica, de la más vieja a la más nueva: se leen como un cuaderno.
+  const sermonNotes = [...(input.sermonNotes ?? [])].sort((a, b) => a.date.localeCompare(b.date));
   const counts = exportCounts(input);
-  return { generatedAt: input.generatedAt, books, prayers, counts, total: exportTotal(counts) };
+  return { generatedAt: input.generatedAt, books, prayers, sermonNotes, counts, total: exportTotal(counts) };
 }
 
 /** Los primeros versículos del archivo (en el mismo orden) y cuántos más hay. */
@@ -171,6 +184,7 @@ export function exportSummary(counts: ExportCounts): string {
     counts.notes > 0 ? plural(counts.notes, "nota", "notas") : null,
     counts.highlights > 0 ? plural(counts.highlights, "subrayado", "subrayados") : null,
     counts.prayers > 0 ? plural(counts.prayers, "petición", "peticiones") : null,
+    counts.sermonNotes > 0 ? plural(counts.sermonNotes, "nota de prédica", "notas de prédica") : null,
   ].filter((part): part is string => part !== null);
   return parts.length > 0 ? parts.join(" · ") : "Nada todavía";
 }
@@ -190,6 +204,23 @@ export function entryMarks(entry: ExportEntry): string {
 function versionsOf(doc: ExportDocument): string {
   const versions = new Set(doc.books.flatMap((group) => group.entries.map((entry) => entry.version)));
   return [...versions].join(", ");
+}
+
+function sermonPassages(note: ExportSermonNote): string {
+  return note.passages
+    .map((passage) => (passage.verse === undefined ? `${passage.book} ${passage.chapter}` : `${passage.book} ${passage.chapter}:${passage.verse}`))
+    .join(", ");
+}
+
+/** "11 de octubre de 2026 · Pastor Juan · Iglesia Bethel" */
+function sermonMeta(note: ExportSermonNote): string {
+  const [year, month, day] = note.date.split("-").map(Number);
+  const date = exportDate(Date.UTC(year, (month || 1) - 1, day || 1, 18));
+  return [date, note.preacher?.trim(), note.church?.trim()].filter((part): part is string => Boolean(part)).join(" · ");
+}
+
+function sermonTitle(note: ExportSermonNote): string {
+  return note.title.trim() || sermonPassages(note) || "Prédica";
 }
 
 function prayerLine(prayer: ExportPrayer): string {
@@ -221,6 +252,17 @@ export function buildExportText(doc: ExportDocument): string {
     lines.push("", "PETICIONES");
     for (const prayer of doc.prayers) {
       lines.push("", prayer.text, prayerLine(prayer));
+    }
+  }
+
+  if (doc.sermonNotes.length > 0) {
+    lines.push("", "NOTAS DE PRÉDICA");
+    for (const note of doc.sermonNotes) {
+      lines.push("", sermonTitle(note), sermonMeta(note));
+      const passages = sermonPassages(note);
+      if (passages) lines.push(`Pasajes: ${passages}`);
+      if (note.notes.trim()) lines.push(note.notes.trim());
+      if (note.takeaway.trim()) lines.push(`Me llevo: ${note.takeaway.trim()}`);
     }
   }
   return `${lines.join("\n")}\n`;
@@ -299,7 +341,18 @@ export function buildExportHtml(doc: ExportDocument): string {
           .map((prayer) => `<div class="entry"><p>${escapeHtml(prayer.text)}</p><div class="marks">${escapeHtml(prayerLine(prayer))}</div></div>`)
           .join("")}`
       : "";
+  const sermonNotes =
+    doc.sermonNotes.length > 0
+      ? `<h2>Notas de prédica</h2>${doc.sermonNotes
+          .map((note) => {
+            const passages = sermonPassages(note);
+            const body = note.notes.trim() ? `<div class="note">${escapeHtml(note.notes.trim())}</div>` : "";
+            const takeaway = note.takeaway.trim() ? `<div class="note"><b>Me llevo</b><br>${escapeHtml(note.takeaway.trim())}</div>` : "";
+            return `<div class="entry"><div class="ref">${escapeHtml(sermonTitle(note))}</div><div class="marks">${escapeHtml(sermonMeta(note))}</div>${passages ? `<div class="marks">${escapeHtml(`Pasajes: ${passages}`)}</div>` : ""}${body}${takeaway}</div>`;
+          })
+          .join("")}`
+      : "";
   const versions = versionsOf(doc);
 
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${EXPORT_TITLE}</title><style>${style}</style></head><body><h1>${EXPORT_TITLE}</h1><div class="meta">Exportado el ${escapeHtml(exportDate(doc.generatedAt))} · ${escapeHtml(exportSummary(doc.counts))}${versions ? ` · ${escapeHtml(versions)}` : ""}</div>${sections}${prayers}<div class="footer">Bible AI Honduras</div></body></html>`;
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${EXPORT_TITLE}</title><style>${style}</style></head><body><h1>${EXPORT_TITLE}</h1><div class="meta">Exportado el ${escapeHtml(exportDate(doc.generatedAt))} · ${escapeHtml(exportSummary(doc.counts))}${versions ? ` · ${escapeHtml(versions)}` : ""}</div>${sections}${prayers}${sermonNotes}<div class="footer">Bible AI Honduras</div></body></html>`;
 }

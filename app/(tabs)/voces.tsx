@@ -5,8 +5,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import { AppScreen } from "../../src/components/AppScreen";
-import { ScreenHeader } from "../../src/components/ScreenHeader";
+import { Icon } from "../../src/components/Icon";
+import { ConversationSwitcher } from "../../src/features/navigation/ConversationSwitcher";
 import { FeaturedCharacterCard } from "../../src/features/voices/FeaturedCharacterCard";
+import { withPressed } from "../../src/theme/pressed";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
@@ -17,11 +19,9 @@ function VocesScreenContent() {
 
   return (
     <AppScreen scroll contentStyle={styles.content}>
-      <ScreenHeader
-        accessibilityLabel="Volver al inicio"
-        style={styles.header}
-        testID="voces-back"
-      />
+      <View style={styles.header}>
+        <ConversationSwitcher current="voces" flush />
+      </View>
       <Text style={[styles.title, { color: color.ink }]}>¿Con quién quieres hablar?</Text>
       <Text style={[styles.subtitle, { color: color.inkMuted }]}>
         Responden en primera persona, desde lo que la Biblia cuenta de su vida.
@@ -35,7 +35,7 @@ function VocesScreenContent() {
             accessibilityRole="button"
             key={character.slug}
             onPress={() => router.push(`/voces/${character.slug}`)}
-            style={[styles.row, { backgroundColor: color.surface, borderColor: color.border }]}
+            style={withPressed(styles.row, { backgroundColor: color.surface, borderColor: color.border })}
           >
             <LinearGradient colors={[character.gradientFrom, character.gradientTo]} style={styles.avatar}>
               <Text style={[styles.avatarInitial, { color: color.avatarInitial }]}>{character.name[0]}</Text>
@@ -44,7 +44,7 @@ function VocesScreenContent() {
               <Text style={[styles.name, { color: color.ink }]}>{character.name}</Text>
               <Text style={[styles.tag, { color: color.inkSoft }]}>{character.tag}</Text>
             </View>
-            <Text style={[styles.chevron, { color: color.inkFaint }]}>›</Text>
+            <Icon color={color.inkFaint} name="chevronRight" size="sm" />
           </Pressable>
         ))}
       </View>
@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
     marginTop: tokens.space.xs,
   },
-  chevron: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size },
   notice: { borderRadius: tokens.radius.md, marginTop: tokens.space.xxl, paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
   noticeText: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },
 });

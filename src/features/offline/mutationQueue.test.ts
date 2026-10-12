@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { SermonNoteInput } from "../../../convex/sermonNotesCore";
 
 import {
   acknowledge,
@@ -15,6 +16,7 @@ import {
   overlayHighlightPage,
   overlayPlanProgress,
   overlaySeparator,
+  overlaySermonNotes,
   restoreQueue,
   syncCallFor,
   type OfflineAction,
@@ -228,5 +230,59 @@ describe("lo que se ve: servidor + cola", () => {
       completedCount: 2,
     });
     expect(overlayPlanProgress(null, [])).toBeNull();
+  });
+});
+
+describe("notas de prédica sin conexión (#232)", () => {
+  const nota = (overrides: Partial<SermonNoteInput> = {}): SermonNoteInput => ({
+    clientId: "sn-avion-0001",
+    date: "2026-10-11",
+    church: "",
+    preacher: "",
+    title: "En modo avión",
+    passages: [
+      { book: "Salmos", chapter: 46, verse: 1 },
+      { book: "Juan", chapter: 3 },
+    ],
+    notes: "",
+    takeaway: "",
+    ...overrides,
+  });
+
+  it("escribir varias veces la misma nota deja una sola acción, la última", () => {
+    let queue = enqueue(EMPTY_QUEUE, { kind: "sermonNote", clientId: "sn-avion-0001", note: nota() }, 1);
+    queue = enqueue(queue, { kind: "sermonNote", clientId: "sn-avion-0001", note: nota({ takeaway: "Algo" }) }, 2);
+    expect(queue.items).toHaveLength(1);
+    expect(syncCallFor(queue.items[0]!)).toEqual({ fn: "sermonNotes.save", args: nota({ takeaway: "Algo" }) });
+  });
+
+  it("borrar una nota que no subió reemplaza a la de guardar", () => {
+    let queue = enqueue(EMPTY_QUEUE, { kind: "sermonNote", clientId: "sn-avion-0001", note: nota() }, 1);
+    queue = enqueue(queue, { kind: "sermonNote", clientId: "sn-avion-0001", note: null }, 2);
+    expect(queue.items).toHaveLength(1);
+    expect(syncCallFor(queue.items[0]!)).toEqual({ fn: "sermonNotes.remove", args: { clientId: "sn-avion-0001" } });
+  });
+
+  it("la lista muestra al instante lo que espera señal, sin duplicar lo que ya llegó", () => {
+    const queue = enqueue(EMPTY_QUEUE, { kind: "sermonNote", clientId: "sn-avion-0001", note: nota() }, 5);
+    // Sin red: el servidor no contesta (undefined) y la nota igual se ve.
+    const offline = overlaySermonNotes(undefined, queue.items);
+    expect(offline).toHaveLength(1);
+    expect(offline?.[0]).toMatchObject({ clientId: "sn-avion-0001", pending: true });
+    // Volvió la red y el servidor ya la tiene, pero la cola todavía no se vació: sigue siendo una.
+    const server = [{ ...nota(), createdAt: 4, updatedAt: 4 }];
+    expect(overlaySermonNotes(server, queue.items)).toHaveLength(1);
+    // Confirmada: sale de la cola y queda la del servidor.
+    expect(overlaySermonNotes(server, acknowledge(queue, queue.items[0]!.seq).items)).toEqual([{ ...server[0], pending: false }]);
+  });
+
+  it("restaurar la cola del teléfono conserva las notas de prédica", () => {
+    const queue = enqueue(EMPTY_QUEUE, { kind: "sermonNote", clientId: "sn-avion-0001", note: nota() }, 1);
+    expect(restoreQueue(JSON.parse(JSON.stringify(queue))).items).toHaveLength(1);
+  });
+
+  it("«Borrar mi historial» se lleva las que esperaban señal", () => {
+    const queue = enqueue(EMPTY_QUEUE, { kind: "sermonNote", clientId: "sn-avion-0001", note: nota() }, 1);
+    expect(forgetPendingNotes(queue).items).toEqual([]);
   });
 });

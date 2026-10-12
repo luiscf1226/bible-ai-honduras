@@ -8,8 +8,8 @@ import { Icon } from "../../src/components/Icon";
 import { homeRows, visibleHomeCards } from "../../src/features/home/cards";
 import { greetingFor, hondurasDate, hondurasHour } from "../../src/features/home/homeCards";
 import { hondurasToday } from "../../src/features/widget/verseWidget";
-import { useAppUpdate } from "../../src/hooks/useAppUpdate";
 import { subscribeToDailyReminderTaps } from "../../src/lib/dailyReminder";
+import { withPressed } from "../../src/theme/pressed";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 
@@ -24,7 +24,6 @@ import { tokens } from "../../src/theme/tokens";
  */
 export default function HomeScreen() {
   const { color, dark, season } = useTheme();
-  const appUpdate = useAppUpdate();
 
   // El widget del versículo del día (#170) abre el inicio con `?devocional=1`:
   // ahora el versículo tiene su pantalla (#194), así que se sigue de largo a `/hoy`.
@@ -45,29 +44,6 @@ export default function HomeScreen() {
   return (
     <AppScreen contentStyle={styles.screen} style={{ backgroundColor: dark ? color.bg : color.surface }}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={styles.scroll}>
-        {/* Un build viejo de TestFlight se ve como "faltan opciones": se avisa arriba de todo. */}
-        {appUpdate.updateAvailable && appUpdate.storeName ? (
-          <Pressable
-            accessibilityHint={`Abre ${appUpdate.storeName}`}
-            accessibilityRole="link"
-            onPress={() => void appUpdate.openStore()}
-            style={({ pressed }) => [
-              styles.update,
-              { backgroundColor: color.surfaceSunk, borderColor: color.borderStrong },
-              pressed && styles.pressed,
-            ]}
-            testID="home-update-available"
-          >
-            <Icon color={color.accent} name="refresh" size="md" />
-            <View style={styles.updateText}>
-              <Text style={[styles.updateTitle, { color: color.ink }]}>Hay una versión nueva</Text>
-              <Text style={[styles.updateBody, { color: color.inkMuted }]}>
-                Tocá para actualizar en {appUpdate.storeName}. Sin actualizar te pueden faltar secciones.
-              </Text>
-            </View>
-          </Pressable>
-        ) : null}
-
         <View style={styles.header}>
           <View style={styles.identity}>
             <Brand size="small" />
@@ -81,14 +57,10 @@ export default function HomeScreen() {
             accessibilityRole="button"
             hitSlop={tokens.space.xs}
             onPress={() => router.push("/ajustes")}
-            style={({ pressed }) => [
-              styles.settingsButton,
-              { backgroundColor: color.surface, borderColor: color.borderStrong },
-              pressed && styles.pressed,
-            ]}
+            style={withPressed(styles.settingsButton, { backgroundColor: color.surface, borderColor: color.borderStrong })}
             testID="home-settings"
           >
-            <Icon color={color.inkMuted} name="sun" size="md" />
+            <Icon color={color.inkMuted} name="gear" size="md" />
           </Pressable>
         </View>
 
@@ -119,7 +91,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.screenPadding.horizontal,
   },
   tiles: { flexDirection: "row", gap: tokens.space.sm },
-  pressed: { opacity: tokens.opacity.pressed },
   header: {
     alignItems: "center",
     flexDirection: "row",
@@ -147,17 +118,4 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.title.lineHeight,
     marginTop: tokens.space.xs,
   },
-  update: {
-    alignItems: "center",
-    borderRadius: tokens.radius.xl,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: tokens.space.md,
-    marginTop: tokens.space.sm,
-    paddingHorizontal: tokens.cardPadding.horizontal,
-    paddingVertical: tokens.cardPadding.vertical,
-  },
-  updateText: { flex: 1 },
-  updateTitle: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.label.size, lineHeight: tokens.type.subtitle.lineHeight },
-  updateBody: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
 });

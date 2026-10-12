@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../../components/Icon";
+import { PauseLink } from "../pause/PauseLink";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
 import { feelingsLabel, type UserTurn } from "./thread";
@@ -18,6 +19,10 @@ export function EmptyThread() {
       <Text style={[styles.emptyNote, { color: color.inkFaint }]}>
         Acompañamiento, no consejo pastoral ni atención en crisis.
       </Text>
+      {/* Para quien no quiere escribir nada (#203, movido acá desde el inicio en #232). */}
+      <View style={styles.pause}>
+        <PauseLink />
+      </View>
     </View>
   );
 }
@@ -45,6 +50,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: tokens.screenPadding.horizontal,
   },
+  pause: { alignSelf: "stretch", marginTop: tokens.space.xl },
   emptyTitle: {
     fontFamily: tokens.font.serif,
     fontSize: tokens.type.title.size,

@@ -6,6 +6,7 @@ import { api } from "../convex/_generated/api";
 import { isValidYearInWordYear, yearInWordYear } from "../convex/yearInWordCore";
 import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
+import { ListCard, ListRow } from "../src/components/ListRow";
 import { PersonalLockGate } from "../src/components/PersonalLockGate";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import {
@@ -67,19 +68,16 @@ function TuAnoScreen() {
             Lo que leíste, cumpliste del plan, guardaste y subrayaste en {year}. Solo vos lo ves.
           </Text>
 
-          <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]} testID="tu-ano-cuentas">
-            {yearInWordRows(summary).map((row, index) => (
-              <View
-                accessibilityLabel={`${row.label}: ${row.value}`}
+          <ListCard testID="tu-ano-cuentas">
+            {yearInWordRows(summary).map((row) => (
+              <ListRow
                 key={row.id}
-                style={[styles.row, index > 0 && styles.rowDivider, index > 0 && { borderTopColor: color.border }]}
                 testID={`tu-ano-${row.id}`}
-              >
-                <Text style={[styles.rowLabel, { color: color.ink }]}>{row.label}</Text>
-                <Text style={[styles.count, { color: row.value > 0 ? color.accent : color.inkFaint }]}>{row.value}</Text>
-              </View>
+                title={row.label}
+                trailing={<Text style={[styles.count, { color: row.value > 0 ? color.accent : color.inkFaint }]}>{row.value}</Text>}
+              />
             ))}
-          </View>
+          </ListCard>
 
           {top ? (
             <Pressable
@@ -140,15 +138,6 @@ const styles = StyleSheet.create({
   intro: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
   // Tarjeta y renglón de Mi espacio.
   card: { borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
-  row: {
-    alignItems: "baseline",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: tokens.cardPadding.horizontal,
-    paddingVertical: tokens.cardPadding.vertical,
-  },
-  rowDivider: { borderTopWidth: 1 },
-  rowLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
   count: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   // Tarjeta de versículo de Guardados.
   verseCard: { padding: tokens.space.xl },

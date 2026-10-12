@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
+import { ListCard, ListRow, ListSectionLabel } from "../src/components/ListRow";
 import { PersonalLockGate } from "../src/components/PersonalLockGate";
 import { ScreenHeader } from "../src/components/ScreenHeader";
 import {
@@ -25,21 +26,26 @@ const PREVIEW_COUNT = 3;
 
 /**
  * Exportar lo mío (#173): guardados con su nota y subrayados, en texto o PDF,
- * ordenados por libro y capítulo. Se arma en el teléfono; nada pasa por la IA.
- * Las peticiones (#159) entran por `prayers` en `buildExportDocument` cuando
- * existan en el backend.
+ * ordenados por libro y capítulo, más el diario de oración (#159) y las notas
+ * de prédica (#232). Se arma en el teléfono; nada pasa por la IA.
+ *
+ * Única entrada: Mi espacio (más el atajo de "Eliminar mi cuenta", #232).
  */
 function ExportarScreen() {
   const { color } = useTheme();
   const bookmarks = useQuery(api.reading.bookmarks, {});
   const highlights = useQuery(api.reading.highlightsWithText, {});
+  const prayers = useQuery(api.prayers.list, {});
+  const sermonNotes = useQuery(api.sermonNotes.list, {});
   const [busy, setBusy] = useState<"pdf" | "text" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const loading = bookmarks === undefined || highlights === undefined;
+  const loading = bookmarks === undefined || highlights === undefined || prayers === undefined || sermonNotes === undefined;
 
   const doc = buildExportDocument({
     bookmarks: bookmarks?.items ?? [],
     highlights: highlights?.items ?? [],
+    prayers: prayers ?? [],
+    sermonNotes: sermonNotes ?? [],
     generatedAt: Date.now(),
   });
   const empty = !loading && doc.total === 0;
@@ -71,46 +77,33 @@ function ExportarScreen() {
     <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
       <ScreenHeader accessibilityLabel="Volver" style={styles.header} title="Exportar lo mío" />
 
-      <View style={[styles.card, { backgroundColor: color.surfaceSunk, borderColor: color.border }]}>
+      <ListCard tone="sunk">
         <Text style={[styles.copy, { color: color.inkMuted }]}>
           Es tuyo, te lo podés llevar. Van tus guardados con su nota y tus subrayados, ordenados por libro y capítulo,
-          con la versión y la fecha. No van Sentir ni tus conversaciones.
+          con la versión y la fecha, tu diario de oración y tus notas de prédica. No van Sentir ni tus conversaciones.
         </Text>
-      </View>
+      </ListCard>
 
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Vista previa</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]} testID="exportar-vista-previa">
-        <View style={styles.row}>
-          <Text style={[styles.rowLabel, { color: color.ink }]} testID="exportar-resumen">
-            {loading ? "…" : exportSummary(doc.counts)}
-          </Text>
-        </View>
+      <ListSectionLabel>Vista previa</ListSectionLabel>
+      <ListCard testID="exportar-vista-previa">
+        <ListRow title={loading ? "…" : exportSummary(doc.counts)} testID="exportar-resumen" />
         {empty ? (
-          <Text style={[styles.copy, styles.rowDivider, { borderTopColor: color.border, color: color.inkSoft }]} testID="exportar-vacio">
+          <Text style={[styles.copy, { color: color.inkSoft }]} testID="exportar-vacio">
             {EXPORT_EMPTY_COPY}
           </Text>
         ) : null}
         {preview.entries.map((entry) => (
-          <View key={entry.reference} style={[styles.row, styles.rowDivider, { borderTopColor: color.border }]}>
-            <View style={styles.rowText}>
-              <Text style={[styles.reference, { color: color.ink }]}>
-                {entry.reference} <Text style={[styles.hint, { color: color.inkSoft }]}>{entry.version}</Text>
+          <ListRow key={entry.reference} serif title={`${entry.reference} · ${entry.version}`}>
+            <Text style={[styles.hint, { color: color.inkMuted }]}>{entryMarks(entry)}</Text>
+            {entry.note ? (
+              <Text numberOfLines={2} style={[styles.hint, { color: color.inkSoft }]}>
+                Mi nota: {entry.note}
               </Text>
-              <Text style={[styles.hint, { color: color.inkMuted }]}>{entryMarks(entry)}</Text>
-              {entry.note ? (
-                <Text numberOfLines={2} style={[styles.hint, { color: color.inkSoft }]}>
-                  Mi nota: {entry.note}
-                </Text>
-              ) : null}
-            </View>
-          </View>
+            ) : null}
+          </ListRow>
         ))}
-        {preview.more > 0 ? (
-          <Text style={[styles.copy, styles.rowDivider, { borderTopColor: color.border, color: color.inkSoft }]}>
-            y {preview.more} más en el archivo
-          </Text>
-        ) : null}
-      </View>
+        {preview.more > 0 ? <Text style={[styles.copy, { color: color.inkSoft }]}>y {preview.more} más en el archivo</Text> : null}
+      </ListCard>
 
       <View style={styles.actions}>
         <AppButton disabled={loading || empty || busy !== null} onPress={() => void exportPdf()} testID="exportar-pdf">
@@ -150,15 +143,6 @@ export default function ExportarRoute() {
 const styles = StyleSheet.create({
   content: { gap: 0 },
   header: { marginBottom: tokens.space.xxl },
-  card: { borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
-  sectionLabel: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.overline.size,
-    letterSpacing: tokens.type.overline.letterSpacing,
-    marginBottom: tokens.space.md,
-    marginTop: tokens.space.xxl + tokens.space.xs,
-    textTransform: "uppercase",
-  },
   copy: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
@@ -166,18 +150,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.cardPadding.horizontal,
     paddingVertical: tokens.cardPadding.vertical,
   },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: tokens.cardPadding.horizontal,
-    paddingVertical: tokens.cardPadding.vertical,
-  },
-  rowDivider: { borderTopWidth: 1 },
-  rowText: { flex: 1 },
-  rowLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
-  // La referencia va en serif, como los versículos guardados de Leer y Mi espacio.
-  reference: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, lineHeight: tokens.type.bodySm.lineHeight },
   hint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs },
   center: { textAlign: "center" },
   actions: { gap: tokens.space.md, marginTop: tokens.space.xxl },

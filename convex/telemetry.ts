@@ -47,6 +47,10 @@ export const TELEMETRY_EVENTS = [
   "bible_downloaded",
   // Un minuto de pausa (#203): solo que se completó. Sin versículo ni conteo.
   "pause_completed",
+  // Notas de prédica (#232): solo que se creó / se compartió una. Nunca el
+  // título, el predicador, los pasajes ni lo escrito.
+  "sermon_note_created",
+  "sermon_note_shared",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 

@@ -164,7 +164,7 @@ describe("history.deleteAll", () => {
     });
 
     const result = await authed.mutation(api.history.deleteAll, {});
-    expect(result).toEqual({ deletedConversations: 3, deletedMessages: 4, deletedPrayers: 0, clearedNotes: 0 });
+    expect(result).toEqual({ deletedConversations: 3, deletedMessages: 4, deletedPrayers: 0, deletedSermonNotes: 0, clearedNotes: 0 });
 
     expect(await authed.query(api.history.list, {})).toEqual([]);
     const leftover = await t.run(async (ctx) => ({

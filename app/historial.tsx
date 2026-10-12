@@ -1,12 +1,21 @@
 import { useQuery } from "convex/react";
-import { StyleSheet, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { voiceCharacters } from "../convex/voicesCatalog";
 import { AppScreen } from "../src/components/AppScreen";
+import { FilterPills } from "../src/components/FilterPills";
+import { Icon } from "../src/components/Icon";
+import { ListCard } from "../src/components/ListRow";
 import { ScreenHeader } from "../src/components/ScreenHeader";
+import { CONVERSATION_FILTERS, conversationFilterFrom, conversationTarget, filterConversations } from "../src/features/personal/conversations";
 import { hideLockedFeelings } from "../src/features/personal/personalLock";
 import { usePersonalLockGate } from "../src/features/personal/personalLockStore";
+import { goToChat } from "../src/lib/goToChat";
+import { goToVoices } from "../src/lib/goToVoices";
+import { withPressed } from "../src/theme/pressed";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -31,59 +40,79 @@ function relativeWhen(createdAt: number) {
   }).format(new Date(createdAt));
 }
 
+const EMPTY_COPY = {
+  todo: "Tus preguntas, tus devocionales de Sentir y tus charlas con personajes quedan aquí.",
+  qa: "Todavía no preguntaste nada. Lo que preguntes en Preguntar queda aquí, un tema por conversación.",
+  feelings: "Todavía no hay devocionales de Sentir.",
+  voices: "Todavía no conversaste con ningún personaje.",
+} as const;
+
+/**
+ * Mis conversaciones (#232, Fase 3): el único historial. Filtro Todo /
+ * Preguntar / Sentir / Personajes (los cajones llegan con `?filtro=`) y cada
+ * renglón abre la conversación donde se tuvo.
+ */
 export default function HistorialScreen() {
   const { color } = useTheme();
+  const params = useLocalSearchParams<{ filtro?: string | string[] }>();
+  const [filter, setFilter] = useState(() => conversationFilterFrom(params.filtro));
   // Con "Proteger lo personal" encendido y sin desbloquear, Sentir no se asoma acá (#171).
   const lock = usePersonalLockGate();
   const all = useQuery(api.history.list);
-  const items = all === undefined ? undefined : hideLockedFeelings(all, lock.status);
+  const items = all === undefined ? undefined : filterConversations(hideLockedFeelings(all, lock.status), filter);
+
+  const open = (item: NonNullable<typeof all>[number]) => {
+    const target = conversationTarget(item);
+    if (!target) return;
+    if (target.kind === "qa") goToChat({ conversationId: target.conversationId });
+    else if (target.kind === "feelings") router.navigate({ pathname: "/sentir", params: { devocional: target.devotionalId } });
+    else goToVoices(target.slug);
+  };
 
   return (
     <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
-      <ScreenHeader
-        accessibilityLabel="Volver"
-        style={styles.header}
-        title="Mis conversaciones"
-      />
-      <Text style={[styles.subtitle, { color: color.inkSoft }]}>Solo tú las ves. Se guardan en tu cuenta.</Text>
+      <ScreenHeader accessibilityLabel="Volver" style={styles.header} title="Mis conversaciones" />
+      <Text style={[styles.subtitle, { color: color.inkSoft }]}>Solo vos las ves. Se guardan en tu cuenta.</Text>
 
-      {(items ?? []).length > 0 ? (
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
-        {(items ?? []).map((item, index) => {
-          const character = voiceCharacters.find((entry) => entry.slug === item.characterId);
-          return (
-            <View
-              key={item.id}
-              style={[
-                styles.row,
-                index > 0 && styles.rowDivider,
-                index > 0 && { borderTopColor: color.border },
-              ]}
-            >
-              <View
-                style={[
-                  styles.avatar,
-                  { backgroundColor: character ? character.gradientFrom : color.surfaceSunk },
-                ]}
+      <FilterPills onSelect={setFilter} options={CONVERSATION_FILTERS} selected={filter} style={styles.filters} testID="historial-filtro" />
+
+      {items === undefined ? null : items.length === 0 ? (
+        <Text style={[styles.empty, { color: color.inkSoft }]} testID="historial-vacio">
+          {EMPTY_COPY[filter]}
+        </Text>
+      ) : (
+        <ListCard testID="historial-lista">
+          {items.map((item) => {
+            const character = voiceCharacters.find((entry) => entry.slug === item.characterId);
+            return (
+              <Pressable
+                accessibilityHint="Abre esta conversación."
+                accessibilityRole="button"
+                key={item.id}
+                onPress={() => open(item)}
+                style={withPressed(styles.row)}
+                testID={`historial-item-${item.id}`}
               >
-                <Text style={[styles.avatarInitial, { color: character ? color.surface : color.accent }]}>
-                  {item.initial}
-                </Text>
-              </View>
-              <View style={styles.rowText}>
-                <Text style={[styles.itemTitle, { color: color.ink }]} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.preview, { color: color.inkSoft }]} numberOfLines={1}>
-                  {item.preview}
-                </Text>
-              </View>
-              <Text style={[styles.when, { color: color.inkFaint }]}>{relativeWhen(item.createdAt)}</Text>
-            </View>
-          );
-        })}
-      </View>
-      ) : null}
+                <View style={[styles.avatar, { backgroundColor: character ? character.gradientFrom : color.surfaceSunk }]}>
+                  <Text style={[styles.avatarInitial, { color: character ? color.surface : color.accent }]}>{item.initial}</Text>
+                </View>
+                <View style={styles.rowText}>
+                  <Text numberOfLines={1} style={[styles.itemTitle, { color: color.ink }]}>
+                    {item.title}
+                  </Text>
+                  <Text numberOfLines={1} style={[styles.preview, { color: color.inkSoft }]}>
+                    {item.preview}
+                  </Text>
+                </View>
+                <View style={styles.trailing}>
+                  <Text style={[styles.when, { color: color.inkFaint }]}>{relativeWhen(item.createdAt)}</Text>
+                  <Icon color={color.inkFaint} name="chevronRight" size="sm" />
+                </View>
+              </Pressable>
+            );
+          })}
+        </ListCard>
+      )}
     </AppScreen>
   );
 }
@@ -95,16 +124,22 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
     lineHeight: tokens.type.bodySm.lineHeight,
-    marginBottom: tokens.space.xxl,
-    marginLeft: tokens.size.dotActive + tokens.space.md + tokens.space.md,
+    marginLeft: tokens.size.backButton + tokens.space.md,
   },
-  card: { borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
-  row: { alignItems: "center", flexDirection: "row", gap: tokens.space.lg, paddingHorizontal: tokens.cardPadding.horizontal, paddingVertical: tokens.cardPadding.vertical },
-  rowDivider: { borderTopWidth: 1 },
+  filters: { marginBottom: tokens.space.xl, marginTop: tokens.space.xl },
+  empty: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight, textAlign: "center" },
+  row: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: tokens.space.lg,
+    paddingHorizontal: tokens.cardPadding.horizontal,
+    paddingVertical: tokens.cardPadding.vertical,
+  },
   avatar: { alignItems: "center", borderRadius: tokens.radius.pill, height: tokens.size.logoSmall, justifyContent: "center", width: tokens.size.logoSmall },
   avatarInitial: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size },
   rowText: { flex: 1, minWidth: 0 },
   itemTitle: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, lineHeight: tokens.type.subtitle.lineHeight },
   preview: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs },
+  trailing: { alignItems: "flex-end", gap: tokens.space.xs },
   when: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.overline.size },
 });
