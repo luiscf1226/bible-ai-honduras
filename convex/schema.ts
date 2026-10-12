@@ -174,7 +174,9 @@ export default defineSchema({
     openedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_chapter", ["userId", "book", "chapter"]),
+    .index("by_user_chapter", ["userId", "book", "chapter"])
+    // Capítulos abiertos por día para el dashboard de admin (#235).
+    .index("by_opened_at", ["openedAt"]),
 
   readingBookmarks: defineTable({
     userId: v.id("users"),
@@ -373,7 +375,10 @@ export default defineSchema({
     ),
     day: v.string(), // "2026-08-18"; use "lifetime" for stories
     count: v.number(),
-  }).index("by_user_module_day", ["userId", "module", "day"]),
+  })
+    .index("by_user_module_day", ["userId", "module", "day"])
+    // Uso por módulo y día para el dashboard de admin (#235).
+    .index("by_day", ["day"]),
 
   entitlements: defineTable({
     userId: v.id("users"),

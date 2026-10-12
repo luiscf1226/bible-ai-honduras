@@ -55,4 +55,16 @@ export default defineSchema({
     key: v.string(),
     count: v.number(),
   }).index("by_day_key", ["day", "key"]),
+
+  // Foto diaria (contrato v1 de lcf-admin): una fila por día, métrica y
+  // dimensión opcional ("qa", "ios", "Juan"…). La recalcula el rollup de la
+  // app; el dashboard solo lee esto.
+  dailyMetrics: defineTable({
+    day: v.string(),
+    key: v.string(),
+    dim: v.optional(v.string()),
+    value: v.number(),
+  })
+    .index("by_day", ["day"])
+    .index("by_key_day", ["key", "day"]),
 });

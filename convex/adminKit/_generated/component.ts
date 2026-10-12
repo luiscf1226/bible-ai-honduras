@@ -148,4 +148,32 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         Name
       >;
     };
+    metrics: {
+      read: FunctionReference<
+        "query",
+        "internal",
+        { from: string; keys: Array<string>; to: string },
+        any,
+        Name
+      >;
+      store: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          day: string;
+          rows: Array<{ dim?: string; key: string; value: number }>;
+        },
+        any,
+        Name
+      >;
+    };
+    rollup: {
+      standard: FunctionReference<
+        "query",
+        "internal",
+        { day: string; endMs: number; startMs: number },
+        any,
+        Name
+      >;
+    };
   };

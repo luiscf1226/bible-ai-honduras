@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adminAdapter from "../adminAdapter.js";
 import type * as aiUsage from "../aiUsage.js";
 import type * as appVersion from "../appVersion.js";
 import type * as bibleVersions from "../bibleVersions.js";
@@ -81,6 +82,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminAdapter: typeof adminAdapter;
   aiUsage: typeof aiUsage;
   appVersion: typeof appVersion;
   bibleVersions: typeof bibleVersions;
