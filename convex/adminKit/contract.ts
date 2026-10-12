@@ -21,12 +21,39 @@ export type MetricDescriptor = {
   aggregate?: MetricAggregate;
 };
 
+/** Pestaña del dashboard donde va una sección. Sin valor: "metrics". */
+export type DashboardTab = "overview" | "users" | "ai" | "metrics";
+
+/** Lo que la app sabe hacer además de lo básico (manifest, metrics, errors). */
+export type Capability = "users";
+
 export type Manifest = {
   contractVersion: typeof CONTRACT_VERSION;
   app: { id: string; name: string };
-  sections: Array<{ title: string; metrics: string[] }>;
+  sections: Array<{ title: string; metrics: string[]; tab?: DashboardTab }>;
   metrics: Record<string, MetricDescriptor>;
+  /** Métricas de la pestaña Resumen, en orden. */
+  highlights?: string[];
+  capabilities?: Capability[];
 };
+
+/**
+ * Una persona en la lista de usuarios (`GET /admin/users`). Solo datos de la
+ * cuenta y conteos: nunca el contenido de lo que escribió.
+ */
+export type AdminUser = {
+  id: string;
+  email?: string;
+  name?: string;
+  createdAt: number;
+  isPro: boolean;
+  /** Último día (YYYY-MM-DD) en que usó alguna función de IA. */
+  lastAiDay?: string;
+  /** Usos de cada función de IA desde que se registró. */
+  aiUsage: Record<string, number>;
+};
+
+export type UsersPage = { users: AdminUser[]; nextCursor?: string; total?: number };
 
 /** Una fila de la foto diaria. Sin `dim` = total del día. */
 export type MetricRow = { day: string; key: string; dim?: string; value: number };

@@ -1,8 +1,16 @@
 import { v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
-import { httpAction, internalMutation, type MutationCtx } from "./_generated/server";
-import { CONTRACT_VERSION, STANDARD_METRICS, type Manifest, type MetricDescriptor, type MetricRow } from "./adminKit/contract";
+import { httpAction, internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
+import {
+  CONTRACT_VERSION,
+  STANDARD_METRICS,
+  type AdminUser,
+  type Manifest,
+  type MetricDescriptor,
+  type MetricRow,
+  type UsersPage,
+} from "./adminKit/contract";
 import { handleAdminRequest } from "./adminKit/httpHandler";
 import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 
@@ -15,6 +23,8 @@ import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
  * - Foto diaria: cron cada hora (hoy y ayer) → `dailyMetrics` del kit.
  * - Reconstruir: `npx convex run adminAdapter:backfill '{"days":30}'`.
  * - HTTP: `/admin/*` con `ADMIN_API_TOKEN` (variable de entorno de Convex).
+ * - Usuarios: `/admin/users` lista cuentas (correo, nombre, alta, Pro y conteos
+ *   de uso de IA). Nunca preguntas, mensajes, oraciones ni notas.
  */
 
 // Honduras no tiene horario de verano: el día local empieza a las 06:00 UTC.
@@ -47,12 +57,19 @@ export const MANIFEST: Manifest = {
   sections: [
     {
       title: "Usuarios",
+      tab: "users",
       metrics: ["users.total", "users.new", "std.active_1d", "std.active_7d", "std.active_30d", "users.onboarded", "users.ai_consent", "users.referred_new", "users.by_version"],
     },
-    { title: "Pro", metrics: ["pro.active", "pro.conversion"] },
+    { title: "Pro", tab: "users", metrics: ["pro.active", "pro.conversion"] },
     {
-      title: "IA",
-      metrics: ["std.ai_cost_usd", "std.ai_calls", "quota.usage", "std.ai_tokens", "std.ai_errors", "std.ai_latency_p50_ms", "std.ai_latency_p95_ms", "std.ai_outcomes"],
+      title: "Costo y uso",
+      tab: "ai",
+      metrics: ["std.ai_cost_usd", "std.ai_calls", "quota.usage", "std.ai_tokens"],
+    },
+    {
+      title: "Calidad",
+      tab: "ai",
+      metrics: ["std.ai_outcomes", "std.ai_errors", "std.ai_latency_p50_ms", "std.ai_latency_p95_ms"],
     },
     {
       title: "Biblia",
@@ -61,6 +78,8 @@ export const MANIFEST: Manifest = {
     { title: "Embudo", metrics: ["std.funnel"] },
     { title: "Salud", metrics: ["std.errors", "std.errors_fatal"] },
   ],
+  highlights: ["users.total", "users.new", "std.active_7d", "pro.active", "std.ai_cost_usd", "std.ai_calls", "bible.chapters_opened", "std.errors"],
+  capabilities: ["users"],
   metrics: { ...STANDARD_METRICS, ...APP_METRICS },
 };
 
@@ -197,11 +216,69 @@ export const backfill = internalMutation({
   },
 });
 
+const USERS_SEARCH_SCAN = 5000;
+
+/**
+ * Una página de usuarios, del más nuevo al más viejo. Con `q` busca en correo
+ * y nombre (sin paginar: devuelve las primeras coincidencias).
+ */
+export const listUsers = internalQuery({
+  args: { q: v.string(), cursor: v.optional(v.string()), limit: v.number() },
+  handler: async (ctx, args): Promise<UsersPage> => {
+    const limit = Math.min(Math.max(1, Math.floor(args.limit)), 100);
+    let rows;
+    let nextCursor: string | undefined;
+    const needle = args.q.trim().toLowerCase();
+    if (needle) {
+      const scanned = await ctx.db.query("users").order("desc").take(USERS_SEARCH_SCAN);
+      rows = scanned
+        .filter((user) => (user.email ?? "").toLowerCase().includes(needle) || (user.name ?? "").toLowerCase().includes(needle))
+        .slice(0, limit);
+    } else {
+      const page = await ctx.db.query("users").order("desc").paginate({ cursor: args.cursor ?? null, numItems: limit });
+      rows = page.page;
+      nextCursor = page.isDone ? undefined : page.continueCursor;
+    }
+
+    const now = Date.now();
+    const users: AdminUser[] = await Promise.all(
+      rows.map(async (user) => {
+        const entitlement = await ctx.db
+          .query("entitlements")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .first();
+        const usage = await ctx.db
+          .query("usage")
+          .withIndex("by_user_module_day", (q) => q.eq("userId", user._id))
+          .collect();
+        const aiUsage: Record<string, number> = {};
+        let lastAiDay: string | undefined;
+        for (const row of usage) {
+          aiUsage[row.module] = (aiUsage[row.module] ?? 0) + row.count;
+          // "lifetime" es el contador de Historias, no un día.
+          if (row.day !== "lifetime" && (!lastAiDay || row.day > lastAiDay)) lastAiDay = row.day;
+        }
+        return {
+          id: user._id,
+          ...(user.email ? { email: user.email } : {}),
+          ...(user.name ? { name: user.name } : {}),
+          createdAt: user._creationTime,
+          isPro: Boolean(entitlement?.isPro && (entitlement.expiresAt === undefined || entitlement.expiresAt > now)),
+          ...(lastAiDay ? { lastAiDay } : {}),
+          aiUsage,
+        };
+      }),
+    );
+    return { users, ...(nextCursor ? { nextCursor } : {}) };
+  },
+});
+
 export const adminHttp = httpAction(async (ctx, request) =>
   handleAdminRequest(request, {
     token: process.env.ADMIN_API_TOKEN,
     manifest: MANIFEST,
     readMetrics: (query) => ctx.runQuery(components.adminKit.metrics.read, query),
     readErrors: (limit) => ctx.runQuery(components.adminKit.events.recentErrors, { limit }),
+    readUsers: (query) => ctx.runQuery(internal.adminAdapter.listUsers, query),
   }),
 );
