@@ -9,6 +9,7 @@
     "scheme": "bibleai",
     "plugins": [
       "expo-router",
+      "./plugins/withWorkRuntimeKtx",
       "expo-font",
       "expo-notifications",
       [
