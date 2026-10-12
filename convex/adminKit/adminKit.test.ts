@@ -189,8 +189,19 @@ describe("handleAdminRequest (contrato v1)", () => {
     expect(deps.readErrors).toHaveBeenCalledWith(200);
   });
 
-  it("ruta desconocida: 404", async () => {
+  it("ruta desconocida: 404 (y users solo si la app lo implementa)", async () => {
     expect((await call("/admin/usuarios")).status).toBe(404);
+    expect((await call("/admin/users")).status).toBe(404);
+  });
+
+  it("users: acota límite y búsqueda", async () => {
+    const readUsers = vi.fn().mockResolvedValue({ users: [] });
+    const response = await handleAdminRequest(
+      new Request(`https://app.convex.site/admin/users?limit=999&q=${"x".repeat(300)}`, { headers: { authorization: "Bearer secreto-largo" } }),
+      { ...deps, readUsers },
+    );
+    expect(await response.json()).toEqual({ contractVersion: 1, users: [] });
+    expect(readUsers).toHaveBeenCalledWith({ q: "x".repeat(100), cursor: undefined, limit: 100 });
   });
 
   it("safeEqual", () => {

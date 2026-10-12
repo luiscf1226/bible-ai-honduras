@@ -1,4 +1,4 @@
-import { CONTRACT_VERSION, type AdminError, type Manifest, type MetricRow } from "./contract";
+import { CONTRACT_VERSION, type AdminError, type Manifest, type MetricRow, type UsersPage } from "./contract";
 
 /**
  * Endpoint `/admin/*` del contrato v1 (lcf-admin#1), sin Convex adentro: la app
@@ -7,6 +7,7 @@ import { CONTRACT_VERSION, type AdminError, type Manifest, type MetricRow } from
  *   GET /admin/manifest
  *   GET /admin/metrics?from=YYYY-MM-DD&to=YYYY-MM-DD&keys=a,b
  *   GET /admin/errors?limit=50
+ *   GET /admin/users?q=texto&cursor=…&limit=50   (si la app declara "users")
  *
  * Auth: `Authorization: Bearer <ADMIN_API_TOKEN>`, un token por app.
  */
@@ -15,6 +16,7 @@ export type AdminHttpDeps = {
   manifest: Manifest;
   readMetrics: (query: { from: string; to: string; keys: string[] }) => Promise<MetricRow[]>;
   readErrors: (limit: number) => Promise<AdminError[]>;
+  readUsers?: (query: { q: string; cursor?: string; limit: number }) => Promise<UsersPage>;
 };
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
@@ -84,6 +86,14 @@ export async function handleAdminRequest(request: Request, deps: AdminHttpDeps):
     const limit = Number(url.searchParams.get("limit") ?? "50");
     const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(1, Math.floor(limit)), 200) : 50;
     return json({ contractVersion: CONTRACT_VERSION, errors: await deps.readErrors(safeLimit) });
+  }
+
+  if (route === "users" && deps.readUsers) {
+    const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
+    const cursor = url.searchParams.get("cursor") || undefined;
+    const limit = Number(url.searchParams.get("limit") ?? "50");
+    const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(1, Math.floor(limit)), 100) : 50;
+    return json({ contractVersion: CONTRACT_VERSION, ...(await deps.readUsers({ q, cursor, limit: safeLimit })) });
   }
 
   return json({ error: "No existe" }, 404);

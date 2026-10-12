@@ -106,7 +106,7 @@ describe("adminAdapter (#235)", () => {
   });
 
   it("cada métrica de las secciones del manifiesto está descrita", () => {
-    const listed = MANIFEST.sections.flatMap((section) => section.metrics);
+    const listed = [...MANIFEST.sections.flatMap((section) => section.metrics), ...(MANIFEST.highlights ?? [])];
     expect(listed.filter((key) => !(key in MANIFEST.metrics))).toEqual([]);
   });
 
@@ -157,6 +157,37 @@ describe("adminAdapter (#235)", () => {
     const response = await get("/admin/manifest", t);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ contractVersion: 1, app: { id: "bible-ai-honduras" } });
+  });
+
+  it("/admin/users lista cuentas con Pro y uso de IA, busca y pagina", async () => {
+    vi.useFakeTimers();
+    const t = setup();
+    await seed(t);
+    // Una tercera cuenta, la más nueva.
+    vi.setSystemTime(NOON + HOUR);
+    await t.run((ctx) => ctx.db.insert("users", { clerkId: "caro", email: "caro@ejemplo.hn", name: "Caro", bibleVersion: "NVI", referralCode: "CARO" }));
+    await t.run(async (ctx) => {
+      const ana = await ctx.db.query("users").withIndex("by_clerk_id", (q) => q.eq("clerkId", "ana")).unique();
+      await ctx.db.patch(ana!._id, { email: "ana@ejemplo.hn", name: "Ana" });
+      await ctx.db.insert("usage", { userId: ana!._id, module: "stories", day: "lifetime", count: 1 });
+    });
+
+    const first = await (await get("/admin/users?limit=2", t)).json();
+    expect(first.users.map((user: { name?: string }) => user.name)).toEqual(["Caro", undefined]);
+    expect(first.nextCursor).toBeDefined();
+    const second = await (await get(`/admin/users?limit=2&cursor=${encodeURIComponent(first.nextCursor)}`, t)).json();
+    expect(second.users).toHaveLength(1);
+    expect(second.users[0]).toMatchObject({
+      email: "ana@ejemplo.hn",
+      isPro: true,
+      lastAiDay: DAY,
+      aiUsage: { qa: 3, stories: 1 },
+    });
+    expect(second.nextCursor).toBeUndefined();
+
+    const search = await (await get("/admin/users?q=CARO", t)).json();
+    expect(search.users.map((user: { email?: string }) => user.email)).toEqual(["caro@ejemplo.hn"]);
+    expect((await t.fetch("/admin/users")).status).toBe(401);
   });
 
   it("backfill programa un rollup por día, con tope de 90", async () => {
