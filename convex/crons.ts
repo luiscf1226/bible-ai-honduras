@@ -48,4 +48,11 @@ crons.daily(
   internal.aiUsage.purgeOld,
 );
 
+// Foto diaria del dashboard de admin (convex/adminAdapter.ts): hoy y ayer.
+crons.hourly(
+  "foto-dashboard-admin",
+  { minuteUTC: 7 },
+  internal.adminAdapter.rollupRecent,
+);
+
 export default crons;
