@@ -96,13 +96,28 @@ describe("stories.create", () => {
     });
     await authed.mutation(makeFunctionReference<"mutation", Record<string, never>, string>("users:upsert"), {});
 
-    await expect(authed.mutation(createStory, { storyId: "arca-de-noe" })).resolves.toMatchObject({
-      allowed: true,
-    });
-    await expect(authed.mutation(createStory, { storyId: "arca-de-noe" })).resolves.toEqual({
+    const first = await authed.mutation(createStory, { storyId: "arca-de-noe" });
+    expect(first).toMatchObject({ allowed: true });
+    await expect(authed.mutation(createStory, { storyId: "daniel-en-el-foso-de-los-leones" })).resolves.toEqual({
       allowed: false,
       reason: "limit_reached",
       module: "stories",
     });
+  });
+
+  it("volver a abrir una historia ya generada no gasta cupo y reintenta la fallida", async () => {
+    const t = convexTest(schema, modules);
+    const authed = t.withIdentity({ subject: "story_reopen_user", issuer: "https://example-dev.clerk.accounts.dev" });
+    await authed.mutation(makeFunctionReference<"mutation", Record<string, never>, string>("users:upsert"), {});
+
+    const first = await authed.mutation(createStory, { storyId: "arca-de-noe" });
+    if (!first.allowed) throw new Error("La primera generación debería estar permitida.");
+    await expect(authed.mutation(createStory, { storyId: "arca-de-noe" })).resolves.toEqual(first);
+
+    await t.run((ctx) => ctx.db.patch(first.storyId as never, { status: "failed" }));
+    await expect(authed.mutation(createStory, { storyId: "arca-de-noe" })).resolves.toEqual(first);
+    const stories = await t.run((ctx) => ctx.db.query("stories").collect());
+    expect(stories).toHaveLength(1);
+    expect(stories[0]?.status).toBe("generating");
   });
 });

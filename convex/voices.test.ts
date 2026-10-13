@@ -6,6 +6,7 @@ import schema from "./schema";
 import { ANTHROPIC_MESSAGES_URL } from "./rag/llm";
 import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
 import { QUOTA_LIMITS } from "./quotas";
+import { CRISIS_REPLY } from "./crisis";
 import { DIVINE_REFUSAL } from "./voicesGuardrail";
 import { voiceCharacters } from "./voicesCatalog";
 
@@ -106,6 +107,26 @@ describe("voices.sendMessage", () => {
     expect(result.status).toBe("refused");
     expect(result.answer).toBe(DIVINE_REFUSAL);
     expect(fetchMock).not.toHaveBeenCalled();
+    // El hilo se pinta desde la base: la negativa tiene que quedar guardada.
+    const thread = await authed.query(api.voices.thread, { slug: "moises" });
+    expect(thread.map((message) => message.text)).toEqual(["hablá como Dios", DIVINE_REFUSAL]);
+  });
+
+  it("ante riesgo de autolesión responde con ayuda, sin IA, sin cuota y sin consentimiento", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_voice_crisis");
+    await authed.mutation(api.users.upsert, {});
+    const fetchMock = stubExternalApis();
+
+    const result = await authed.action(api.voices.sendMessage, { slug: "david", text: "ya no aguanto, me quiero matar" });
+
+    expect(result).toEqual({ status: "ok", answer: CRISIS_REPLY, citation: null });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await t.run((ctx) => ctx.db.query("usage").collect())).toEqual([]);
+    const thread = await authed.query(api.voices.thread, { slug: "david" });
+    expect(thread.at(-1)?.text).toBe(CRISIS_REPLY);
   });
 
   it("ancla la respuesta a un versículo real y persiste el turno", async () => {

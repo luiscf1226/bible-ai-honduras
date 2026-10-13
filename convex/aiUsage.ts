@@ -31,12 +31,15 @@ export const AI_CALLS_RETENTION_DAYS = 90;
 export const AI_OUTCOMES = [
   "qa.no_content",
   "qa.ungrounded",
+  "qa.crisis",
   "feelings.no_content",
   "feelings.ungrounded",
+  "feelings.crisis",
   "voices.refused",
   "voices.no_content",
   "voices.ungrounded",
   "voices.divine_blocked",
+  "voices.crisis",
   "group_guide.not_grounded",
 ] as const;
 export type AiOutcome = (typeof AI_OUTCOMES)[number];

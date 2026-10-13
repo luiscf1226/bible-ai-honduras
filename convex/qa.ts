@@ -5,6 +5,8 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, internalQuery, query } from "./_generated/server";
+import { countAiOutcome } from "./aiUsage";
+import { CRISIS_REPLY, detectCrisis } from "./crisis";
 import type { Citation } from "./rag/answer";
 import type { GroupGuide } from "./rag/groupGuide";
 
@@ -232,10 +234,20 @@ export const ask = action({
     if (!identity) {
       throw new ConvexError("No autenticado");
     }
-    await ctx.runQuery(api.users.requireAiConsent, {});
     if (args.conversationId) {
       await ctx.runQuery(internal.qa.assertOwnedConversation, { conversationId: args.conversationId });
     }
+    if (detectCrisis(args.question)) {
+      await countAiOutcome(ctx, "qa.crisis");
+      const conversationId = await ctx.runMutation(internal.qa.persistTurn, {
+        conversationId: args.conversationId,
+        passage: args.passage,
+        userText: args.question,
+        assistantText: CRISIS_REPLY,
+      });
+      return { status: "ok", answer: CRISIS_REPLY, citation: null, conversationId };
+    }
+    await ctx.runQuery(api.users.requireAiConsent, {});
 
     const quota = await ctx.runMutation(api.quotas.checkAndConsume, { module: "qa" });
     if (!quota.allowed) {

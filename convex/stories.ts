@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { makeFunctionReference, type FunctionReference } from "convex/server";
 
 import { api } from "./_generated/api";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { aiMeter } from "./aiUsage";
 import { generateStoryImage } from "./images";
 import type { QuotaModule } from "./quotas";
@@ -323,6 +323,22 @@ export const create = mutation({
     const user = await requireUser(ctx);
     const catalog = findStoryById(args.storyId);
     if (!catalog) throw new ConvexError("Historia no encontrada");
+    // Volver a abrir una historia ya generada no gasta cupo: la cuota es por
+    // generación, y las historias generadas se pueden volver a consultar. Si
+    // la generación anterior falló, se reintenta sobre el mismo registro.
+    const previous = (
+      await ctx.db.query("stories").withIndex("by_user_catalog", (q) => q.eq("userId", user._id).eq("catalogId", catalog.id)).collect()
+    ).sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (previous) {
+      if (previous.status === "failed") {
+        await ctx.db.patch(previous._id, {
+          status: "generating",
+          scenes: previous.scenes.map((scene) => (scene.status === "failed" ? { ...scene, status: "generating" as const } : scene)),
+        });
+        await ctx.scheduler.runAfter(0, generateImagesRef, { storyId: previous._id });
+      }
+      return { allowed: true as const, storyId: previous._id };
+    }
     const quota = await ctx.runMutation(consumeStoryQuota, { module: "stories" });
     if (!quota.allowed) return quota;
     const storyId = await ctx.db.insert("stories", {
@@ -356,7 +372,8 @@ export const saveScene = internalMutation({
   },
 });
 
-export const generateImages = action({
+// Solo la agenda `create`: el cliente no puede disparar generaciones (costo de OpenAI).
+export const generateImages = internalAction({
   args: { storyId: v.id("stories") },
   handler: async (ctx, args) => {
     const story = await ctx.runQuery(loadForGenerationRef, { storyId: args.storyId });
@@ -364,7 +381,9 @@ export const generateImages = action({
     const catalog = findStoryById(story.catalogId);
     if (!catalog) return null;
     const meter = aiMeter(ctx, "stories");
+    const ready = new Set(story.scenes.filter((scene: { status: string }) => scene.status === "ready").map((scene: { id: string }) => scene.id));
     for (const scene of catalog.scenes) {
+      if (ready.has(scene.id)) continue;
       try {
         const storageId = await ctx.storage.store(await generateStoryImage(scene.imagePrompt, meter));
         await ctx.runMutation(saveSceneRef, { storyId: story._id, sceneId: scene.id, storageId });
