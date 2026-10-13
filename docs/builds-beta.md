@@ -27,6 +27,30 @@ se desactivan hasta separar metadata pública del mínimo de builds TestFlight.
 El enlace iOS ya apunta a App Store. No activar el piso compartido para usuarios
 públicos cuando el build solo está en TestFlight.
 
+## Publicación automática (GitHub Actions)
+
+- **Backend:** cada merge a master que toca `convex/` corre typecheck y tests y
+  despliega `neighborly-kudu-508` (workflow *Deploy Convex*).
+- **App:** subir la versión en `app.json`, mergear y taggear:
+
+  ```bash
+  git tag v1.0.1 && git push origin v1.0.1
+  ```
+
+  *Publicar app* despliega Convex, compila iOS en EAS (`production`), lo sube a
+  TestFlight con `--auto-submit` y corre `scripts/submit-app-review.mjs`. Ese
+  script espera a que Apple procese el build, crea la versión en App Store
+  Connect, asigna el build, copia los datos de revisión y lo manda a App Review.
+- También se puede lanzar con *Run workflow*, con la opción de solo subir a
+  TestFlight y con texto de Novedades.
+- El lanzamiento sigue siendo **manual**: una versión aprobada se publica desde
+  App Store Connect.
+- Si ya hay otro envío en revisión, el build queda en TestFlight y el job falla
+  avisándolo.
+- Secrets: `EXPO_TOKEN`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (repo) y
+  `CONVEX_DEPLOY_KEY` (environment `convex-test`).
+- Android no se automatiza: falta una cuenta de servicio de Google Play.
+
 ## Build iOS desde Omarchy
 
 Xcode no corre en Linux. Usar EAS cloud (o un Mac para build local):
@@ -45,8 +69,7 @@ La selección automática de imagen de EAS requiere verificar el build resultant
 El submit `production` reutiliza la API key que ya está asignada a esta app
 en EAS; no depende de copiar un `.p8` a la máquina. La firma remota y los
 perfiles de app/widgets se comprobaron al preparar la build 26. El perfil
-legacy `testflight` conserva la configuración por `.secrets/` de builds
-anteriores. No subir credenciales al ticket ni crear/rotar una API key para
+`testflight` usa la misma key guardada en EAS. No subir credenciales al ticket ni crear/rotar una API key para
 resolver el envío.
 
 ## Pruebas y publicación

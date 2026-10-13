@@ -1,0 +1,39 @@
+name: Deploy Convex
+
+# Backend único (neighborly-kudu-508) para TestFlight y App Store: cada merge a
+# master que toca convex/ se despliega solo. También lo llama "Publicar app"
+# antes de compilar, para que el binario nunca salga con un backend viejo.
+# Usa `convex dev --once` con la deploy key de desarrollo: `convex deploy`
+# apunta a optimistic-labrador-439, que no se usa.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - convex/**
+      - .github/workflows/deploy-convex.yml
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: deploy-convex
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Convex (neighborly-kudu-508)
+    runs-on: ubuntu-latest
+    environment: convex-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Desplegar funciones
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex dev --once
