@@ -10,32 +10,20 @@ import {
   feelingRoute,
   greetingFor,
   HOME_CARD_ORDER,
+  HOME_CONTEXT_PRIORITY,
   HOME_ROUTES,
   HOME_TILE_IDS,
   hondurasHour,
+  isSundayInHonduras,
   pickForDay,
+  pickHomeContext,
   pickHomeCharacters,
   readStatusLine,
 } from "./homeCards";
 
-describe("orden de las tarjetas (#193)", () => {
-  it("es exactamente el de la tabla del issue, con la franja de temporada arriba del versículo (#199)", () => {
-    expect(HOME_CARD_ORDER).toEqual([
-      "dates",
-      "season",
-      "verse",
-      "savedMemory",
-      "feeling",
-      "pause",
-      "read",
-      "ask",
-      "characters",
-      "stories",
-    ]);
-  });
-
-  it("la entrada a la pausa (#203) va justo debajo de ¿Cómo estás hoy?", () => {
-    expect(HOME_CARD_ORDER.indexOf("pause")).toBe(HOME_CARD_ORDER.indexOf("feeling") + 1);
+describe("orden de las tarjetas (#193, #232)", () => {
+  it("una sola tarjeta de contexto arriba del versículo; la pausa se mudó a Sentir", () => {
+    expect(HOME_CARD_ORDER).toEqual(["context", "verse", "feeling", "read", "ask", "characters", "stories"]);
   });
 
   it("los cuatro módulos cierran el inicio como mosaicos de la cuadrícula 2×2 (U1b)", () => {
@@ -49,6 +37,29 @@ describe("orden de las tarjetas (#193)", () => {
     expect(HOME_ROUTES.ask).toEqual({ pathname: "/preguntar" });
     expect(HOME_ROUTES.characters).toEqual({ pathname: "/voces" });
     expect(HOME_ROUTES.stories).toEqual({ pathname: "/historias" });
+    expect(HOME_ROUTES.newSermonNote).toEqual({ pathname: "/notas/[noteId]", params: { noteId: "nueva" } });
+  });
+});
+
+describe("tarjeta de contexto (#232)", () => {
+  it("el peor día muestra una sola, con la prioridad del issue", () => {
+    expect(pickHomeContext({ update: true, sermon: true, dates: true, season: true, savedMemory: true })).toBe("update");
+    expect(pickHomeContext({ sermon: true, dates: true, season: true, savedMemory: true })).toBe("sermon");
+    expect(pickHomeContext({ dates: true, season: true, savedMemory: true })).toBe("dates");
+    expect(pickHomeContext({ season: true, savedMemory: true })).toBe("season");
+    expect(pickHomeContext({ savedMemory: true })).toBe("savedMemory");
+    expect(pickHomeContext({})).toBeNull();
+  });
+
+  it("el orden es actualización > nota de prédica > fecha personal > temporada > recuerdo", () => {
+    expect(HOME_CONTEXT_PRIORITY).toEqual(["update", "sermon", "dates", "season", "savedMemory"]);
+  });
+
+  it("domingo se decide con la hora de Honduras", () => {
+    // Domingo 11 de octubre de 2026, 23:30 en Honduras = lunes 05:30 UTC.
+    expect(isSundayInHonduras(Date.UTC(2026, 9, 12, 5, 30))).toBe(true);
+    // Lunes 12 de octubre de 2026, 08:00 en Honduras.
+    expect(isSundayInHonduras(Date.UTC(2026, 9, 12, 14, 0))).toBe(false);
   });
 });
 
@@ -104,7 +115,7 @@ describe("Preguntar sobre la Biblia", () => {
   });
 
   it("el ejemplo abre el chat con la pregunta escrita", () => {
-    expect(askExampleRoute("¿Quién fue Rut?")).toEqual({ pathname: "/preguntar/chat", params: { pregunta: "¿Quién fue Rut?" } });
+    expect(askExampleRoute("¿Quién fue Rut?")).toEqual({ pathname: "/preguntar", params: { pregunta: "¿Quién fue Rut?" } });
   });
 });
 

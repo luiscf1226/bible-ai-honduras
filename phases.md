@@ -29,12 +29,12 @@
 - **Criterio de salida:** dado un pasaje + pregunta, o solo una pregunta libre, el pipeline devuelve una respuesta citando el versículo correcto.
 
 ### Fase 2 — Home: devocional diario progresivo
-- **Objetivo:** la pantalla de entrada — versículo primero, devocional completo al expandir.
-- **Entregables:** UI de home fiel al prototipo (card de versículo → expansión con imagen + reflexión); fuente de contenido diario (puede ser curada a mano para el lanzamiento, no depende de generación en vivo); notificación push programable; tarjeta de compartir por WhatsApp para este módulo.
+- **Objetivo:** la pantalla de entrada — versículo primero; el devocional completo en su propia pantalla.
+- **Entregables:** inicio en tarjetas (#193) con la tarjeta del versículo del día que abre `/hoy` (#194: imagen + reflexión; reemplazó a la tarjeta que se expandía) y, desde #232, una sola tarjeta de contexto a la vez; fuente de contenido diario (puede ser curada a mano para el lanzamiento, no depende de generación en vivo); notificación push programable; tarjeta de compartir por WhatsApp para este módulo.
 - **Depende de:** Fase 0.
 - **Bloquea:** nada crítico río abajo, pero es la pantalla que todo usuario ve primero — probarla temprano importa.
 - **Paralelizable con:** Fase 1.
-- **Criterio de salida:** al abrir la app se ve el versículo del día; el tap expande al devocional con imagen; la notificación dispara a la hora configurada; compartir genera una tarjeta con link.
+- **Criterio de salida:** al abrir la app se ve el versículo del día; el tap abre `/hoy` con el devocional e imagen; la notificación dispara a la hora configurada; compartir genera una tarjeta con link.
 
 ### Fase 3 — Q&A guiado
 - **Objetivo:** selector de libro → capítulo → versículo(s) + pregunta, o pregunta libre; respuesta citada; cuota gratis/Pro; compartir.

@@ -10,7 +10,7 @@ import { tokens } from "../../theme/tokens";
  * - tarjeta + renglón con divisor: `app/mi-espacio.tsx` y `app/ajustes.tsx`
  * - overline + título serif + descripción: la tarjeta del plan (`leer/plan.tsx`)
  * - cita (fondo `surfaceSunk`, versículo en serif itálica): la burbuja de
- *   Preguntar (`preguntar/chat.tsx`)
+ *   Preguntar (`(tabs)/preguntar.tsx`)
  *
  * Cero hex, cero tamaños, radios o paddings literales: todo sale de
  * `src/theme/tokens.ts`.

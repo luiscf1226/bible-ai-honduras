@@ -12,6 +12,7 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { deleteConversationsForUser } from "./history";
 import { deleteMemoryVersesForUser } from "./memorize";
 import { deletePrayersForUser } from "./prayers";
+import { deleteSermonNotesForUser } from "./sermonNotes";
 import { parseBirthday, parseCalendarDate } from "./personalDates";
 import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingGroupDataForUser } from "./readingGroups";
@@ -353,6 +354,7 @@ export const setPersonalDates = mutation({
 //   reading*       → marcador, recientes y guardados del lector (#112/#113)
 //   userPlanProgress → progreso en planes de lectura, una fila por plan (#114/#115)
 //   prayerRequests → diario de oración (#159)
+//   sermonNotes    → notas de prédica (#232)
 //   memoryVerses   → versículos para memorizar (#158)
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
@@ -376,6 +378,7 @@ export type PurgeCounts = {
   /** Membresías en grupos de lectura (#185). El grupo pasa a otra persona o se borra si queda vacío. */
   readingGroupMemberships: number;
   prayerRequests: number;
+  sermonNotes: number;
   memoryVerses: number;
   users: number;
 };
@@ -411,6 +414,7 @@ function emptyPurgeCounts(): PurgeCounts {
     readingPlanProgress: 0,
     readingGroupMemberships: 0,
     prayerRequests: 0,
+    sermonNotes: 0,
     memoryVerses: 0,
     users: 0,
   };
@@ -544,6 +548,9 @@ export const purgeAccountData = internalMutation({
     const prayers = await deletePrayersForUser(ctx, user._id, PURGE_BUDGET);
     deleted.prayerRequests = prayers.deleted;
 
+    const sermonNotes = await deleteSermonNotesForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.sermonNotes = sermonNotes.deleted;
+
     const memory = await deleteMemoryVersesForUser(ctx, user._id, PURGE_BUDGET);
     deleted.memoryVerses = memory.deleted;
 
@@ -554,6 +561,7 @@ export const purgeAccountData = internalMutation({
       entitlements.done &&
       reading.done &&
       prayers.done &&
+      sermonNotes.done &&
       memory.done;
     if (!childrenDone) {
       return { done: false, deleted };
@@ -641,6 +649,7 @@ export const deleteAccount = action({
       deleted.readingPlanProgress += result.deleted.readingPlanProgress;
       deleted.readingGroupMemberships += result.deleted.readingGroupMemberships;
       deleted.prayerRequests += result.deleted.prayerRequests;
+      deleted.sermonNotes += result.deleted.sermonNotes;
       deleted.memoryVerses += result.deleted.memoryVerses;
       deleted.users += result.deleted.users;
       dataDone = result.done;

@@ -44,3 +44,14 @@ export function openTimeline(eraId?: string) {
 export function openTextStory(storyId: string) {
   router.push({ pathname: "/historias/texto/[storyId]", params: { storyId } });
 }
+
+/**
+ * "Agregar a nota de prédica" desde la hoja del versículo (#232): elegir una
+ * nota reciente o empezar una nueva con este pasaje.
+ */
+export function openSermonNotePicker(passage: { book: string; chapter: number; verse: number }) {
+  router.push({
+    pathname: "/notas/agregar",
+    params: { book: passage.book, chapter: String(passage.chapter), verse: String(passage.verse) },
+  });
+}

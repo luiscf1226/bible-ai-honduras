@@ -10,6 +10,7 @@ import {
   TEXT_STORY_CATALOG,
 } from "../../convex/textStoriesCatalog";
 import STORY_CATALOG from "./story-catalog.json";
+import TOPIC_VERSES from "./topic-verses.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
 import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from "../../convex/readingGroupCore";
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
@@ -163,6 +164,40 @@ const db = {
         { id: "p1", text: "Por la salud de mi abuela, que la operan el jueves.", createdAt: Date.now() - 3600e3, answeredAt: null, answerNote: null, verse: null },
         { id: "p2", text: "Ansiedad · Sin trabajo", createdAt: Date.now() - 2 * 24 * 3600e3, answeredAt: null, answerNote: null, verse: { book: "Mateo", chapter: 11, verse: 28 } },
         { id: "p3", text: "Que mi hermano encuentre trabajo.", createdAt: Date.now() - 20 * 24 * 3600e3, answeredAt: Date.now() - 26 * 3600e3, answerNote: "Lo llamaron de la maquila. ¡Gracias, Señor!", verse: null },
+      ],
+  // Notas de prédica (#232): dos domingos, una con iglesia y predicador.
+  sermonNotes: isEmpty()
+    ? []
+    : [
+        {
+          id: "sn1",
+          clientId: "sn-qa-0001",
+          date: "2026-10-11",
+          church: "Iglesia Bethel, Comayagüela",
+          preacher: "Pastor Daniel Mejía",
+          title: "Dios es nuestro amparo",
+          passages: [
+            { book: "Salmos", chapter: 46, verse: 1 },
+            { book: "Isaías", chapter: 41, verse: 10 },
+          ],
+          notes: "Amparo = lugar donde uno se esconde de la tormenta.\nNo dice que no habrá tribulación: dice que él está presente en ella.\nTres palabras: refugio, fuerza, ayuda.",
+          takeaway: "No tengo que esperar a que pase la tormenta para estar seguro.",
+          createdAt: Date.now() - 26 * 3600e3,
+          updatedAt: Date.now() - 25 * 3600e3,
+        },
+        {
+          id: "sn2",
+          clientId: "sn-qa-0002",
+          date: "2026-10-04",
+          church: "Iglesia Bethel, Comayagüela",
+          preacher: "Hna. Karla Zelaya",
+          title: "",
+          passages: [{ book: "Juan", chapter: 3 }],
+          notes: "Nacer de nuevo no es mejorar: es empezar.",
+          takeaway: "",
+          createdAt: Date.now() - 8 * 24 * 3600e3,
+          updatedAt: Date.now() - 8 * 24 * 3600e3,
+        },
       ],
   // Memorizar (#158): dos tocan hoy y uno vuelve en 3 días.
   memory: isEmpty()
@@ -328,7 +363,14 @@ const QA_GROUP_GUIDE = {
 // medir el scroll de un capítulo largo. El resto de capítulos usa los 11.
 function chapterVerses(book, chapter) {
   const count = book === "Salmos" && chapter === 119 ? 176 : VERSES.length;
-  return Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+  const placeholder = Array.from({ length: count }, (_, index) => ({ verse: index + 1, text: VERSES[index % VERSES.length].text }));
+  // Versículos por tema: las citas del catálogo traen su texto RV1909 real,
+  // para que las tarjetas no repitan el placeholder. Salmos 46 ya es el placeholder.
+  const real = book === "Salmos" && chapter === 46 ? null : TOPIC_VERSES[`${book} ${chapter}`];
+  if (!real) return placeholder;
+  const merged = new Map(placeholder.map((v) => [v.verse, v.text]));
+  for (const [verse, text] of Object.entries(real)) merged.set(Number(verse), text);
+  return [...merged].sort((a, b) => a[0] - b[0]).map(([verse, text]) => ({ verse, text }));
 }
 
 // Biblia sin conexión (#160): un paquete por libro con los mismos 4
@@ -509,6 +551,26 @@ const handlers = {
   },
   "prayers:remove": (args) => {
     db.prayers = db.prayers.filter((p) => p.id !== args.id);
+    notify();
+    return null;
+  },
+  "sermonNotes:list": () =>
+    [...db.sermonNotes].sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updatedAt),
+  "sermonNotes:save": (args) => {
+    const now = Date.now();
+    const existing = db.sermonNotes.find((n) => n.clientId === args.clientId);
+    if (existing) {
+      db.sermonNotes = db.sermonNotes.map((n) => (n.clientId === args.clientId ? { ...n, ...args, updatedAt: now } : n));
+      notify();
+      return { id: existing.id, created: false };
+    }
+    const id = `sn${db.sermonNotes.length + 10}`;
+    db.sermonNotes.push({ id, ...args, church: args.church ?? "", preacher: args.preacher ?? "", createdAt: now, updatedAt: now });
+    notify();
+    return { id, created: true };
+  },
+  "sermonNotes:remove": (args) => {
+    db.sermonNotes = db.sermonNotes.filter((n) => n.clientId !== args.clientId);
     notify();
     return null;
   },

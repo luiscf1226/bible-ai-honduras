@@ -1,6 +1,8 @@
 import type { PassageQuery } from "../reading/bookSearch";
 import type { Feeling } from "../feelings/feelings";
 
+const HONDURAS_TIME_ZONE = "America/Tegucigalpa";
+
 /**
  * Contenido y rutas del inicio en tarjetas (#193, design/oleada-ux.md §U1).
  * Todo lo que no es dibujo vive acá para poder testearlo sin renderizar:
@@ -10,30 +12,44 @@ import type { Feeling } from "../feelings/feelings";
 
 /**
  * Orden exacto de las tarjetas del inicio (#193). Una tarjeta nueva entra acá y en `cards/index.ts`.
- * `season` es la franja de temporada (#199): solo se ve con temporada activa.
- * `dates` es Tus fechas (#204): solo el día del cumpleaños o del bautismo.
- * `pause` es la entrada callada al minuto de pausa (#203): una línea, no una
- * tarjeta, justo debajo de "¿Cómo estás hoy?" (para quien llega cansado).
  *
- * Inicio compacto (U1b): todo entra en una pantalla sin scroll. Los cuatro
- * módulos van al final como mosaicos de una cuadrícula 2×2 (`HOME_TILE_IDS`).
+ * `context` es **una sola** tarjeta de contexto (#232, Fase 2): de todo lo
+ * que solo aparece algunos días (aviso de actualización, nota de prédica del
+ * domingo, Tus fechas, temporada, recuerdo de un guardado) se muestra lo más
+ * importante y nada más (`pickHomeContext`). Antes el peor día sumaba cuatro
+ * tarjetas y el inicio dejaba de entrar en una pantalla (U1b).
+ *
+ * Inicio compacto (U1b): los cuatro módulos van al final como mosaicos de una
+ * cuadrícula 2×2 (`HOME_TILE_IDS`). "Un minuto de pausa" (#203) se mudó a
+ * Sentir en #232.
  */
-export const HOME_CARD_ORDER = [
-  "dates",
-  "season",
-  "verse",
-  "savedMemory",
-  "feeling",
-  "pause",
-  "read",
-  "ask",
-  "characters",
-  "stories",
-] as const;
+export const HOME_CARD_ORDER = ["context", "verse", "feeling", "read", "ask", "characters", "stories"] as const;
 export type HomeCardId = (typeof HOME_CARD_ORDER)[number];
 
 /** Los módulos que se dibujan como mosaico en la cuadrícula 2×2 (U1b). */
 export const HOME_TILE_IDS = ["read", "ask", "characters", "stories"] as const satisfies readonly HomeCardId[];
+
+// ── Tarjeta de contexto (#232) ───────────────────────────────────────────────
+
+/**
+ * Prioridad de la tarjeta de contexto, de mayor a menor (#232): actualización
+ * > nota de prédica (domingos) > fecha personal > temporada > recuerdo
+ * guardado. La guirnalda de temporada sigue colgando de la foto del versículo
+ * aunque la franja no salga: es decoración, no una tarjeta.
+ */
+export const HOME_CONTEXT_PRIORITY = ["update", "sermon", "dates", "season", "savedMemory"] as const;
+export type HomeContextKind = (typeof HOME_CONTEXT_PRIORITY)[number];
+
+/** La única tarjeta de contexto de hoy, o null si no hay ninguna. */
+export function pickHomeContext(available: Partial<Record<HomeContextKind, boolean>>): HomeContextKind | null {
+  return HOME_CONTEXT_PRIORITY.find((kind) => available[kind] === true) ?? null;
+}
+
+/** Domingo en Honduras: el día de la prédica. */
+export function isSundayInHonduras(now = Date.now()): boolean {
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: HONDURAS_TIME_ZONE, weekday: "short" }).format(new Date(now));
+  return weekday === "Sun";
+}
 
 /** Ruta en la forma que acepta `router.push`. */
 export type HomeRoute = { pathname: string; params?: Record<string, string> };
@@ -45,6 +61,7 @@ export const HOME_ROUTES = {
   ask: { pathname: "/preguntar" },
   characters: { pathname: "/voces" },
   stories: { pathname: "/historias" },
+  newSermonNote: { pathname: "/notas/[noteId]", params: { noteId: "nueva" } },
 } as const satisfies Record<string, HomeRoute>;
 
 // ── Leer la Biblia ───────────────────────────────────────────────────────────
@@ -81,11 +98,6 @@ export function feelingRoute(feeling: string): HomeRoute {
 }
 
 export const FEELING_WRITE_ROUTE: HomeRoute = { pathname: "/sentir", params: { escribir: "1" } };
-
-// ── Un minuto de pausa (#203) ────────────────────────────────────────────────
-
-export const PAUSE_LINK_LABEL = "Un minuto de pausa";
-export const PAUSE_LINK_CAPTION = "Sin leer ni escribir: un versículo y silencio";
 
 // ── Preguntar sobre la Biblia ────────────────────────────────────────────────
 
@@ -129,7 +141,7 @@ export function askExampleForDay(dateKey: string): string {
 
 /** Abre Preguntar con la pregunta escrita en el campo; no se envía sola. */
 export function askExampleRoute(question: string): HomeRoute {
-  return { pathname: "/preguntar/chat", params: { pregunta: question } };
+  return { pathname: "/preguntar", params: { pregunta: question } };
 }
 
 // ── Personajes ───────────────────────────────────────────────────────────────
@@ -155,8 +167,6 @@ export function pickHomeCharacters<T extends { slug: string }>(characters: reado
 export const STORIES_CARD_CAPTION = "Historias bíblicas en texto e imágenes";
 
 // ── Encabezado ───────────────────────────────────────────────────────────────
-
-const HONDURAS_TIME_ZONE = "America/Tegucigalpa";
 
 /** Hora (0–23) en Honduras. */
 export function hondurasHour(now = Date.now()): number {

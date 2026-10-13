@@ -8,6 +8,8 @@ import type { Id } from "../convex/_generated/dataModel";
 import { nextReviewLabel } from "../convex/memorizeSchedule";
 import { AppButton } from "../src/components/AppButton";
 import { AppScreen } from "../src/components/AppScreen";
+import { Chip } from "../src/components/Chip";
+import { ListCard, ListRow } from "../src/components/ListRow";
 import { ScreenHeader, goBackOrHome } from "../src/components/ScreenHeader";
 import {
   buildCloze,
@@ -113,37 +115,34 @@ export default function MemorizarScreen() {
           )}
 
           <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>TUS VERSÍCULOS · {data.items.length}</Text>
-          <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]} testID="memorize-list">
-            {data.items.map((item, index) => (
-              <View
+          <ListCard testID="memorize-list">
+            {data.items.map((item) => (
+              <ListRow
+                accessibilityHint="Abre el versículo en el lector."
                 key={item.id}
-                style={[styles.row, index > 0 && styles.rowDivider, index > 0 && { borderTopColor: color.border }]}
+                onPress={() => openPassage(item)}
+                serif
+                title={formatRef(item)}
+                trailing={
+                  <Pressable
+                    accessibilityLabel={`Quitar ${formatRef(item)} de Memorizar`}
+                    accessibilityRole="button"
+                    hitSlop={tokens.space.sm}
+                    onPress={() => confirmRemove(item)}
+                    testID="memorize-remove"
+                  >
+                    <Text style={[styles.rowAction, { color: color.inkSoft }]}>Quitar</Text>
+                  </Pressable>
+                }
               >
-                <Pressable
-                  accessibilityHint="Abre el versículo en el lector."
-                  accessibilityRole="button"
-                  onPress={() => openPassage(item)}
-                  style={({ pressed }) => [styles.rowText, pressed && styles.pressed]}
-                >
-                  <Text style={[styles.rowRef, { color: color.ink }]}>{formatRef(item)}</Text>
-                  <Text style={[styles.rowHint, { color: item.due ? color.accent : color.inkSoft }]}>
-                    {item.text === null
-                      ? `No está en ${item.version}`
-                      : `Próximo repaso: ${nextReviewLabel(item.nextReview, data.today).toLowerCase()}`}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityLabel={`Quitar ${formatRef(item)} de Memorizar`}
-                  accessibilityRole="button"
-                  hitSlop={tokens.space.sm}
-                  onPress={() => confirmRemove(item)}
-                  testID="memorize-remove"
-                >
-                  <Text style={[styles.rowAction, { color: color.inkSoft }]}>Quitar</Text>
-                </Pressable>
-              </View>
+                <Text style={[styles.rowHint, { color: item.due ? color.accent : color.inkSoft }]}>
+                  {item.text === null
+                    ? `No está en ${item.version}`
+                    : `Próximo repaso: ${nextReviewLabel(item.nextReview, data.today).toLowerCase()}`}
+                </Text>
+              </ListRow>
             ))}
-          </View>
+          </ListCard>
         </>
       )}
     </AppScreen>
@@ -229,20 +228,16 @@ function Exercise({ item, progress, seed, today, onReview, onDone }: ExercisePro
             {cloze.bank.map((word, index) => {
               const isUsed = used.has(index);
               return (
-                <Pressable
-                  accessibilityRole="button"
+                <Chip
                   accessibilityState={{ disabled: isUsed }}
                   disabled={isUsed}
                   key={`${word}-${index}`}
+                  label={word}
+                  muted={isUsed}
                   onPress={() => setFilled((value) => placeWord(value, index))}
-                  style={[
-                    styles.chip,
-                    { backgroundColor: isUsed ? color.surfaceSunk : color.surface, borderColor: isUsed ? color.border : color.borderStrong },
-                  ]}
+                  size="lg"
                   testID={`memorize-word-${index}`}
-                >
-                  <Text style={[styles.chipLabel, { color: isUsed ? color.inkFaint : color.ink }]}>{word}</Text>
-                </Pressable>
+                />
               );
             })}
           </View>
@@ -321,10 +316,7 @@ const styles = StyleSheet.create({
   blank: { textDecorationLine: "underline" },
   hint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
   feedback: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
-  // Mismos chips que los sentimientos de Sentir.
   bank: { flexDirection: "row", flexWrap: "wrap", gap: tokens.space.sm },
-  chip: { borderRadius: tokens.radius.pill, borderWidth: 1, paddingHorizontal: tokens.space.lg, paddingVertical: tokens.space.md },
-  chipLabel: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
   // Etiqueta de sección y renglones: los de Ajustes / Mi espacio.
   sectionLabel: {
     fontFamily: tokens.font.sansLight,
@@ -333,16 +325,6 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.overline.lineHeight,
     marginBottom: -tokens.space.sm,
   },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: tokens.cardPadding.horizontal,
-    paddingVertical: tokens.cardPadding.vertical,
-  },
-  rowDivider: { borderTopWidth: 1 },
-  rowText: { flex: 1, paddingRight: tokens.space.md },
-  rowRef: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, lineHeight: tokens.type.bodySm.lineHeight },
   rowHint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs },
   rowAction: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size },
 });

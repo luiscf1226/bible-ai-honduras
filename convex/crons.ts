@@ -41,4 +41,18 @@ crons.daily(
   internal.telemetry.purgeOld,
 );
 
+// Costo de la IA (convex/aiUsage.ts): mismas reglas, 90 días.
+crons.daily(
+  "purgar-uso-ia",
+  { hourUTC: 6, minuteUTC: 25 },
+  internal.aiUsage.purgeOld,
+);
+
+// Foto diaria del dashboard de admin (convex/adminAdapter.ts): hoy y ayer.
+crons.hourly(
+  "foto-dashboard-admin",
+  { minuteUTC: 7 },
+  internal.adminAdapter.rollupRecent,
+);
+
 export default crons;

@@ -3,12 +3,9 @@ import type { ComponentType } from "react";
 import { HOME_CARD_ORDER, HOME_TILE_IDS, type HomeCardId } from "../homeCards";
 import { AskCard } from "./AskCard";
 import { CharactersCard } from "./CharactersCard";
+import { ContextCard } from "./ContextCard";
 import { FeelingCard } from "./FeelingCard";
-import { PauseLink } from "./PauseLink";
-import { PersonalDateCard } from "./PersonalDateCard";
 import { ReadCard } from "./ReadCard";
-import { SavedMemoryCard } from "./SavedMemoryCard";
-import { SeasonStrip } from "./SeasonStrip";
 import { StoriesCard } from "./StoriesCard";
 import { VerseCard } from "./VerseCard";
 
@@ -26,22 +23,20 @@ export type HomeCardEntry = {
 };
 
 const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
-  dates: { Component: PersonalDateCard },
-  season: { Component: SeasonStrip, visible: ({ season }) => season !== null },
+  context: { Component: ContextCard },
   verse: { Component: VerseCard },
-  savedMemory: { Component: SavedMemoryCard },
   read: { Component: ReadCard },
   feeling: { Component: FeelingCard },
-  pause: { Component: PauseLink },
   ask: { Component: AskCard },
   characters: { Component: CharactersCard },
   stories: { Component: StoriesCard },
 };
 
 /**
- * Registro de tarjetas del inicio (#193). Para sumar una (temporada,
- * personaje del mes, …): un archivo nuevo en esta carpeta, su id en
- * `HOME_CARD_ORDER` (homeCards.ts, con test del orden) y una línea acá.
+ * Registro de tarjetas del inicio (#193). Para sumar una: un archivo nuevo en
+ * esta carpeta, su id en `HOME_CARD_ORDER` (homeCards.ts, con test del orden)
+ * y una línea acá. Lo que solo aparece algunos días no es una tarjeta más:
+ * entra en `ContextCard` con su lugar en `HOME_CONTEXT_PRIORITY` (#232).
  * `home.tsx` no cambia.
  */
 export const HOME_CARDS: readonly HomeCardEntry[] = HOME_CARD_ORDER.map((id) => ({ id, ...COMPONENTS[id] }));

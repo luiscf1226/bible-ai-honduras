@@ -3,8 +3,11 @@
  * sección lleva a la pantalla que ya existe — acá no se duplica ninguna lista,
  * solo se cuenta y se muestra lo último.
  *
- * Memorizar (#158) y el diario de oración (#159) tienen sección propia; las
- * notas (#167) viven dentro de Guardados.
+ * Memorizar (#158), el diario de oración (#159) y las notas de prédica (#232)
+ * tienen sección propia; las notas de versículo (#167) viven dentro de
+ * Guardados. Desde #232 Mi espacio es una pestaña y el historial es uno solo:
+ * "Mis conversaciones" junta Preguntar, Sentir y Voces (antes eran dos
+ * renglones acá, más Ajustes y los cajones).
  */
 
 type VerseRef = { book: string; chapter: number; verse: number };
@@ -14,20 +17,28 @@ export type MySpaceSectionId =
   | "bookmarks"
   | "highlights"
   | "memorize"
-  | "feelings"
   | "prayers"
+  | "sermonNotes"
   | "conversations";
+
+/** Los grupos de la pantalla, en orden (#232). */
+export type MySpaceGroup = "biblia" | "fe" | "conversaciones";
+export const MY_SPACE_GROUPS: ReadonlyArray<{ id: MySpaceGroup; label: string }> = [
+  { id: "biblia", label: "Tu Biblia" },
+  { id: "fe", label: "Tu vida de fe" },
+  { id: "conversaciones", label: "Conversaciones" },
+];
 
 export type MySpaceDestination =
   | { kind: "passage"; passage: VerseRef }
   | {
       kind: "route";
-      href: "/leer" | "/leer/guardados" | "/leer/subrayados" | "/historial" | "/preguntar" | "/memorizar" | "/oracion";
-    }
-  | { kind: "sentir"; openHistory: boolean };
+      href: "/leer" | "/leer/guardados" | "/leer/subrayados" | "/historial" | "/preguntar" | "/memorizar" | "/oracion" | "/notas";
+    };
 
 export type MySpaceSection = {
   id: MySpaceSectionId;
+  group: MySpaceGroup;
   title: string;
   count: number;
   /** Lo último de la sección, o la explicación de cómo empezar si está vacía. */
@@ -46,6 +57,8 @@ export type MySpaceData = {
   memorize: { total: number; dueCount: number };
   /** Peticiones del diario de oración, abiertas primero. */
   prayers: Array<{ text: string; answeredAt: number | null }>;
+  /** Notas de prédica, la más reciente primero, con su título para mostrar. */
+  sermonNotes: Array<{ displayTitle: string }>;
 };
 
 const formatRef = (ref: VerseRef) => `${ref.book} ${ref.chapter}:${ref.verse}`;
@@ -54,8 +67,6 @@ const VIEW_ALL = "Ver todo";
 const START = "Empezar";
 
 export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
-  const feelings = data.history.filter((item) => item.module === "feelings");
-  const conversations = data.history.filter((item) => item.module !== "feelings");
   const openPrayers = data.prayers.filter((item) => item.answeredAt === null);
   const answeredPrayers = data.prayers.length - openPrayers.length;
   const { total: memorizing, dueCount } = data.memorize;
@@ -63,6 +74,7 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
   return [
     {
       id: "separator",
+      group: "biblia",
       title: "Separador",
       count: data.separator ? 1 : 0,
       detail: data.separator
@@ -73,6 +85,7 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
     },
     {
       id: "bookmarks",
+      group: "biblia",
       title: "Guardados",
       count: data.bookmarks.length,
       detail: data.bookmarks[0]
@@ -83,6 +96,7 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
     },
     {
       id: "highlights",
+      group: "biblia",
       title: "Subrayados",
       count: data.highlights.length,
       detail: data.highlights[0]
@@ -93,6 +107,7 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
     },
     {
       id: "memorize",
+      group: "fe",
       title: "Memorizar",
       count: memorizing,
       detail:
@@ -107,15 +122,8 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
       destination: { kind: "route", href: memorizing > 0 ? "/memorizar" : "/leer" },
     },
     {
-      id: "feelings",
-      title: "Devocionales de Sentir",
-      count: feelings.length,
-      detail: feelings[0]?.title ?? "Cuando contás cómo te sentís en Sentir, el devocional queda guardado aquí.",
-      action: feelings.length > 0 ? VIEW_ALL : START,
-      destination: { kind: "sentir", openHistory: feelings.length > 0 },
-    },
-    {
       id: "prayers",
+      group: "fe",
       title: "Diario de oración",
       count: data.prayers.length,
       detail:
@@ -129,12 +137,22 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
       destination: { kind: "route", href: "/oracion" },
     },
     {
+      id: "sermonNotes",
+      group: "fe",
+      title: "Notas de prédica",
+      count: data.sermonNotes.length,
+      detail: data.sermonNotes[0]?.displayTitle ?? "Lo que anotás en el culto, con los pasajes a un toque. Funciona sin señal.",
+      action: data.sermonNotes.length > 0 ? VIEW_ALL : START,
+      destination: { kind: "route", href: "/notas" },
+    },
+    {
       id: "conversations",
-      title: "Conversaciones",
-      count: conversations.length,
-      detail: conversations[0]?.title ?? "Tus preguntas sobre la Biblia y tus charlas con personajes quedan aquí.",
-      action: conversations.length > 0 ? VIEW_ALL : START,
-      destination: { kind: "route", href: conversations.length > 0 ? "/historial" : "/preguntar" },
+      group: "conversaciones",
+      title: "Mis conversaciones",
+      count: data.history.length,
+      detail: data.history[0]?.title ?? "Tus preguntas, tus devocionales de Sentir y tus charlas con personajes quedan aquí.",
+      action: data.history.length > 0 ? VIEW_ALL : START,
+      destination: { kind: "route", href: data.history.length > 0 ? "/historial" : "/preguntar" },
     },
   ];
 }

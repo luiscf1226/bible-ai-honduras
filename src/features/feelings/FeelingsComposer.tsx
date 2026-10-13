@@ -1,6 +1,7 @@
 import type { Ref } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { Chip } from "../../components/Chip";
 import { Icon } from "../../components/Icon";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
@@ -61,20 +62,14 @@ export function FeelingsComposer({
         {FEELINGS.map((feeling) => {
           const isSelected = selected.includes(feeling);
           return (
-            <Pressable
+            <Chip
               accessibilityRole="checkbox"
               accessibilityState={{ checked: isSelected }}
               key={feeling}
+              label={feeling}
               onPress={() => onToggle(feeling)}
-              style={[
-                styles.chip,
-                isSelected
-                  ? { backgroundColor: color.ink, borderColor: color.ink }
-                  : { backgroundColor: color.surface, borderColor: color.borderStrong },
-              ]}
-            >
-              <Text style={[styles.chipLabel, { color: isSelected ? color.surface : color.inkMuted }]}>{feeling}</Text>
-            </Pressable>
+              selected={isSelected}
+            />
           );
         })}
       </ScrollView>
@@ -133,17 +128,6 @@ const styles = StyleSheet.create({
   },
   chipsScroll: { flexGrow: 0 },
   chips: { gap: tokens.space.sm, paddingHorizontal: tokens.screenPadding.horizontal },
-  chip: {
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: tokens.space.lg,
-    paddingVertical: tokens.space.sm,
-  },
-  chipLabel: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.chip.size,
-    lineHeight: tokens.type.chip.lineHeight,
-  },
   inputRow: {
     alignItems: "flex-end",
     borderRadius: tokens.radius.xxl,

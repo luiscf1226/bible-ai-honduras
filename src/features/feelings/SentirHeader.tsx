@@ -6,14 +6,14 @@ import { tokens } from "../../theme/tokens";
 
 type SentirHeaderProps = {
   onOpenDrawer: () => void;
-  onClose: () => void;
 };
 
 /**
  * Header de Sentir tipo chat (design/oleada-ux.md §U5): ☰ a la izquierda abre
- * el cajón, título al centro, volver al inicio a la derecha.
+ * el cajón y título al centro. Desde #232 Sentir es una pestaña (Conversar):
+ * ya no lleva ✕; el espacio de la derecha mantiene el título centrado.
  */
-export function SentirHeader({ onClose, onOpenDrawer }: SentirHeaderProps) {
+export function SentirHeader({ onOpenDrawer }: SentirHeaderProps) {
   const { color } = useTheme();
   return (
     <View style={[styles.header, { backgroundColor: color.surface, borderBottomColor: color.border }]}>
@@ -25,7 +25,7 @@ export function SentirHeader({ onClose, onOpenDrawer }: SentirHeaderProps) {
         testID="sentir-history-open"
       />
       <Text style={[styles.title, { color: color.ink }]}>Sentir</Text>
-      <HeaderButton icon="close" label="Volver al inicio" onPress={onClose} testID="sentir-back" />
+      <View style={styles.spacer} />
     </View>
   );
 }
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     fontSize: tokens.type.subtitle.size,
     lineHeight: tokens.type.subtitle.lineHeight,
   },
+  spacer: { height: tokens.size.backButton, width: tokens.size.backButton },
   button: {
     alignItems: "center",
     borderRadius: tokens.radius.pill,

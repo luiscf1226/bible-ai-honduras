@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { CRISIS_REPLY } from "./crisis";
 import { buildFeelingQuestion, prayerForFeeling } from "./feelings";
 import { ANTHROPIC_MESSAGES_URL } from "./rag/llm";
 import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
@@ -109,6 +110,31 @@ describe("feelings.generate", () => {
     expect(history).toHaveLength(1);
     expect(history[0]).toMatchObject({ module: "feelings", preview: result.devotional.reflection });
     expect(fetchMock.mock.calls.some(([url]) => url === ANTHROPIC_MESSAGES_URL)).toBe(true);
+  });
+
+  it("ante riesgo de autolesión devuelve ayuda con un pasaje del corpus, sin IA, cuota ni consentimiento", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const t = convexTest(schema, modules);
+    const user = asUser(t, "feeling_crisis");
+    await user.mutation(api.users.upsert, {});
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      book: "Salmos",
+      chapter: 34,
+      verse: 18,
+      version: "RV1909",
+      text: "Cercano está Jehová á los quebrantados de corazón; Y salvará á los contritos de espíritu.",
+      embedding: unitVector(1),
+    });
+
+    const result = await user.action(generateFeeling, { feelings: ["Soledad"], note: "pienso en quitarme la vida" });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      devotional: { citation: { book: "Salmos", chapter: 34, verse: 18, version: "RV1909" }, reflection: CRISIS_REPLY },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await t.run((ctx) => ctx.db.query("usage").collect())).toEqual([]);
   });
 
   it("no genera un devocional sin una cita recuperada", async () => {

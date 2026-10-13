@@ -27,8 +27,8 @@ type HomeCardProps = PropsWithChildren<{
 /**
  * Tarjeta base del inicio (design/oleada-ux.md §U1): `surface`, borde,
  * `radius.xxl`, fila de título con ícono y chevron, una línea de qué ofrece y
- * el contenido propio. Toda la tarjeta es tocable; lo de adentro puede tener
- * sus propios toques (chips, atajos).
+ * el contenido propio. Toda la tarjeta es tocable. Una tarjeta, un destino
+ * (#232): solo "¿Cómo estás hoy?" lleva chips adentro (atajos a Sentir).
  */
 export function HomeCard({ accessibilityHint, caption, children, icon, onPress, testID, title }: HomeCardProps) {
   const { color } = useTheme();
@@ -153,69 +153,4 @@ const tileStyles = StyleSheet.create({
     marginBottom: tokens.space.xxs,
     marginTop: tokens.space.sm,
   },
-});
-
-/**
- * Chip pill con ícono: borde `borderStrong`, tipo `chip`, `inkSoft` (U1).
- * `fill` reparte el ancho entre los chips de una fila (U1b); sin `label` es un
- * chip de solo ícono y necesita `accessibilityLabel`.
- */
-export function HomeChip({
-  accessibilityHint,
-  accessibilityLabel,
-  dashed = false,
-  fill = false,
-  icon,
-  label,
-  onPress,
-  testID,
-}: {
-  accessibilityHint: string;
-  accessibilityLabel?: string;
-  dashed?: boolean;
-  fill?: boolean;
-  icon?: IconName;
-  label?: string;
-  onPress: () => void;
-  testID: string;
-}) {
-  const { color } = useTheme();
-  return (
-    <Pressable
-      accessibilityHint={accessibilityHint}
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        chipStyles.chip,
-        { borderColor: color.borderStrong },
-        fill && chipStyles.fill,
-        dashed && chipStyles.dashed,
-        pressed && styles.pressed,
-      ]}
-      testID={testID}
-    >
-      {icon ? <Icon color={color.inkSoft} name={icon} size="sm" /> : null}
-      {label ? (
-        <Text numberOfLines={1} style={[chipStyles.label, { color: color.inkSoft }]}>
-          {label}
-        </Text>
-      ) : null}
-    </Pressable>
-  );
-}
-
-const chipStyles = StyleSheet.create({
-  chip: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: tokens.space.xs,
-    paddingHorizontal: tokens.space.md,
-    paddingVertical: tokens.space.sm,
-  },
-  fill: { flex: 1, justifyContent: "center", paddingHorizontal: tokens.space.xxs },
-  dashed: { borderStyle: "dashed" },
-  label: { fontFamily: tokens.font.sans, fontSize: tokens.type.chip.size, lineHeight: tokens.type.chip.lineHeight },
 });

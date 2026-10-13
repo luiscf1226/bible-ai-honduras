@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type PropsWithChildren } from "react";
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Icon } from "./Icon";
+
 import { useTheme } from "../theme/ThemeProvider";
 import { tokens } from "../theme/tokens";
 
@@ -133,4 +135,39 @@ const styles = StyleSheet.create({
   },
   closeLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.subtitle.lineHeight },
   body: { gap: tokens.space.sm, paddingBottom: tokens.space.xl, paddingHorizontal: tokens.screenPadding.horizontal },
+});
+
+/** Cuántas conversaciones muestra un cajón: lo reciente; el resto, en "Mis conversaciones" (#232). */
+export const DRAWER_RECENT_COUNT = 6;
+
+/**
+ * "Ver todo" al pie de un cajón (Preguntar, Sentir): lleva a la única
+ * pantalla de historial, "Mis conversaciones", con el filtro puesto (#232).
+ */
+export function DrawerSeeAll({ label, onPress, testID }: { label: string; onPress: () => void; testID: string }) {
+  const { color } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={onPress}
+      style={({ pressed }) => [seeAllStyles.row, { borderTopColor: color.border }, pressed && seeAllStyles.pressed]}
+      testID={testID}
+    >
+      <Text style={[seeAllStyles.label, { color: color.accentDeep }]}>{label}</Text>
+      <Icon color={color.accentDeep} name="chevronRight" size="sm" />
+    </Pressable>
+  );
+}
+
+const seeAllStyles = StyleSheet.create({
+  row: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: tokens.space.xs,
+    marginTop: tokens.space.md,
+    paddingTop: tokens.space.lg,
+  },
+  label: { fontFamily: tokens.font.sans, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
+  pressed: { opacity: tokens.opacity.pressed },
 });

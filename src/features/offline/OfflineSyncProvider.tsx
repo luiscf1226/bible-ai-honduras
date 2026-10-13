@@ -23,8 +23,8 @@ import { clearPersistedQueries, usePersistedQuery } from "./usePersistedQuery";
 import { useIsOnline } from "./useIsOnline";
 
 /**
- * Cola sin conexión (#182): guarda las acciones en el teléfono y las manda en
- * orden cuando hay red y sesión. La lógica está en `mutationQueue.ts`; acá
+ * Cola sin conexión (#182, notas de prédica #232): guarda las acciones en el
+ * teléfono y las manda en orden cuando hay red y sesión. La lógica está en `mutationQueue.ts`; acá
  * solo se conecta con React, el disco y Convex.
  */
 const QUEUE_PATH = "queue.json";
@@ -39,6 +39,8 @@ const SYNC_FUNCTIONS: Record<SyncCall["fn"], FunctionReference<"mutation">> = {
   "reading.setSeparator": api.reading.setSeparator,
   "reading.clearSeparator": api.reading.clearSeparator,
   "readingPlans.markDayRead": api.readingPlans.markDayRead,
+  "sermonNotes.save": api.sermonNotes.save,
+  "sermonNotes.remove": api.sermonNotes.remove,
 };
 
 type OfflineSyncValue = {

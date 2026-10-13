@@ -174,7 +174,9 @@ export default defineSchema({
     openedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_chapter", ["userId", "book", "chapter"]),
+    .index("by_user_chapter", ["userId", "book", "chapter"])
+    // Capítulos abiertos por día para el dashboard de admin (#235).
+    .index("by_opened_at", ["openedAt"]),
 
   readingBookmarks: defineTable({
     userId: v.id("users"),
@@ -228,6 +230,25 @@ export default defineSchema({
     answerNote: v.optional(v.string()),
     verse: v.optional(v.object({ book: v.string(), chapter: v.number(), verse: v.number() })),
   }).index("by_user", ["userId"]),
+
+  // Notas de prédica (#232). Privadas, sin IA (convex/sermonNotes.ts). `clientId`
+  // lo pone el teléfono para que la cola sin conexión no duplique al reenviar.
+  // Entran en "Borrar mi historial" y en el borrado de cuenta.
+  sermonNotes: defineTable({
+    userId: v.id("users"),
+    clientId: v.string(),
+    date: v.string(),
+    church: v.optional(v.string()),
+    preacher: v.optional(v.string()),
+    title: v.string(),
+    passages: v.array(v.object({ book: v.string(), chapter: v.number(), verse: v.optional(v.number()) })),
+    notes: v.string(),
+    takeaway: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_client", ["userId", "clientId"]),
 
   // Versículos para memorizar (#158). Repaso espaciado: `level` es el escalón
   // (hoy, 3, 7, 21 días; convex/memorizeSchedule.ts) y `nextReview` el día de
@@ -373,7 +394,10 @@ export default defineSchema({
     ),
     day: v.string(), // "2026-08-18"; use "lifetime" for stories
     count: v.number(),
-  }).index("by_user_module_day", ["userId", "module", "day"]),
+  })
+    .index("by_user_module_day", ["userId", "module", "day"])
+    // Uso por módulo y día para el dashboard de admin (#235).
+    .index("by_day", ["day"]),
 
   entitlements: defineTable({
     userId: v.id("users"),

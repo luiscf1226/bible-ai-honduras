@@ -1,10 +1,15 @@
-import { resolveBibleVersion } from "./bibleVersions";
+import { DEFAULT_BIBLE_VERSION, resolveBibleVersion } from "./bibleVersions";
 import { ConvexError, v } from "convex/values";
 import { makeFunctionReference } from "convex/server";
 
 import { api, internal } from "./_generated/api";
 import { action, mutation } from "./_generated/server";
+import { countAiOutcome } from "./aiUsage";
+import { CRISIS_REPLY, detectCrisis } from "./crisis";
 import type { QuotaModule } from "./quotas";
+
+// Pasaje fijo para la respuesta de crisis: se lee del corpus, no se escribe a mano.
+const CRISIS_PASSAGE = { book: "Salmos", chapter: 34, verse: 18 };
 
 const MAX_FEELINGS = 4;
 const MAX_NOTE_LENGTH = 600;
@@ -134,6 +139,27 @@ export const generate = action({
     if (!user) {
       throw new ConvexError("No autenticado");
     }
+
+    if (detectCrisis(args.note, ...args.feelings)) {
+      await countAiOutcome(ctx, "feelings.crisis");
+      const version = resolveBibleVersion(user.bibleVersion);
+      const verse =
+        (await ctx.runQuery(api.rag.verses.getByRef, { version, ...CRISIS_PASSAGE })) ??
+        (await ctx.runQuery(api.rag.verses.getByRef, { version: DEFAULT_BIBLE_VERSION, ...CRISIS_PASSAGE }));
+      if (!verse) throw new ConvexError(CRISIS_REPLY);
+      const devotional = {
+        citation: { book: verse.book, chapter: verse.chapter, verse: verse.verse, version: verse.version, text: verse.text },
+        prayer: "Señor, estás cerca de los quebrantados de corazón. Dame fuerzas para pedir ayuda hoy. Amén.",
+        reflection: CRISIS_REPLY,
+        title: "No estás sin compañía",
+      };
+      const conversationId = await ctx.runMutation(saveGeneratedDevotional, {
+        prompt: buildFeelingQuestion(args),
+        devotional,
+      });
+      return { allowed: true as const, conversationId, devotional };
+    }
+
     await ctx.runQuery(api.users.requireAiConsent, {});
 
     // Se consume antes de llamar a rag.answer (y por lo tanto antes de gastar
@@ -145,6 +171,7 @@ export const generate = action({
       question: buildFeelingQuestion(args),
       // #93 §4b: NVI no tiene corpus; resolveBibleVersion degrada a RVR1960.
       version: resolveBibleVersion(user.bibleVersion),
+      feature: "feelings",
     });
 
     if (!result.citation) {

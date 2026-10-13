@@ -1,11 +1,12 @@
 import { useConvex, useMutation } from "convex/react";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import { localDateKey, type FaithDateKind } from "../../../convex/personalDates";
 import { AppButton } from "../../components/AppButton";
 import { FilterPills } from "../../components/FilterPills";
+import { ListCard, ListRow, ListSectionLabel } from "../../components/ListRow";
 import { refreshDailyRemindersIfActive } from "../../lib/reminderSchedule";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
@@ -104,8 +105,8 @@ export function PersonalDatesSection({ user }: Props) {
 
   return (
     <View testID="mi-espacio-fechas">
-      <Text style={[styles.sectionLabel, { color: color.inkSoft }]}>Tus fechas</Text>
-      <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]}>
+      <ListSectionLabel>Tus fechas</ListSectionLabel>
+      <ListCard>
         <Text style={[styles.intro, { color: color.inkMuted }]}>
           Ese día el inicio te saluda con un versículo. Solo vos las ves.
         </Text>
@@ -113,26 +114,19 @@ export function PersonalDatesSection({ user }: Props) {
           const isOpen = editing === row.field;
           const hasValue = row.value !== null;
           return (
-            <View key={row.field} style={[styles.rowDivider, { borderTopColor: color.border }]}>
-              <Pressable
+            <View key={row.field}>
+              <ListRow
                 accessibilityHint={isOpen ? "Cierra sin guardar." : `Abre para ${hasValue ? "cambiar" : "agregar"} la fecha.`}
                 accessibilityLabel={hasValue ? `${row.title}, ${row.value}` : row.title}
-                accessibilityRole="button"
+                action={isOpen ? "Cerrar" : hasValue ? "Cambiar" : "Agregar"}
+                actionMuted={!hasValue}
                 disabled={loading || busy}
+                hint={loading ? "…" : hasValue ? undefined : row.hint}
+                latest={!loading && hasValue ? (row.value ?? undefined) : undefined}
                 onPress={() => open(row.field)}
-                style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 testID={`mi-espacio-fechas-${row.field}`}
-              >
-                <View style={styles.rowText}>
-                  <Text style={[styles.rowLabel, { color: color.ink }]}>{row.title}</Text>
-                  <Text style={[hasValue ? styles.value : styles.rowHint, { color: hasValue ? color.inkMuted : color.inkSoft }]}>
-                    {loading ? "…" : (row.value ?? row.hint)}
-                  </Text>
-                </View>
-                <Text style={[styles.action, { color: hasValue ? color.accentDeep : color.inkSoft }]}>
-                  {isOpen ? "Cerrar" : hasValue ? "Cambiar ›" : "Agregar ›"}
-                </Text>
-              </Pressable>
+                title={row.title}
+              />
 
               {isOpen ? (
                 <View style={styles.editor} testID={`mi-espacio-fechas-${row.field}-editor`}>
@@ -194,22 +188,12 @@ export function PersonalDatesSection({ user }: Props) {
             </View>
           );
         })}
-      </View>
+      </ListCard>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Mismo rótulo de sección que Ajustes.
-  sectionLabel: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.overline.size,
-    letterSpacing: tokens.type.overline.letterSpacing,
-    marginBottom: tokens.space.md,
-    marginTop: tokens.space.xxl + tokens.space.xs,
-    textTransform: "uppercase",
-  },
-  card: { borderRadius: tokens.radius.xl, borderWidth: 1, overflow: "hidden" },
   intro: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,
@@ -217,21 +201,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.cardPadding.horizontal,
     paddingVertical: tokens.cardPadding.vertical,
   },
-  pressed: { opacity: tokens.opacity.pressed },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: tokens.cardPadding.horizontal,
-    paddingVertical: tokens.cardPadding.vertical,
-  },
-  rowDivider: { borderTopWidth: 1 },
-  rowText: { flex: 1, paddingRight: tokens.space.md },
-  rowLabel: { fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, lineHeight: tokens.type.label.lineHeight },
-  // La fecha guardada va en serif, como lo último de cada sección de Mi espacio.
-  value: { fontFamily: tokens.font.serif, fontSize: tokens.type.body.size, lineHeight: tokens.type.bodySm.lineHeight, marginTop: tokens.space.xs },
   rowHint: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight, marginTop: tokens.space.xs },
-  action: { fontFamily: tokens.font.sans, fontSize: tokens.type.caption.size },
   editor: { gap: tokens.space.md, paddingBottom: tokens.cardPadding.vertical, paddingHorizontal: tokens.cardPadding.horizontal },
   inputs: { flexDirection: "row", gap: tokens.space.sm },
   months: { gap: tokens.space.sm },

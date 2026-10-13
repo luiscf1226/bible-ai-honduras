@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { aiMeter } from "../aiUsage";
 import { embedDocuments } from "./embed";
 import rvr1960Sample from "./fixtures/rvr1960.sample.json";
 
@@ -43,7 +44,7 @@ export const ingestVerses = internalAction({
     const pendingTexts = args.verses
       .filter((item) => item.embedding === undefined)
       .map((item) => item.text);
-    const embedded = await embedDocuments(pendingTexts);
+    const embedded = await embedDocuments(pendingTexts, aiMeter(ctx, "ingest"));
     let generatedIndex = 0;
     let upserted = 0;
 

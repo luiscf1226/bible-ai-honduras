@@ -175,6 +175,18 @@ async function seedEverything(
       answeredAt: Date.now(),
       answerNote: `cómo respondió Dios a ${label}`,
     });
+    // Notas de prédica (#232).
+    await ctx.db.insert("sermonNotes", {
+      userId,
+      clientId: `sn-${label}-0001`.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+      date: "2026-10-11",
+      title: `prédica de ${label}`,
+      passages: [{ book: "Salmos", chapter: 46, verse: 1 }],
+      notes: `lo que anotó ${label}`,
+      takeaway: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
     // Memorizar (#158).
     await ctx.db.insert("memoryVerses", {
       userId,
@@ -237,6 +249,7 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     readingGroups: await ctx.db.query("readingGroups").collect(),
     readingGroupMembers: await ctx.db.query("readingGroupMembers").collect(),
     prayerRequests: await ctx.db.query("prayerRequests").collect(),
+    sermonNotes: await ctx.db.query("sermonNotes").collect(),
     memoryVerses: await ctx.db.query("memoryVerses").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
@@ -300,6 +313,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingPlanProgress: 2,
       readingGroupMemberships: 1,
       prayerRequests: 2,
+      sermonNotes: 1,
       memoryVerses: 1,
       users: 1,
     });
@@ -322,6 +336,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.readingGroups).toHaveLength(0);
     expect(after.readingGroupMembers).toHaveLength(0);
     expect(after.prayerRequests).toHaveLength(0);
+    expect(after.sermonNotes).toHaveLength(0);
     expect(after.memoryVerses).toHaveLength(0);
 
     // El blob no queda huérfano.
@@ -369,6 +384,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.prayerRequests.every((row) => row.userId === betoId && row.text.includes("Beto"))).toBe(true);
     expect(after.memoryVerses).toHaveLength(1);
     expect(after.memoryVerses[0]?.userId).toBe(betoId);
+    expect(after.sermonNotes.map((row) => row.userId)).toEqual([betoId]);
 
     // El blob de Beto sobrevive; el de Ana no.
     expect(after.storage).toHaveLength(1);
@@ -578,6 +594,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       readingPlanProgress: 0,
       readingGroupMemberships: 0,
       prayerRequests: 0,
+      sermonNotes: 0,
       memoryVerses: 0,
       users: 0,
     });

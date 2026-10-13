@@ -16,6 +16,11 @@ export type ScreenHeaderProps = {
   titleSize?: "page" | "pick";
   titleStyle?: StyleProp<TextStyle>;
   onBack?: () => void;
+  /**
+   * `false` en las pantallas que son pestaña (#232): no hay a dónde volver,
+   * la barra de abajo ya lleva a todos lados. Queda solo el título.
+   */
+  showBack?: boolean;
   accessibilityLabel?: string;
   /**
    * El ‹ va encima de una imagen (hero de `/hoy`): círculo con fondo
@@ -48,6 +53,7 @@ export function ScreenHeader({
   titleSize = "page",
   titleStyle,
   onBack = goBackOrHome,
+  showBack = true,
   accessibilityLabel = "Volver",
   onImage = false,
   testID,
@@ -60,21 +66,23 @@ export function ScreenHeader({
 
   return (
     <View style={[styles.header, style]}>
-      <Pressable
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-        // El círculo mide 34 (tokens.size.backButton) porque así está en el
-        // prototipo, pero 34 queda por debajo del mínimo táctil de 44pt de iOS
-        // y 48dp de Android. El hitSlop agranda el área sin tocar el diseño:
-        // 34 + 9*2 = 52. Al estar acá, aplica a las 5 pantallas de una.
-        hitSlop={tokens.space.sm}
-        onPress={onBack}
-        style={[styles.backButton, { borderColor: onImage ? "transparent" : color.border }, onImage && styles.onImage]}
-        testID={testID}
-      >
-        {onImage ? <View style={[StyleSheet.absoluteFill, styles.onImageFill, { backgroundColor: color.surface }]} /> : null}
-        <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
-      </Pressable>
+      {showBack ? (
+        <Pressable
+          accessibilityLabel={accessibilityLabel}
+          accessibilityRole="button"
+          // El círculo mide 34 (tokens.size.backButton) porque así está en el
+          // prototipo, pero 34 queda por debajo del mínimo táctil de 44pt de iOS
+          // y 48dp de Android. El hitSlop agranda el área sin tocar el diseño:
+          // 34 + 9*2 = 52. Al estar acá, aplica a las 5 pantallas de una.
+          hitSlop={tokens.space.sm}
+          onPress={onBack}
+          style={[styles.backButton, { borderColor: onImage ? "transparent" : color.border }, onImage && styles.onImage]}
+          testID={testID}
+        >
+          {onImage ? <View style={[StyleSheet.absoluteFill, styles.onImageFill, { backgroundColor: color.surface }]} /> : null}
+          <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
+        </Pressable>
+      ) : null}
       {center ? <View style={styles.center}>{center}</View> : null}
       {!center && title ? (
         <Text

@@ -1,11 +1,12 @@
 import { useQuery } from "convex/react";
 import { router } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import { GROUP_MAX_MEMBERS, MAX_GROUPS_PER_USER, membersCountLabel } from "../../convex/readingGroupCore";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
+import { ListCard, ListRow } from "../../src/components/ListRow";
 import { ScreenHeader } from "../../src/components/ScreenHeader";
 import { groupStyles as styles } from "../../src/features/groups/groupStyles";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -39,28 +40,18 @@ export default function GruposScreen() {
           Todavía no estás en ningún grupo. Creá uno y mandá el link por WhatsApp.
         </Text>
       ) : (
-        <View style={[styles.card, { backgroundColor: color.surface, borderColor: color.border }]} testID="grupos-lista">
+        <ListCard testID="grupos-lista">
           {groups.map((group, index) => (
-            <Pressable
-              accessibilityRole="button"
+            <ListRow
+              action="Ver"
+              hint={membersCountLabel(group.memberCount)}
               key={group.id}
               onPress={() => router.push({ pathname: "/grupos/[groupId]", params: { groupId: group.id } })}
-              style={({ pressed }) => [
-                styles.row,
-                index > 0 && styles.rowDivider,
-                index > 0 && { borderTopColor: color.border },
-                pressed && styles.pressed,
-              ]}
               testID={`grupos-item-${index}`}
-            >
-              <View style={styles.rowText}>
-                <Text style={[styles.rowLabel, { color: color.ink }]}>{group.name}</Text>
-                <Text style={[styles.caption, { color: color.inkSoft }]}>{membersCountLabel(group.memberCount)}</Text>
-              </View>
-              <Text style={[styles.rowAction, { color: color.accentDeep }]}>Ver ›</Text>
-            </Pressable>
+              title={group.name}
+            />
           ))}
-        </View>
+        </ListCard>
       )}
 
       <AppButton disabled={groups === undefined || atLimit} onPress={() => router.push("/grupos/nuevo")} testID="grupos-crear">

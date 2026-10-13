@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./rag/embed";
+import { CRISIS_REPLY } from "./crisis";
 import { QUOTA_LIMITS } from "./quotas";
 import { LEGACY_CONVERSATION_TITLE, conversationTitle } from "./qa";
 
@@ -96,6 +97,22 @@ describe("qa.ask", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     const usage = await t.run((ctx) => ctx.db.query("usage").collect());
     expect(usage).toEqual([]);
+  });
+
+  it("ante riesgo de autolesión responde con ayuda, sin IA ni cuota", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "qa_crisis");
+    await authed.mutation(api.users.upsert, {});
+    const fetchMock = stubExternalApis();
+
+    const result = await authed.action(api.qa.ask, { question: "No quiero vivir más" });
+
+    expect(result).toMatchObject({ status: "ok", answer: CRISIS_REPLY, citation: null });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await t.run((ctx) => ctx.db.query("usage").collect())).toEqual([]);
+    const thread = await authed.query(api.qa.thread, { conversationId: result.conversationId ?? undefined });
+    expect(thread.at(-1)?.text).toBe(CRISIS_REPLY);
   });
 
   it("responde una pregunta libre, sin pasaje, y persiste el turno", async () => {

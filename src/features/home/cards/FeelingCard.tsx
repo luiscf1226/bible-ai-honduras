@@ -2,7 +2,8 @@ import { StyleSheet, View } from "react-native";
 
 import { tokens } from "../../../theme/tokens";
 import { FEELING_SHORTCUTS, FEELING_WRITE_ROUTE, feelingRoute, HOME_ROUTES } from "../homeCards";
-import { HomeCard, HomeChip, openFromHome } from "./HomeCard";
+import { Chip } from "../../../components/Chip";
+import { HomeCard, openFromHome } from "./HomeCard";
 
 /**
  * Tarjeta ¿Cómo estás hoy? (U1b), compacta: tres sentimientos que se reparten
@@ -20,7 +21,7 @@ export function FeelingCard() {
     >
       <View style={styles.chips}>
         {FEELING_SHORTCUTS.map((feeling) => (
-          <HomeChip
+          <Chip
             accessibilityHint={`Prepara un devocional para ${feeling.toLowerCase()}.`}
             fill
             key={feeling}
@@ -29,7 +30,7 @@ export function FeelingCard() {
             testID={`home-feeling-${feeling}`}
           />
         ))}
-        <HomeChip
+        <Chip
           accessibilityHint="Abre Sentir para escribir cómo te sentís."
           accessibilityLabel="Escribilo con tus palabras"
           dashed

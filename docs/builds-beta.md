@@ -15,12 +15,14 @@ en Convex, nunca en Expo. Verificar el issuer JWT de la misma instancia Clerk,
 las funciones/índices desplegados y el corpus RV1909 (31.102 versículos) antes
 de distribución. Esta configuración del repo no certifica el estado remoto.
 
-`app.json` declara 1.0.0; EAS administra build numbers remotos con
+La build enviada a App Store es la **1.0.0 (26)**. En master `app.json` declara
+1.0.1 (betas TestFlight); EAS administra build numbers remotos con
 `autoIncrement`. Mantener `com.bibleaihonduras.app` como bundle y el App Group
 `group.com.bibleaihonduras.app` de los widgets.
 
-La edición gratuita está fijada en `src/lib/releaseConfig.ts`: pagos desactivados
-incluso con una key RevenueCat remota. Las comprobaciones de actualización iOS
+La edición gratuita está fijada en `src/lib/releaseConfig.ts` (PR #237, ya en
+master): pagos desactivados incluso con una key RevenueCat remota. Hoy EAS no
+tiene variables remotas (sin key RevenueCat). Las comprobaciones de actualización iOS
 se desactivan hasta separar metadata pública del mínimo de builds TestFlight.
 El enlace iOS ya apunta a App Store. No activar el piso compartido para usuarios
 públicos cuando el build solo está en TestFlight.

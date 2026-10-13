@@ -8,8 +8,11 @@
  * @module
  */
 
+import type * as adminAdapter from "../adminAdapter.js";
+import type * as aiUsage from "../aiUsage.js";
 import type * as appVersion from "../appVersion.js";
 import type * as bibleVersions from "../bibleVersions.js";
+import type * as crisis from "../crisis.js";
 import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
 import type * as devotionalCatalog from "../devotionalCatalog.js";
@@ -61,6 +64,8 @@ import type * as referrals from "../referrals.js";
 import type * as savedMemory from "../savedMemory.js";
 import type * as seasons from "../seasons.js";
 import type * as seasonsDraftCatalog from "../seasonsDraftCatalog.js";
+import type * as sermonNotes from "../sermonNotes.js";
+import type * as sermonNotesCore from "../sermonNotesCore.js";
 import type * as stories from "../stories.js";
 import type * as telemetry from "../telemetry.js";
 import type * as textStories from "../textStories.js";
@@ -80,8 +85,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminAdapter: typeof adminAdapter;
+  aiUsage: typeof aiUsage;
   appVersion: typeof appVersion;
   bibleVersions: typeof bibleVersions;
+  crisis: typeof crisis;
   crons: typeof crons;
   devotional: typeof devotional;
   devotionalCatalog: typeof devotionalCatalog;
@@ -133,6 +141,8 @@ declare const fullApi: ApiFromModules<{
   savedMemory: typeof savedMemory;
   seasons: typeof seasons;
   seasonsDraftCatalog: typeof seasonsDraftCatalog;
+  sermonNotes: typeof sermonNotes;
+  sermonNotesCore: typeof sermonNotesCore;
   stories: typeof stories;
   telemetry: typeof telemetry;
   textStories: typeof textStories;
@@ -172,4 +182,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  adminKit: import("../adminKit/_generated/component.js").ComponentApi<"adminKit">;
+};

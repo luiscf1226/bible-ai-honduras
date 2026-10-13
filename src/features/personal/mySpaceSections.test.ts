@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { buildMySpaceSections } from "./mySpaceSections";
 
-const empty = { separator: null, bookmarks: [], highlights: [], history: [], memorize: { total: 0, dueCount: 0 }, prayers: [] };
+const empty = {
+  separator: null,
+  bookmarks: [],
+  highlights: [],
+  history: [],
+  memorize: { total: 0, dueCount: 0 },
+  prayers: [],
+  sermonNotes: [],
+};
 
 describe("Mi espacio (#169)", () => {
   it("muestra las secciones vacías con cómo empezar, en vez de esconderlas", () => {
@@ -12,8 +20,8 @@ describe("Mi espacio (#169)", () => {
       "bookmarks",
       "highlights",
       "memorize",
-      "feelings",
       "prayers",
+      "sermonNotes",
       "conversations",
     ]);
     for (const section of sections) {
@@ -73,7 +81,28 @@ describe("Mi espacio (#169)", () => {
     });
     expect(byId.bookmarks).toMatchObject({ count: 2, detail: "Juan 3:16", action: "Ver todo", destination: { href: "/leer/guardados" } });
     expect(byId.highlights).toMatchObject({ count: 1, detail: "Romanos 8:28", destination: { href: "/leer/subrayados" } });
-    expect(byId.feelings).toMatchObject({ count: 1, destination: { kind: "sentir", openHistory: true } });
-    expect(byId.conversations).toMatchObject({ count: 2, detail: "¿Qué es la gracia?", destination: { href: "/historial" } });
+    // Un solo historial (#232): Sentir, Preguntar y Voces juntos, en "Mis conversaciones".
+    expect(byId.conversations).toMatchObject({ count: 3, detail: "Para la ansiedad", destination: { href: "/historial" } });
+  });
+
+  it("Notas de prédica (#232): la última y a la lista; vacía también lleva ahí", () => {
+    const withNotes = buildMySpaceSections({ ...empty, sermonNotes: [{ displayTitle: "Dios es nuestro amparo" }] }).find(
+      (s) => s.id === "sermonNotes",
+    );
+    expect(withNotes).toMatchObject({ count: 1, detail: "Dios es nuestro amparo", action: "Ver todo", destination: { href: "/notas" } });
+    expect(buildMySpaceSections(empty).find((s) => s.id === "sermonNotes")?.destination).toEqual({ kind: "route", href: "/notas" });
+  });
+
+  it("agrupa en Tu Biblia, Tu vida de fe y Conversaciones (#232)", () => {
+    const groups = buildMySpaceSections(empty).map((section) => `${section.group}:${section.id}`);
+    expect(groups).toEqual([
+      "biblia:separator",
+      "biblia:bookmarks",
+      "biblia:highlights",
+      "fe:memorize",
+      "fe:prayers",
+      "fe:sermonNotes",
+      "conversaciones:conversations",
+    ]);
   });
 });

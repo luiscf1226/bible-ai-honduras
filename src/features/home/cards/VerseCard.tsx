@@ -12,7 +12,8 @@ import { openFromHome } from "./HomeCard";
 /**
  * Tarjeta 1, Versículo del día (U1b): la imagen del devocional ocupa toda la
  * tarjeta, con `imageScrim`, y encima, abajo: `VERSÍCULO DEL DÍA`, el
- * versículo en serif `verse` y una fila con la cita y "Una pausa para hoy".
+ * versículo en serif `verse` y una fila con la cita y "Leer el devocional"
+ * (antes "Una pausa para hoy": chocaba con "Un minuto de pausa", #232).
  * Es la única tarjeta que se estira: se queda con el alto que sobra para que
  * el inicio entre en una pantalla (mínimo `size.verseCardImage`). Toda la
  * tarjeta abre `/hoy` (U2). Si falló la carga, tocar reintenta.
@@ -75,7 +76,7 @@ export function VerseCard() {
             <Text numberOfLines={1} style={[styles.reference, { color: tokens.color.surface }]}>
               {verse.text ? `${devotional?.verseRef} · ${verse.version}` : verse.version}
             </Text>
-            <Text style={[styles.footerLabel, { color: tokens.color.surface }]}>Una pausa para hoy</Text>
+            <Text style={[styles.footerLabel, { color: tokens.color.surface }]}>Leer el devocional</Text>
             <Icon color={tokens.color.surface} name="chevronRight" size="sm" />
           </View>
         </>
