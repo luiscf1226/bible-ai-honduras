@@ -15,6 +15,8 @@
  * Expo Go y web no completan una compra real. Hace falta un development build.
  */
 
+import { PAYMENTS_ENABLED } from "./releaseConfig";
+
 export const REVENUECAT_PRODUCT = {
   entitlementId: "pro",
   offeringId: "default",
@@ -98,7 +100,7 @@ export function resetRevenueCatForTests(): void {
  * `entitlements.mine`, así que un Pro otorgado a mano funciona igual.
  */
 export function purchasesConfigured(): boolean {
-  return Boolean(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY);
+  return PAYMENTS_ENABLED && Boolean(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY);
 }
 
 function publicApiKey(): string {

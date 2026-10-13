@@ -1,3 +1,5 @@
+import { Redirect } from "expo-router";
+import { PAYMENTS_ENABLED } from "../src/lib/releaseConfig";
 import { useAuth } from "@clerk/expo";
 import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,6 +30,10 @@ import { track } from "../src/lib/telemetry";
 import { tokens } from "../src/theme/tokens";
 
 export default function PaywallScreen() {
+  return PAYMENTS_ENABLED ? <PaidPaywallScreen /> : <Redirect href="/ajustes" />;
+}
+
+function PaidPaywallScreen() {
   const { userId } = useAuth();
   const entitlement = useQuery(api.entitlements.mine);
   const isPro = entitlement?.isPro === true;

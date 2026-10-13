@@ -20,10 +20,9 @@ La build enviada a App Store es la **1.0.0 (26)**. En master `app.json` declara
 `autoIncrement`. Mantener `com.bibleaihonduras.app` como bundle y el App Group
 `group.com.bibleaihonduras.app` de los widgets.
 
-La edición gratuita (build 26) sale del PR #237, que todavía no está en master:
-ahí `src/lib/releaseConfig.ts` desactiva pagos incluso con una key RevenueCat
-remota. Un build de master conserva la UI Pro; no enviarlo a App Review sin
-integrar antes ese PR. Hoy EAS no tiene variables remotas (sin key RevenueCat). Las comprobaciones de actualización iOS
+La edición gratuita está fijada en `src/lib/releaseConfig.ts` (PR #237, ya en
+master): pagos desactivados incluso con una key RevenueCat remota. Hoy EAS no
+tiene variables remotas (sin key RevenueCat). Las comprobaciones de actualización iOS
 se desactivan hasta separar metadata pública del mínimo de builds TestFlight.
 El enlace iOS ya apunta a App Store. No activar el piso compartido para usuarios
 públicos cuando el build solo está en TestFlight.

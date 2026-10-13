@@ -13,6 +13,9 @@ import {
   type RevenueCatNative,
 } from "./revenuecat";
 
+// Mantener cubierta la integración futura; el build gratuito se prueba aparte.
+vi.mock("./releaseConfig", () => ({ PAYMENTS_ENABLED: true }));
+
 function mockNative(overrides: Partial<RevenueCatNative> = {}): RevenueCatNative {
   return {
     configure: vi.fn(),

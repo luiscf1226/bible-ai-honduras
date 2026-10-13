@@ -20,6 +20,8 @@ import type { TextStoryListItem } from "../../convex/textStoriesCatalog";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
+import { limitBodyFor } from "../../src/lib/limitCopy";
+import { PAYMENTS_ENABLED } from "../../src/lib/releaseConfig";
 
 const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryListItem[]>(
   "textStories:list",
@@ -70,7 +72,7 @@ function HistoriasScreenContent() {
       <Text style={[styles.subtitle, { color: color.inkMuted }]}>
         {mode === "texto"
           ? "Leé la Biblia en narrativa. Gratis. Después preguntá el texto en Voces o en Preguntar."
-          : "Escenas ilustradas con IA. Incluyen una muestra gratis; el resto es Pro."}
+          : "Escenas ilustradas con IA. Incluyen una generación gratis por cuenta, sin pagos."}
       </Text>
 
       <FilterPills<StoryModeFilter>
@@ -213,7 +215,9 @@ function IllustratedStoryList({
               try {
                 const result = await create({ storyId: story.id });
                 if (!result.allowed) {
-                  router.push("/paywall");
+                  // Edición gratuita: sin paywall, se explica el límite acá mismo.
+                  if (PAYMENTS_ENABLED) router.push("/paywall");
+                  else setError(limitBodyFor("stories"));
                   return;
                 }
                 router.push({ pathname: "/historias/[storyId]", params: { storyId: story.id } });

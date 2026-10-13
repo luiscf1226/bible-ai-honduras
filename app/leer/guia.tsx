@@ -1,5 +1,5 @@
 import { useAction, useQuery } from "convex/react";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
@@ -22,6 +22,8 @@ import { parseChapterParams } from "../../src/features/reading/chapterNavigation
 import { shareContent } from "../../src/lib/share";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
+import { PAYMENTS_ENABLED } from "../../src/lib/releaseConfig";
+
 type Outcome =
   | { kind: "idle" }
   | { kind: "loading" }
@@ -36,6 +38,10 @@ type Outcome =
  * Preguntar: mismo pipeline RAG y misma cuota (`qa.prepareGroupGuide`).
  */
 export default function GuiaGrupoScreen() {
+  return PAYMENTS_ENABLED ? <PaidGuiaGrupoScreen /> : <Redirect href="/leer" />;
+}
+
+function PaidGuiaGrupoScreen() {
   const { color } = useTheme();
   const params = useLocalSearchParams<{ book?: string | string[]; chapter?: string | string[] }>();
   const ref = parseChapterParams(params);
