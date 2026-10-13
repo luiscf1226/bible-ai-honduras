@@ -1,0 +1,77 @@
+name: Publicar app
+
+# Un tag vX.Y.Z (igual a la versión de app.json) o "Run workflow" hace todo:
+# despliega Convex, compila iOS en EAS, lo sube a TestFlight y lo manda a
+# App Review. El lanzamiento queda MANUAL: una versión aprobada no se publica
+# hasta tocar "Publicar" en App Store Connect.
+#
+#   git tag v1.0.1 && git push origin v1.0.1
+#
+# Secrets: EXPO_TOKEN, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (repo) y
+# CONVEX_DEPLOY_KEY (environment convex-test).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      enviar_a_revision:
+        description: "Mandar a App Review después de subir a TestFlight"
+        type: boolean
+        default: true
+      novedades:
+        description: "Texto de Novedades para la App Store (opcional)"
+        type: string
+        default: ""
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    uses: ./.github/workflows/deploy-convex.yml
+    secrets: inherit
+
+  ios:
+    name: iOS → TestFlight → App Review
+    needs: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: El tag coincide con app.json
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::El tag ${GITHUB_REF_NAME} no coincide con app.json ($version). Subí la versión en app.json antes de taggear."
+            exit 1
+          fi
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # --auto-submit sube el build a App Store Connect (TestFlight) con la key
+      # de ASC guardada en EAS. Sin sync de capabilities: falla con App Groups.
+      - name: Compilar y subir a TestFlight
+        env:
+          EXPO_NO_CAPABILITY_SYNC: "1"
+        run: eas build --platform ios --profile production --non-interactive --auto-submit --wait
+
+      - name: Enviar a App Review
+        if: github.ref_type == 'tag' || inputs.enviar_a_revision
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          NOVEDADES: ${{ inputs.novedades }}
+        run: node scripts/submit-app-review.mjs
