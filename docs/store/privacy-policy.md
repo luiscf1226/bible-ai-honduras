@@ -1,6 +1,6 @@
 # Política de privacidad — Bible AI Honduras
 
-**Vigente desde:** 2 de octubre de 2026  
+**Vigente desde:** 12 de octubre de 2026
 **Responsable:** Bible AI Honduras  
 **Contacto de privacidad:** [luiscf1226@gmail.com](mailto:luiscf1226@gmail.com)  
 **URL pública:** <https://luiscf1226.github.io/bible-ai-honduras/privacidad/>
@@ -16,16 +16,15 @@ y elimina información cuando usás la aplicación móvil.
 - **Tus fechas (opcional):** si las cargás en Mi espacio, el día y el mes de
   tu cumpleaños (sin año) y la fecha de tu bautismo o conversión. Sirven solo
   para saludarte ese día con un versículo en el inicio y en el recordatorio.
-  No se envían a proveedores de IA, ni a RevenueCat, ni van en los datos de
+  No se envían a proveedores de IA, ni van en los datos de
   diagnóstico.
 - **Contenido que ingresás y recibís:** preguntas, mensajes, sentimientos o
   notas que escribís, conversaciones, respuestas y devocionales generados.
   Este contenido puede revelar creencias religiosas, estado emocional u otra
   información sensible que decidás compartir.
-- **Uso y acceso:** conteos para aplicar límites gratuitos, estado Pro y fecha
-  de vencimiento. Apple, Google y RevenueCat procesan la información necesaria
-  para compras y restauraciones; Bible AI Honduras no recibe el número completo
-  de tu tarjeta.
+- **Uso y acceso:** conteos para aplicar límites gratuitos. Podemos conservar
+  un estado de acceso de cortesía asignado en pruebas anteriores. La edición
+  gratuita 1.0 no procesa compras ni envía datos a RevenueCat.
 - **Lectura:** el último capítulo que abriste, capítulos recientes, versículos
   guardados, tu separador y el avance en planes de lectura y recorridos. Leer
   es gratis y estos datos no se envían a proveedores de IA.
@@ -38,13 +37,15 @@ y elimina información cuando usás la aplicación móvil.
   Biblia guardada en la app.
 - **Historias:** historia elegida, estado de generación, escenas e imágenes
   creadas.
-- **Invitaciones:** si llegaste por el link de otra persona (o escribiste su
-  código), guardamos ese código en tu cuenta y se lo pasamos a RevenueCat, para
-  saber cuánta gente llega y se suscribe por invitación. No le avisamos a quien
-  te invitó ni le mostramos nada tuyo, y no hay premios por invitar.
+- **Invitaciones:** si llegaste por el link de otra persona o escribiste su
+  código, lo guardamos en tu cuenta para conocer el origen de la invitación.
+  No se envía a RevenueCat en esta edición, no mostramos tus datos a quien te
+  invitó y no hay premios por invitar.
+- **Planes en grupo (opcional):** si te unís a uno, los miembros del grupo ven
+  tu nombre y tu avance de lectura. Tus conversaciones, notas y diario de
+  oración siguen privados y no se comparten con el grupo.
 - **Diagnóstico:** cuando la app falla, el mensaje técnico del error; y pasos
-  sueltos de uso (por ejemplo, "abrió la app", "hizo una pregunta", "vio la
-  pantalla Pro"), con la plataforma y el número de build. Van con un
+  sueltos de uso (por ejemplo, "abrió la app", "hizo una pregunta", "abrió una cita"), con la plataforma y el número de build. Van con un
   identificador aleatorio del teléfono que **no se une con tu cuenta**, y nunca
   incluyen lo que escribís, tus notas, tus sentimientos ni los versículos. Se
   borran solos a los 90 días.
@@ -57,7 +58,7 @@ No vendemos datos personales ni mostramos publicidad basada en ellos.
 
 Los usamos para autenticarte, guardar tus preferencias e historial, responder
 preguntas, crear devocionales e ilustraciones, mostrar citas bíblicas, aplicar
-los límites Gratis/Pro, completar compras y restauraciones, proteger el servicio
+los límites gratuitos, proteger el servicio
 y atender solicitudes de privacidad.
 
 ## IA y proveedores externos
@@ -71,10 +72,9 @@ prompts editoriales de historias y no con tus conversaciones.
 
 También usamos [Clerk](https://clerk.com/legal/privacy) para autenticación,
 [Convex](https://www.convex.dev/legal/privacy) para base de datos, funciones y
-archivos, [RevenueCat](https://www.revenuecat.com/privacy-policy) para gestionar
-el estado de suscripción, y Apple o Google para distribución, compras y servicios
-del dispositivo. Cada proveedor procesa información bajo sus propios términos y
-políticas.
+archivos, y Apple o Google para distribución y servicios del dispositivo.
+La edición 1.0 no utiliza RevenueCat ni procesa compras. Cada proveedor procesa
+información bajo sus propios términos y políticas.
 
 Bible AI Honduras no entrena modelos propios con tus conversaciones. Las
 políticas vigentes de las APIs comerciales de
@@ -95,7 +95,7 @@ guardados (los versículos guardados y los de Memorizar se quedan); no las ocult
 mediante una marca de borrado y la acción no se puede deshacer.
 
 Ese botón no elimina tu cuenta, perfil, preferencias, conteos de uso, estado de
-suscripción, historias ni copias temporales que un proveedor de IA mantenga bajo
+acceso, historias ni copias temporales que un proveedor de IA mantenga bajo
 su propia política. Esos datos se conservan mientras la cuenta esté activa o por
 el tiempo razonablemente necesario para prestar y proteger el servicio. Los
 registros exigidos por razones fiscales, antifraude o legales pueden conservarse
@@ -114,8 +114,7 @@ conversaciones y mensajes, los conteos de uso, el plan dentro de la app, los
 datos de lectura (progreso, guardados, separador y planes), el diario de
 oración, los versículos de Memorizar, las historias e imágenes generadas que
 controlemos, y la identidad asociada en
-Clerk. **Eliminar la cuenta no cancela la suscripción de la tienda**; eso se
-administra en App Store o Google Play. También podés cerrar sesión sin borrar
+Clerk. También podés cerrar sesión sin borrar
 datos en **Ajustes → Cuenta → Cerrar sesión**.
 
 Si ya no tenés la app instalada, escribí a
