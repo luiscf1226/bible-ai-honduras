@@ -6,6 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, query } from "./_generated/server";
 import { aiMeter, countAiOutcome } from "./aiUsage";
+import { CRISIS_REPLY, detectCrisis } from "./crisis";
 import { isGrounded } from "./rag/answer";
 import { generateStructuredAnswer } from "./rag/llm";
 import { retrieveTopVerses } from "./rag/retrieve";
@@ -131,7 +132,18 @@ export const sendMessage = action({
     if (!character || !verdict.ok) {
       const refusal = !verdict.ok ? verdict.refusal : DIVINE_REFUSAL;
       await countAiOutcome(ctx, "voices.refused");
+      // El hilo se pinta desde `voices.thread`: sin guardar el turno, la
+      // negativa no se vería y el mensaje parecería perdido.
+      if (character) {
+        await ctx.runMutation(internal.voices.persistTurn, { slug: args.slug, userText: args.text, assistantText: refusal });
+      }
       return { status: "refused" as const, answer: refusal, citation: null };
+    }
+
+    if (detectCrisis(args.text)) {
+      await countAiOutcome(ctx, "voices.crisis");
+      await ctx.runMutation(internal.voices.persistTurn, { slug: args.slug, userText: args.text, assistantText: CRISIS_REPLY });
+      return { status: "ok" as const, answer: CRISIS_REPLY, citation: null };
     }
 
     await ctx.runQuery(api.users.requireAiConsent, {});
