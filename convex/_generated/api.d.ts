@@ -12,6 +12,7 @@ import type * as adminAdapter from "../adminAdapter.js";
 import type * as aiUsage from "../aiUsage.js";
 import type * as appVersion from "../appVersion.js";
 import type * as bibleVersions from "../bibleVersions.js";
+import type * as crisis from "../crisis.js";
 import type * as crons from "../crons.js";
 import type * as devotional from "../devotional.js";
 import type * as devotionalCatalog from "../devotionalCatalog.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   aiUsage: typeof aiUsage;
   appVersion: typeof appVersion;
   bibleVersions: typeof bibleVersions;
+  crisis: typeof crisis;
   crons: typeof crons;
   devotional: typeof devotional;
   devotionalCatalog: typeof devotionalCatalog;
