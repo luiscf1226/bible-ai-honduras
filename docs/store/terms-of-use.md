@@ -1,14 +1,12 @@
 # Términos de uso — Bible AI Honduras
 
-**Vigente desde:** 30 de septiembre de 2026  
+**Vigente desde:** 12 de octubre de 2026
 **Responsable:** Bible AI Honduras  
 **Contacto:** [luiscf1226@gmail.com](mailto:luiscf1226@gmail.com)  
 **URL pública:** <https://luiscf1226.github.io/bible-ai-honduras/terminos/>
 
-> Borrador preparado para la ficha de tienda (App Store 3.1.2 exige un enlace a
-> los términos de uso en toda app con suscripción auto-renovable). **Tiene que
-> pasar por revisión legal antes del lanzamiento público.** La versión HTML que
-> se publica vive en `site/terminos/index.html`; las dos se editan juntas.
+> Texto preparado para la edición gratuita 1.0. Mantenerlo sincronizado con
+> `site/terminos/index.html`. La revisión de #152 sigue pendiente.
 
 ## 1. Qué es la app
 
@@ -23,22 +21,17 @@ Para usar la app necesitás una cuenta (Google, Apple o correo). Sos responsable
 de lo que se haga desde tu cuenta. Podés cerrar sesión o eliminar la cuenta en
 **Ajustes → Cuenta** en cualquier momento.
 
-## 3. Gratis y Pro
+## 3. Versión gratuita y límites
 
-Leer la Biblia, los planes de lectura y el devocional diario son gratis. Las
-funciones con IA tienen un límite gratuito diario (o de por vida, en el caso de
-las historias ilustradas). **Pro** quita esos límites por **USD 4.99 al mes**
-(o su equivalente local que muestre la tienda).
+La edición 1.0 es gratuita y no ofrece compras ni suscripciones. Leer la Biblia,
+los planes, Memorizar y el catálogo de historias en texto no tiene cuota de IA.
+Las funciones con IA incluyen 5 preguntas, 5 mensajes de Voces y 3 devocionales
+de Sentir por día, que se renuevan a medianoche de Honduras. Historias
+ilustradas incluye una generación por cuenta; ese cupo no se renueva cada día.
+Las historias ya generadas se pueden volver a consultar.
 
-- La suscripción se cobra a tu cuenta de App Store o Google Play al confirmar
-  la compra.
-- **Se renueva automáticamente** cada mes salvo que la canceles al menos 24
-  horas antes del final del período.
-- La cancelás y administrás desde los ajustes de suscripciones de la tienda.
-  Eliminar la cuenta o la app **no** cancela la suscripción.
-- Los reembolsos los gestiona la tienda según sus propias reglas.
-- En iOS también aplica el
-  [Contrato de licencia de usuario final estándar de Apple](https://www.apple.com/legal/internet-services/itunes/dev/stdeula/).
+En iOS también aplica el
+[Contrato de licencia de usuario final estándar de Apple](https://www.apple.com/legal/internet-services/itunes/dev/stdeula/).
 
 ## 4. Contenido generado por IA
 
@@ -72,9 +65,7 @@ Cómo tratamos tus datos está en la
 ## 8. Disponibilidad y responsabilidad
 
 La app se ofrece "tal cual". Hacemos lo posible por mantenerla disponible y
-correcta, pero no garantizamos que esté libre de errores o interrupciones. En la
-medida que permita la ley, nuestra responsabilidad total se limita a lo que
-pagaste por Pro en los últimos 12 meses.
+correcta, pero no garantizamos que esté libre de errores o interrupciones.
 
 ## 9. Cambios
 
