@@ -158,7 +158,7 @@ async function submit(target) {
     "GET",
     `/v1/reviewSubmissions?filter[app]=${APP_ID}&filter[platform]=IOS&limit=20`,
   );
-  const active = submissions.find((s) => ["WAITING_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES"].includes(s.attributes.state));
+  const active = submissions.find((s) => ["WAITING_FOR_REVIEW", "IN_REVIEW"].includes(s.attributes.state));
   if (active) {
     throw new Error(
       `Ya hay un envío en revisión (${active.attributes.state}). El build quedó en TestFlight; ` +
@@ -169,7 +169,8 @@ async function submit(target) {
     console.log("DRY_RUN: no se envía a revisión.");
     return;
   }
-  const draft = submissions.find((s) => s.attributes.state === "READY_FOR_REVIEW");
+  const unresolved = submissions.find((s) => s.attributes.state === "UNRESOLVED_ISSUES");
+  const draft = unresolved ?? submissions.find((s) => s.attributes.state === "READY_FOR_REVIEW");
   const submission =
     draft ??
     (
@@ -182,6 +183,16 @@ async function submit(target) {
       })
     ).data;
   const items = await api("GET", `/v1/reviewSubmissions/${submission.id}/items`);
+  if (unresolved) {
+    const matching = items.data.find((item) => item.relationships?.appStoreVersion?.data?.id === target.id);
+    if (!matching || items.data.some((item) => item.id !== matching.id && item.attributes.state !== "ACCEPTED")) {
+      throw new Error("El envío rechazado contiene otros elementos pendientes; no se marcarán como resueltos automáticamente.");
+    }
+    console.log(`Marcando como corregido el elemento ${matching.id} con el nuevo build.`);
+    await api("PATCH", `/v1/reviewSubmissionItems/${matching.id}`, {
+      data: { type: "reviewSubmissionItems", id: matching.id, attributes: { resolved: true } },
+    });
+  }
   if (items.data.length === 0) {
     await api("POST", "/v1/reviewSubmissionItems", {
       data: {
@@ -196,6 +207,11 @@ async function submit(target) {
   await api("PATCH", `/v1/reviewSubmissions/${submission.id}`, {
     data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
   });
+  const { data: confirmed } = await api("GET", `/v1/reviewSubmissions/${submission.id}`);
+  if (!["WAITING_FOR_REVIEW", "IN_REVIEW"].includes(confirmed.attributes.state)) {
+    throw new Error(`El envío no quedó en revisión: ${confirmed.attributes.state}`);
+  }
+  console.log(`Estado confirmado: ${confirmed.attributes.state}.`);
 }
 
 const build = await waitForBuild();
@@ -204,6 +220,9 @@ const all = await versions();
 const target = await findOrCreateVersion(all);
 if (target) {
   if (!dryRun) {
+    await api("PATCH", `/v1/appStoreVersions/${target.id}`, {
+      data: { type: "appStoreVersions", id: target.id, attributes: { releaseType: "MANUAL" } },
+    });
     await api("PATCH", `/v1/appStoreVersions/${target.id}/relationships/build`, {
       data: { type: "builds", id: build.id },
     });

@@ -65,7 +65,10 @@ jobs:
       - name: Compilar y subir a TestFlight
         env:
           EXPO_NO_CAPABILITY_SYNC: "1"
-        run: eas build --platform ios --profile production --non-interactive --auto-submit --wait
+        run: |
+          eas build --platform ios --profile production --non-interactive --auto-submit --wait --json > "$RUNNER_TEMP/ios-build.json"
+          build_number=$(jq -er '.[0].appBuildVersion' "$RUNNER_TEMP/ios-build.json")
+          echo "BUILD_NUMBER=$build_number" >> "$GITHUB_ENV"
 
       - name: Enviar a App Review
         if: github.ref_type == 'tag' || inputs.enviar_a_revision
