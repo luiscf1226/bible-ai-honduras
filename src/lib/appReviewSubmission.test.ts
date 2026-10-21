@@ -25,7 +25,10 @@ function run(state: string, otherItem = false, dryRun = false) {
       else if (path.endsWith('/appStoreReviewDetail')) data = { id: 'details' };
       else if (path === '/v1/reviewSubmissions') data = [{ id: 'submission', attributes: { state: ${JSON.stringify(state)} } }];
       else if (path.endsWith('/items')) data = [
-        { id: 'item', attributes: { state: 'REJECTED' }, relationships: { appStoreVersion: { data: { id: 'version' } } } },
+        { id: 'item', attributes: { state: 'REJECTED' },
+          // Apple solo incluye el vínculo cuando se solicita explícitamente.
+          ...(new URL(url).searchParams.get('include') === 'appStoreVersion'
+            ? { relationships: { appStoreVersion: { data: { id: 'version' } } } } : {}) },
         ...(${otherItem} ? [{ id: 'other', attributes: { state: 'REJECTED' } }] : [])
       ];
       else if (path === '/v1/reviewSubmissionItems/item' && method === 'PATCH') data = { id: 'item' };
@@ -51,6 +54,7 @@ describe("reenvío de App Review con un build corregido", () => {
     const result = run("UNRESOLVED_ISSUES");
     expect(result.status, result.stdout).toBe(0);
     expect(result.calls[0].search).toContain("filter[version]=28");
+    expect(result.calls.find((call) => call.path.endsWith("/items"))?.search).toBe("?include=appStoreVersion");
     const mutations = result.calls.filter((call) => call.method !== "GET");
     expect(mutations.map((call) => call.path)).toEqual([
       "/v1/appStoreVersions/version",
