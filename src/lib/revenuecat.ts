@@ -123,7 +123,8 @@ async function loadNative(): Promise<RevenueCatNative | null> {
   }
 
   try {
-    const { Platform } = await import("react-native");
+    // Evitar import(): Metro evalúa todos los getters del paquete.
+    const { Platform } = require("react-native") as typeof import("react-native");
     // En web no hay compra. La excepción es el harness de QA
     // (qa-harness/README.md), que mockea el SDK para fotografiar el paywall.
     if (Platform.OS === "web" && process.env.EXPO_PUBLIC_QA_HARNESS !== "1") {

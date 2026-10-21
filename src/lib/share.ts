@@ -70,7 +70,9 @@ async function loadNative(): Promise<ShareNative> {
   if (nativeOverride !== undefined) {
     return nativeOverride;
   }
-  const { Clipboard, Platform, Share } = await import("react-native");
+  // Metro import() enumera los getters de react-native y puede cargar módulos
+  // nativos de otra plataforma. require conserva la carga selectiva.
+  const { Platform, Share } = require("react-native") as typeof import("react-native");
   return {
     share: (content) => Share.share(content),
     dismissedAction: Share.dismissedAction,
@@ -79,7 +81,10 @@ async function loadNative(): Promise<ShareNative> {
       const Sharing = await import("expo-sharing");
       await Sharing.shareAsync(fileUri, options);
     },
-    copyText: (text) => Clipboard.setString(text),
+    copyText: (text) => {
+      const { Clipboard } = require("react-native") as typeof import("react-native");
+      Clipboard.setString(text);
+    },
   };
 }
 
@@ -108,7 +113,7 @@ export function takeTrackedSharesForTests(): (ShareOrigin | null)[] {
 
 // Dueño único del share sheet nativo (regla dura #3 de CLAUDE.md) — todo módulo que
 // necesite compartir por WhatsApp importa esta función, no reimplementa su propia
-// variante. El import de react-native es dinámico (vía loadNative) para que
+// variante. La carga selectiva de react-native se difiere (vía loadNative) para que
 // buildReferralLink/buildShareMessage sean testeables sin el runtime nativo.
 //
 // Antes del fix, un rechazo de Share.share() (o del propio `await import`) se

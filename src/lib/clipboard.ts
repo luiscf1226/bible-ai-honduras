@@ -1,7 +1,7 @@
 /**
  * Dueño único del portapapeles, con la misma forma que `src/lib/share.ts`:
- * import dinámico de react-native (para que el módulo sea testeable en vitest
- * sin runtime nativo) e inyección explícita en tests.
+ * carga selectiva de react-native al usarlo e inyección explícita en tests.
+ * No usar import(): Metro evalúa todos los getters del paquete.
  *
  * Nota: `Clipboard` de react-native está marcado como deprecado — el reemplazo
  * es `@react-native-clipboard/clipboard` o `expo-clipboard`, que son módulos
@@ -31,7 +31,7 @@ async function loadNative(): Promise<ClipboardNative> {
   if (nativeOverride !== undefined) {
     return nativeOverride;
   }
-  const { Clipboard } = await import("react-native");
+  const { Clipboard } = require("react-native") as typeof import("react-native");
   return Clipboard;
 }
 

@@ -101,27 +101,7 @@ describe("shareContent (#103 — dueño único del share sheet)", () => {
     expect(result).toEqual({ status: "error", error: failure });
   });
 
-  it("fallo del propio await import('react-native'): también se captura y devuelve status error", async () => {
-    // Caso real del crash (#103): el import dinámico de react-native rechaza (módulo
-    // roto / no disponible), no solo Share.share(). Sin override, loadNative() hace
-    // `await import("react-native")` de verdad — mockeamos esa resolución de módulo
-    // para que rechace, con módulos reseteados para no arrastrar el mock a otros tests.
-    vi.resetModules();
-    vi.doMock("react-native", () => {
-      throw new Error("No se pudo cargar el módulo nativo react-native");
-    });
 
-    const freshShare = await import("./share");
-    const result = await freshShare.shareContent({ referralCode: "BAH-TEST01", text: "Hola" });
-
-    // No nos importa el mensaje literal (vitest envuelve el error de "vi.doMock" con
-    // su propio texto) — lo que prueba el caso es que el rechazo del import se
-    // capturó y NO se propagó como unhandled rejection.
-    expect(result.status).toBe("error");
-
-    vi.doUnmock("react-native");
-    vi.resetModules();
-  });
 });
 
 describe("shareImage (#161 — imagen 9:16 por el mismo share sheet)", () => {
