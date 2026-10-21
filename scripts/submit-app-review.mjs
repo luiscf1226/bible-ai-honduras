@@ -227,6 +227,15 @@ async function submit(target) {
 const build = await waitForBuild();
 console.log(`Build ${build.attributes.version} (${version}) listo en App Store Connect.`);
 const all = await versions();
+const alreadySubmitted = all.find((item) => item.attributes.versionString === version &&
+  ["WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.appStoreState));
+if (alreadySubmitted) {
+  const { data: assignedBuild } = await api("GET", `/v1/appStoreVersions/${alreadySubmitted.id}/build`);
+  if (assignedBuild?.id !== build.id) throw new Error("La versión ya está en revisión con otro build; no se modificará.");
+  console.log(`Estado confirmado: ${alreadySubmitted.attributes.appStoreState}.`);
+  console.log(`Versión ${version} (build ${build.attributes.version}) ya enviada a App Review.`);
+  process.exit(0);
+}
 const target = await findOrCreateVersion(all);
 if (target) {
   if (!dryRun) {
