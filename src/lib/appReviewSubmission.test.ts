@@ -9,7 +9,7 @@ const script = readFileSync(new URL("../../scripts/submit-app-review.mjs", impor
 const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey
   .export({ type: "pkcs8", format: "pem" }).toString();
 
-function run(state: string, otherItem = false, dryRun = false) {
+function run(state: string, otherItem = false, dryRun = false, missingLink = false, paginated = false) {
   const code = `
     const calls = [];
     globalThis.fetch = async (url, options) => {
@@ -27,14 +27,15 @@ function run(state: string, otherItem = false, dryRun = false) {
       else if (path.endsWith('/items')) data = [
         { id: 'item', attributes: { state: 'REJECTED' },
           // Apple solo incluye el vínculo cuando se solicita explícitamente.
-          ...(new URL(url).searchParams.get('include') === 'appStoreVersion'
+          ...(!${missingLink} && new URL(url).searchParams.get('include') === 'appStoreVersion'
             ? { relationships: { appStoreVersion: { data: { id: 'version' } } } } : {}) },
         ...(${otherItem} ? [{ id: 'other', attributes: { state: 'REJECTED' } }] : [])
       ];
       else if (path === '/v1/reviewSubmissionItems/item' && method === 'PATCH') data = { id: 'item' };
       else if (path === '/v1/reviewSubmissions/submission') data = { id: 'submission', attributes: { state: 'WAITING_FOR_REVIEW' } };
       else throw new Error('Unexpected request: ' + method + ' ' + path);
-      return { ok: true, text: async () => JSON.stringify({ data }) };
+      return { ok: true, text: async () => JSON.stringify({ data,
+        ...(path.endsWith('/items') && ${paginated} ? { links: { next: 'https://api.appstoreconnect.apple.com/next' } } : {}) }) };
     };
     try { await import('data:text/javascript;base64,' + ${JSON.stringify(Buffer.from(script).toString("base64"))}); }
     catch (error) { console.log('ERROR:' + error.message); process.exitCode = 1; }
@@ -54,7 +55,8 @@ describe("reenvío de App Review con un build corregido", () => {
     const result = run("UNRESOLVED_ISSUES");
     expect(result.status, result.stdout).toBe(0);
     expect(result.calls[0].search).toContain("filter[version]=28");
-    expect(result.calls.find((call) => call.path.endsWith("/items"))?.search).toBe("?include=appStoreVersion");
+    const itemQuery = new URLSearchParams(result.calls.find((call) => call.path.endsWith("/items"))?.search);
+    expect(itemQuery.get("include")).toBe("appStoreVersion");
     const mutations = result.calls.filter((call) => call.method !== "GET");
     expect(mutations.map((call) => call.path)).toEqual([
       "/v1/appStoreVersions/version",
@@ -80,6 +82,20 @@ describe("reenvío de App Review con un build corregido", () => {
     const result = run("IN_REVIEW");
     expect(result.status).toBe(1);
     expect(result.calls.some((call) => call.path === "/v1/reviewSubmissions/submission")).toBe(false);
+  });
+
+  it("distingue un vínculo ausente de un rechazo ajeno", () => {
+    const result = run("UNRESOLVED_ISSUES", false, false, true);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("No se encontró el vínculo");
+    expect(result.calls.some((call) => call.path.startsWith("/v1/reviewSubmissionItems/"))).toBe(false);
+  });
+
+  it("no envía una lista incompleta de elementos", () => {
+    const result = run("UNRESOLVED_ISSUES", false, false, false, true);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("lista de elementos está incompleta");
+    expect(result.calls.some((call) => call.path.startsWith("/v1/reviewSubmissionItems/"))).toBe(false);
   });
 
   it("DRY_RUN no cambia datos ni marca el rechazo como resuelto", () => {
