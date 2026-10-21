@@ -182,10 +182,20 @@ async function submit(target) {
         },
       })
     ).data;
-  const items = await api("GET", `/v1/reviewSubmissions/${submission.id}/items`);
+  // Sin include, Apple omite el vínculo y no se puede identificar la versión.
+  const items = await api("GET", `/v1/reviewSubmissions/${submission.id}/items?include=appStoreVersion&limit=200`);
+  console.log(`Elementos del envío: ${JSON.stringify(items.data.map((item) => ({
+    id: item.id,
+    state: item.attributes.state,
+    versionId: item.relationships?.appStoreVersion?.data?.id ?? null,
+  })))}`);
+  if (items.links?.next) throw new Error("La lista de elementos está incompleta; no se enviará una revisión parcial.");
   if (unresolved) {
     const matching = items.data.find((item) => item.relationships?.appStoreVersion?.data?.id === target.id);
-    if (!matching || items.data.some((item) => item.id !== matching.id && item.attributes.state !== "ACCEPTED")) {
+    if (!matching) {
+      throw new Error(`No se encontró el vínculo de la versión ${target.id} en el envío rechazado ${submission.id}.`);
+    }
+    if (items.data.some((item) => item.id !== matching.id && item.attributes.state !== "ACCEPTED")) {
       throw new Error("El envío rechazado contiene otros elementos pendientes; no se marcarán como resueltos automáticamente.");
     }
     console.log(`Marcando como corregido el elemento ${matching.id} con el nuevo build.`);
@@ -217,6 +227,15 @@ async function submit(target) {
 const build = await waitForBuild();
 console.log(`Build ${build.attributes.version} (${version}) listo en App Store Connect.`);
 const all = await versions();
+const alreadySubmitted = all.find((item) => item.attributes.versionString === version &&
+  ["WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.appStoreState));
+if (alreadySubmitted) {
+  const { data: assignedBuild } = await api("GET", `/v1/appStoreVersions/${alreadySubmitted.id}/build`);
+  if (assignedBuild?.id !== build.id) throw new Error("La versión ya está en revisión con otro build; no se modificará.");
+  console.log(`Estado confirmado: ${alreadySubmitted.attributes.appStoreState}.`);
+  console.log(`Versión ${version} (build ${build.attributes.version}) ya enviada a App Review.`);
+  process.exit(0);
+}
 const target = await findOrCreateVersion(all);
 if (target) {
   if (!dryRun) {

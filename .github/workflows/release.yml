@@ -15,6 +15,10 @@ on:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
+      build_existente:
+        description: "Build ya subido a Apple: enviarlo a revisión sin compilar ni desplegar (opcional)"
+        type: string
+        default: ""
       enviar_a_revision:
         description: "Mandar a App Review después de subir a TestFlight"
         type: boolean
@@ -30,12 +34,14 @@ concurrency:
 
 jobs:
   backend:
+    if: ${{ !inputs.build_existente }}
     uses: ./.github/workflows/deploy-convex.yml
     secrets: inherit
 
   ios:
     name: iOS → TestFlight → App Review
     needs: backend
+    if: ${{ !cancelled() && (needs.backend.result == 'success' || (needs.backend.result == 'skipped' && inputs.build_existente != '')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -56,6 +62,7 @@ jobs:
           fi
 
       - uses: expo/expo-github-action@v8
+        if: ${{ !inputs.build_existente }}
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -63,12 +70,24 @@ jobs:
       # --auto-submit sube el build a App Store Connect (TestFlight) con la key
       # de ASC guardada en EAS. Sin sync de capabilities: falla con App Groups.
       - name: Compilar y subir a TestFlight
+        if: ${{ !inputs.build_existente }}
         env:
           EXPO_NO_CAPABILITY_SYNC: "1"
         run: |
           eas build --platform ios --profile production --non-interactive --auto-submit --wait --json > "$RUNNER_TEMP/ios-build.json"
           build_number=$(jq -er '.[0].appBuildVersion' "$RUNNER_TEMP/ios-build.json")
           echo "BUILD_NUMBER=$build_number" >> "$GITHUB_ENV"
+
+      - name: Usar el build ya subido a Apple
+        if: ${{ inputs.build_existente != '' }}
+        env:
+          EXISTING_BUILD: ${{ inputs.build_existente }}
+        run: |
+          if ! [[ "$EXISTING_BUILD" =~ ^[0-9]+$ ]]; then
+            echo "::error::El número de build debe contener solo dígitos."
+            exit 1
+          fi
+          echo "BUILD_NUMBER=$EXISTING_BUILD" >> "$GITHUB_ENV"
 
       - name: Enviar a App Review
         if: github.ref_type == 'tag' || inputs.enviar_a_revision
