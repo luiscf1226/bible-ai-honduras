@@ -51,6 +51,9 @@ export const TELEMETRY_EVENTS = [
   // título, el predicador, los pasajes ni lo escrito.
   "sermon_note_created",
   "sermon_note_shared",
+  // Feed de versículos: solo que se abrió / que se dio ♥. Nunca la cita.
+  "verse_feed_opened",
+  "verse_feed_liked",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 

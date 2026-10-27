@@ -495,3 +495,69 @@ mismo diámetro que `logoMedium`).
   de la pestaña, y los números no se muestran.
 - "Eliminar mi cuenta" abre Ajustes directo en la confirmación de dos pasos
   (`/ajustes?eliminar=1`); la confirmación sigue viviendo en un solo lugar.
+
+## Feed de versículos (`/versiculos`)
+
+Pedido directo del fundador (27 de octubre de 2026): "un scroll infinito de
+versículos, tipo TikTok, según lo que le gusta a la persona y a la comunidad".
+Se diseñó fuera de Claude Design, con permiso explícito, como el resto de esta
+oleada. El fundador eligió que **viva dentro de Inicio** (una tarjeta que lo
+abre), no como pestaña nueva.
+
+**Tarjeta del inicio** (`FeedCard`): un `HomeCard` normal debajo del
+versículo del día, ícono `heart`, título serif `subtitle` "Versículos para
+vos" y una línea `bodySm` `inkMuted`. Sin contenido propio, para que el inicio
+siga entrando en una pantalla (U1b): el versículo del día se encoge lo que haga
+falta, hasta su mínimo `size.verseCardImage`.
+
+**Pantalla** (`app/versiculos.tsx`, `FeedVersePage`): un versículo por
+pantalla, swipe vertical con `pagingEnabled`, sin fin.
+
+- Fondo: la foto de un devocional a pantalla completa con `imageScrim`, como
+  el versículo del día. El texto va siempre en `surface` claro, también de
+  noche.
+- Bloque del versículo (centrado en el alto, alineado a la izquierda):
+  - tema en `overline` `sansMedium` al `imageMuted` ("ESPERANZA";
+    "VERSÍCULO" si solo viene de un devocional);
+  - el versículo en serif entre comillas. El tamaño baja con el largo para
+    que nunca haga falta scroll: hasta 120 caracteres `type.verseFeed`
+    (token nuevo, 31/41), hasta 240 `verseHero` y, si es más largo,
+    `readerBody`. Nunca más de 300 caracteres (`FEED_TEXT_MAX`, lo que entra
+    en un iPhone SE con la letra del sistema al tope): un rango más largo se
+    acorta a los versículos que entran, con la cita corregida
+    ("2 Corintios 12:9"), y nunca se corta un versículo por la mitad;
+  - la cita con la versión ("Filipenses 4:6-7 (RV1909)") en `sansMedium`
+    `label` al `imageMuted`.
+- Columna de acciones abajo a la derecha, separadas `space.xl`: círculos
+  `size.feedAction` (token nuevo, 48 ≥ área táctil mínima) con relleno
+  `surface` al `opacity.feedActionFill` (token nuevo, 0.16) e ícono
+  `icon.xl` (token nuevo, 28); debajo, la etiqueta en `caption` `sansMedium`.
+  - ♥ (`heart`, ícono nuevo del set, mismo trazo): relleno `accent` cuando
+    está marcado; la etiqueta es la cuenta de la comunidad ("37", "1.2 mil";
+    vacía sin ♥).
+  - Compartir (`whatsapp`): pasa por `shareContent`, el único dueño del
+    share sheet (regla dura #3), con el mismo formato que el lector.
+  - Leer (`book`): abre el lector en el capítulo, con el versículo marcado.
+- Doble toque en cualquier parte = ♥ (nunca lo quita) y un corazón grande
+  (`size.feedHeart`, token nuevo, 96) en `accent` en el centro, que aparece
+  con un resorte y se va en `motion.feedHeart` (700 ms). La ventana del doble
+  toque es `motion.feedDoubleTap` (280 ms). Con "reducir movimiento" el
+  corazón aparece y desaparece sin moverse.
+- Accesibilidad: el doble toque vive en una capa detrás del contenido y
+  fuera de VoiceOver/TalkBack; el versículo se lee como un solo elemento
+  (texto + cita) y ♥ / Compartir / Leer son botones propios. La letra del
+  sistema se agranda hasta `fontScale.feedMax` (token nuevo, 1.3) para que un
+  pasaje largo entre sin scroll.
+- Solo en la primera pantalla, abajo al centro: `chevronDown` y "Deslizá para
+  ver más" en `caption` `sansLight` al `imageMuted`.
+- El ‹ de volver es el `ScreenHeader` `onImage` de `/hoy`, fijo arriba a la
+  izquierda.
+
+**Qué se muestra** (`convex/verseFeedCore.ts`): nada se genera (regla dura
+#4). El catálogo son los versículos por tema curados a mano
+(`docs/content/versiculos-por-tema.json`) más el pasaje de cada uno de los 366
+devocionales; el texto sale de la Biblia cargada en la versión de la persona.
+Cada página ordena por: afinidad con los temas de lo que la persona marcó con
+♥ + ♥ de toda la comunidad + azar. Cada cuatro lugares entra uno al azar puro,
+para descubrir temas nuevos, y no van más de dos del mismo tema por página.
+Cuando ya se vio todo el catálogo, empieza otra vuelta sin repetir los últimos.

@@ -51,6 +51,8 @@ export const ICONS = {
   lock: [{ kind: "rect", x: 5, y: 10.5, width: 14, height: 10, rx: 2.4 }, path("M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5")],
   refresh: [path("M20 11.5a8 8 0 1 0-2.5 5.8"), path("M20 5.5v6h-6")],
   // Nuevos, mismo trazo.
+  // ♥ del feed de versículos.
+  heart: [path("M12 20s-7.5-4.6-7.5-10.1A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z")],
   menu: [path("M4 7h16M4 12h16M4 17h10")],
   search: [{ kind: "circle", cx: 11, cy: 11, r: 6.5 }, path("M16 16l4 4")],
   plus: [path("M12 5v14M5 12h14")],

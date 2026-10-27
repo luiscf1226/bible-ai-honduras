@@ -268,6 +268,27 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_verse", ["userId", "book", "chapter", "verse"]),
 
+  // Feed de versículos (design/oleada-ux.md §Feed de versículos): los ♥ de
+  // cada persona. `ref` es la cita del catálogo curado ("Filipenses 4:6-7").
+  // Entra en el borrado de cuenta.
+  verseFeedLikes: defineTable({
+    userId: v.id("users"),
+    ref: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_user_ref", ["userId", "ref"]),
+
+  // Total de ♥ por cita, de toda la comunidad: lo que ordena "lo más querido"
+  // sin recorrer los likes. Anónimo (no guarda quién); el borrado de cuenta
+  // descuenta los ♥ de la persona.
+  verseFeedStats: defineTable({
+    ref: v.string(),
+    likes: v.number(),
+  })
+    .index("by_ref", ["ref"])
+    .index("by_likes", ["likes"]),
+
   // Diagnóstico (convex/telemetry.ts): eventos del embudo y errores de la app.
   // Sin userId a propósito — `installId` es un id aleatorio del teléfono que no
   // se une con la cuenta — y sin contenido. Se borran a los 90 días.
