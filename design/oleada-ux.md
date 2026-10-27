@@ -518,6 +518,13 @@ pantalla, swipe vertical con `pagingEnabled`, sin fin.
   Santo como figura; personas solo lejanas o de espaldas), con `imageScrim`.
   Mientras una cita no tenga la suya, va la foto de un devocional. El texto va
   siempre en `surface` claro, también de noche.
+- **Animación propia (sin video):** el fondo de la pantalla a la vista hace un
+  zoom lento con paseo de ida y vuelta (`motion.kenBurns` 14 s por tramo, zoom
+  hasta `kenBurnsScale` 1.12, paseo de `kenBurnsShift` 18 px hacia un lado
+  fijo por cita) y el versículo entra subiendo `verseRiseDistance` (14 px) con
+  fundido en `verseRise` (700 ms) la primera vez que se ve. Las ilustraciones
+  de Historias usan el mismo zoom lento, distinto en cada escena. Con
+  "reducir movimiento" todo queda quieto.
 - **Voz:** al quedar en pantalla, una voz natural de IA lee el versículo tal
   cual se ve (RV1909, sin agregar nada), como el sonido de un video. Botón
   redondo arriba a la derecha, igual al ‹ `onImage`, con `sound` / `soundOff`
