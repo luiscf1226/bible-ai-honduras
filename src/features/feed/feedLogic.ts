@@ -90,13 +90,20 @@ export function createDoubleTapDetector(windowMs: number) {
   };
 }
 
-/** Cita para mostrar y compartir: "Filipenses 4:6-7 (RV1909)". */
-export function feedReference(item: Pick<FeedItem, "ref" | "version">): string {
-  return `${item.ref} (${item.version})`;
+/**
+ * Cita para mostrar y compartir: "Filipenses 4:6-7 (RV1909)". Sale de los
+ * versículos que de verdad se muestran (un rango largo puede venir acortado),
+ * no del id del catálogo.
+ */
+export function feedReference(item: Pick<FeedItem, "book" | "chapter" | "verse" | "endVerse" | "version">): string {
+  const verses = item.endVerse === null ? `${item.verse}` : `${item.verse}-${item.endVerse}`;
+  return `${item.book} ${item.chapter}:${verses} (${item.version})`;
 }
 
 /** Mismo formato que compartir un versículo del lector (`shareVerse.ts`), con rangos. */
-export function buildFeedShareText(item: Pick<FeedItem, "ref" | "text" | "version">): string {
+export function buildFeedShareText(
+  item: Pick<FeedItem, "book" | "chapter" | "verse" | "endVerse" | "text" | "version">,
+): string {
   return `"${feedVerseText(item.text)}"\n— ${feedReference(item)}`;
 }
 

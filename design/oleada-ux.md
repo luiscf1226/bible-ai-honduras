@@ -522,7 +522,10 @@ pantalla, swipe vertical con `pagingEnabled`, sin fin.
   - el versículo en serif entre comillas. El tamaño baja con el largo para
     que nunca haga falta scroll: hasta 120 caracteres `type.verseFeed`
     (token nuevo, 31/41), hasta 240 `verseHero` y, si es más largo,
-    `readerBody`;
+    `readerBody`. Nunca más de 300 caracteres (`FEED_TEXT_MAX`, lo que entra
+    en un iPhone SE con la letra del sistema al tope): un rango más largo se
+    acorta a los versículos que entran, con la cita corregida
+    ("2 Corintios 12:9"), y nunca se corta un versículo por la mitad;
   - la cita con la versión ("Filipenses 4:6-7 (RV1909)") en `sansMedium`
     `label` al `imageMuted`.
 - Columna de acciones abajo a la derecha, separadas `space.xl`: círculos

@@ -5,6 +5,7 @@ import {
   buildFeedShareText,
   createDoubleTapDetector,
   feedItemKey,
+  feedReference,
   feedVerseText,
   feedVerseType,
   formatLikes,
@@ -50,9 +51,9 @@ describe("texto del versículo", () => {
   });
 
   it("compartir usa el mismo texto que se ve", () => {
-    expect(buildFeedShareText(item("Hebreos 11:1", { text: "ES pues la fe" }))).toBe(
-      '"Es pues la fe"\n— Hebreos 11:1 (RV1909)',
-    );
+    expect(
+      buildFeedShareText(item("Hebreos 11:1", { book: "Hebreos", chapter: 11, verse: 1, text: "ES pues la fe" })),
+    ).toBe('"Es pues la fe"\n— Hebreos 11:1 (RV1909)');
   });
 });
 
@@ -115,9 +116,17 @@ describe("doble toque", () => {
 
 describe("compartir", () => {
   it("lleva el versículo y la cita con el rango completo", () => {
-    expect(buildFeedShareText(item("Filipenses 4:6-7", { text: "Por nada estéis afanosos…" }))).toBe(
+    const passage = { book: "Filipenses", chapter: 4, verse: 6, endVerse: 7, text: "Por nada estéis afanosos…" };
+    expect(buildFeedShareText(item("Filipenses 4:6-7", passage))).toBe(
       '"Por nada estéis afanosos…"\n— Filipenses 4:6-7 (RV1909)',
     );
+  });
+});
+
+describe("cita", () => {
+  it("sale de los versículos que se muestran, no del id del catálogo", () => {
+    const shortened = item("2 Corintios 12:9-10", { book: "2 Corintios", chapter: 12, verse: 9, endVerse: null });
+    expect(feedReference(shortened)).toBe("2 Corintios 12:9 (RV1909)");
   });
 });
 

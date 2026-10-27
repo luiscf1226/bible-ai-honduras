@@ -1,6 +1,6 @@
 import topicVersesJson from "../docs/content/versiculos-por-tema.json";
 import { devotionalCatalog } from "./devotionalCatalog";
-import { FEED_PAGE_SIZE, FEED_RECENT_GUARD } from "./verseFeedLimits";
+import { FEED_PAGE_SIZE, FEED_RECENT_GUARD, FEED_TEXT_MAX } from "./verseFeedLimits";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos): un scroll
@@ -216,4 +216,27 @@ export function rankFeedPage({
     perGroup.set(groupOf(next), (perGroup.get(groupOf(next)) ?? 0) + 1);
   }
   return { passages: page, newRound };
+}
+
+/**
+ * Lo que entra en una pantalla de un pasaje: versículos desde el primero
+ * mientras el texto no pase `FEED_TEXT_MAX`. Un rango largo se acorta (y la
+ * cita con él: "2 Corintios 12:9" en vez de "12:9-10"); si ni el primer
+ * versículo entra, no se muestra. Nunca se corta un versículo por la mitad.
+ */
+export function fitPassageText(
+  rows: readonly { verse: number; text: string }[],
+  max = FEED_TEXT_MAX,
+): { text: string; endVerse: number | null } | null {
+  const sorted = [...rows].sort((a, b) => a.verse - b.verse);
+  let text = "";
+  let last: number | null = null;
+  for (const row of sorted) {
+    const next = text ? `${text} ${row.text.trim()}` : row.text.trim();
+    if (next.length > max) break;
+    text = next;
+    last = row.verse;
+  }
+  if (last === null) return null;
+  return { text, endVerse: last === sorted[0].verse ? null : last };
 }

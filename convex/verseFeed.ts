@@ -10,6 +10,7 @@ import {
   FEED_SEEN_MAX,
   FEED_TOPIC_NAMES,
   feedPassage,
+  fitPassageText,
   rankFeedPage,
   type FeedPassage,
 } from "./verseFeedCore";
@@ -25,6 +26,7 @@ const COMMUNITY_TOP = 60;
 const LIKES_FOR_AFFINITY = 200;
 
 export type FeedItem = {
+  /** Id de la cita en el catálogo (lo que guarda el ♥). Para mostrar, la cita sale de book/chapter/verse/endVerse. */
   ref: string;
   book: string;
   chapter: number;
@@ -49,7 +51,7 @@ async function currentUser(ctx: QueryCtx): Promise<Doc<"users"> | null> {
     .unique();
 }
 
-async function passageText(ctx: QueryCtx, passage: FeedPassage, version: string): Promise<string | null> {
+async function passageText(ctx: QueryCtx, passage: FeedPassage, version: string) {
   const last = passage.endVerse ?? passage.verse;
   const rows = await ctx.db
     .query("verses")
@@ -62,8 +64,7 @@ async function passageText(ctx: QueryCtx, passage: FeedPassage, version: string)
         .lte("verse", last),
     )
     .collect();
-  if (rows.length === 0) return null;
-  return rows.map((row) => row.text.trim()).join(" ");
+  return fitPassageText(rows);
 }
 
 async function likesFor(ctx: QueryCtx, ref: string): Promise<number> {
@@ -133,9 +134,10 @@ export const page = query({
     const skipped: string[] = [];
     for (const passage of passages) {
       if (items.length === FEED_PAGE_SIZE) break;
-      const text = await passageText(ctx, passage, version);
-      // Una cita que no está en la Biblia cargada no se muestra: nunca texto inventado (regla dura #4).
-      if (!text) {
+      const fitted = await passageText(ctx, passage, version);
+      // Una cita que no está en la Biblia cargada (o no entra en la pantalla) no se muestra:
+      // nunca texto inventado ni cortado (regla dura #4).
+      if (!fitted) {
         skipped.push(passage.ref);
         continue;
       }
@@ -145,8 +147,8 @@ export const page = query({
         book: passage.book,
         chapter: passage.chapter,
         verse: passage.verse,
-        endVerse: passage.endVerse,
-        text,
+        endVerse: fitted.endVerse,
+        text: fitted.text,
         version,
         topic: topicId ? (FEED_TOPIC_NAMES.get(topicId) ?? null) : null,
         imageUrl: passage.imageUrl,

@@ -63,7 +63,7 @@ describe("verseFeed.page", () => {
     }
   });
 
-  it("un rango junta el texto de todos sus versículos", async () => {
+  it("un rango corto junta el texto de todos sus versículos", async () => {
     const t = convexTest(schema, modules);
     await seedPool(t);
 

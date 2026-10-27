@@ -10,3 +10,8 @@ export const FEED_PAGE_SIZE = 8;
 export const FEED_SEEN_MAX = 1000;
 /** Cuando ya se vio todo, la vuelta nueva no repite las últimas que se vieron. */
 export const FEED_RECENT_GUARD = 24;
+/**
+ * Largo máximo del texto en pantalla. Con `readerBody` y la letra del sistema
+ * al tope (`fontScale.feedMax`), es lo que entra en un iPhone SE sin scroll.
+ */
+export const FEED_TEXT_MAX = 300;

@@ -8,6 +8,7 @@ import {
   FEED_POOL,
   FEED_RECENT_GUARD,
   FEED_SEEN_MAX,
+  fitPassageText,
   parseFeedRef,
   rankFeedPage,
   topicAffinity,
@@ -282,5 +283,25 @@ describe("orden del feed", () => {
         ["fe", 1],
       ]),
     );
+  });
+});
+
+describe("lo que entra en una pantalla", () => {
+  const rows = [
+    { verse: 10, text: "b".repeat(100) },
+    { verse: 9, text: "a".repeat(150) },
+  ];
+
+  it("un rango que entra va completo, en orden", () => {
+    expect(fitPassageText(rows, 300)).toEqual({ text: `${"a".repeat(150)} ${"b".repeat(100)}`, endVerse: 10 });
+  });
+
+  it("un rango largo se acorta a los versículos que entran, sin cortar ninguno", () => {
+    expect(fitPassageText(rows, 200)).toEqual({ text: "a".repeat(150), endVerse: null });
+  });
+
+  it("si ni el primer versículo entra, no se muestra", () => {
+    expect(fitPassageText(rows, 100)).toBeNull();
+    expect(fitPassageText([], 300)).toBeNull();
   });
 });
