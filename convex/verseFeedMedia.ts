@@ -21,7 +21,8 @@ import { feedPassageText, spokenText, textHash } from "./verseFeedText";
  *
  * Generar todo el catálogo (una vez, ~473 imágenes + ~473 voces):
  *   npx convex run verseFeedMedia:generateMissing '{"budget": 1000}'
- * El cron diario completa con `DAILY_BUDGET` lo que falte (citas nuevas).
+ * No hay cron: el fundador decidió quedarse con lo ya generado (27 de
+ * octubre de 2026). Lo que falta va con la foto del devocional y sin voz.
  */
 
 export type FeedMediaKind = "image" | "audio";
@@ -31,8 +32,6 @@ export const MAX_ATTEMPTS = 3;
 /** Generaciones por tanda; cada una corre en paralelo de a `PARALLEL`. */
 const BATCH = 8;
 const PARALLEL = 4;
-/** Lo que el cron diario puede gastar en citas nuevas. */
-export const DAILY_BUDGET = 20;
 /** Cuánto dura la reserva de una tanda (más que lo que tarda una acción). */
 const CLAIM_MS = 15 * 60 * 1000;
 /** Si una tanda entera falla por el proveedor (límite, caída), la próxima espera esto. */
@@ -210,7 +209,7 @@ export function isTransientFailure(error: unknown): boolean {
 /**
  * Genera lo que falta, de a tandas, y se vuelve a agendar hasta agotar el
  * `budget` (cantidad máxima de generaciones, para que el gasto tenga techo).
- * Solo se corre desde la terminal o el cron: el cliente no puede disparar
+ * Solo se corre desde la terminal: el cliente no puede disparar
  * generaciones. Si la mitad de la tanda o más falla por el proveedor, la
  * próxima espera `BACKOFF_MS` en lugar de seguir chocando con el límite.
  */
