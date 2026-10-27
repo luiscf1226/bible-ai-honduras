@@ -91,6 +91,70 @@ describe("users.upsert", () => {
   });
 });
 
+describe("users.upsert — migración de Clerk desarrollo → producción", () => {
+  const PROD_ISSUER = "https://clerk.example.hn";
+
+  it("reasigna la fila existente cuando el mismo correo verificado llega con otro subject", async () => {
+    const t = convexTest(schema, modules);
+    const dev = asUser(t, "user_dev_ana", { email: "ana@example.hn", emailVerified: true });
+    const userId = await dev.mutation(api.users.upsert, {});
+    await dev.mutation(api.users.updatePreferences, { reminderHour: 6 });
+
+    const prod = t.withIdentity({
+      subject: "user_prod_ana",
+      issuer: PROD_ISSUER,
+      email: "ana@example.hn",
+      emailVerified: true,
+    });
+    expect(await prod.mutation(api.users.upsert, {})).toBe(userId);
+
+    const rows = await t.run((ctx) => ctx.db.query("users").collect());
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      clerkId: "user_prod_ana",
+      reminderHour: 6,
+      referralCode: makeReferralCode("user_dev_ana"),
+    });
+    expect(await prod.query(api.users.current, {})).toMatchObject({ _id: userId });
+  });
+
+  it("no reasigna si el correo no viene verificado", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await asUser(t, "user_dev_beto", { email: "beto@example.hn" }).mutation(api.users.upsert, {});
+
+    const intruso = t.withIdentity({ subject: "user_prod_beto", issuer: PROD_ISSUER, email: "beto@example.hn" });
+    const newId = await intruso.mutation(api.users.upsert, {});
+
+    expect(newId).not.toBe(userId);
+    expect(await t.run((ctx) => ctx.db.get(userId))).toMatchObject({ clerkId: "user_dev_beto" });
+  });
+
+  it("no reasigna si hay más de una fila con ese correo", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      for (const clerkId of ["user_a", "user_b"]) {
+        await ctx.db.insert("users", {
+          clerkId,
+          email: "doble@example.hn",
+          bibleVersion: "RV1909",
+          referralCode: makeReferralCode(clerkId),
+        });
+      }
+    });
+
+    const prod = t.withIdentity({
+      subject: "user_prod_doble",
+      issuer: PROD_ISSUER,
+      email: "doble@example.hn",
+      emailVerified: true,
+    });
+    await prod.mutation(api.users.upsert, {});
+
+    const rows = await t.run((ctx) => ctx.db.query("users").collect());
+    expect(rows.map((row) => row.clerkId).sort()).toEqual(["user_a", "user_b", "user_prod_doble"]);
+  });
+});
+
 describe("users.updatePreferences", () => {
   it("actualiza darkMode del usuario autenticado", async () => {
     const t = convexTest(schema, modules);
