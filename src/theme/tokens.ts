@@ -208,7 +208,23 @@ export const tokens = {
   // de 360); lo que despliega "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
   grid: { chapterColumns: 5, actionColumns: 4, primaryActionColumns: 5 },
   // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.
-  motion: { pause: 60000, verseDelay: 600, verseFadeIn: 2400, closeFadeIn: 1200, feedDoubleTap: 280, feedHeart: 700 },
+  motion: {
+    pause: 60000,
+    verseDelay: 600,
+    verseFadeIn: 2400,
+    closeFadeIn: 1200,
+    feedDoubleTap: 280,
+    feedHeart: 700,
+    // Animación propia de las imágenes (feed y Historias): zoom lento con paseo ("Ken Burns").
+    // Un tramo de ida dura `kenBurns`, después vuelve; `kenBurnsScale` es el zoom máximo y
+    // `kenBurnsShift` cuánto se corre la imagen (px). El versículo del feed entra subiendo
+    // `verseRiseDistance` en `verseRise`.
+    kenBurns: 14000,
+    kenBurnsScale: 1.12,
+    kenBurnsShift: 18,
+    verseRise: 700,
+    verseRiseDistance: 14,
+  },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
   storyImage: {
     width: 1080,

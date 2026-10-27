@@ -78,10 +78,11 @@ export default function VersiculosScreen() {
         onSetLike={setLike}
         onShare={onShare}
         shareDisabled={!referralCode}
+        active={index === activeIndex}
         showHint={index === 0}
       />
     ),
-    [height, insets.bottom, insets.top, onRead, onShare, referralCode, setLike],
+    [activeIndex, height, insets.bottom, insets.top, onRead, onShare, referralCode, setLike],
   );
 
   return (
@@ -103,6 +104,8 @@ export default function VersiculosScreen() {
           {focused ? <StatusBar barStyle="light-content" /> : null}
           <FlatList
             data={items}
+            // La pantalla activa cambia la animación de su fondo y la entrada del versículo.
+            extraData={activeIndex}
             decelerationRate="fast"
             getItemLayout={(_, index) => ({
               index,

@@ -1,7 +1,8 @@
-import { memo, useRef, useState } from "react";
-import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { memo, useEffect, useRef, useState } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Icon, type IconName } from "../../components/Icon";
+import { KenBurnsImage } from "../../components/KenBurnsImage";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
@@ -22,6 +23,8 @@ type FeedVersePageProps = {
   insetBottom: number;
   /** Solo la primera pantalla invita a deslizar. */
   showHint: boolean;
+  /** La pantalla que se ve: su fondo se mueve y su versículo entra subiendo. */
+  active: boolean;
   onSetLike: (ref: string, liked: boolean) => void;
   onShare: (item: FeedItem) => void;
   onRead: (item: FeedItem) => void;
@@ -37,6 +40,7 @@ type FeedVersePageProps = {
  * VoiceOver/TalkBack, el ♥ es el botón).
  */
 function FeedVersePageImpl({
+  active,
   height,
   insetBottom,
   insetTop,
@@ -51,6 +55,19 @@ function FeedVersePageImpl({
   const reduceMotion = useReduceMotion();
   const [isDoubleTap] = useState(() => createDoubleTapDetector(tokens.motion.feedDoubleTap));
   const burst = useRef(new Animated.Value(0)).current;
+  // Entrada del versículo: 0 = abajo y transparente, 1 = en su lugar. Solo la primera vez que se ve.
+  const rise = useRef(new Animated.Value(active || reduceMotion ? 1 : 0)).current;
+  const risen = useRef(active);
+  useEffect(() => {
+    if (!active || risen.current) return;
+    risen.current = true;
+    if (reduceMotion) {
+      rise.setValue(1);
+      return;
+    }
+    rise.setValue(0);
+    Animated.timing(rise, { duration: tokens.motion.verseRise, toValue: 1, useNativeDriver: true }).start();
+  }, [active, reduceMotion, rise]);
   const text = feedVerseText(item.text);
   const verseType = tokens.type[feedVerseType(text)];
 
@@ -88,11 +105,13 @@ function FeedVersePageImpl({
 
   return (
     <View style={[styles.page, { backgroundColor: color.surfaceSunk, height }]} testID={`feed-page-${item.ref}`}>
-      <Image
+      {/* Animación propia: zoom lento con paseo mientras la pantalla está a la vista. */}
+      <KenBurnsImage
         accessibilityLabel={item.imageAlt}
-        resizeMode="cover"
-        source={{ uri: item.imageUrl }}
+        active={active}
+        seed={item.ref}
         style={StyleSheet.absoluteFill}
+        uri={item.imageUrl}
       />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: color.imageScrim }]} />
       {/*
@@ -113,11 +132,24 @@ function FeedVersePageImpl({
           },
         ]}
       >
-        <View
+        <Animated.View
           accessibilityLabel={`${text}. ${feedReference(item)}`}
           accessible
           pointerEvents="none"
-          style={styles.verseBlock}
+          style={[
+            styles.verseBlock,
+            {
+              opacity: rise,
+              transform: [
+                {
+                  translateY: rise.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [tokens.motion.verseRiseDistance, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
           <Text style={[styles.overline, { color: tokens.color.surface }]}>
             {(item.topic ?? "Versículo").toUpperCase()}
@@ -142,7 +174,7 @@ function FeedVersePageImpl({
           >
             {feedReference(item)}
           </Text>
-        </View>
+        </Animated.View>
 
         <View style={styles.actions}>
           <FeedAction

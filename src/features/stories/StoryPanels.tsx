@@ -1,6 +1,7 @@
 // Paneles visuales del visor; los estados de imagen viven en storyViewer.ts.
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { KenBurnsImage } from "../../components/KenBurnsImage";
 import { openPassage } from "../../lib/openPassage";
 import type { StoryCatalogItem } from "./contracts";
 import { parseStoryReference } from "./storyReference";
@@ -65,10 +66,12 @@ function SceneImageSlot({
 }) {
   if (image.status === "ready" && image.uri) {
     return (
-      <Image
+      // Animación propia: zoom lento con paseo, distinto en cada escena.
+      <KenBurnsImage
         accessibilityLabel={`Ilustración generada: ${sceneTitle}`}
-        source={{ uri: image.uri }}
+        seed={sceneTitle}
         style={styles.image}
+        uri={image.uri}
       />
     );
   }
