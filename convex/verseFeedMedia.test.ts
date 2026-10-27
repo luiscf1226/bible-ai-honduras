@@ -7,6 +7,7 @@ import schema from "./schema";
 import { estimateSpeechTokens } from "./speech";
 import { FEED_POOL } from "./verseFeedCore";
 import { FEED_SCENES, feedImagePrompt, MAX_ATTEMPTS } from "./verseFeedMedia";
+import { spokenText, textHash } from "./verseFeedText";
 
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
@@ -46,7 +47,7 @@ async function seedVerses(t: ReturnType<typeof convexTest>) {
 }
 
 /** OpenAI de mentira: imágenes en base64 y audio en bytes. Guarda cada pedido. */
-function stubOpenAI(options: { failImages?: boolean } = {}) {
+function stubOpenAI(options: { failImages?: number } = {}) {
   const requests: { url: string; body: Record<string, unknown> }[] = [];
   vi.stubGlobal(
     "fetch",
@@ -54,7 +55,7 @@ function stubOpenAI(options: { failImages?: boolean } = {}) {
       const body = JSON.parse(String(init.body)) as Record<string, unknown>;
       requests.push({ url, body });
       if (url.endsWith("/images/generations")) {
-        if (options.failImages) return new Response("boom", { status: 500 });
+        if (options.failImages) return new Response("boom", { status: options.failImages });
         return new Response(
           JSON.stringify({ data: [{ b64_json: btoa("webp") }], usage: { input_tokens: 10, output_tokens: 20 } }),
           {
@@ -83,7 +84,8 @@ describe("prompt del fondo", () => {
   });
 
   it("cada cita trae siempre la misma escena sugerida, y el catálogo usa varias", () => {
-    const sceneOf = (ref: string) => FEED_SCENES.find((scene) => feedImagePrompt({ ref, topics: [] }, "x").includes(scene));
+    const sceneOf = (ref: string) =>
+      FEED_SCENES.find((scene) => feedImagePrompt({ ref, topics: [] }, "x").includes(scene));
     expect(sceneOf("Juan 14:27")).toBe(sceneOf("Juan 14:27"));
     const used = new Set(FEED_POOL.map((passage) => sceneOf(passage.ref)));
     expect(used.size).toBe(FEED_SCENES.length);
@@ -121,10 +123,10 @@ describe("generateMissing", () => {
     expect(await t.run((ctx) => ctx.db.query("verseFeedMedia").collect())).toHaveLength(2);
   });
 
-  it("una falla cuenta como intento y deja de reintentar después del tope", async () => {
+  it("una falla de la cita cuenta como intento y deja de reintentar después del tope", async () => {
     const t = setup();
     await seedVerses(t);
-    stubOpenAI({ failImages: true });
+    stubOpenAI({ failImages: 400 });
 
     for (let round = 0; round < MAX_ATTEMPTS + 1; round += 1) {
       await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
@@ -134,8 +136,57 @@ describe("generateMissing", () => {
       (await ctx.db.query("verseFeedMedia").collect()).filter((row) => row.kind === "image"),
     );
     expect(images).toHaveLength(3);
-    expect(images.every((row) => !row.storageId && row.attempts === MAX_ATTEMPTS)).toBe(true);
+    expect(images.every((row) => !row.storageId && row.attempts === MAX_ATTEMPTS && !row.inProgressUntil)).toBe(true);
     expect(await t.query(internal.verseFeedMedia.progress, {})).toMatchObject({ images: 0, audio: 3, gaveUp: 3 });
+
+    // Arreglada la causa, se les vuelve a dar intentos.
+    expect(await t.mutation(internal.verseFeedMedia.resetGaveUp, {})).toEqual({ reset: 3 });
+  });
+
+  it("una caída o un límite del proveedor no gasta intentos", async () => {
+    const t = setup();
+    await seedVerses(t);
+    stubOpenAI({ failImages: 429 });
+
+    for (let round = 0; round < MAX_ATTEMPTS + 1; round += 1) {
+      await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+    }
+
+    const images = await t.run(async (ctx) =>
+      (await ctx.db.query("verseFeedMedia").collect()).filter((row) => row.kind === "image"),
+    );
+    expect(images.every((row) => row.attempts === 0 && !row.inProgressUntil)).toBe(true);
+  });
+
+  it("dos tandas a la vez nunca reservan la misma cita", async () => {
+    const t = setup();
+    await seedVerses(t);
+    const first = await t.mutation(internal.verseFeedMedia.claim, { limit: 4 });
+    const second = await t.mutation(internal.verseFeedMedia.claim, { limit: 4 });
+    const key = (item: { ref: string; kind: string }) => `${item.kind}:${item.ref}`;
+    expect(first).toHaveLength(4);
+    expect(second).toHaveLength(2);
+    expect(second.some((item) => first.map(key).includes(key(item)))).toBe(false);
+  });
+
+  it("una voz que leyó otro texto se vuelve a generar", async () => {
+    const t = setup();
+    await seedVerses(t);
+    stubOpenAI();
+    await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+    expect(await t.mutation(internal.verseFeedMedia.claim, { limit: 6 })).toHaveLength(0);
+
+    // Cambia el texto de la primera cita (otra Biblia cargada, por ejemplo).
+    await t.run(async (ctx) => {
+      const row = (await ctx.db.query("verses").collect()).find(
+        (verse) => verse.book === SEEDED[0].book && verse.verse === SEEDED[0].verse,
+      )!;
+      await ctx.db.patch(row._id, { text: "Otro texto" });
+    });
+
+    const again = await t.mutation(internal.verseFeedMedia.claim, { limit: 6 });
+    expect(again).toMatchObject([{ ref: SEEDED[0].ref, kind: "audio" }]);
+    expect(again[0].text).toMatch(/^Otro texto/);
   });
 });
 
@@ -180,6 +231,17 @@ describe("el feed usa los medios guardados", () => {
         kind: "audio",
         version: "RV1909",
         storageId: audio,
+        textHash: textHash(spokenText(first.text)),
+        attempts: 1,
+        updatedAt: 0,
+      });
+      // La segunda cita tiene una voz de otro texto: no se usa.
+      await ctx.db.insert("verseFeedMedia", {
+        ref: second.ref,
+        kind: "audio",
+        version: "RV1909",
+        storageId: audio,
+        textHash: textHash("otra cosa"),
         attempts: 1,
         updatedAt: 0,
       });
@@ -190,7 +252,11 @@ describe("el feed usa los medios guardados", () => {
     expect(after.items[0].ref).toBe(first.ref);
     expect(after.items[0].imageUrl).not.toBe(first.imageUrl);
     expect(after.items[0].audioUrl).toMatch(/^https?:\/\//);
-    expect(after.items[0].imageAlt).toBe(`Ilustración inspirada en ${first.ref}`);
+    const shown =
+      first.endVerse === null
+        ? `${first.book} ${first.chapter}:${first.verse}`
+        : `${first.book} ${first.chapter}:${first.verse}-${first.endVerse}`;
+    expect(after.items[0].imageAlt).toBe(`Ilustración inspirada en ${shown}`);
     expect(after.items[1]).toMatchObject({ ref: second.ref, imageUrl: second.imageUrl, audioUrl: null });
   });
 });
@@ -200,6 +266,6 @@ describe("costo estimado de la voz", () => {
     const short = estimateSpeechTokens("a".repeat(100));
     const long = estimateSpeechTokens("a".repeat(300));
     expect(long.outputTokens).toBeGreaterThan(short.outputTokens);
-    expect(short.inputTokens).toBe(25);
+    expect(long.inputTokens - short.inputTokens).toBe(50);
   });
 });

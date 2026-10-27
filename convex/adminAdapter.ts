@@ -87,6 +87,7 @@ export const MANIFEST: Manifest = {
     stories: "Historias",
     group_guide: "Guía para el grupo",
     ingest: "Carga del corpus",
+    verse_feed: "Feed de versículos (fondos y voz)",
     "qa.no_content": "Preguntar: sin pasaje",
     "qa.ungrounded": "Preguntar: citó fuera del contexto",
     "feelings.no_content": "Sentir: sin pasaje",

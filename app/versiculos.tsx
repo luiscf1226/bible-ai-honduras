@@ -126,8 +126,9 @@ export default function VersiculosScreen() {
       )}
       <ScreenHeader
         accessibilityLabel="Volver al inicio"
-        center={<View />}
+        center={<View pointerEvents="none" />}
         onImage
+        pointerEvents="box-none"
         style={[styles.header, { top: insets.top + tokens.space.sm }]}
         testID="feed-back"
         trailing={
@@ -149,6 +150,7 @@ export default function VersiculosScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  // Ocupa todo el ancho (‹ a la izquierda, sonido a la derecha) pero no se queda con los toques del medio.
   header: { left: tokens.screenPadding.horizontal, position: "absolute", right: tokens.screenPadding.horizontal },
   status: {
     flex: 1,

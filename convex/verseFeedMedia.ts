@@ -1,15 +1,16 @@
 import { v } from "convex/values";
 
-import { feedVerseText } from "../src/features/feed/feedLogic";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { AiCallError } from "./adminKit/meter";
 import { aiMeter } from "./aiUsage";
 import { AVAILABLE_BIBLE_VERSIONS, DEFAULT_BIBLE_VERSION } from "./bibleVersions";
 import { generateFeedImage } from "./images";
 import { generateSpeech } from "./speech";
-import { FEED_POOL, FEED_TOPIC_NAMES, feedPassage, fitPassageText, type FeedPassage } from "./verseFeedCore";
+import { FEED_POOL, FEED_TOPIC_NAMES, feedPassage, type FeedPassage } from "./verseFeedCore";
+import { feedPassageText, spokenText, textHash } from "./verseFeedText";
 
 /**
  * Fondos y voz del feed de versículos (design/oleada-ux.md §Feed de
@@ -32,6 +33,10 @@ const BATCH = 8;
 const PARALLEL = 4;
 /** Lo que el cron diario puede gastar en citas nuevas. */
 export const DAILY_BUDGET = 20;
+/** Cuánto dura la reserva de una tanda (más que lo que tarda una acción). */
+const CLAIM_MS = 15 * 60 * 1000;
+/** Si una tanda entera falla por el proveedor (límite, caída), la próxima espera esto. */
+const BACKOFF_MS = 60 * 1000;
 
 const IMAGE_STYLE =
   "Vertical 2:3 background for a Bible verse app. Serene, painterly scene with soft natural light and a calm, slightly muted " +
@@ -92,50 +97,67 @@ async function mediaRow(ctx: QueryCtx, ref: string, kind: FeedMediaKind, version
     .unique();
 }
 
-/** URL guardada del fondo o de la voz de una cita, o null si todavía no hay. */
-export async function feedMediaUrl(
-  ctx: QueryCtx,
-  ref: string,
-  kind: FeedMediaKind,
-  version: string,
-): Promise<string | null> {
-  const row = await mediaRow(ctx, ref, kind, version);
+/** URL del fondo de IA de una cita, o null si todavía no hay. */
+export async function feedImageUrl(ctx: QueryCtx, ref: string): Promise<string | null> {
+  const row = await mediaRow(ctx, ref, "image", "");
   return row?.storageId ? await ctx.storage.getUrl(row.storageId) : null;
 }
 
-export type PendingMedia = { ref: string; kind: FeedMediaKind; version: string; text: string };
+/** URL de la voz de una cita, solo si leyó exactamente el texto que hoy muestra el feed. */
+export async function feedAudioUrl(
+  ctx: QueryCtx,
+  ref: string,
+  version: string,
+  expectedHash: string,
+): Promise<string | null> {
+  const row = await mediaRow(ctx, ref, "audio", version);
+  return row?.storageId && row.textHash === expectedHash ? await ctx.storage.getUrl(row.storageId) : null;
+}
 
-/** Lo que falta generar: cita × (imagen, voz por versión), sin las que ya agotaron reintentos. */
-export const pending = internalQuery({
+export type ClaimedMedia = { ref: string; kind: FeedMediaKind; version: string; text: string; textHash: string };
+
+/**
+ * Reserva lo que falta generar: cita × (imagen, voz por versión). Es una
+ * mutación (no una consulta) para que dos tandas a la vez —el cron y una
+ * corrida a mano— nunca paguen la misma cita. Salta lo listo, lo reservado
+ * por otra tanda y lo que ya agotó sus intentos. Una voz que leyó otro texto
+ * cuenta como faltante.
+ */
+export const claim = internalMutation({
   args: { limit: v.number() },
-  handler: async (ctx, args): Promise<PendingMedia[]> => {
-    const result: PendingMedia[] = [];
+  handler: async (ctx, args): Promise<ClaimedMedia[]> => {
+    const now = Date.now();
+    const claimed: ClaimedMedia[] = [];
+    const jobs: [FeedMediaKind, string][] = [
+      ["image", DEFAULT_BIBLE_VERSION],
+      ...AVAILABLE_BIBLE_VERSIONS.map((version) => ["audio", version] as [FeedMediaKind, string]),
+    ];
     for (const passage of FEED_POOL) {
-      for (const [kind, version] of [
-        ["image", DEFAULT_BIBLE_VERSION],
-        ...AVAILABLE_BIBLE_VERSIONS.map((available) => ["audio", available] as const),
-      ] as const) {
-        if (result.length >= args.limit) return result;
+      for (const [kind, version] of jobs) {
+        if (claimed.length >= args.limit) return claimed;
         const row = await mediaRow(ctx, passage.ref, kind, version);
-        if (row?.storageId || (row?.attempts ?? 0) >= MAX_ATTEMPTS) continue;
-        const rows = await ctx.db
-          .query("verses")
-          .withIndex("by_ref", (q) =>
-            q
-              .eq("version", version)
-              .eq("book", passage.book)
-              .eq("chapter", passage.chapter)
-              .gte("verse", passage.verse)
-              .lte("verse", passage.endVerse ?? passage.verse),
-          )
-          .collect();
-        // Mismo texto que muestra el feed (acortado si no entra), para que la voz lea lo que se ve.
-        const fitted = fitPassageText(rows);
+        if ((row?.attempts ?? 0) >= MAX_ATTEMPTS) continue;
+        if ((row?.inProgressUntil ?? 0) > now) continue;
+        if (row?.storageId && kind === "image") continue;
+        const fitted = await feedPassageText(ctx, passage, version);
         if (!fitted) continue;
-        result.push({ ref: passage.ref, kind, version, text: feedVerseText(fitted.text) });
+        const text = spokenText(fitted.text);
+        const hash = textHash(text);
+        if (row?.storageId && row.textHash === hash) continue;
+        const reservation = { inProgressUntil: now + CLAIM_MS, updatedAt: now };
+        if (row) await ctx.db.patch(row._id, reservation);
+        else
+          await ctx.db.insert("verseFeedMedia", {
+            ref: passage.ref,
+            kind,
+            version: versionFor(kind, version),
+            attempts: 0,
+            ...reservation,
+          });
+        claimed.push({ ref: passage.ref, kind, version, text, textHash: hash });
       }
     }
-    return result;
+    return claimed;
   },
 });
 
@@ -145,31 +167,49 @@ export const save = internalMutation({
     kind: v.union(v.literal("image"), v.literal("audio")),
     version: v.string(),
     storageId: v.optional(v.id("_storage")),
+    textHash: v.optional(v.string()),
+    /** Una falla del proveedor (límite, caída) no gasta un intento de la cita. */
+    countAttempt: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const version = versionFor(args.kind, args.version);
-    const existing = await ctx.db
-      .query("verseFeedMedia")
-      .withIndex("by_ref_kind_version", (q) => q.eq("ref", args.ref).eq("kind", args.kind).eq("version", version))
-      .unique();
-    const update = { storageId: args.storageId, attempts: (existing?.attempts ?? 0) + 1, updatedAt: Date.now() };
+    const existing = await mediaRow(ctx, args.ref, args.kind, args.version);
+    const attempts = (existing?.attempts ?? 0) + (args.countAttempt ? 1 : 0);
+    const update = {
+      attempts,
+      inProgressUntil: undefined,
+      updatedAt: Date.now(),
+      ...(args.storageId ? { storageId: args.storageId, textHash: args.textHash } : {}),
+    };
     if (existing) {
       // Si había un archivo viejo y llegó uno nuevo, el viejo no queda huérfano.
       if (existing.storageId && args.storageId && existing.storageId !== args.storageId) {
         await ctx.storage.delete(existing.storageId);
       }
-      await ctx.db.patch(existing._id, { ...update, storageId: args.storageId ?? existing.storageId });
+      await ctx.db.patch(existing._id, update);
     } else {
-      await ctx.db.insert("verseFeedMedia", { ref: args.ref, kind: args.kind, version, ...update });
+      await ctx.db.insert("verseFeedMedia", {
+        ref: args.ref,
+        kind: args.kind,
+        version: versionFor(args.kind, args.version),
+        ...update,
+      });
     }
   },
 });
+
+/** Errores del proveedor que no dicen nada de la cita: límite de pedidos, caída o red. */
+export function isTransientFailure(error: unknown): boolean {
+  // Cualquier otra cosa (red, almacenamiento) sí gasta un intento: si no, una falla fija se reintentaría para siempre.
+  if (!(error instanceof AiCallError)) return false;
+  return error.kind === "http_429" || /^http_5\d\d$/.test(error.kind);
+}
 
 /**
  * Genera lo que falta, de a tandas, y se vuelve a agendar hasta agotar el
  * `budget` (cantidad máxima de generaciones, para que el gasto tenga techo).
  * Solo se corre desde la terminal o el cron: el cliente no puede disparar
- * generaciones.
+ * generaciones. Si la tanda entera falla por el proveedor, la próxima espera
+ * `BACKOFF_MS` en lugar de quemar los intentos de golpe.
  */
 export const generateMissing = internalAction({
   // `parallel` solo existe para los tests (convex-test no admite escrituras en paralelo en una acción).
@@ -178,10 +218,11 @@ export const generateMissing = internalAction({
     const parallel = Math.max(1, Math.floor(args.parallel ?? PARALLEL));
     const take = Math.min(BATCH, Math.max(0, Math.floor(args.budget)));
     if (take === 0) return { generated: 0, failed: 0, remaining: args.budget };
-    const todo: PendingMedia[] = await ctx.runQuery(internal.verseFeedMedia.pending, { limit: take });
+    const todo: ClaimedMedia[] = await ctx.runMutation(internal.verseFeedMedia.claim, { limit: take });
     const meter = aiMeter(ctx, "verse_feed");
     let generated = 0;
     let failed = 0;
+    let transient = 0;
 
     for (let start = 0; start < todo.length; start += parallel) {
       await Promise.all(
@@ -189,6 +230,7 @@ export const generateMissing = internalAction({
           const passage = feedPassage(item.ref);
           if (!passage) return;
           let storageId: Id<"_storage"> | undefined;
+          let countAttempt = true;
           try {
             const blob =
               item.kind === "image"
@@ -198,6 +240,10 @@ export const generateMissing = internalAction({
             generated += 1;
           } catch (error) {
             failed += 1;
+            if (isTransientFailure(error)) {
+              transient += 1;
+              countAttempt = false;
+            }
             console.error(`No se pudo generar ${item.kind} para ${item.ref}`, error);
           }
           await ctx.runMutation(internal.verseFeedMedia.save, {
@@ -205,6 +251,8 @@ export const generateMissing = internalAction({
             kind: item.kind,
             version: item.version,
             storageId,
+            textHash: item.kind === "audio" ? item.textHash : undefined,
+            countAttempt,
           });
         }),
       );
@@ -213,7 +261,8 @@ export const generateMissing = internalAction({
     const remaining = args.budget - todo.length;
     // Tanda llena = puede quedar más: sigue en otra acción (cada una con su propio tiempo límite).
     if (todo.length === take && remaining > 0) {
-      await ctx.scheduler.runAfter(0, internal.verseFeedMedia.generateMissing, { budget: remaining, parallel });
+      const delay = transient === todo.length ? BACKOFF_MS : 0;
+      await ctx.scheduler.runAfter(delay, internal.verseFeedMedia.generateMissing, { budget: remaining, parallel });
     }
     return { generated, failed, remaining };
   },
@@ -233,10 +282,48 @@ export const progress = internalQuery({
 /** Las URLs guardadas de una cita, para revisar a mano un fondo o una voz. */
 export const mediaFor = internalQuery({
   args: { ref: v.string() },
-  handler: async (ctx, args) => ({
-    image: await feedMediaUrl(ctx, args.ref, "image", DEFAULT_BIBLE_VERSION),
-    audio: await feedMediaUrl(ctx, args.ref, "audio", DEFAULT_BIBLE_VERSION),
-  }),
+  handler: async (ctx, args) => {
+    const audio = await mediaRow(ctx, args.ref, "audio", DEFAULT_BIBLE_VERSION);
+    return {
+      image: await feedImageUrl(ctx, args.ref),
+      audio: audio?.storageId ? await ctx.storage.getUrl(audio.storageId) : null,
+    };
+  },
+});
+
+/** Vuelve a darles intentos a las citas que se dieron por perdidas (después de arreglar la causa). */
+export const resetGaveUp = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let reset = 0;
+    for (const row of await ctx.db.query("verseFeedMedia").collect()) {
+      if (!row.storageId && row.attempts >= MAX_ATTEMPTS) {
+        await ctx.db.patch(row._id, { attempts: 0 });
+        reset += 1;
+      }
+    }
+    return { reset };
+  },
+});
+
+/**
+ * Una sola vez, para las voces generadas antes de guardar la huella del texto:
+ * se leyeron del mismo texto que hoy muestra el feed, así que se les anota.
+ */
+export const backfillTextHash = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let updated = 0;
+    for (const row of await ctx.db.query("verseFeedMedia").collect()) {
+      if (row.kind !== "audio" || !row.storageId || row.textHash) continue;
+      const passage = feedPassage(row.ref);
+      const fitted = passage ? await feedPassageText(ctx, passage, row.version) : null;
+      if (!fitted) continue;
+      await ctx.db.patch(row._id, { textHash: textHash(spokenText(fitted.text)) });
+      updated += 1;
+    }
+    return { updated };
+  },
 });
 
 /** Borra el fondo o la voz guardados de unas citas (y su archivo), para volver a generarlos. */

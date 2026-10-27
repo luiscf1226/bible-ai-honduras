@@ -26,7 +26,9 @@ function apiKey() {
 
 export function estimateSpeechTokens(text: string): { inputTokens: number; outputTokens: number } {
   const seconds = text.length / CHARACTERS_PER_SECOND;
-  return { inputTokens: Math.ceil(text.length / 4), outputTokens: Math.ceil((seconds / 60) * AUDIO_TOKENS_PER_MINUTE) };
+  // Las instrucciones de la voz también se cobran como texto de entrada.
+  const inputCharacters = text.length + SPEECH_INSTRUCTIONS.length;
+  return { inputTokens: Math.ceil(inputCharacters / 4), outputTokens: Math.ceil((seconds / 60) * AUDIO_TOKENS_PER_MINUTE) };
 }
 
 export async function generateSpeech(text: string, meter?: AiMeter): Promise<Blob> {

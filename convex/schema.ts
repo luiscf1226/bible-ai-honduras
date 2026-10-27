@@ -291,7 +291,12 @@ export default defineSchema({
     // Versión bíblica de la voz; "" para la imagen (es la misma en todas).
     version: v.string(),
     storageId: v.optional(v.id("_storage")),
+    // Voz: huella del texto que se leyó (convex/verseFeedText.ts). Si no coincide con lo que
+    // muestra el feed, la voz no se usa y se vuelve a generar.
+    textHash: v.optional(v.string()),
     attempts: v.number(),
+    // Reservada por una tanda en curso hasta este momento: dos tandas no pagan la misma cita.
+    inProgressUntil: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_ref_kind_version", ["ref", "kind", "version"]),
 
