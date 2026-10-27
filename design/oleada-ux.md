@@ -540,6 +540,11 @@ pantalla, swipe vertical con `pagingEnabled`, sin fin.
   con un resorte y se va en `motion.feedHeart` (700 ms). La ventana del doble
   toque es `motion.feedDoubleTap` (280 ms). Con "reducir movimiento" el
   corazón aparece y desaparece sin moverse.
+- Accesibilidad: el doble toque vive en una capa detrás del contenido y
+  fuera de VoiceOver/TalkBack; el versículo se lee como un solo elemento
+  (texto + cita) y ♥ / Compartir / Leer son botones propios. La letra del
+  sistema se agranda hasta `fontScale.feedMax` (token nuevo, 1.3) para que un
+  pasaje largo entre sin scroll.
 - Solo en la primera pantalla, abajo al centro: `chevronDown` y "Deslizá para
   ver más" en `caption` `sansLight` al `imageMuted`.
 - El ‹ de volver es el `ScreenHeader` `onImage` de `/hoy`, fijo arriba a la

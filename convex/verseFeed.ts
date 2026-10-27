@@ -1,9 +1,9 @@
 import { ConvexError, v } from "convex/values";
 
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
-import { bibleVersionForIdentity } from "./rag/verses";
+import { resolveBibleVersion } from "./bibleVersions";
 import {
   FEED_PAGE_SIZE,
   FEED_POOL,
@@ -40,14 +40,13 @@ export type FeedItem = {
   liked: boolean;
 };
 
-async function currentUserId(ctx: QueryCtx): Promise<Id<"users"> | null> {
+async function currentUser(ctx: QueryCtx): Promise<Doc<"users"> | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
-  const user = await ctx.db
+  return await ctx.db
     .query("users")
     .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
     .unique();
-  return user?._id ?? null;
 }
 
 async function passageText(ctx: QueryCtx, passage: FeedPassage, version: string): Promise<string | null> {
@@ -75,21 +74,29 @@ async function likesFor(ctx: QueryCtx, ref: string): Promise<number> {
   return stats?.likes ?? 0;
 }
 
+export type FeedPage = {
+  items: FeedItem[];
+  /**
+   * Ya se había visto todo el catálogo y esta página empieza otra vuelta: el
+   * cliente reinicia su lista de vistos (dejando las últimas, para no repetirlas).
+   */
+  newRound: boolean;
+};
+
 /**
- * La próxima página del feed. El cliente manda lo que ya vio (las últimas
- * `FEED_SEEN_MAX` citas) y una semilla por sesión: así cada página es una
- * consulta determinística y el feed no se repite. Sin sesión también anda,
- * solo que sin ♥ propios.
+ * La próxima página del feed. El cliente manda lo que ya vio en esta vuelta y
+ * una semilla por sesión: así cada página es una consulta determinística y el
+ * feed no se repite. Sin sesión también anda, solo que sin ♥ propios.
  */
 export const page = query({
   args: { seen: v.array(v.string()), seed: v.number() },
-  handler: async (ctx, args): Promise<FeedItem[]> => {
+  handler: async (ctx, args): Promise<FeedPage> => {
     const seenRefs = args.seen.slice(-FEED_SEEN_MAX);
-    const userId = await currentUserId(ctx);
-    const likedRows = userId
+    const user = await currentUser(ctx);
+    const likedRows = user
       ? await ctx.db
           .query("verseFeedLikes")
-          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
           .order("desc")
           .take(LIKES_FOR_AFFINITY)
       : [];
@@ -97,12 +104,22 @@ export const page = query({
     const top = await ctx.db.query("verseFeedStats").withIndex("by_likes").order("desc").take(COMMUNITY_TOP);
     const communityLikes = new Map(top.map((row) => [row.ref, row.likes]));
 
-    const passages = rankFeedPage({ communityLikes, likedRefs, pool: FEED_POOL, seed: args.seed, seenRefs });
-    const version = await bibleVersionForIdentity(ctx);
+    // Se ordenan de más por si alguna cita no está en la Biblia cargada: la página igual sale llena.
+    const { newRound, passages } = rankFeedPage({
+      communityLikes,
+      likedRefs,
+      pool: FEED_POOL,
+      seed: args.seed,
+      seenRefs,
+      size: FEED_PAGE_SIZE * 2,
+    });
+    // #93 §4b: una preferencia sin corpus (NVI) degrada a RVR1960.
+    const version = resolveBibleVersion(user?.bibleVersion);
     const liked = new Set(likedRefs);
 
     const items: FeedItem[] = [];
     for (const passage of passages) {
+      if (items.length === FEED_PAGE_SIZE) break;
       const text = await passageText(ctx, passage, version);
       // Una cita que no está en la Biblia cargada no se muestra: nunca texto inventado (regla dura #4).
       if (!text) continue;
@@ -122,7 +139,7 @@ export const page = query({
         liked: liked.has(passage.ref),
       });
     }
-    return items.slice(0, FEED_PAGE_SIZE);
+    return { items, newRound };
   },
 });
 
@@ -139,24 +156,35 @@ async function adjustStats(ctx: MutationCtx, ref: string, delta: number): Promis
   return likes;
 }
 
-/** ♥ / quitar ♥. Solo citas del catálogo: nadie puede inflar una cita inventada. */
-export const toggleLike = mutation({
-  args: { ref: v.string() },
+/**
+ * Deja el ♥ como la persona lo pidió (idempotente: repetirlo no cambia nada).
+ * Así un toque que llega tarde o un reintento nunca invierte lo que se quiso.
+ * Solo citas del catálogo: nadie puede inflar una cita inventada.
+ */
+export const setLike = mutation({
+  args: { ref: v.string(), liked: v.boolean() },
   handler: async (ctx, args): Promise<{ liked: boolean; likes: number }> => {
-    const userId = await currentUserId(ctx);
-    if (!userId) throw new ConvexError("No autenticado");
+    const user = await currentUser(ctx);
+    if (!user) throw new ConvexError("No autenticado");
     if (!feedPassage(args.ref)) throw new ConvexError("Versículo desconocido");
 
     const existing = await ctx.db
       .query("verseFeedLikes")
-      .withIndex("by_user_ref", (q) => q.eq("userId", userId).eq("ref", args.ref))
+      .withIndex("by_user_ref", (q) => q.eq("userId", user._id).eq("ref", args.ref))
       .unique();
-    if (existing) {
+    if (args.liked && !existing) {
+      await ctx.db.insert("verseFeedLikes", {
+        userId: user._id,
+        ref: args.ref,
+        createdAt: Date.now(),
+      });
+      return { liked: true, likes: await adjustStats(ctx, args.ref, 1) };
+    }
+    if (!args.liked && existing) {
       await ctx.db.delete(existing._id);
       return { liked: false, likes: await adjustStats(ctx, args.ref, -1) };
     }
-    await ctx.db.insert("verseFeedLikes", { userId, ref: args.ref, createdAt: Date.now() });
-    return { liked: true, likes: await adjustStats(ctx, args.ref, 1) };
+    return { liked: args.liked, likes: await likesFor(ctx, args.ref) };
   },
 });
 

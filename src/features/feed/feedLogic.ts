@@ -1,5 +1,5 @@
 import type { FeedItem } from "../../../convex/verseFeed";
-import { FEED_SEEN_MAX } from "../../../convex/verseFeedLimits";
+import { FEED_RECENT_GUARD, FEED_SEEN_MAX } from "../../../convex/verseFeedLimits";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos). Todo lo que no
@@ -27,29 +27,43 @@ export function feedVerseType(text: string): FeedVerseType {
  * como un grito. Solo se baja esa primera palabra; el resto queda tal cual.
  */
 export function feedVerseText(text: string): string {
-  return text.replace(/^([A-ZÁÉÍÓÚÑÜ])([A-ZÁÉÍÓÚÑÜ]+)(?=[\s,;:.!?]|$)/u, (_, first: string, rest: string) => first + rest.toLowerCase());
-}
-
-/** Suma una página al final sin repetir citas que ya están en el feed. */
-export function appendFeedPage(items: readonly FeedItem[], page: readonly FeedItem[]): FeedItem[] {
-  const present = new Set(items.map((item) => item.ref));
-  return [...items, ...page.filter((item) => !present.has(item.ref))];
-}
-
-/** Lo que se le manda al servidor como "ya visto": las últimas `FEED_SEEN_MAX`. */
-export function seenRefs(items: readonly FeedItem[]): string[] {
-  return items.slice(-FEED_SEEN_MAX).map((item) => item.ref);
-}
-
-/** ♥ optimista: se marca al toque y el servidor corrige la cuenta después. */
-export function toggleLikeLocally(items: readonly FeedItem[], ref: string): FeedItem[] {
-  return items.map((item) =>
-    item.ref === ref ? { ...item, liked: !item.liked, likes: Math.max(0, item.likes + (item.liked ? -1 : 1)) } : item,
+  return text.replace(
+    /^([A-ZÁÉÍÓÚÑÜ])([A-ZÁÉÍÓÚÑÜ]+)(?=[\s,;:.!?]|$)/u,
+    (_, first: string, rest: string) => first + rest.toLowerCase(),
   );
 }
 
-/** Deja el ♥ y la cuenta como los dejó el servidor. */
-export function settleLike(items: readonly FeedItem[], ref: string, result: { liked: boolean; likes: number }): FeedItem[] {
+/**
+ * Lo que se le manda al servidor como "ya visto en esta vuelta". Cuando el
+ * servidor avisa que la página empieza otra vuelta (`newRound`), la lista
+ * arranca de nuevo, pero con las últimas vistas adelante para que no vuelvan
+ * enseguida.
+ */
+export function nextSeenRefs(seen: readonly string[], pageRefs: readonly string[], newRound: boolean): string[] {
+  const base = newRound ? seen.slice(-FEED_RECENT_GUARD) : seen;
+  return [...base, ...pageRefs].slice(-FEED_SEEN_MAX);
+}
+
+/** Clave de una pantalla: la misma cita puede volver en otra vuelta, así que va con su posición. */
+export function feedItemKey(item: Pick<FeedItem, "ref">, index: number): string {
+  return `${index}:${item.ref}`;
+}
+
+/** Deja el ♥ de una cita como se pidió; la cuenta cambia solo si el estado cambia. */
+export function setLikeLocally(items: readonly FeedItem[], ref: string, liked: boolean): FeedItem[] {
+  return items.map((item) =>
+    item.ref === ref && item.liked !== liked
+      ? { ...item, liked, likes: Math.max(0, item.likes + (liked ? 1 : -1)) }
+      : item,
+  );
+}
+
+/** Deja el ♥ y la cuenta como los dejó el servidor (o como estaban, si falló). */
+export function settleLike(
+  items: readonly FeedItem[],
+  ref: string,
+  result: { liked: boolean; likes: number },
+): FeedItem[] {
   return items.map((item) => (item.ref === ref ? { ...item, ...result } : item));
 }
 

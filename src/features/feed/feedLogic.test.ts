@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { FEED_SEEN_MAX } from "../../../convex/verseFeedLimits";
+import { FEED_RECENT_GUARD, FEED_SEEN_MAX } from "../../../convex/verseFeedLimits";
 import {
-  appendFeedPage,
   buildFeedShareText,
   createDoubleTapDetector,
+  feedItemKey,
   feedVerseText,
   feedVerseType,
   formatLikes,
   newFeedSeed,
-  seenRefs,
+  nextSeenRefs,
+  setLikeLocally,
   settleLike,
-  toggleLikeLocally,
   type FeedItem,
 } from "./feedLogic";
 
@@ -50,34 +50,48 @@ describe("texto del versículo", () => {
   });
 
   it("compartir usa el mismo texto que se ve", () => {
-    expect(buildFeedShareText(item("Hebreos 11:1", { text: "ES pues la fe" }))).toBe('"Es pues la fe"\n— Hebreos 11:1 (RV1909)');
+    expect(buildFeedShareText(item("Hebreos 11:1", { text: "ES pues la fe" }))).toBe(
+      '"Es pues la fe"\n— Hebreos 11:1 (RV1909)',
+    );
   });
 });
 
-describe("páginas", () => {
-  it("suma una página sin repetir citas", () => {
-    expect(appendFeedPage([item("A"), item("B")], [item("B"), item("C")]).map((entry) => entry.ref)).toEqual(["A", "B", "C"]);
-  });
-
-  it("lo visto que se manda al servidor tiene tope", () => {
-    const many = Array.from({ length: FEED_SEEN_MAX + 10 }, (_, index) => item(`R${index}`));
-    const seen = seenRefs(many);
+describe("vistos por vuelta", () => {
+  it("suma lo nuevo y tiene tope", () => {
+    expect(nextSeenRefs(["A"], ["B", "C"], false)).toEqual(["A", "B", "C"]);
+    const many = Array.from({ length: FEED_SEEN_MAX + 10 }, (_, index) => `R${index}`);
+    const seen = nextSeenRefs([], many, false);
     expect(seen).toHaveLength(FEED_SEEN_MAX);
     expect(seen.at(-1)).toBe(`R${FEED_SEEN_MAX + 9}`);
+  });
+
+  it("en una vuelta nueva arranca de cero, con las últimas vistas adelante", () => {
+    const previous = Array.from({ length: 100 }, (_, index) => `R${index}`);
+    expect(nextSeenRefs(previous, ["X"], true)).toEqual([...previous.slice(-FEED_RECENT_GUARD), "X"]);
+  });
+
+  it("la clave de una pantalla distingue la misma cita en otra vuelta", () => {
+    expect(feedItemKey(item("A"), 0)).not.toBe(feedItemKey(item("A"), 480));
   });
 });
 
 describe("♥", () => {
-  it("marca y desmarca al toque, y el servidor deja la cuenta final", () => {
-    const liked = toggleLikeLocally([item("A", { likes: 4 }), item("B")], "A");
+  it("deja el ♥ como se pidió y la cuenta solo cambia si cambia el estado", () => {
+    const liked = setLikeLocally([item("A", { likes: 4 }), item("B")], "A", true);
     expect(liked[0]).toMatchObject({ liked: true, likes: 5 });
     expect(liked[1]).toMatchObject({ liked: false, likes: 0 });
-    expect(toggleLikeLocally(liked, "A")[0]).toMatchObject({ liked: false, likes: 4 });
+    expect(setLikeLocally(liked, "A", true)[0]).toMatchObject({ liked: true, likes: 5 });
+    expect(setLikeLocally(liked, "A", false)[0]).toMatchObject({ liked: false, likes: 4 });
     expect(settleLike(liked, "A", { liked: true, likes: 9 })[0]).toMatchObject({ liked: true, likes: 9 });
   });
 
+  it("marca todas las pantallas de la misma cita", () => {
+    const items = setLikeLocally([item("A"), item("B"), item("A")], "A", true);
+    expect(items.map((entry) => entry.liked)).toEqual([true, false, true]);
+  });
+
   it("la cuenta nunca baja de cero", () => {
-    expect(toggleLikeLocally([item("A", { liked: true, likes: 0 })], "A")[0].likes).toBe(0);
+    expect(setLikeLocally([item("A", { liked: true, likes: 0 })], "A", false)[0].likes).toBe(0);
   });
 
   it("muestra la cuenta corta", () => {

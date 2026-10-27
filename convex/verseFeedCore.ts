@@ -1,6 +1,6 @@
 import topicVersesJson from "../docs/content/versiculos-por-tema.json";
 import { devotionalCatalog } from "./devotionalCatalog";
-import { FEED_PAGE_SIZE } from "./verseFeedLimits";
+import { FEED_PAGE_SIZE, FEED_RECENT_GUARD } from "./verseFeedLimits";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos): un scroll
@@ -60,18 +60,28 @@ function hashOf(text: string): number {
 }
 
 /** El catálogo del feed, sin citas repetidas. Cada cita junta todos los temas en los que aparece. */
-export function buildFeedPool(topics: readonly TopicData[] = TOPICS, devotionalRefs = devotionalCatalog): FeedPassage[] {
+export function buildFeedPool(
+  topics: readonly TopicData[] = TOPICS,
+  devotionalRefs = devotionalCatalog,
+): FeedPassage[] {
   const pool = new Map<string, FeedPassage>();
   const add = (ref: string, topic: string | null, image?: { imageUrl: string; imageAlt: string }) => {
     const parsed = parseFeedRef(ref);
     if (!parsed) return;
     const existing = pool.get(ref);
     if (existing) {
-      if (topic && !existing.topics.includes(topic)) pool.set(ref, { ...existing, topics: [...existing.topics, topic] });
+      if (topic && !existing.topics.includes(topic))
+        pool.set(ref, { ...existing, topics: [...existing.topics, topic] });
       return;
     }
     const picture = image ?? IMAGES[hashOf(ref) % IMAGES.length];
-    pool.set(ref, { ref, ...parsed, topics: topic ? [topic] : [], imageUrl: picture.imageUrl, imageAlt: picture.imageAlt });
+    pool.set(ref, {
+      ref,
+      ...parsed,
+      topics: topic ? [topic] : [],
+      imageUrl: picture.imageUrl,
+      imageAlt: picture.imageAlt,
+    });
   };
   for (const item of devotionalRefs) add(item.verseRef, null, item);
   for (const topic of topics) for (const ref of topic.verses) add(ref, topic.id);
@@ -85,9 +95,7 @@ export function feedPassage(ref: string): FeedPassage | null {
   return POOL_BY_REF.get(ref) ?? null;
 }
 
-export { FEED_PAGE_SIZE, FEED_SEEN_MAX } from "./verseFeedLimits";
-/** Cuando ya se vio todo, se vuelve a empezar sin repetir las últimas. */
-export const FEED_RECENT_GUARD = 24;
+export { FEED_PAGE_SIZE, FEED_RECENT_GUARD, FEED_SEEN_MAX } from "./verseFeedLimits";
 
 // Pesos del orden. Lo que te gusta pesa más que lo que le gusta a todos, y el
 // azar alcanza para que el feed nunca sea el mismo dos veces.
@@ -96,8 +104,14 @@ const WEIGHT_COMMUNITY = 2;
 const WEIGHT_RANDOM = 1.5;
 /** Cada cuántos lugares entra uno al azar, para descubrir temas nuevos. */
 const EXPLORE_EVERY = 4;
-/** Máximo de versículos del mismo tema principal en una página. */
-const MAX_PER_TOPIC = 2;
+/** Por cada 8 lugares: máximo 2 del mismo tema y 4 sin tema (los que solo vienen de un devocional). */
+const TOPIC_SHARE = 1 / 4;
+const UNTAGGED_SHARE = 1 / 2;
+/**
+ * Con pocos ♥ en la comunidad, uno solo no puede pesar como el máximo: la
+ * escala arranca en 20 ♥ para que los primeros no tapen el azar de todos.
+ */
+const COMMUNITY_SCALE_MIN = 20;
 
 /** Generador determinístico (mulberry32): misma semilla, mismo orden. */
 export function seededRandom(seed: number): () => number {
@@ -135,14 +149,25 @@ export type FeedRankInput = {
 /**
  * La próxima página del feed. Puntaje = afinidad con tus temas + cariño de la
  * comunidad + azar; cada `EXPLORE_EVERY` lugares entra uno al azar puro y no
- * se juntan más de `MAX_PER_TOPIC` del mismo tema. Si ya se vio todo el
- * catálogo, arranca otra vuelta sin las últimas vistas: el scroll no se acaba.
+ * se juntan muchos del mismo tema. Si ya se vio todo el catálogo, arranca otra
+ * vuelta (`newRound`) sin las últimas vistas: el scroll no se acaba.
  */
-export function rankFeedPage({ communityLikes, likedRefs, pool, seed, seenRefs, size = FEED_PAGE_SIZE }: FeedRankInput): FeedPassage[] {
+export function rankFeedPage({
+  communityLikes,
+  likedRefs,
+  pool,
+  seed,
+  seenRefs,
+  size = FEED_PAGE_SIZE,
+}: FeedRankInput): {
+  passages: FeedPassage[];
+  newRound: boolean;
+} {
   const random = seededRandom(seed);
   const seen = new Set(seenRefs);
   let candidates = pool.filter((passage) => !seen.has(passage.ref));
-  if (candidates.length < size) {
+  const newRound = candidates.length < size;
+  if (newRound) {
     const recent = new Set(seenRefs.slice(-FEED_RECENT_GUARD));
     candidates = pool.filter((passage) => !recent.has(passage.ref));
   }
@@ -150,13 +175,13 @@ export function rankFeedPage({ communityLikes, likedRefs, pool, seed, seenRefs, 
   const byRef = new Map(pool.map((passage) => [passage.ref, passage]));
   const affinity = topicAffinity(likedRefs, byRef);
   const maxAffinity = Math.max(1, ...affinity.values());
-  const maxLikes = Math.max(1, ...communityLikes.values());
+  const communityScale = Math.log1p(Math.max(COMMUNITY_SCALE_MIN, ...communityLikes.values()));
   const liked = new Set(likedRefs);
 
   const scored = candidates
     .map((passage) => {
       const topicScore = Math.max(0, ...passage.topics.map((topic) => affinity.get(topic) ?? 0)) / maxAffinity;
-      const communityScore = Math.log1p(communityLikes.get(passage.ref) ?? 0) / Math.log1p(maxLikes);
+      const communityScore = Math.log1p(communityLikes.get(passage.ref) ?? 0) / communityScale;
       // Lo que ya marcaste no vuelve enseguida: ya lo tenés guardado.
       const penalty = liked.has(passage.ref) ? WEIGHT_AFFINITY : 0;
       return {
@@ -166,28 +191,25 @@ export function rankFeedPage({ communityLikes, likedRefs, pool, seed, seenRefs, 
     })
     .sort((a, b) => b.score - a.score);
 
+  const topicCap = Math.max(1, Math.ceil(size * TOPIC_SHARE));
+  const untaggedCap = Math.max(1, Math.ceil(size * UNTAGGED_SHARE));
   const page: FeedPassage[] = [];
-  const perTopic = new Map<string, number>();
+  const perGroup = new Map<string, number>();
   const taken = new Set<string>();
-  // Los pasajes que solo vienen de un devocional no tienen tema: no cuentan para el tope.
-  const fits = (passage: FeedPassage) => {
-    const topic = passage.topics[0];
-    return topic === undefined || (perTopic.get(topic) ?? 0) < MAX_PER_TOPIC;
-  };
-  const take = (passage: FeedPassage) => {
-    page.push(passage);
-    taken.add(passage.ref);
-    const topic = passage.topics[0];
-    if (topic !== undefined) perTopic.set(topic, (perTopic.get(topic) ?? 0) + 1);
-  };
+  // Grupo = tema principal; los pasajes sin tema forman su propio grupo, con un tope más alto.
+  const groupOf = (passage: FeedPassage) => passage.topics[0] ?? "";
+  const fits = (passage: FeedPassage) =>
+    (perGroup.get(groupOf(passage)) ?? 0) < (passage.topics.length === 0 ? untaggedCap : topicCap);
 
   while (page.length < size && taken.size < scored.length) {
     const open = scored.filter(({ passage }) => !taken.has(passage.ref));
     const explore = (page.length + 1) % EXPLORE_EVERY === 0;
     const varied = open.filter(({ passage }) => fits(passage));
     const choices = varied.length > 0 ? varied : open;
-    const next = explore ? choices[Math.floor(random() * choices.length)] : choices[0];
-    take(next.passage);
+    const next = (explore ? choices[Math.floor(random() * choices.length)] : choices[0]).passage;
+    page.push(next);
+    taken.add(next.ref);
+    perGroup.set(groupOf(next), (perGroup.get(groupOf(next)) ?? 0) + 1);
   }
-  return page;
+  return { passages: page, newRound };
 }

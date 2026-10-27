@@ -6,7 +6,7 @@ import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
 import { LoadingState } from "../src/components/LoadingState";
 import { ScreenHeader } from "../src/components/ScreenHeader";
-import { buildFeedShareText, type FeedItem } from "../src/features/feed/feedLogic";
+import { buildFeedShareText, feedItemKey, type FeedItem } from "../src/features/feed/feedLogic";
 import { FeedVersePage } from "../src/features/feed/FeedVersePage";
 import { useVerseFeed } from "../src/features/feed/useVerseFeed";
 import { useScreenInsets } from "../src/hooks/useKeyboardAvoidance";
@@ -26,12 +26,12 @@ const VIEWABILITY = { itemVisiblePercentThreshold: 60 };
 export default function VersiculosScreen() {
   const { color } = useTheme();
   const insets = useScreenInsets();
-  const { items, onVisible, retry, status, toggleLike } = useVerseFeed();
+  const { items, onVisible, retry, setLike, status } = useVerseFeed();
   const currentUser = useQuery(api.users.current);
   const referralCode = currentUser?.referralCode;
   const [height, setHeight] = useState(0);
 
-  const onLayout = (event: LayoutChangeEvent) => setHeight(Math.round(event.nativeEvent.layout.height));
+  const onLayout = (event: LayoutChangeEvent) => setHeight(event.nativeEvent.layout.height);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const index = viewableItems[0]?.index;
@@ -47,27 +47,35 @@ export default function VersiculosScreen() {
     },
     [referralCode],
   );
-  const onRead = useCallback((item: FeedItem) => openPassage({ book: item.book, chapter: item.chapter, verse: item.verse }), []);
+  const onRead = useCallback(
+    (item: FeedItem) =>
+      openPassage({
+        book: item.book,
+        chapter: item.chapter,
+        verse: item.verse,
+      }),
+    [],
+  );
 
   const renderItem = useCallback(
     ({ index, item }: { index: number; item: FeedItem }) => (
       <FeedVersePage
         height={height}
-        insets={{ bottom: insets.bottom, top: insets.top }}
+        insetBottom={insets.bottom}
+        insetTop={insets.top}
         item={item}
         onRead={onRead}
+        onSetLike={setLike}
         onShare={onShare}
-        onToggleLike={toggleLike}
         shareDisabled={!referralCode}
         showHint={index === 0}
       />
     ),
-    [height, insets.bottom, insets.top, onRead, onShare, referralCode, toggleLike],
+    [height, insets.bottom, insets.top, onRead, onShare, referralCode, setLike],
   );
 
   return (
     <View onLayout={onLayout} style={[styles.screen, { backgroundColor: color.bg }]} testID="feed-screen">
-      <StatusBar barStyle="light-content" />
       {status === "error" ? (
         <View style={[styles.status, { paddingTop: insets.top }]}>
           <Text style={[styles.statusText, { color: color.inkMuted }]}>No pudimos cargar los versículos.</Text>
@@ -80,23 +88,31 @@ export default function VersiculosScreen() {
           <LoadingState message="Buscando versículos para vos…" testID="feed-loading" />
         </View>
       ) : (
-        <FlatList
-          data={items}
-          decelerationRate="fast"
-          getItemLayout={(_, index) => ({ index, length: height, offset: height * index })}
-          initialNumToRender={2}
-          keyExtractor={(item) => item.ref}
-          maxToRenderPerBatch={3}
-          onViewableItemsChanged={onViewableItemsChanged}
-          pagingEnabled
-          renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
-          snapToAlignment="start"
-          snapToInterval={height}
-          testID="feed-list"
-          viewabilityConfig={VIEWABILITY}
-          windowSize={5}
-        />
+        <>
+          {/* Texto claro en la barra del sistema solo encima de las fotos. */}
+          <StatusBar barStyle="light-content" />
+          <FlatList
+            data={items}
+            decelerationRate="fast"
+            getItemLayout={(_, index) => ({
+              index,
+              length: height,
+              offset: height * index,
+            })}
+            initialNumToRender={2}
+            keyExtractor={feedItemKey}
+            maxToRenderPerBatch={3}
+            onViewableItemsChanged={onViewableItemsChanged}
+            pagingEnabled
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+            snapToAlignment="start"
+            snapToInterval={height}
+            testID="feed-list"
+            viewabilityConfig={VIEWABILITY}
+            windowSize={5}
+          />
+        </>
       )}
       <ScreenHeader
         accessibilityLabel="Volver al inicio"
@@ -111,7 +127,12 @@ export default function VersiculosScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   back: { left: tokens.screenPadding.horizontal, position: "absolute" },
-  status: { flex: 1, gap: tokens.space.xl, justifyContent: "center", paddingHorizontal: tokens.screenPadding.horizontal },
+  status: {
+    flex: 1,
+    gap: tokens.space.xl,
+    justifyContent: "center",
+    paddingHorizontal: tokens.screenPadding.horizontal,
+  },
   statusText: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.bodySm.size,

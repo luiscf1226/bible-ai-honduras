@@ -147,6 +147,9 @@ export const tokens = {
     // Feed de versículos: el versículo corto llena la pantalla (31 × 1.32).
     verseFeed: { size: 31, lineHeight: 41 },
   },
+  // Feed de versículos: tope del agrandado de letra del sistema sobre el
+  // versículo, para que un pasaje largo entre en la pantalla sin scroll.
+  fontScale: { feedMax: 1.3 },
   // Sobre imágenes (U2): botón volver con fondo surface al 90 % y textos al 85 %.
   // Cinta de satén del separador: brillo (`surface`), sombra (`ink`) y tejido de los bordes.
   opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, feedActionFill: 0.16, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
