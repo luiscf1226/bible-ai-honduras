@@ -219,6 +219,32 @@ describe("orden del feed", () => {
     }
   });
 
+  it("ordenando de más (como el servidor), las primeras 8 cumplen los mismos topes", () => {
+    const liked = ["paz 0", "paz 1", "paz 2"];
+    for (let seed = 0; seed < 30; seed += 1) {
+      const page = rank({
+        communityLikes: NO_LIKES,
+        likedRefs: liked,
+        pool: MINI_POOL,
+        seed,
+        seenRefs: [],
+        size: FEED_PAGE_SIZE * 2,
+      });
+      const shown = page.slice(0, FEED_PAGE_SIZE);
+      expect(shown.filter((item) => item.topics[0] === "paz").length).toBeLessThanOrEqual(2);
+      expect(shown.filter((item) => item.topics.length === 0).length).toBeLessThanOrEqual(FEED_PAGE_SIZE / 2);
+    }
+  });
+
+  it("la vuelta nueva se decide por una página que se muestra, no por las de reserva", () => {
+    const seen = MINI_POOL.slice(0, MINI_POOL.length - 10).map((item) => item.ref);
+    // Quedan 10 sin ver: alcanza para una página de 8 aunque se pidan 16.
+    expect(
+      rankFeedPage({ communityLikes: NO_LIKES, likedRefs: [], pool: MINI_POOL, seed: 1, seenRefs: seen, size: 16 })
+        .newRound,
+    ).toBe(false);
+  });
+
   it("lo visto que recuerda el cliente alcanza para el catálogo entero", () => {
     expect(FEED_SEEN_MAX).toBeGreaterThan(FEED_POOL.length);
   });

@@ -1,4 +1,5 @@
 import { useQuery } from "convex/react";
+import { useIsFocused } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { FlatList, StatusBar, StyleSheet, Text, View, type LayoutChangeEvent, type ViewToken } from "react-native";
 
@@ -30,6 +31,8 @@ export default function VersiculosScreen() {
   const currentUser = useQuery(api.users.current);
   const referralCode = currentUser?.referralCode;
   const [height, setHeight] = useState(0);
+  // "Leer" abre el lector encima sin desmontar el feed: la barra clara solo mientras se ve el feed.
+  const focused = useIsFocused();
 
   const onLayout = (event: LayoutChangeEvent) => setHeight(event.nativeEvent.layout.height);
 
@@ -90,7 +93,7 @@ export default function VersiculosScreen() {
       ) : (
         <>
           {/* Texto claro en la barra del sistema solo encima de las fotos. */}
-          <StatusBar barStyle="light-content" />
+          {focused ? <StatusBar barStyle="light-content" /> : null}
           <FlatList
             data={items}
             decelerationRate="fast"

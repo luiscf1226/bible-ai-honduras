@@ -74,6 +74,14 @@ async function likesFor(ctx: QueryCtx, ref: string): Promise<number> {
   return stats?.likes ?? 0;
 }
 
+async function hasLiked(ctx: QueryCtx, userId: Id<"users">, ref: string): Promise<boolean> {
+  const row = await ctx.db
+    .query("verseFeedLikes")
+    .withIndex("by_user_ref", (q) => q.eq("userId", userId).eq("ref", ref))
+    .unique();
+  return row !== null;
+}
+
 export type FeedPage = {
   items: FeedItem[];
   /**
@@ -81,6 +89,12 @@ export type FeedPage = {
    * cliente reinicia su lista de vistos (dejando las últimas, para no repetirlas).
    */
   newRound: boolean;
+  /**
+   * Citas que tocaban pero no están en la Biblia cargada. El cliente las suma
+   * a lo visto para que no se vuelvan a pedir: si no, el final de una vuelta
+   * podría quedarse devolviendo páginas vacías.
+   */
+  skipped: string[];
 };
 
 /**
@@ -115,14 +129,16 @@ export const page = query({
     });
     // #93 §4b: una preferencia sin corpus (NVI) degrada a RVR1960.
     const version = resolveBibleVersion(user?.bibleVersion);
-    const liked = new Set(likedRefs);
-
     const items: FeedItem[] = [];
+    const skipped: string[] = [];
     for (const passage of passages) {
       if (items.length === FEED_PAGE_SIZE) break;
       const text = await passageText(ctx, passage, version);
       // Una cita que no está en la Biblia cargada no se muestra: nunca texto inventado (regla dura #4).
-      if (!text) continue;
+      if (!text) {
+        skipped.push(passage.ref);
+        continue;
+      }
       const topicId = passage.topics[0];
       items.push({
         ref: passage.ref,
@@ -136,10 +152,11 @@ export const page = query({
         imageUrl: passage.imageUrl,
         imageAlt: passage.imageAlt,
         likes: communityLikes.get(passage.ref) ?? (await likesFor(ctx, passage.ref)),
-        liked: liked.has(passage.ref),
+        // Lectura puntual: la afinidad mira los últimos ♥, pero el corazón tiene que estar bien siempre.
+        liked: user ? await hasLiked(ctx, user._id, passage.ref) : false,
       });
     }
-    return { items, newRound };
+    return { items, newRound, skipped };
   },
 });
 

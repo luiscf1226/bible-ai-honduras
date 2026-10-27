@@ -166,7 +166,8 @@ export function rankFeedPage({
   const random = seededRandom(seed);
   const seen = new Set(seenRefs);
   let candidates = pool.filter((passage) => !seen.has(passage.ref));
-  const newRound = candidates.length < size;
+  // La vuelta se decide por una página que se muestra, no por las que se ordenan de más.
+  const newRound = candidates.length < FEED_PAGE_SIZE;
   if (newRound) {
     const recent = new Set(seenRefs.slice(-FEED_RECENT_GUARD));
     candidates = pool.filter((passage) => !recent.has(passage.ref));
@@ -191,8 +192,10 @@ export function rankFeedPage({
     })
     .sort((a, b) => b.score - a.score);
 
-  const topicCap = Math.max(1, Math.ceil(size * TOPIC_SHARE));
-  const untaggedCap = Math.max(1, Math.ceil(size * UNTAGGED_SHARE));
+  // Los topes valen por cada tanda de `FEED_PAGE_SIZE`: si el servidor ordena de más (por si falta
+  // algún texto), las primeras 8 cumplen igual y las de reserva arman su propia tanda.
+  const topicCap = Math.max(1, Math.ceil(FEED_PAGE_SIZE * TOPIC_SHARE));
+  const untaggedCap = Math.max(1, Math.ceil(FEED_PAGE_SIZE * UNTAGGED_SHARE));
   const page: FeedPassage[] = [];
   const perGroup = new Map<string, number>();
   const taken = new Set<string>();
@@ -202,6 +205,7 @@ export function rankFeedPage({
     (perGroup.get(groupOf(passage)) ?? 0) < (passage.topics.length === 0 ? untaggedCap : topicCap);
 
   while (page.length < size && taken.size < scored.length) {
+    if (page.length > 0 && page.length % FEED_PAGE_SIZE === 0) perGroup.clear();
     const open = scored.filter(({ passage }) => !taken.has(passage.ref));
     const explore = (page.length + 1) % EXPLORE_EVERY === 0;
     const varied = open.filter(({ passage }) => fits(passage));

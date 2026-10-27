@@ -106,6 +106,29 @@ describe("verseFeed.page", () => {
     }
   });
 
+  it("devuelve las citas que tocaban pero no tienen texto, para que el cliente no las vuelva a pedir", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const { items } = await t.query(api.verseFeed.page, { seen: [], seed: 6 });
+    const [dropped] = items;
+    // Se borra el texto de la primera cita: con la misma semilla, ahora sale como `skipped`.
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("verses").collect()) {
+        if (
+          row.book === dropped.book &&
+          row.chapter === dropped.chapter &&
+          row.verse >= dropped.verse &&
+          row.verse <= (dropped.endVerse ?? dropped.verse)
+        ) {
+          await ctx.db.delete(row._id);
+        }
+      }
+    });
+    const again = await t.query(api.verseFeed.page, { seen: [], seed: 6 });
+    expect(again.skipped).toContain(dropped.ref);
+    expect(again.items.some((item) => item.ref === dropped.ref)).toBe(false);
+  });
+
   it("no repite lo que ya se vio", async () => {
     const t = convexTest(schema, modules);
     await seedPool(t);
@@ -180,6 +203,22 @@ describe("verseFeed.setLike", () => {
     // Lo ya marcado baja en el orden; si vuelve a salir, sale marcado.
     if (liked) expect(liked).toMatchObject({ liked: true, likes: 1 });
     expect(again.filter((item) => item.liked).every((item) => item.ref === first.ref)).toBe(true);
+  });
+
+  it("el corazón sale bien aunque la persona tenga más ♥ de los que mira la afinidad", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const ana = asUser(t, "user_ana_many");
+    const userId = await ana.mutation(api.users.upsert, {});
+    // Todo el catálogo marcado, el primero hace mucho: queda fuera de los últimos 200.
+    await t.run(async (ctx) => {
+      for (const [index, passage] of FEED_POOL.entries()) {
+        await ctx.db.insert("verseFeedLikes", { userId, ref: passage.ref, createdAt: index });
+      }
+    });
+    const items = await pageItems(ana, [], 3);
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((item) => item.liked)).toBe(true);
   });
 
   it("rechaza citas fuera del catálogo y pide sesión", async () => {

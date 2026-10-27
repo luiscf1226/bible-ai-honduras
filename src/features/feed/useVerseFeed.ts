@@ -41,38 +41,48 @@ export function useVerseFeed(): VerseFeedState {
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Por cita, el número del último pedido de ♥: una respuesta vieja no pisa a una nueva.
   const likeRequests = useRef(new Map<string, number>());
+  // Lo que se pidió por cita mientras hay un pedido en vuelo, y lo último que el servidor confirmó
+  // (a eso vuelve el ♥ si un pedido falla).
   const desired = useRef(new Map<string, boolean>());
+  const confirmed = useRef(new Map<string, { liked: boolean; likes: number }>());
+  const mounted = useRef(true);
   const itemsRef = useRef(items);
   itemsRef.current = items;
 
   const scheduleRetry = () => {
+    if (!mounted.current) return;
     if (retryTimer.current) clearTimeout(retryTimer.current);
     retryTimer.current = setTimeout(() => void loadMoreRef.current(), RETRY_MS);
   };
 
   const loadMore = useCallback(async () => {
-    if (loading.current) return;
+    if (loading.current || !mounted.current) return;
     loading.current = true;
+    if (retryTimer.current) clearTimeout(retryTimer.current);
+    retryTimer.current = null;
     try {
-      const { items: page, newRound } = await convex.query(api.verseFeed.page, {
+      const {
+        items: page,
+        newRound,
+        skipped,
+      } = await convex.query(api.verseFeed.page, {
         seen: seen.current,
         seed: seed.current,
       });
+      if (!mounted.current) return;
+      // Lo que no tenía texto también cuenta como visto: el próximo pedido ya no lo ofrece.
+      seen.current = nextSeenRefs(seen.current, [...skipped, ...page.map((item) => item.ref)], newRound);
       if (page.length === 0) {
         if (count.current === 0) setStatus("error");
         else scheduleRetry();
         return;
       }
-      seen.current = nextSeenRefs(
-        seen.current,
-        page.map((item) => item.ref),
-        newRound,
-      );
       count.current += page.length;
       for (const item of page) void Image.prefetch(item.imageUrl).catch(() => undefined);
       setItems((current) => [...current, ...page]);
       setStatus("ready");
     } catch {
+      if (!mounted.current) return;
       // Sin nada que mostrar es error (con botón para reintentar); con versículos ya
       // cargados, se reintenta solo para que el final de la lista no quede trabado.
       if (count.current === 0) setStatus("error");
@@ -85,9 +95,11 @@ export function useVerseFeed(): VerseFeedState {
   loadMoreRef.current = loadMore;
 
   useEffect(() => {
+    mounted.current = true;
     track("verse_feed_opened");
     void loadMore();
     return () => {
+      mounted.current = false;
       if (retryTimer.current) clearTimeout(retryTimer.current);
     };
   }, [loadMore]);
@@ -107,21 +119,28 @@ export function useVerseFeed(): VerseFeedState {
       const wasLiked = desired.current.get(ref) ?? item.liked;
       if (wasLiked === liked) return;
       desired.current.set(ref, liked);
-      const before = { liked: wasLiked, likes: item.likes };
+      // El primer pedido en vuelo fija el estado de partida, que es el que vino del servidor.
+      if (!confirmed.current.has(ref)) confirmed.current.set(ref, { liked: item.liked, likes: item.likes });
       const request = (likeRequests.current.get(ref) ?? 0) + 1;
       likeRequests.current.set(ref, request);
       setItems((current) => setLikeLocally(current, ref, liked));
       if (liked) track("verse_feed_liked");
       const isLatest = () => likeRequests.current.get(ref) === request;
+      // Cuando el último pedido termina, la lista vuelve a mandar (sin estado pedido ni confirmado colgando).
+      const settle = (state: { liked: boolean; likes: number }) => {
+        desired.current.delete(ref);
+        confirmed.current.delete(ref);
+        setItems((current) => settleLike(current, ref, state));
+      };
       saveLike({ ref, liked }).then(
         (result) => {
-          if (isLatest()) setItems((current) => settleLike(current, ref, result));
+          if (isLatest()) settle(result);
+          else confirmed.current.set(ref, result);
         },
-        // Si no se pudo guardar, el ♥ vuelve a como estaba antes del toque.
+        // Si no se pudo guardar, el ♥ vuelve a lo último que el servidor confirmó.
         () => {
-          if (!isLatest()) return;
-          desired.current.set(ref, before.liked);
-          setItems((current) => settleLike(current, ref, before));
+          const lastConfirmed = confirmed.current.get(ref);
+          if (isLatest() && lastConfirmed) settle(lastConfirmed);
         },
       );
     },
