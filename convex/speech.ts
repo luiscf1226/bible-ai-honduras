@@ -1,4 +1,5 @@
-import { AiCallError, type AiMeter, httpErrorKind, metered } from "./adminKit/meter";
+import { AiCallError, type AiMeter, metered } from "./adminKit/meter";
+import { openAiErrorKind } from "./images";
 
 /**
  * Voz natural del feed de versículos: lee el texto de RV1909 tal cual, sin
@@ -8,6 +9,8 @@ import { AiCallError, type AiMeter, httpErrorKind, metered } from "./adminKit/me
 const OPENAI_SPEECH_URL = "https://api.openai.com/v1/audio/speech";
 export const SPEECH_MODEL = "gpt-4o-mini-tts";
 const SPEECH_VOICE = "sage";
+// Una lectura tarda ~4 s; si en un minuto no llegó, se da por caída (no gasta intento).
+const SPEECH_TIMEOUT_MS = 60_000;
 const SPEECH_INSTRUCTIONS =
   "Leé en español latinoamericano neutro, con voz cálida, serena y pausada, como quien lee la Biblia en voz alta en una iglesia evangélica. " +
   "Pronunciá las formas antiguas tal como están escritas. No agregues palabras ni comentarios.";
@@ -28,23 +31,35 @@ export function estimateSpeechTokens(text: string): { inputTokens: number; outpu
   const seconds = text.length / CHARACTERS_PER_SECOND;
   // Las instrucciones de la voz también se cobran como texto de entrada.
   const inputCharacters = text.length + SPEECH_INSTRUCTIONS.length;
-  return { inputTokens: Math.ceil(inputCharacters / 4), outputTokens: Math.ceil((seconds / 60) * AUDIO_TOKENS_PER_MINUTE) };
+  return {
+    inputTokens: Math.ceil(inputCharacters / 4),
+    outputTokens: Math.ceil((seconds / 60) * AUDIO_TOKENS_PER_MINUTE),
+  };
 }
 
 export async function generateSpeech(text: string, meter?: AiMeter): Promise<Blob> {
   return metered(meter, { provider: "openai", model: SPEECH_MODEL }, async (note) => {
-    const response = await fetch(OPENAI_SPEECH_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey()}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        model: SPEECH_MODEL,
-        voice: SPEECH_VOICE,
-        input: text,
-        instructions: SPEECH_INSTRUCTIONS,
-        response_format: "mp3",
-      }),
-    });
-    if (!response.ok) throw new AiCallError(httpErrorKind(response.status), `OpenAI Speech falló: ${response.status}`);
+    let response: Response;
+    try {
+      response = await fetch(OPENAI_SPEECH_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey()}`, "content-type": "application/json" },
+        body: JSON.stringify({
+          model: SPEECH_MODEL,
+          voice: SPEECH_VOICE,
+          input: text,
+          instructions: SPEECH_INSTRUCTIONS,
+          response_format: "mp3",
+        }),
+        signal: AbortSignal.timeout(SPEECH_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new AiCallError("timeout", "OpenAI Speech no respondió a tiempo");
+      }
+      throw error;
+    }
+    if (!response.ok) throw new AiCallError(await openAiErrorKind(response), `OpenAI Speech falló: ${response.status}`);
     const audio = await response.arrayBuffer();
     if (audio.byteLength === 0) throw new AiCallError("empty", "OpenAI Speech no devolvió audio");
     note(estimateSpeechTokens(text));

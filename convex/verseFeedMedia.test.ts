@@ -29,9 +29,9 @@ function setup() {
   return t;
 }
 
-async function seedVerses(t: ReturnType<typeof convexTest>) {
+async function seedVerses(t: ReturnType<typeof convexTest>, passages = SEEDED) {
   await t.run(async (ctx) => {
-    for (const passage of SEEDED) {
+    for (const passage of passages) {
       for (let verse = passage.verse; verse <= (passage.endVerse ?? passage.verse); verse += 1) {
         await ctx.db.insert("verses", {
           version: "RV1909",
@@ -47,7 +47,7 @@ async function seedVerses(t: ReturnType<typeof convexTest>) {
 }
 
 /** OpenAI de mentira: imágenes en base64 y audio en bytes. Guarda cada pedido. */
-function stubOpenAI(options: { failImages?: number } = {}) {
+function stubOpenAI(options: { failImages?: number; outOfCredit?: boolean } = {}) {
   const requests: { url: string; body: Record<string, unknown> }[] = [];
   vi.stubGlobal(
     "fetch",
@@ -55,6 +55,12 @@ function stubOpenAI(options: { failImages?: number } = {}) {
       const body = JSON.parse(String(init.body)) as Record<string, unknown>;
       requests.push({ url, body });
       if (url.endsWith("/images/generations")) {
+        if (options.outOfCredit) {
+          return new Response(
+            JSON.stringify({ error: { type: "insufficient_quota", code: "credit_balance_exhausted" } }),
+            { status: 429 },
+          );
+        }
         if (options.failImages) return new Response("boom", { status: options.failImages });
         return new Response(
           JSON.stringify({ data: [{ b64_json: btoa("webp") }], usage: { input_tokens: 10, output_tokens: 20 } }),
@@ -156,6 +162,47 @@ describe("generateMissing", () => {
       (await ctx.db.query("verseFeedMedia").collect()).filter((row) => row.kind === "image"),
     );
     expect(images.every((row) => row.attempts === 0 && !row.inProgressUntil)).toBe(true);
+  });
+
+  it("un éxito vuelve los intentos a cero: una voz vieja con fallas previas se puede regenerar", async () => {
+    const t = setup();
+    await seedVerses(t);
+    stubOpenAI();
+    // Dos fallas antes del éxito.
+    await t.run(async (ctx) => {
+      await ctx.db.insert("verseFeedMedia", {
+        ref: SEEDED[0].ref,
+        kind: "audio",
+        version: "RV1909",
+        attempts: MAX_ATTEMPTS - 1,
+        updatedAt: 0,
+      });
+    });
+    await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+    const audio = await t.run(async (ctx) =>
+      (await ctx.db.query("verseFeedMedia").collect()).find(
+        (row) => row.kind === "audio" && row.ref === SEEDED[0].ref,
+      )!,
+    );
+    expect(audio).toMatchObject({ attempts: 0 });
+    expect(audio.storageId).toBeDefined();
+  });
+
+  it("sin saldo en OpenAI la cadena se detiene y no gasta intentos", async () => {
+    const t = setup();
+    // Más de una tanda de trabajo: sin el freno, quedaría otra tanda agendada.
+    await seedVerses(t, FEED_POOL.slice(0, 6));
+    stubOpenAI({ outOfCredit: true });
+
+    const result = await t.action(internal.verseFeedMedia.generateMissing, { budget: 100, parallel: 1 });
+
+    expect(result.remaining).toBeGreaterThan(0);
+    expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toHaveLength(0);
+    const images = await t.run(async (ctx) =>
+      (await ctx.db.query("verseFeedMedia").collect()).filter((row) => row.kind === "image"),
+    );
+    expect(images.length).toBeGreaterThan(0);
+    expect(images.every((row) => row.attempts === 0)).toBe(true);
   });
 
   it("dos tandas a la vez nunca reservan la misma cita", async () => {

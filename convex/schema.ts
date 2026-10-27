@@ -279,9 +279,6 @@ export default defineSchema({
     .index("by_user", ["userId", "createdAt"])
     .index("by_user_ref", ["userId", "ref"]),
 
-  // Total de ♥ por cita, de toda la comunidad: lo que ordena "lo más querido"
-  // sin recorrer los likes. Anónimo (no guarda quién); el borrado de cuenta
-  // descuenta los ♥ de la persona.
   // Fondo (imagen de IA) y voz (lectura de IA) de cada cita del feed. Se
   // generan una vez por cita (la voz, por versión) y se guardan: contenido
   // editorial global, sin userId. `attempts` frena reintentos que gastan.
@@ -300,6 +297,9 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_ref_kind_version", ["ref", "kind", "version"]),
 
+  // Total de ♥ por cita, de toda la comunidad: lo que ordena "lo más querido"
+  // sin recorrer los likes. Anónimo (no guarda quién); el borrado de cuenta
+  // descuenta los ♥ de la persona.
   verseFeedStats: defineTable({
     ref: v.string(),
     likes: v.number(),

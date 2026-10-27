@@ -86,7 +86,11 @@ export function ScreenHeader({
           <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
         </Pressable>
       ) : null}
-      {center ? <View style={styles.center}>{center}</View> : null}
+      {center ? (
+        <View pointerEvents={pointerEvents} style={styles.center}>
+          {center}
+        </View>
+      ) : null}
       {!center && title ? (
         <Text
           style={[

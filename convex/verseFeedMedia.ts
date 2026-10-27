@@ -173,7 +173,8 @@ export const save = internalMutation({
   },
   handler: async (ctx, args) => {
     const existing = await mediaRow(ctx, args.ref, args.kind, args.version);
-    const attempts = (existing?.attempts ?? 0) + (args.countAttempt ? 1 : 0);
+    // Los intentos cuentan fallas seguidas: un archivo nuevo los vuelve a cero.
+    const attempts = args.storageId ? 0 : (existing?.attempts ?? 0) + (args.countAttempt ? 1 : 0);
     const update = {
       attempts,
       inProgressUntil: undefined,
@@ -201,15 +202,17 @@ export const save = internalMutation({
 export function isTransientFailure(error: unknown): boolean {
   // Cualquier otra cosa (red, almacenamiento) sí gasta un intento: si no, una falla fija se reintentaría para siempre.
   if (!(error instanceof AiCallError)) return false;
-  return error.kind === "http_429" || /^http_5\d\d$/.test(error.kind);
+  return (
+    error.kind === "http_429" || error.kind === "quota" || error.kind === "timeout" || /^http_5\d\d$/.test(error.kind)
+  );
 }
 
 /**
  * Genera lo que falta, de a tandas, y se vuelve a agendar hasta agotar el
  * `budget` (cantidad máxima de generaciones, para que el gasto tenga techo).
  * Solo se corre desde la terminal o el cron: el cliente no puede disparar
- * generaciones. Si la tanda entera falla por el proveedor, la próxima espera
- * `BACKOFF_MS` en lugar de quemar los intentos de golpe.
+ * generaciones. Si la mitad de la tanda o más falla por el proveedor, la
+ * próxima espera `BACKOFF_MS` en lugar de seguir chocando con el límite.
  */
 export const generateMissing = internalAction({
   // `parallel` solo existe para los tests (convex-test no admite escrituras en paralelo en una acción).
@@ -223,6 +226,7 @@ export const generateMissing = internalAction({
     let generated = 0;
     let failed = 0;
     let transient = 0;
+    let outOfCredit = false;
 
     for (let start = 0; start < todo.length; start += parallel) {
       await Promise.all(
@@ -240,6 +244,7 @@ export const generateMissing = internalAction({
             generated += 1;
           } catch (error) {
             failed += 1;
+            if (error instanceof AiCallError && error.kind === "quota") outOfCredit = true;
             if (isTransientFailure(error)) {
               transient += 1;
               countAttempt = false;
@@ -260,8 +265,11 @@ export const generateMissing = internalAction({
 
     const remaining = args.budget - todo.length;
     // Tanda llena = puede quedar más: sigue en otra acción (cada una con su propio tiempo límite).
-    if (todo.length === take && remaining > 0) {
-      const delay = transient === todo.length ? BACKOFF_MS : 0;
+    // Sin saldo en OpenAI no tiene sentido seguir: la cadena para y el cron diario retoma cuando haya.
+    if (outOfCredit) console.error("OpenAI sin saldo: se detiene la generación de medios del feed");
+    if (todo.length === take && remaining > 0 && !outOfCredit) {
+      // Con la mitad o más cayendo por el proveedor, se espera: seguir al toque solo choca con el límite.
+      const delay = transient * 2 >= todo.length ? BACKOFF_MS : 0;
       await ctx.scheduler.runAfter(delay, internal.verseFeedMedia.generateMissing, { budget: remaining, parallel });
     }
     return { generated, failed, remaining };
@@ -274,7 +282,7 @@ export const progress = internalQuery({
   handler: async (ctx) => {
     const rows = await ctx.db.query("verseFeedMedia").collect();
     const ready = (kind: FeedMediaKind) => rows.filter((row) => row.kind === kind && row.storageId).length;
-    const gaveUp = rows.filter((row) => !row.storageId && row.attempts >= MAX_ATTEMPTS).length;
+    const gaveUp = rows.filter((row) => row.attempts >= MAX_ATTEMPTS).length;
     return { catalog: FEED_POOL.length, images: ready("image"), audio: ready("audio"), gaveUp };
   },
 });
@@ -297,7 +305,7 @@ export const resetGaveUp = internalMutation({
   handler: async (ctx) => {
     let reset = 0;
     for (const row of await ctx.db.query("verseFeedMedia").collect()) {
-      if (!row.storageId && row.attempts >= MAX_ATTEMPTS) {
+      if (row.attempts >= MAX_ATTEMPTS) {
         await ctx.db.patch(row._id, { attempts: 0 });
         reset += 1;
       }
