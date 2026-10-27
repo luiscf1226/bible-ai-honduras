@@ -4,16 +4,9 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { resolveBibleVersion } from "./bibleVersions";
-import {
-  FEED_PAGE_SIZE,
-  FEED_POOL,
-  FEED_SEEN_MAX,
-  FEED_TOPIC_NAMES,
-  feedPassage,
-  fitPassageText,
-  rankFeedPage,
-  type FeedPassage,
-} from "./verseFeedCore";
+import { feedAudioUrl, feedImageUrl } from "./verseFeedMedia";
+import { feedPassageText, spokenText, textHash } from "./verseFeedText";
+import { FEED_PAGE_SIZE, FEED_POOL, FEED_SEEN_MAX, FEED_TOPIC_NAMES, feedPassage, rankFeedPage } from "./verseFeedCore";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos). El orden y el
@@ -36,8 +29,11 @@ export type FeedItem = {
   version: string;
   /** Nombre del tema ("Esperanza"), o null si la cita solo viene de un devocional. */
   topic: string | null;
+  /** Fondo de IA de la cita; mientras no exista, la foto del devocional. */
   imageUrl: string;
   imageAlt: string;
+  /** Lectura en voz natural del texto que se muestra, o null si todavía no se generó. */
+  audioUrl: string | null;
   likes: number;
   liked: boolean;
 };
@@ -49,22 +45,6 @@ async function currentUser(ctx: QueryCtx): Promise<Doc<"users"> | null> {
     .query("users")
     .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
     .unique();
-}
-
-async function passageText(ctx: QueryCtx, passage: FeedPassage, version: string) {
-  const last = passage.endVerse ?? passage.verse;
-  const rows = await ctx.db
-    .query("verses")
-    .withIndex("by_ref", (q) =>
-      q
-        .eq("version", version)
-        .eq("book", passage.book)
-        .eq("chapter", passage.chapter)
-        .gte("verse", passage.verse)
-        .lte("verse", last),
-    )
-    .collect();
-  return fitPassageText(rows);
 }
 
 async function likesFor(ctx: QueryCtx, ref: string): Promise<number> {
@@ -134,7 +114,7 @@ export const page = query({
     const skipped: string[] = [];
     for (const passage of passages) {
       if (items.length === FEED_PAGE_SIZE) break;
-      const fitted = await passageText(ctx, passage, version);
+      const fitted = await feedPassageText(ctx, passage, version);
       // Una cita que no está en la Biblia cargada (o no entra en la pantalla) no se muestra:
       // nunca texto inventado ni cortado (regla dura #4).
       if (!fitted) {
@@ -142,6 +122,11 @@ export const page = query({
         continue;
       }
       const topicId = passage.topics[0];
+      const aiImage = await feedImageUrl(ctx, passage.ref);
+      const reference =
+        fitted.endVerse === null
+          ? `${passage.book} ${passage.chapter}:${passage.verse}`
+          : `${passage.book} ${passage.chapter}:${passage.verse}-${fitted.endVerse}`;
       items.push({
         ref: passage.ref,
         book: passage.book,
@@ -151,8 +136,11 @@ export const page = query({
         text: fitted.text,
         version,
         topic: topicId ? (FEED_TOPIC_NAMES.get(topicId) ?? null) : null,
-        imageUrl: passage.imageUrl,
-        imageAlt: passage.imageAlt,
+        ...(aiImage
+          ? { imageUrl: aiImage, imageAlt: `Ilustración inspirada en ${reference}` }
+          : { imageUrl: passage.imageUrl, imageAlt: passage.imageAlt }),
+        // Solo si la voz guardada leyó exactamente este texto.
+        audioUrl: await feedAudioUrl(ctx, passage.ref, version, textHash(spokenText(fitted.text))),
         likes: communityLikes.get(passage.ref) ?? (await likesFor(ctx, passage.ref)),
         // Lectura puntual: la afinidad mira los últimos ♥, pero el corazón tiene que estar bien siempre.
         liked: user ? await hasLiked(ctx, user._id, passage.ref) : false,

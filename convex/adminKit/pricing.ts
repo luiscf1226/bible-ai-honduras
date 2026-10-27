@@ -11,6 +11,8 @@ export const MODEL_PRICES: Record<string, ModelPrice> = {
   "anthropic/claude-sonnet-5": { inputPerMillion: 2, outputPerMillion: 10 },
   "openai/text-embedding-3-small": { inputPerMillion: 0.02, outputPerMillion: 0 },
   "openai/gpt-image-1.5": { inputPerMillion: 5, outputPerMillion: 32 },
+  // Voz del feed de versículos: texto de entrada + audio de salida (convex/speech.ts estima los tokens).
+  "openai/gpt-4o-mini-tts": { inputPerMillion: 0.6, outputPerMillion: 12 },
 };
 
 export function priceFor(provider: string, model: string): ModelPrice | undefined {

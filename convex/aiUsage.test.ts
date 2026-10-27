@@ -5,6 +5,7 @@ import { components, internal } from "./_generated/api";
 import adminKitSchema from "./adminKit/schema";
 import { priceFor } from "./adminKit/pricing";
 import { STORY_IMAGE_MODEL } from "./images";
+import { SPEECH_MODEL } from "./speech";
 import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDING_MODEL, OPENAI_EMBEDDINGS_URL } from "./rag/embed";
 import { ANTHROPIC_MESSAGES_URL, ANTHROPIC_MODEL } from "./rag/llm";
 import schema from "./schema";
@@ -85,6 +86,7 @@ describe("costo de la IA (#235)", () => {
     expect(priceFor("anthropic", ANTHROPIC_MODEL)).toBeDefined();
     expect(priceFor("openai", OPENAI_EMBEDDING_MODEL)).toBeDefined();
     expect(priceFor("openai", STORY_IMAGE_MODEL)).toBeDefined();
+    expect(priceFor("openai", SPEECH_MODEL)).toBeDefined();
   });
 
   it("una respuesta de Sentir deja sus llamadas con tokens y costo, a nombre de feelings", async () => {

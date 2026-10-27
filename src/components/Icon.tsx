@@ -51,6 +51,9 @@ export const ICONS = {
   lock: [{ kind: "rect", x: 5, y: 10.5, width: 14, height: 10, rx: 2.4 }, path("M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5")],
   refresh: [path("M20 11.5a8 8 0 1 0-2.5 5.8"), path("M20 5.5v6h-6")],
   // Nuevos, mismo trazo.
+  // Voz del feed de versículos: con sonido / en silencio.
+  sound: [path("M4.5 9.5h3l4.5-4v13l-4.5-4h-3z"), path("M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11")],
+  soundOff: [path("M4.5 9.5h3l4.5-4v13l-4.5-4h-3z"), path("M15.5 9.5l5 5M20.5 9.5l-5 5")],
   // ♥ del feed de versículos.
   heart: [path("M12 20s-7.5-4.6-7.5-10.1A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z")],
   menu: [path("M4 7h16M4 12h16M4 17h10")],

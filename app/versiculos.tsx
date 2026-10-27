@@ -6,9 +6,11 @@ import { FlatList, StatusBar, StyleSheet, Text, View, type LayoutChangeEvent, ty
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
 import { LoadingState } from "../src/components/LoadingState";
-import { ScreenHeader } from "../src/components/ScreenHeader";
+import { Icon } from "../src/components/Icon";
+import { HeaderIconButton, ScreenHeader } from "../src/components/ScreenHeader";
 import { buildFeedShareText, feedItemKey, type FeedItem } from "../src/features/feed/feedLogic";
 import { FeedVersePage } from "../src/features/feed/FeedVersePage";
+import { useFeedVoice } from "../src/features/feed/useFeedVoice";
 import { useVerseFeed } from "../src/features/feed/useVerseFeed";
 import { useScreenInsets } from "../src/hooks/useKeyboardAvoidance";
 import { openPassage } from "../src/lib/openPassage";
@@ -33,12 +35,17 @@ export default function VersiculosScreen() {
   const [height, setHeight] = useState(0);
   // "Leer" abre el lector encima sin desmontar el feed: la barra clara solo mientras se ve el feed.
   const focused = useIsFocused();
+  // La pantalla que se ve: su voz es la que suena.
+  const [activeIndex, setActiveIndex] = useState(0);
+  const { muted, toggleMuted } = useFeedVoice(items[activeIndex]?.audioUrl ?? null, focused && status === "ready");
 
   const onLayout = (event: LayoutChangeEvent) => setHeight(event.nativeEvent.layout.height);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const index = viewableItems[0]?.index;
-    if (typeof index === "number") onVisibleRef.current(index);
+    if (typeof index !== "number") return;
+    setActiveIndex(index);
+    onVisibleRef.current(index);
   }).current;
   const onVisibleRef = useRef(onVisible);
   onVisibleRef.current = onVisible;
@@ -119,9 +126,23 @@ export default function VersiculosScreen() {
       )}
       <ScreenHeader
         accessibilityLabel="Volver al inicio"
+        center={<View pointerEvents="none" />}
         onImage
-        style={[styles.back, { top: insets.top + tokens.space.sm }]}
+        pointerEvents="box-none"
+        style={[styles.header, { top: insets.top + tokens.space.sm }]}
         testID="feed-back"
+        trailing={
+          status === "ready" ? (
+            <HeaderIconButton
+              accessibilityLabel={muted ? "Activar la voz" : "Silenciar la voz"}
+              onImage
+              onPress={toggleMuted}
+              testID="feed-sound"
+            >
+              <Icon color={color.ink} name={muted ? "soundOff" : "sound"} size="sm" />
+            </HeaderIconButton>
+          ) : undefined
+        }
       />
     </View>
   );
@@ -129,7 +150,8 @@ export default function VersiculosScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  back: { left: tokens.screenPadding.horizontal, position: "absolute" },
+  // Ocupa todo el ancho (‹ a la izquierda, sonido a la derecha) pero no se queda con los toques del medio.
+  header: { left: tokens.screenPadding.horizontal, position: "absolute", right: tokens.screenPadding.horizontal },
   status: {
     flex: 1,
     gap: tokens.space.xl,

@@ -55,4 +55,9 @@ crons.hourly(
   internal.adminAdapter.rollupRecent,
 );
 
+// Fondos y voz del feed de versículos (convex/verseFeedMedia.ts): sin cron a
+// propósito. El fundador decidió quedarse con lo ya generado; lo que falta usa
+// la foto del devocional. Para completar, a mano:
+//   npx convex run verseFeedMedia:generateMissing '{"budget": 650}'
+
 export default crons;

@@ -36,6 +36,8 @@ export type ScreenHeaderProps = {
   center?: ReactNode;
   /** Botón a la derecha, simétrico al ‹ (p. ej. "Aa" del lector). */
   trailing?: ReactNode;
+  /** `box-none` cuando el encabezado flota encima de contenido que tiene que seguir recibiendo toques. */
+  pointerEvents?: "box-none" | "auto";
 };
 
 /** Desapila si hay historial; si no, aterriza en Home (arranque en frío / deep link). */
@@ -60,12 +62,13 @@ export function ScreenHeader({
   style,
   center,
   trailing,
+  pointerEvents,
 }: ScreenHeaderProps) {
   const { color } = useTheme();
   const titleType = titleSize === "pick" ? tokens.type.qaPickTitle : tokens.type.title;
 
   return (
-    <View style={[styles.header, style]}>
+    <View pointerEvents={pointerEvents} style={[styles.header, style]}>
       {showBack ? (
         <Pressable
           accessibilityLabel={accessibilityLabel}
@@ -83,7 +86,11 @@ export function ScreenHeader({
           <Text style={[styles.backIcon, { color: color.ink }]}>‹</Text>
         </Pressable>
       ) : null}
-      {center ? <View style={styles.center}>{center}</View> : null}
+      {center ? (
+        <View pointerEvents={pointerEvents} style={styles.center}>
+          {center}
+        </View>
+      ) : null}
       {!center && title ? (
         <Text
           style={[
@@ -105,10 +112,12 @@ type HeaderIconButtonProps = {
   onPress: () => void;
   children: ReactNode;
   testID?: string;
+  /** Encima de una imagen, como el ‹ `onImage` (feed de versículos). */
+  onImage?: boolean;
 };
 
 /** Botón circular del encabezado con la misma forma que el ‹ (para `trailing`). */
-export function HeaderIconButton({ accessibilityLabel, children, onPress, testID }: HeaderIconButtonProps) {
+export function HeaderIconButton({ accessibilityLabel, children, onImage = false, onPress, testID }: HeaderIconButtonProps) {
   const { color } = useTheme();
   return (
     <Pressable
@@ -116,10 +125,12 @@ export function HeaderIconButton({ accessibilityLabel, children, onPress, testID
       accessibilityRole="button"
       hitSlop={tokens.space.sm}
       onPress={onPress}
-      style={[styles.backButton, { borderColor: color.border }]}
+      style={[styles.backButton, { borderColor: onImage ? "transparent" : color.border }, onImage && styles.onImage]}
       testID={testID}
     >
-      {children}
+      {onImage ? <View style={[StyleSheet.absoluteFill, styles.onImageFill, { backgroundColor: color.surface }]} /> : null}
+      {/* En web, el relleno absoluto taparía un ícono SVG suelto: el View lo deja encima. */}
+      {onImage ? <View>{children}</View> : children}
     </Pressable>
   );
 }

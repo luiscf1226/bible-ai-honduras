@@ -279,6 +279,24 @@ export default defineSchema({
     .index("by_user", ["userId", "createdAt"])
     .index("by_user_ref", ["userId", "ref"]),
 
+  // Fondo (imagen de IA) y voz (lectura de IA) de cada cita del feed. Se
+  // generan una vez por cita (la voz, por versión) y se guardan: contenido
+  // editorial global, sin userId. `attempts` frena reintentos que gastan.
+  verseFeedMedia: defineTable({
+    ref: v.string(),
+    kind: v.union(v.literal("image"), v.literal("audio")),
+    // Versión bíblica de la voz; "" para la imagen (es la misma en todas).
+    version: v.string(),
+    storageId: v.optional(v.id("_storage")),
+    // Voz: huella del texto que se leyó (convex/verseFeedText.ts). Si no coincide con lo que
+    // muestra el feed, la voz no se usa y se vuelve a generar.
+    textHash: v.optional(v.string()),
+    attempts: v.number(),
+    // Reservada por una tanda en curso hasta este momento: dos tandas no pagan la misma cita.
+    inProgressUntil: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_ref_kind_version", ["ref", "kind", "version"]),
+
   // Total de ♥ por cita, de toda la comunidad: lo que ordena "lo más querido"
   // sin recorrer los likes. Anónimo (no guarda quién); el borrado de cuenta
   // descuenta los ♥ de la persona.

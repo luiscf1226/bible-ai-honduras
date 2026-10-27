@@ -6,6 +6,7 @@ import {
   createDoubleTapDetector,
   feedItemKey,
   feedReference,
+  feedVoiceAction,
   feedVerseText,
   feedVerseType,
   formatLikes,
@@ -28,6 +29,7 @@ function item(ref: string, extra: Partial<FeedItem> = {}): FeedItem {
     topic: "Paz",
     imageUrl: "https://example.com/a.jpg",
     imageAlt: "foto",
+    audioUrl: null,
     likes: 0,
     liked: false,
     ...extra,
@@ -127,6 +129,16 @@ describe("cita", () => {
   it("sale de los versículos que se muestran, no del id del catálogo", () => {
     const shortened = item("2 Corintios 12:9-10", { book: "2 Corintios", chapter: 12, verse: 9, endVerse: null });
     expect(feedReference(shortened)).toBe("2 Corintios 12:9 (RV1909)");
+  });
+});
+
+describe("voz", () => {
+  it("suena solo con el feed a la vista, sin silencio y con lectura generada", () => {
+    const base = { audioUrl: "https://x/a.mp3", focused: true, muted: false };
+    expect(feedVoiceAction(base)).toBe("play");
+    expect(feedVoiceAction({ ...base, muted: true })).toBe("pause");
+    expect(feedVoiceAction({ ...base, focused: false })).toBe("pause");
+    expect(feedVoiceAction({ ...base, audioUrl: null })).toBe("pause");
   });
 });
 
