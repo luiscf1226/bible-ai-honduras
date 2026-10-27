@@ -21,9 +21,10 @@ const HONDURAS_TIME_ZONE = "America/Tegucigalpa";
  *
  * Inicio compacto (U1b): los cuatro módulos van al final como mosaicos de una
  * cuadrícula 2×2 (`HOME_TILE_IDS`). "Un minuto de pausa" (#203) se mudó a
- * Sentir en #232.
+ * Sentir en #232. `feed` abre el feed de versículos a pantalla completa
+ * (design/oleada-ux.md §Feed de versículos), justo debajo del versículo del día.
  */
-export const HOME_CARD_ORDER = ["context", "verse", "feeling", "read", "ask", "characters", "stories"] as const;
+export const HOME_CARD_ORDER = ["context", "verse", "feed", "feeling", "read", "ask", "characters", "stories"] as const;
 export type HomeCardId = (typeof HOME_CARD_ORDER)[number];
 
 /** Los módulos que se dibujan como mosaico en la cuadrícula 2×2 (U1b). */
@@ -56,6 +57,7 @@ export type HomeRoute = { pathname: string; params?: Record<string, string> };
 
 export const HOME_ROUTES = {
   today: { pathname: "/hoy" },
+  feed: { pathname: "/versiculos" },
   read: { pathname: "/leer" },
   feeling: { pathname: "/sentir" },
   ask: { pathname: "/preguntar" },
@@ -165,6 +167,11 @@ export function pickHomeCharacters<T extends { slug: string }>(characters: reado
 // ── Historias ────────────────────────────────────────────────────────────────
 
 export const STORIES_CARD_CAPTION = "Historias bíblicas en texto e imágenes";
+
+// ── Feed de versículos ───────────────────────────────────────────────────────
+
+export const FEED_CARD_TITLE = "Versículos para vos";
+export const FEED_CARD_CAPTION = "Deslizá uno tras otro y dale ♥ a los que te hablan";
 
 // ── Encabezado ───────────────────────────────────────────────────────────────
 

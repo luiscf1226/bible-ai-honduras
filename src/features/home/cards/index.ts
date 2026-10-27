@@ -4,6 +4,7 @@ import { HOME_CARD_ORDER, HOME_TILE_IDS, type HomeCardId } from "../homeCards";
 import { AskCard } from "./AskCard";
 import { CharactersCard } from "./CharactersCard";
 import { ContextCard } from "./ContextCard";
+import { FeedCard } from "./FeedCard";
 import { FeelingCard } from "./FeelingCard";
 import { ReadCard } from "./ReadCard";
 import { StoriesCard } from "./StoriesCard";
@@ -25,6 +26,7 @@ export type HomeCardEntry = {
 const COMPONENTS: Record<HomeCardId, Omit<HomeCardEntry, "id">> = {
   context: { Component: ContextCard },
   verse: { Component: VerseCard },
+  feed: { Component: FeedCard },
   read: { Component: ReadCard },
   feeling: { Component: FeelingCard },
   ask: { Component: AskCard },

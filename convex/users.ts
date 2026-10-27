@@ -18,6 +18,7 @@ import { parseBirthday, parseCalendarDate } from "./personalDates";
 import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingGroupDataForUser } from "./readingGroups";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
+import { deleteVerseFeedLikesForUser } from "./verseFeed";
 
 export const AI_CONSENT_VERSION = "2026-08-25";
 
@@ -382,6 +383,7 @@ export const setPersonalDates = mutation({
 //   prayerRequests → diario de oración (#159)
 //   sermonNotes    → notas de prédica (#232)
 //   memoryVerses   → versículos para memorizar (#158)
+//   verseFeedLikes → ♥ del feed de versículos (también descuenta `verseFeedStats`)
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 
@@ -406,6 +408,7 @@ export type PurgeCounts = {
   prayerRequests: number;
   sermonNotes: number;
   memoryVerses: number;
+  verseFeedLikes: number;
   users: number;
 };
 
@@ -442,6 +445,7 @@ function emptyPurgeCounts(): PurgeCounts {
     prayerRequests: 0,
     sermonNotes: 0,
     memoryVerses: 0,
+    verseFeedLikes: 0,
     users: 0,
   };
 }
@@ -580,6 +584,9 @@ export const purgeAccountData = internalMutation({
     const memory = await deleteMemoryVersesForUser(ctx, user._id, PURGE_BUDGET);
     deleted.memoryVerses = memory.deleted;
 
+    const feedLikes = await deleteVerseFeedLikesForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.verseFeedLikes = feedLikes.deleted;
+
     const childrenDone =
       conversations.done &&
       stories.done &&
@@ -588,7 +595,8 @@ export const purgeAccountData = internalMutation({
       reading.done &&
       prayers.done &&
       sermonNotes.done &&
-      memory.done;
+      memory.done &&
+      feedLikes.done;
     if (!childrenDone) {
       return { done: false, deleted };
     }
@@ -689,6 +697,7 @@ export const deleteAccount = action({
       deleted.prayerRequests += result.deleted.prayerRequests;
       deleted.sermonNotes += result.deleted.sermonNotes;
       deleted.memoryVerses += result.deleted.memoryVerses;
+      deleted.verseFeedLikes += result.deleted.verseFeedLikes;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

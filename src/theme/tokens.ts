@@ -144,10 +144,12 @@ export const tokens = {
     dropCap: { size: 58, lineHeight: 52 },
     verseNumber: { size: 10, lineHeight: 10 },
     readerBody: { size: 19, lineHeight: 31 },
+    // Feed de versículos: el versículo corto llena la pantalla (31 × 1.32).
+    verseFeed: { size: 31, lineHeight: 41 },
   },
   // Sobre imágenes (U2): botón volver con fondo surface al 90 % y textos al 85 %.
   // Cinta de satén del separador: brillo (`surface`), sombra (`ink`) y tejido de los bordes.
-  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
+  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, feedActionFill: 0.16, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
@@ -173,7 +175,7 @@ export const tokens = {
     tileAvatar: 30,
     verseCardImage: 176,
     hoyImage: 236,
-    icon: { sm: 16, md: 20, lg: 24 },
+    icon: { sm: 16, md: 20, lg: 24, xl: 28 },
     iconStroke: 1.3,
     // Cinta de satén (separador físico): `height` es el largo mínimo; cuelga
     // desde el borde de la página y `fade` es lo que tarda en aparecer arriba.
@@ -194,12 +196,16 @@ export const tokens = {
     noteEditorMin: 180,
     // Ancho de la vista previa en "Dedicar" (#202): 9:16 y cuadrada.
     dedicationPreview: { story: 216, square: 280 },
+    // Feed de versículos: botón redondo de la columna de acciones (≥ 44 de área
+    // táctil) y el corazón grande del doble toque.
+    feedAction: 48,
+    feedHeart: 96,
   },
   // Hoja del versículo (#232): la fila de arriba lleva 4 acciones + "Más" (5 × `actionTile` = el ancho útil
   // de 360); lo que despliega "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
   grid: { chapterColumns: 5, actionColumns: 4, primaryActionColumns: 5 },
   // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.
-  motion: { pause: 60000, verseDelay: 600, verseFadeIn: 2400, closeFadeIn: 1200 },
+  motion: { pause: 60000, verseDelay: 600, verseFadeIn: 2400, closeFadeIn: 1200, feedDoubleTap: 280, feedHeart: 700 },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
   storyImage: {
     width: 1080,

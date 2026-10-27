@@ -23,7 +23,7 @@ import {
 
 describe("orden de las tarjetas (#193, #232)", () => {
   it("una sola tarjeta de contexto arriba del versículo; la pausa se mudó a Sentir", () => {
-    expect(HOME_CARD_ORDER).toEqual(["context", "verse", "feeling", "read", "ask", "characters", "stories"]);
+    expect(HOME_CARD_ORDER).toEqual(["context", "verse", "feed", "feeling", "read", "ask", "characters", "stories"]);
   });
 
   it("los cuatro módulos cierran el inicio como mosaicos de la cuadrícula 2×2 (U1b)", () => {

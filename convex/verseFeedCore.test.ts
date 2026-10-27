@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest";
+
+import { BIBLE_BOOKS } from "../src/lib/bibleBooks";
+import {
+  buildFeedPool,
+  FEED_PAGE_SIZE,
+  FEED_POOL,
+  FEED_RECENT_GUARD,
+  parseFeedRef,
+  rankFeedPage,
+  topicAffinity,
+  type FeedPassage,
+} from "./verseFeedCore";
+
+const NO_LIKES = new Map<string, number>();
+
+describe("catálogo del feed", () => {
+  it("junta los versículos por tema y los pasajes de los devocionales, sin repetir citas", () => {
+    const refs = FEED_POOL.map((passage) => passage.ref);
+    expect(new Set(refs).size).toBe(refs.length);
+    expect(FEED_POOL.length).toBeGreaterThan(400);
+  });
+
+  it("cada cita es de un libro real del canon y trae su foto", () => {
+    for (const passage of FEED_POOL) {
+      const book = BIBLE_BOOKS.find((item) => item.name === passage.book);
+      expect(book, passage.ref).toBeDefined();
+      expect(passage.chapter).toBeLessThanOrEqual(book?.chapters ?? 0);
+      expect(passage.imageUrl).toMatch(/^https:\/\//);
+      expect(passage.imageAlt.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("una cita que aparece en dos temas los lleva a los dos", () => {
+    const pool = buildFeedPool(
+      [
+        { id: "paz", name: "Paz", verses: ["Juan 14:27"] },
+        { id: "ansiedad", name: "Ansiedad", verses: ["Juan 14:27", "1 Pedro 5:7"] },
+      ],
+      [],
+    );
+    expect(pool.find((passage) => passage.ref === "Juan 14:27")?.topics).toEqual(["paz", "ansiedad"]);
+  });
+
+  it("entiende versículos sueltos y rangos dentro del capítulo", () => {
+    expect(parseFeedRef("Salmos 23:1")).toEqual({ book: "Salmos", chapter: 23, verse: 1, endVerse: null });
+    expect(parseFeedRef("2 Corintios 1:3-4")).toEqual({ book: "2 Corintios", chapter: 1, verse: 3, endVerse: 4 });
+    expect(parseFeedRef("Juan 3:16-15")).toBeNull();
+    expect(parseFeedRef("Juan tres")).toBeNull();
+  });
+});
+
+function passage(ref: string, topics: string[]): FeedPassage {
+  return { ref, book: "Salmos", chapter: 1, verse: 1, endVerse: null, topics, imageUrl: "https://x", imageAlt: "x" };
+}
+
+const MINI_POOL: FeedPassage[] = [
+  ...Array.from({ length: 10 }, (_, index) => passage(`paz ${index}`, ["paz"])),
+  ...Array.from({ length: 10 }, (_, index) => passage(`fe ${index}`, ["fe"])),
+  ...Array.from({ length: 10 }, (_, index) => passage(`gozo ${index}`, ["gozo"])),
+  ...Array.from({ length: 10 }, (_, index) => passage(`devocional ${index}`, [])),
+];
+
+describe("orden del feed", () => {
+  it("devuelve una página llena y sin repetidos", () => {
+    const page = rankFeedPage({ communityLikes: NO_LIKES, likedRefs: [], pool: FEED_POOL, seed: 7, seenRefs: [] });
+    expect(page).toHaveLength(FEED_PAGE_SIZE);
+    expect(new Set(page.map((item) => item.ref)).size).toBe(FEED_PAGE_SIZE);
+  });
+
+  it("es determinístico por semilla y cambia con otra", () => {
+    const input = { communityLikes: NO_LIKES, likedRefs: [], pool: FEED_POOL, seenRefs: [] };
+    const first = rankFeedPage({ ...input, seed: 1 }).map((item) => item.ref);
+    expect(rankFeedPage({ ...input, seed: 1 }).map((item) => item.ref)).toEqual(first);
+    expect(rankFeedPage({ ...input, seed: 2 }).map((item) => item.ref)).not.toEqual(first);
+  });
+
+  it("no repite lo ya visto", () => {
+    const seen = MINI_POOL.slice(0, 20).map((item) => item.ref);
+    const page = rankFeedPage({ communityLikes: NO_LIKES, likedRefs: [], pool: MINI_POOL, seed: 3, seenRefs: seen });
+    expect(page.some((item) => seen.includes(item.ref))).toBe(false);
+  });
+
+  it("cuando ya se vio todo, empieza otra vuelta sin las últimas vistas", () => {
+    const seen = MINI_POOL.map((item) => item.ref);
+    const page = rankFeedPage({ communityLikes: NO_LIKES, likedRefs: [], pool: MINI_POOL, seed: 3, seenRefs: seen });
+    expect(page).toHaveLength(FEED_PAGE_SIZE);
+    const recent = seen.slice(-FEED_RECENT_GUARD);
+    expect(page.some((item) => recent.includes(item.ref))).toBe(false);
+  });
+
+  it("sube los temas que te gustan", () => {
+    const liked = ["paz 0", "paz 1", "paz 2"];
+    let pazCount = 0;
+    for (let seed = 0; seed < 20; seed += 1) {
+      const page = rankFeedPage({ communityLikes: NO_LIKES, likedRefs: liked, pool: MINI_POOL, seed, seenRefs: [] });
+      pazCount += page.filter((item) => item.topics[0] === "paz").length;
+    }
+    // Sin afinidad, paz sería ~1/4 de cada página (2 de 8); con afinidad llega al tope de 2 casi siempre.
+    expect(pazCount / 20).toBeGreaterThan(1.8);
+  });
+
+  it("no junta más de dos del mismo tema en una página", () => {
+    const liked = MINI_POOL.filter((item) => item.topics[0] === "paz").map((item) => item.ref);
+    for (let seed = 0; seed < 10; seed += 1) {
+      const page = rankFeedPage({ communityLikes: NO_LIKES, likedRefs: liked, pool: MINI_POOL, seed, seenRefs: [] });
+      expect(page.filter((item) => item.topics[0] === "paz").length).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("sube lo que más le gusta a la comunidad", () => {
+    const community = new Map([["gozo 4", 500]]);
+    let hits = 0;
+    for (let seed = 0; seed < 20; seed += 1) {
+      const page = rankFeedPage({ communityLikes: community, likedRefs: [], pool: MINI_POOL, seed, seenRefs: [] });
+      if (page.some((item) => item.ref === "gozo 4")) hits += 1;
+    }
+    expect(hits).toBeGreaterThanOrEqual(18);
+  });
+
+  it("la afinidad cuenta un punto por cada ♥ en cada tema de la cita", () => {
+    const byRef = new Map(MINI_POOL.map((item) => [item.ref, item]));
+    expect(topicAffinity(["paz 0", "paz 1", "fe 3", "no existe"], byRef)).toEqual(
+      new Map([
+        ["paz", 2],
+        ["fe", 1],
+      ]),
+    );
+  });
+});

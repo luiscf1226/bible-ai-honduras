@@ -12,6 +12,7 @@ const modules = {
   "./users.ts": () => import("./users"),
   "./history.ts": () => import("./history"),
   "./memorize.ts": () => import("./memorize"),
+  "./verseFeed.ts": () => import("./verseFeed"),
   "./prayers.ts": () => import("./prayers"),
   "./reading.ts": () => import("./reading"),
   "./readingPlans.ts": () => import("./readingPlans"),
@@ -187,6 +188,11 @@ async function seedEverything(
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+    // Feed de versículos: un ♥ y su cuenta en el total de la comunidad.
+    await ctx.db.insert("verseFeedLikes", { userId, ref: "Salmos 23:1", createdAt: Date.now() });
+    const feedStats = (await ctx.db.query("verseFeedStats").collect()).find((row) => row.ref === "Salmos 23:1");
+    if (feedStats) await ctx.db.patch(feedStats._id, { likes: feedStats.likes + 1 });
+    else await ctx.db.insert("verseFeedStats", { ref: "Salmos 23:1", likes: 1 });
     // Memorizar (#158).
     await ctx.db.insert("memoryVerses", {
       userId,
@@ -251,6 +257,8 @@ async function tableDump(t: ReturnType<typeof convexTest>) {
     prayerRequests: await ctx.db.query("prayerRequests").collect(),
     sermonNotes: await ctx.db.query("sermonNotes").collect(),
     memoryVerses: await ctx.db.query("memoryVerses").collect(),
+    verseFeedLikes: await ctx.db.query("verseFeedLikes").collect(),
+    verseFeedStats: await ctx.db.query("verseFeedStats").collect(),
     storage: await ctx.db.system.query("_storage").collect(),
   }));
 }
@@ -292,6 +300,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(before.readingGroupMembers).toHaveLength(1);
     expect(before.prayerRequests).toHaveLength(2);
     expect(before.memoryVerses).toHaveLength(1);
+    expect(before.verseFeedLikes).toHaveLength(1);
     expect(before.storage).toHaveLength(1);
 
     stubClerkDelete();
@@ -315,6 +324,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       prayerRequests: 2,
       sermonNotes: 1,
       memoryVerses: 1,
+      verseFeedLikes: 1,
       users: 1,
     });
 
@@ -338,6 +348,9 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.prayerRequests).toHaveLength(0);
     expect(after.sermonNotes).toHaveLength(0);
     expect(after.memoryVerses).toHaveLength(0);
+    expect(after.verseFeedLikes).toHaveLength(0);
+    // El total de la comunidad descuenta su ♥ (sin ♥, la cita no tiene fila).
+    expect(after.verseFeedStats).toHaveLength(0);
 
     // El blob no queda huérfano.
     expect(after.storage).toHaveLength(0);
@@ -385,6 +398,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.memoryVerses).toHaveLength(1);
     expect(after.memoryVerses[0]?.userId).toBe(betoId);
     expect(after.sermonNotes.map((row) => row.userId)).toEqual([betoId]);
+    expect(after.verseFeedLikes.map((row) => row.userId)).toEqual([betoId]);
+    expect(after.verseFeedStats).toMatchObject([{ ref: "Salmos 23:1", likes: 1 }]);
 
     // El blob de Beto sobrevive; el de Ana no.
     expect(after.storage).toHaveLength(1);
@@ -612,6 +627,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       prayerRequests: 0,
       sermonNotes: 0,
       memoryVerses: 0,
+      verseFeedLikes: 0,
       users: 0,
     });
     const after = await tableDump(t);
