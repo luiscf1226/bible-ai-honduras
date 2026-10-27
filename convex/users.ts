@@ -4,6 +4,7 @@ import {
   resolveBibleVersion,
   type BibleVersion,
 } from "./bibleVersions";
+import type { UserIdentity } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -38,6 +39,30 @@ async function findByClerkId(ctx: QueryCtx, clerkId: string) {
     .unique();
 }
 
+// Migración de Clerk desarrollo → producción: el mismo correo trae un
+// `subject` nuevo en la otra instancia. Si no hay fila para este `subject`
+// pero hay exactamente una con el mismo correo *verificado*, es la misma
+// persona: se le reasigna la fila (y con ella todo lo que cuelga de su
+// `_id`) en vez de empezar de cero. Dentro de una misma instancia Clerk no
+// permite dos cuentas con el mismo correo, así que esto solo une cuentas
+// entre instancias.
+async function relinkFromOtherClerkInstance(ctx: MutationCtx, identity: UserIdentity) {
+  if (!identity.email || identity.emailVerified !== true) {
+    return null;
+  }
+  const email = identity.email;
+  const sameEmail = await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .take(2);
+  if (sameEmail.length !== 1) {
+    return null;
+  }
+  const [previous] = sameEmail;
+  await ctx.db.patch(previous._id, { clerkId: identity.subject });
+  return { ...previous, clerkId: identity.subject };
+}
+
 // Código de referido corto y determinístico a partir del id de Clerk —
 // testeable sin depender de Math.random(). FNV-1a de 32 bits sobre el string
 // completo (no solo un sufijo, para no tirar entropía). `referralCode` no
@@ -60,7 +85,8 @@ export const upsert = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await requireIdentity(ctx);
-    const existing = await findByClerkId(ctx, identity.subject);
+    const existing =
+      (await findByClerkId(ctx, identity.subject)) ?? (await relinkFromOtherClerkInstance(ctx, identity));
 
     if (existing) {
       const patch: Partial<{ email: string; name: string; onboardedAt: number }> = {};
@@ -577,17 +603,29 @@ export const purgeAccountData = internalMutation({
 
 const CLERK_BACKEND_API = "https://api.clerk.com/v1";
 
+const withoutTrailingSlash = (url: string) => url.replace(/\/+$/, "");
+
+// Cada instancia de Clerk tiene su propia secret key (ver auth.config.ts): un
+// usuario de producción solo se puede borrar con la de producción.
+export function clerkSecretNameFor(issuer?: string): "CLERK_SECRET_KEY" | "CLERK_PROD_SECRET_KEY" {
+  const prodIssuer = process.env.CLERK_PROD_JWT_ISSUER_DOMAIN;
+  return issuer && prodIssuer && withoutTrailingSlash(issuer) === withoutTrailingSlash(prodIssuer)
+    ? "CLERK_PROD_SECRET_KEY"
+    : "CLERK_SECRET_KEY";
+}
+
 /**
  * Borra la identidad en Clerk (Backend API `DELETE /v1/users/{id}`). Se llama
  * *después* de que los datos ya no están, y nunca lanza: el resultado viaja al
  * cliente para que la UI pueda avisar si la identidad quedó pendiente.
  */
-export async function deleteClerkUser(clerkId: string): Promise<ClerkDeletionStatus> {
-  const secret = process.env.CLERK_SECRET_KEY;
+export async function deleteClerkUser(clerkId: string, issuer?: string): Promise<ClerkDeletionStatus> {
+  const secretName = clerkSecretNameFor(issuer);
+  const secret = process.env[secretName];
   if (!secret) {
     console.error(
-      "CLERK_SECRET_KEY no está configurada: los datos se borraron pero el usuario de Clerk sobrevive. " +
-        "Configurala con `npx convex env set CLERK_SECRET_KEY`.",
+      `${secretName} no está configurada: los datos se borraron pero el usuario de Clerk sobrevive. ` +
+        `Configurala con \`npx convex env set ${secretName}\`.`,
     );
     return "not_configured";
   }
@@ -660,7 +698,7 @@ export const deleteAccount = action({
       return { status: "datos_incompletos", clerk: "failed", deleted };
     }
 
-    const clerk = await deleteClerkUser(clerkId);
+    const clerk = await deleteClerkUser(clerkId, identity.issuer);
     return { status: clerk === "deleted" ? "ok" : "clerk_pendiente", clerk, deleted };
   },
 });

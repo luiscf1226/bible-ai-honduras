@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 
 const script = readFileSync(new URL("../../scripts/submit-app-review.mjs", import.meta.url), "utf8")
   .replace('new URL("../app.json", import.meta.url)', JSON.stringify(new URL("../../app.json", import.meta.url).pathname));
+// El script busca la versión de app.json en App Store Connect: el fixture usa la misma.
+const appVersion: string = JSON.parse(readFileSync(new URL("../../app.json", import.meta.url), "utf8")).expo.version;
 const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey
   .export({ type: "pkcs8", format: "pem" }).toString();
 
@@ -20,7 +22,7 @@ function run(state: string, otherItem = false, dryRun = false, missingLink = fal
       calls.push({ method, path, body, search: new URL(url).search });
       let data;
       if (path === '/v1/builds') data = [{ id: 'new-build', attributes: { version: '28', processingState: 'VALID' } }];
-      else if (path.endsWith('/appStoreVersions')) data = [{ id: 'version', attributes: { versionString: '1.0.1', appStoreState: ${JSON.stringify(versionState)} } }];
+      else if (path.endsWith('/appStoreVersions')) data = [{ id: 'version', attributes: { versionString: ${JSON.stringify(appVersion)}, appStoreState: ${JSON.stringify(versionState)} } }];
       else if (path === '/v1/appStoreVersions/version/build') data = { id: ${JSON.stringify(assignedBuild)} };
       else if (path.endsWith('/relationships/build')) data = null;
       else if (path === '/v1/appStoreVersions/version' && method === 'PATCH') data = { id: 'version' };

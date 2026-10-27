@@ -518,6 +518,22 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(after.userPlanProgress).toHaveLength(0);
   });
 
+  it("un usuario de la instancia de producción se borra con CLERK_PROD_SECRET_KEY", async () => {
+    const t = convexTest(schema, modules);
+    vi.stubEnv("CLERK_PROD_JWT_ISSUER_DOMAIN", "https://clerk.example.hn/");
+    const fetchMock = stubClerkDelete();
+    vi.stubEnv("CLERK_PROD_SECRET_KEY", "sk_live_107");
+    const prod = t.withIdentity({ subject: "user_prod_107", issuer: "https://clerk.example.hn" });
+    await prod.mutation(api.users.upsert, {});
+
+    const result = await prod.action(api.users.deleteAccount, {});
+
+    expect(result).toMatchObject({ status: "ok", clerk: "deleted" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.clerk.com/v1/users/user_prod_107");
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk_live_107");
+  });
+
   it("sin CLERK_SECRET_KEY no deja el borrado a medias: purga y devuelve not_configured", async () => {
     const t = convexTest(schema, modules);
     const authed = asUser(t, "user_sin_secret");

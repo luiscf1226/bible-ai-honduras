@@ -46,6 +46,7 @@ export default defineSchema({
     faithDateKind: v.optional(v.union(v.literal("bautismo"), v.literal("conversion"))),
   })
     .index("by_clerk_id", ["clerkId"])
+    .index("by_email", ["email"])
     .index("by_referral_code", ["referralCode"]),
 
   // ── RAG (#5) ────────────────────────────────────────────
