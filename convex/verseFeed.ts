@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { resolveBibleVersion } from "./bibleVersions";
+import { feedMediaUrl } from "./verseFeedMedia";
 import {
   FEED_PAGE_SIZE,
   FEED_POOL,
@@ -36,8 +37,11 @@ export type FeedItem = {
   version: string;
   /** Nombre del tema ("Esperanza"), o null si la cita solo viene de un devocional. */
   topic: string | null;
+  /** Fondo de IA de la cita; mientras no exista, la foto del devocional. */
   imageUrl: string;
   imageAlt: string;
+  /** Lectura en voz natural del texto que se muestra, o null si todavía no se generó. */
+  audioUrl: string | null;
   likes: number;
   liked: boolean;
 };
@@ -142,6 +146,7 @@ export const page = query({
         continue;
       }
       const topicId = passage.topics[0];
+      const aiImage = await feedMediaUrl(ctx, passage.ref, "image", version);
       items.push({
         ref: passage.ref,
         book: passage.book,
@@ -151,8 +156,10 @@ export const page = query({
         text: fitted.text,
         version,
         topic: topicId ? (FEED_TOPIC_NAMES.get(topicId) ?? null) : null,
-        imageUrl: passage.imageUrl,
-        imageAlt: passage.imageAlt,
+        ...(aiImage
+          ? { imageUrl: aiImage, imageAlt: `Ilustración inspirada en ${passage.ref}` }
+          : { imageUrl: passage.imageUrl, imageAlt: passage.imageAlt }),
+        audioUrl: await feedMediaUrl(ctx, passage.ref, "audio", version),
         likes: communityLikes.get(passage.ref) ?? (await likesFor(ctx, passage.ref)),
         // Lectura puntual: la afinidad mira los últimos ♥, pero el corazón tiene que estar bien siempre.
         liked: user ? await hasLiked(ctx, user._id, passage.ref) : false,

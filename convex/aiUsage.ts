@@ -18,7 +18,7 @@ import { addDays, hondurasDateKey } from "./devotional";
  */
 
 // Lista cerrada: una por función de la app que gasta en un proveedor.
-export const AI_FEATURES = ["qa", "feelings", "voices", "group_guide", "stories", "ingest"] as const;
+export const AI_FEATURES = ["qa", "feelings", "voices", "group_guide", "stories", "ingest", "verse_feed"] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];
 
 export const AI_CALLS_RETENTION_DAYS = 90;

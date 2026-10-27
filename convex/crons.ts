@@ -1,6 +1,7 @@
 import { cronJobs } from "convex/server";
 
 import { internal } from "./_generated/api";
+import { DAILY_BUDGET } from "./verseFeedMedia";
 
 const crons = cronJobs();
 
@@ -53,6 +54,15 @@ crons.hourly(
   "foto-dashboard-admin",
   { minuteUTC: 7 },
   internal.adminAdapter.rollupRecent,
+);
+
+// Fondos y voz del feed de versículos (convex/verseFeedMedia.ts): completa lo
+// que falte (citas nuevas del catálogo) con techo de gasto diario.
+crons.daily(
+  "medios-feed-versiculos",
+  { hourUTC: 6, minuteUTC: 30 },
+  internal.verseFeedMedia.generateMissing,
+  { budget: DAILY_BUDGET },
 );
 
 export default crons;

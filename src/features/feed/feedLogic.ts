@@ -107,6 +107,15 @@ export function buildFeedShareText(
   return `"${feedVerseText(item.text)}"\n— ${feedReference(item)}`;
 }
 
+/** La voz suena solo con el feed a la vista, sin silencio y con una lectura ya generada. */
+export function feedVoiceAction(state: {
+  audioUrl: string | null;
+  focused: boolean;
+  muted: boolean;
+}): "play" | "pause" {
+  return state.audioUrl && state.focused && !state.muted ? "play" : "pause";
+}
+
 /** Cuántas pantallas antes del final se pide la próxima página. */
 export const FEED_PREFETCH_AHEAD = 3;
 

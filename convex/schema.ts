@@ -282,6 +282,19 @@ export default defineSchema({
   // Total de ♥ por cita, de toda la comunidad: lo que ordena "lo más querido"
   // sin recorrer los likes. Anónimo (no guarda quién); el borrado de cuenta
   // descuenta los ♥ de la persona.
+  // Fondo (imagen de IA) y voz (lectura de IA) de cada cita del feed. Se
+  // generan una vez por cita (la voz, por versión) y se guardan: contenido
+  // editorial global, sin userId. `attempts` frena reintentos que gastan.
+  verseFeedMedia: defineTable({
+    ref: v.string(),
+    kind: v.union(v.literal("image"), v.literal("audio")),
+    // Versión bíblica de la voz; "" para la imagen (es la misma en todas).
+    version: v.string(),
+    storageId: v.optional(v.id("_storage")),
+    attempts: v.number(),
+    updatedAt: v.number(),
+  }).index("by_ref_kind_version", ["ref", "kind", "version"]),
+
   verseFeedStats: defineTable({
     ref: v.string(),
     likes: v.number(),

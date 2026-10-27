@@ -105,10 +105,12 @@ type HeaderIconButtonProps = {
   onPress: () => void;
   children: ReactNode;
   testID?: string;
+  /** Encima de una imagen, como el ‹ `onImage` (feed de versículos). */
+  onImage?: boolean;
 };
 
 /** Botón circular del encabezado con la misma forma que el ‹ (para `trailing`). */
-export function HeaderIconButton({ accessibilityLabel, children, onPress, testID }: HeaderIconButtonProps) {
+export function HeaderIconButton({ accessibilityLabel, children, onImage = false, onPress, testID }: HeaderIconButtonProps) {
   const { color } = useTheme();
   return (
     <Pressable
@@ -116,10 +118,12 @@ export function HeaderIconButton({ accessibilityLabel, children, onPress, testID
       accessibilityRole="button"
       hitSlop={tokens.space.sm}
       onPress={onPress}
-      style={[styles.backButton, { borderColor: color.border }]}
+      style={[styles.backButton, { borderColor: onImage ? "transparent" : color.border }, onImage && styles.onImage]}
       testID={testID}
     >
-      {children}
+      {onImage ? <View style={[StyleSheet.absoluteFill, styles.onImageFill, { backgroundColor: color.surface }]} /> : null}
+      {/* En web, el relleno absoluto taparía un ícono SVG suelto: el View lo deja encima. */}
+      {onImage ? <View>{children}</View> : children}
     </Pressable>
   );
 }

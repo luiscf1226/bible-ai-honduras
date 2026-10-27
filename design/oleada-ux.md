@@ -513,9 +513,17 @@ falta, hasta su mínimo `size.verseCardImage`.
 **Pantalla** (`app/versiculos.tsx`, `FeedVersePage`): un versículo por
 pantalla, swipe vertical con `pagingEnabled`, sin fin.
 
-- Fondo: la foto de un devocional a pantalla completa con `imageScrim`, como
-  el versículo del día. El texto va siempre en `surface` claro, también de
-  noche.
+- Fondo: una **imagen de IA propia de cada cita** (vertical 2:3, pintura
+  serena en la paleta de la app, sin texto, nunca Jesús, Dios ni el Espíritu
+  Santo como figura; personas solo lejanas o de espaldas), con `imageScrim`.
+  Mientras una cita no tenga la suya, va la foto de un devocional. El texto va
+  siempre en `surface` claro, también de noche.
+- **Voz:** al quedar en pantalla, una voz natural de IA lee el versículo tal
+  cual se ve (RV1909, sin agregar nada), como el sonido de un video. Botón
+  redondo arriba a la derecha, igual al ‹ `onImage`, con `sound` / `soundOff`
+  (íconos nuevos) para silenciarla; el silencio dura toda la sesión. Respeta
+  el interruptor de silencio del iPhone, no suena en segundo plano y se pausa
+  al abrir "Leer" o salir del feed.
 - Bloque del versículo (centrado en el alto, alineado a la izquierda):
   - tema en `overline` `sansMedium` al `imageMuted` ("ESPERANZA";
     "VERSÍCULO" si solo viene de un devocional);
@@ -553,8 +561,9 @@ pantalla, swipe vertical con `pagingEnabled`, sin fin.
 - El ‹ de volver es el `ScreenHeader` `onImage` de `/hoy`, fijo arriba a la
   izquierda.
 
-**Qué se muestra** (`convex/verseFeedCore.ts`): nada se genera (regla dura
-#4). El catálogo son los versículos por tema curados a mano
+**Qué se muestra** (`convex/verseFeedCore.ts`): el texto no se genera (regla
+dura #4); la imagen y la voz de IA (`convex/verseFeedMedia.ts`) se generan una
+vez por cita, se guardan y solo ilustran o leen ese texto. El catálogo son los versículos por tema curados a mano
 (`docs/content/versiculos-por-tema.json`) más el pasaje de cada uno de los 366
 devocionales; el texto sale de la Biblia cargada en la versión de la persona.
 Cada página ordena por: afinidad con los temas de lo que la persona marcó con
