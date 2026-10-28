@@ -1,8 +1,17 @@
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { setAudioModeAsync, useAudioPlayer, type AudioStatus } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo } from "react-native";
 
 import { feedVoiceAction } from "./feedLogic";
+
+/**
+ * El reproductor es un SharedObject (emite eventos), pero sus tipos no lo dicen
+ * acá: `expo-modules-core` solo está dentro de `expo` y TypeScript no resuelve
+ * la clase base desde `expo-audio`. Solo se usa el evento del estado.
+ */
+type PlaybackEvents = {
+  addListener(event: "playbackStatusUpdate", listener: (status: AudioStatus) => void): { remove(): void };
+};
 
 // Silencio para toda la sesión: si la persona lo apagó (o lo prendió), sigue así al volver a entrar.
 // `null` = todavía no eligió: arranca en silencio solo si usa VoiceOver/TalkBack, para no hablarle encima.
@@ -14,11 +23,26 @@ let sessionMuted: boolean | null = null;
  * deslizar cambia la pista; al salir de la pantalla (o abrir "Leer") se
  * pausa. Respeta el interruptor de silencio del iPhone, no corta la música
  * que la persona tenga sonando y no suena en segundo plano.
+ *
+ * En los reels, `onFinish` avisa cuando la voz de una parte terminó, para
+ * pasar a la siguiente. `speaking` dice si de verdad está sonando una voz
+ * (si no, la parte avanza con el tiempo de lectura).
  */
-export function useFeedVoice(audioUrl: string | null, focused: boolean) {
+export function useFeedVoice(audioUrl: string | null, focused: boolean, onFinish?: () => void) {
   const player = useAudioPlayer(null);
   const [muted, setMuted] = useState(sessionMuted ?? false);
   const loaded = useRef<string | null>(null);
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+
+  // El fin de la lectura se escucha en el evento, no en un estado de React: en iOS al
+  // `didJustFinish: true` le sigue enseguida otro con false, y un estado podría perderlo.
+  useEffect(() => {
+    const subscription = (player as unknown as PlaybackEvents).addListener("playbackStatusUpdate", (status) => {
+      if (status.didJustFinish) onFinishRef.current?.();
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   useEffect(() => {
     // iOS no acepta "respetar el silencio" junto con "bajar el volumen de lo demás": se mezcla.
@@ -70,5 +94,5 @@ export function useFeedVoice(audioUrl: string | null, focused: boolean) {
     });
   }, []);
 
-  return { muted, toggleMuted };
+  return { muted, speaking: feedVoiceAction({ audioUrl, focused, muted }) === "play", toggleMuted };
 }

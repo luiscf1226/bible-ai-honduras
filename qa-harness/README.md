@@ -95,6 +95,10 @@ empezar de cero, borrá el `localStorage` del sitio.
   es un fixture fijo (`?qa=empty` lo deja en cero). La entrada en Mi espacio
   solo aparece del 1 de diciembre al 31 de enero: para verla, fijá el reloj
   del navegador (Playwright `page.clock.setFixedTime("2026-12-05T12:00:00-06:00")`).
+- Feed de versículos (`/versiculos`): `verseFeed:page` arma páginas sin fin con
+  citas reales de Versículos por tema y, con `withReels`, dos reels reales del
+  catálogo (`convex/feedReelsCore.ts`) por página. Sin voz (`audioUrl: null`):
+  las partes de una historia avanzan con el tiempo de lectura.
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
   historial" no aparece en el navegador. En iOS/Android sí.
 - "Proteger lo personal" guarda la preferencia en `localStorage` en web

@@ -4,13 +4,23 @@ import { Image } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import { track } from "../../lib/telemetry";
-import { FEED_PREFETCH_AHEAD, newFeedSeed, nextSeenRefs, setLikeLocally, settleLike, type FeedItem } from "./feedLogic";
+import {
+  entryImageUrls,
+  FEED_PREFETCH_AHEAD,
+  isReel,
+  newFeedSeed,
+  nextSeenRefs,
+  setLikeLocally,
+  settleLike,
+  type FeedEntry,
+} from "./feedLogic";
 
 /** Si una página falla con versículos ya en pantalla, se reintenta sola después de esto. */
 const RETRY_MS = 3000;
 
 export type VerseFeedState = {
-  items: FeedItem[];
+  /** Versículos, y entre ellos historias contadas y personajes (§Reels del feed). */
+  items: FeedEntry[];
   status: "loading" | "ready" | "error";
   /** Se llama cuando cambia la pantalla visible: pide más antes de llegar al final. */
   onVisible: (index: number) => void;
@@ -22,8 +32,8 @@ export type VerseFeedState = {
 /**
  * Feed de versículos: páginas imperativas (no una suscripción) porque cada
  * página depende de lo ya visto. La semilla es una por apertura, así cada vez
- * que se entra el orden es otro. Las fotos de la próxima página se precargan
- * para que el swipe no muestre el fondo vacío.
+ * que se entra el orden es otro. Las fotos de la próxima página (todas las
+ * partes de cada reel) se precargan para que el swipe no muestre el fondo vacío.
  *
  * Lo visto en la vuelta y el largo de la lista viven en refs que se actualizan
  * apenas llega la página (no en el próximo render): si no, un `onVisible` en el
@@ -32,7 +42,7 @@ export type VerseFeedState = {
 export function useVerseFeed(): VerseFeedState {
   const convex = useConvex();
   const saveLike = useMutation(api.verseFeed.setLike);
-  const [items, setItems] = useState<FeedItem[]>([]);
+  const [items, setItems] = useState<FeedEntry[]>([]);
   const [status, setStatus] = useState<VerseFeedState["status"]>("loading");
   const seed = useRef(newFeedSeed());
   const seen = useRef<string[]>([]);
@@ -68,6 +78,7 @@ export function useVerseFeed(): VerseFeedState {
       } = await convex.query(api.verseFeed.page, {
         seen: seen.current,
         seed: seed.current,
+        withReels: true,
       });
       if (!mounted.current) return;
       // Lo que no tenía texto también cuenta como visto: el próximo pedido ya no lo ofrece.
@@ -78,7 +89,9 @@ export function useVerseFeed(): VerseFeedState {
         return;
       }
       count.current += page.length;
-      for (const item of page) void Image.prefetch(item.imageUrl).catch(() => undefined);
+      for (const item of page) {
+        for (const url of entryImageUrls(item)) void Image.prefetch(url).catch(() => undefined);
+      }
       setItems((current) => [...current, ...page]);
       setStatus("ready");
     } catch {
@@ -124,7 +137,7 @@ export function useVerseFeed(): VerseFeedState {
       const request = (likeRequests.current.get(ref) ?? 0) + 1;
       likeRequests.current.set(ref, request);
       setItems((current) => setLikeLocally(current, ref, liked));
-      if (liked) track("verse_feed_liked");
+      if (liked) track(isReel(item) ? "verse_feed_reel_liked" : "verse_feed_liked");
       const isLatest = () => likeRequests.current.get(ref) === request;
       // Cuando el último pedido termina, la lista vuelve a mandar (sin estado pedido ni confirmado colgando).
       const settle = (state: { liked: boolean; likes: number }) => {

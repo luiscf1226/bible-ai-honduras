@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import { api } from "./_generated/api";
 import schema from "./schema";
+import type { FeedEntry, FeedItem, FeedReelItem } from "./verseFeed";
+import { textHash } from "./verseFeedText";
+import { REEL_POOL } from "./feedReelsCore";
 import { FEED_PAGE_SIZE, FEED_POOL, FEED_RECENT_GUARD } from "./verseFeedCore";
+import { FEED_REEL_SLOTS } from "./verseFeedLimits";
 
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
@@ -42,8 +46,19 @@ async function seedPool(t: ReturnType<typeof convexTest>, except: readonly strin
   });
 }
 
+/** Sin `withReels` la página es solo de versículos (las versiones de la app que ya están en la tienda). */
+function verses(items: FeedEntry[]): FeedItem[] {
+  if (items.some((item) => item.kind !== "verse")) throw new Error("La página trajo reels sin pedirlos");
+  return items as FeedItem[];
+}
+
+async function versePage(t: { query: ReturnType<typeof convexTest>["query"] }, args: { seen: string[]; seed: number }) {
+  const result = await t.query(api.verseFeed.page, args);
+  return { ...result, items: verses(result.items) };
+}
+
 async function pageItems(t: { query: ReturnType<typeof convexTest>["query"] }, seen: string[], seed: number) {
-  return (await t.query(api.verseFeed.page, { seen, seed })).items;
+  return (await versePage(t, { seen, seed })).items;
 }
 
 describe("verseFeed.page", () => {
@@ -51,7 +66,7 @@ describe("verseFeed.page", () => {
     const t = convexTest(schema, modules);
     await seedPool(t);
 
-    const { items, newRound } = await t.query(api.verseFeed.page, { seen: [], seed: 1 });
+    const { items, newRound } = await versePage(t, { seen: [], seed: 1 });
 
     expect(newRound).toBe(false);
     expect(items).toHaveLength(FEED_PAGE_SIZE);
@@ -109,7 +124,7 @@ describe("verseFeed.page", () => {
   it("devuelve las citas que tocaban pero no tienen texto, para que el cliente no las vuelva a pedir", async () => {
     const t = convexTest(schema, modules);
     await seedPool(t);
-    const { items } = await t.query(api.verseFeed.page, { seen: [], seed: 6 });
+    const { items } = await versePage(t, { seen: [], seed: 6 });
     const [dropped] = items;
     // Se borra el texto de la primera cita: con la misma semilla, ahora sale como `skipped`.
     await t.run(async (ctx) => {
@@ -124,7 +139,7 @@ describe("verseFeed.page", () => {
         }
       }
     });
-    const again = await t.query(api.verseFeed.page, { seen: [], seed: 6 });
+    const again = await versePage(t, { seen: [], seed: 6 });
     expect(again.skipped).toContain(dropped.ref);
     expect(again.items.some((item) => item.ref === dropped.ref)).toBe(false);
   });
@@ -146,12 +161,82 @@ describe("verseFeed.page", () => {
     await seedPool(t);
     const seen = FEED_POOL.map((passage) => passage.ref);
 
-    const { items, newRound } = await t.query(api.verseFeed.page, { seen, seed: 4 });
+    const { items, newRound } = await versePage(t, { seen, seed: 4 });
 
     expect(newRound).toBe(true);
     expect(items).toHaveLength(FEED_PAGE_SIZE);
     const recent = seen.slice(-FEED_RECENT_GUARD);
     expect(items.some((item) => recent.includes(item.ref))).toBe(false);
+  });
+});
+
+describe("verseFeed.page con reels", () => {
+  it("dos de cada ocho lugares son historias o personajes; la primera pantalla siempre es un versículo", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+
+    const { items } = await t.query(api.verseFeed.page, { seen: [], seed: 1, withReels: true });
+
+    expect(items).toHaveLength(FEED_PAGE_SIZE);
+    expect(items[0].kind).toBe("verse");
+    for (const slot of FEED_REEL_SLOTS) expect(items[slot].kind).not.toBe("verse");
+    const reels = items.filter((item): item is FeedReelItem => item.kind !== "verse");
+    expect(reels).toHaveLength(FEED_REEL_SLOTS.length);
+    for (const reel of reels) {
+      const catalog = REEL_POOL.find((entry) => entry.ref === reel.ref)!;
+      expect(reel.scenes).toHaveLength(catalog.scenes.length);
+      expect(reel).toMatchObject({ liked: false, likes: 0, title: catalog.title });
+      for (const scene of reel.scenes) {
+        // Sin medios generados: la foto de un devocional y sin voz (la escena avanza por tiempo).
+        expect(scene).toMatchObject({ imageUrl: catalog.fallbackImageUrl, audioUrl: null });
+      }
+    }
+  });
+
+  it("no repite reels ya vistos", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const seen: string[] = [];
+    for (let page = 0; page < 5; page += 1) {
+      const { items } = await t.query(api.verseFeed.page, { seen, seed: 9, withReels: true });
+      for (const item of items) expect(seen).not.toContain(item.ref);
+      seen.push(...items.map((item) => item.ref));
+    }
+  });
+
+  it("con la voz y la imagen de una escena guardadas, la escena las trae", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const { items } = await t.query(api.verseFeed.page, { seen: [], seed: 3, withReels: true });
+    const reel = items.find((item): item is FeedReelItem => item.kind !== "verse")!;
+    const scene = REEL_POOL.find((entry) => entry.ref === reel.ref)!.scenes[0];
+    await t.run(async (ctx) => {
+      const image = await ctx.storage.store(new Blob(["img"], { type: "image/webp" }));
+      const audio = await ctx.storage.store(new Blob(["mp3"], { type: "audio/mpeg" }));
+      await ctx.db.insert("verseFeedMedia", {
+        ref: scene.mediaRef,
+        kind: "image",
+        version: "",
+        storageId: image,
+        attempts: 0,
+        updatedAt: 0,
+      });
+      await ctx.db.insert("verseFeedMedia", {
+        ref: scene.mediaRef,
+        kind: "audio",
+        version: "",
+        storageId: audio,
+        textHash: textHash(scene.text),
+        attempts: 0,
+        updatedAt: 0,
+      });
+    });
+
+    const again = await t.query(api.verseFeed.page, { seen: [], seed: 3, withReels: true });
+    const same = again.items.find((item): item is FeedReelItem => item.ref === reel.ref)!;
+    expect(same.scenes[0].imageUrl).not.toBe(reel.scenes[0].imageUrl);
+    expect(same.scenes[0].audioUrl).toMatch(/^https?:\/\//);
+    expect(same.scenes[0].imageAlt).toBe(`Ilustración de ${reel.title}, parte 1`);
   });
 });
 
@@ -219,6 +304,25 @@ describe("verseFeed.setLike", () => {
     const items = await pageItems(ana, [], 3);
     expect(items.length).toBeGreaterThan(0);
     expect(items.every((item) => item.liked)).toBe(true);
+  });
+
+  it("los reels también llevan ♥ y la página los marca", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const ana = asUser(t, "user_ana_reel");
+    await ana.mutation(api.users.upsert, {});
+    const ref = REEL_POOL[0].ref;
+
+    expect(await ana.mutation(api.verseFeed.setLike, { ref, liked: true })).toEqual({ liked: true, likes: 1 });
+    expect(
+      await ana
+        .mutation(api.verseFeed.setLike, { ref: "historia:inventada", liked: true })
+        .catch((e: Error) => e.message),
+    ).toContain("Versículo desconocido");
+    const seen = REEL_POOL.slice(2).map((reel) => reel.ref);
+    const { items } = await ana.query(api.verseFeed.page, { seen, seed: 1, withReels: true });
+    // Con todos los demás vistos, quedan justo dos reels para los dos lugares: uno es el marcado.
+    expect(items.find((item) => item.ref === ref)).toMatchObject({ liked: true, likes: 1 });
   });
 
   it("rechaza citas fuera del catálogo y pide sesión", async () => {

@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Icon, type IconName } from "../../components/Icon";
+import { Icon } from "../../components/Icon";
 import { KenBurnsImage } from "../../components/KenBurnsImage";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -14,6 +14,7 @@ import {
   formatLikes,
   type FeedItem,
 } from "./feedLogic";
+import { FeedAction, feedStyles, HeartBurst, useHeartBurst } from "./FeedParts";
 
 type FeedVersePageProps = {
   item: FeedItem;
@@ -54,7 +55,7 @@ function FeedVersePageImpl({
   const { color } = useTheme();
   const reduceMotion = useReduceMotion();
   const [isDoubleTap] = useState(() => createDoubleTapDetector(tokens.motion.feedDoubleTap));
-  const burst = useRef(new Animated.Value(0)).current;
+  const { burst, showBurst } = useHeartBurst();
   // Entrada del versículo: 0 = abajo y transparente, 1 = en su lugar. Solo la primera vez que se ve.
   const rise = useRef(new Animated.Value(active || reduceMotion ? 1 : 0)).current;
   const risen = useRef(active);
@@ -70,31 +71,6 @@ function FeedVersePageImpl({
   }, [active, reduceMotion, rise]);
   const text = feedVerseText(item.text);
   const verseType = tokens.type[feedVerseType(text)];
-
-  const showBurst = () => {
-    burst.setValue(reduceMotion ? 1 : 0);
-    if (reduceMotion) {
-      Animated.timing(burst, {
-        delay: tokens.motion.feedHeart,
-        duration: 0,
-        toValue: 0,
-        useNativeDriver: true,
-      }).start();
-      return;
-    }
-    Animated.sequence([
-      Animated.spring(burst, {
-        friction: 4,
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.timing(burst, {
-        duration: tokens.motion.feedHeart,
-        toValue: 0,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   const onPress = () => {
     if (!isDoubleTap(Date.now())) return;
@@ -176,7 +152,7 @@ function FeedVersePageImpl({
           </Text>
         </Animated.View>
 
-        <View style={styles.actions}>
+        <View style={feedStyles.actions}>
           <FeedAction
             accessibilityLabel={item.liked ? "Quitar ♥" : "Dar ♥"}
             filled={item.liked}
@@ -212,87 +188,12 @@ function FeedVersePageImpl({
         </View>
       ) : null}
 
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.burst,
-          {
-            opacity: burst,
-            transform: [
-              {
-                scale: burst.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.6, 1],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <View style={styles.burstHeart}>
-          <BigHeart color={color.accent} />
-        </View>
-      </Animated.View>
+      <HeartBurst burst={burst} />
     </View>
   );
 }
 
 export const FeedVersePage = memo(FeedVersePageImpl);
-
-function BigHeart({ color }: { color: string }) {
-  // El ícono de 24 escalado al tamaño `feedHeart`: mismo trazo del set, relleno.
-  return (
-    <View
-      style={{
-        transform: [{ scale: tokens.size.feedHeart / tokens.size.icon.lg }],
-      }}
-    >
-      <Icon color={color} filled name="heart" size="lg" />
-    </View>
-  );
-}
-
-type FeedActionProps = {
-  icon: IconName;
-  label: string;
-  accessibilityLabel: string;
-  onPress: () => void;
-  testID: string;
-  filled?: boolean;
-  selected?: boolean;
-  disabled?: boolean;
-  iconColor?: string;
-};
-
-function FeedAction({
-  accessibilityLabel,
-  disabled,
-  filled,
-  icon,
-  iconColor,
-  label,
-  onPress,
-  selected,
-  testID,
-}: FeedActionProps) {
-  return (
-    <Pressable
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      accessibilityState={{ disabled, selected }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [styles.action, (pressed || disabled) && styles.pressed]}
-      testID={testID}
-    >
-      <View style={styles.actionCircle}>
-        <View style={[StyleSheet.absoluteFill, styles.actionFill, { backgroundColor: tokens.color.surface }]} />
-        <Icon color={iconColor ?? tokens.color.surface} filled={filled} name={icon} size="xl" />
-      </View>
-      {label ? <Text style={[styles.actionLabel, { color: tokens.color.surface }]}>{label}</Text> : null}
-    </Pressable>
-  );
-}
 
 const styles = StyleSheet.create({
   page: { overflow: "hidden", width: "100%" },
@@ -318,48 +219,11 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.bodySm.lineHeight,
     opacity: tokens.opacity.imageMuted,
   },
-  actions: { gap: tokens.space.xl, paddingBottom: tokens.space.xl },
-  action: { alignItems: "center", gap: tokens.space.xs },
-  actionCircle: {
-    alignItems: "center",
-    borderRadius: tokens.radius.pill,
-    height: tokens.size.feedAction,
-    justifyContent: "center",
-    overflow: "hidden",
-    width: tokens.size.feedAction,
-  },
-  actionFill: { opacity: tokens.opacity.feedActionFill },
-  actionLabel: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.caption.size,
-    lineHeight: tokens.type.caption.lineHeight,
-  },
-  pressed: { opacity: tokens.opacity.pressed },
-  hint: {
-    alignItems: "center",
-    alignSelf: "center",
-    gap: tokens.space.xxs,
-    position: "absolute",
-  },
+  hint: { alignItems: "center", alignSelf: "center", gap: tokens.space.xxs, position: "absolute" },
   hintText: {
     fontFamily: tokens.font.sansLight,
     fontSize: tokens.type.caption.size,
     lineHeight: tokens.type.caption.lineHeight,
     opacity: tokens.opacity.imageMuted,
-  },
-  burst: {
-    alignItems: "center",
-    bottom: 0,
-    justifyContent: "center",
-    left: 0,
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
-  burstHeart: {
-    alignItems: "center",
-    height: tokens.size.feedHeart,
-    justifyContent: "center",
-    width: tokens.size.feedHeart,
   },
 });

@@ -15,3 +15,9 @@ export const FEED_RECENT_GUARD = 24;
  * al tope (`fontScale.feedMax`), es lo que entra en un iPhone SE sin scroll.
  */
 export const FEED_TEXT_MAX = 300;
+
+/**
+ * Con reels (historias y personajes), lugares de la página que ocupan: el
+ * tercero y el sexto. La primera pantalla siempre es un versículo.
+ */
+export const FEED_REEL_SLOTS: readonly number[] = [2, 5];

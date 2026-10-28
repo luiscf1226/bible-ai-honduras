@@ -5,6 +5,8 @@ import { api, internal } from "./_generated/api";
 import adminKitSchema from "./adminKit/schema";
 import schema from "./schema";
 import { estimateSpeechTokens } from "./speech";
+import { NARRATOR_VOICE, REEL_POOL, reelVoice } from "./feedReelsCore";
+import type { FeedItem } from "./verseFeed";
 import { FEED_POOL } from "./verseFeedCore";
 import { FEED_SCENES, feedImagePrompt, MAX_ATTEMPTS } from "./verseFeedMedia";
 import { spokenText, textHash } from "./verseFeedText";
@@ -104,7 +106,7 @@ describe("generateMissing", () => {
     await seedVerses(t);
     const requests = stubOpenAI();
 
-    await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "verses", budget: 6, parallel: 1 });
 
     const rows = await t.run((ctx) => ctx.db.query("verseFeedMedia").collect());
     expect(rows.filter((row) => row.kind === "image" && row.storageId)).toHaveLength(3);
@@ -123,7 +125,7 @@ describe("generateMissing", () => {
     await seedVerses(t);
     const requests = stubOpenAI();
 
-    await t.action(internal.verseFeedMedia.generateMissing, { budget: 2, parallel: 1 });
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "verses", budget: 2, parallel: 1 });
 
     expect(requests).toHaveLength(2);
     expect(await t.run((ctx) => ctx.db.query("verseFeedMedia").collect())).toHaveLength(2);
@@ -135,7 +137,7 @@ describe("generateMissing", () => {
     stubOpenAI({ failImages: 400 });
 
     for (let round = 0; round < MAX_ATTEMPTS + 1; round += 1) {
-      await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+      await t.action(internal.verseFeedMedia.generateMissing, { only: "verses", budget: 6, parallel: 1 });
     }
 
     const images = await t.run(async (ctx) =>
@@ -155,7 +157,7 @@ describe("generateMissing", () => {
     stubOpenAI({ failImages: 429 });
 
     for (let round = 0; round < MAX_ATTEMPTS + 1; round += 1) {
-      await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+      await t.action(internal.verseFeedMedia.generateMissing, { only: "verses", budget: 6, parallel: 1 });
     }
 
     const images = await t.run(async (ctx) =>
@@ -178,7 +180,7 @@ describe("generateMissing", () => {
         updatedAt: 0,
       });
     });
-    await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "verses", budget: 6, parallel: 1 });
     const audio = await t.run(async (ctx) =>
       (await ctx.db.query("verseFeedMedia").collect()).find(
         (row) => row.kind === "audio" && row.ref === SEEDED[0].ref,
@@ -194,7 +196,11 @@ describe("generateMissing", () => {
     await seedVerses(t, FEED_POOL.slice(0, 6));
     stubOpenAI({ outOfCredit: true });
 
-    const result = await t.action(internal.verseFeedMedia.generateMissing, { budget: 100, parallel: 1 });
+    const result = await t.action(internal.verseFeedMedia.generateMissing, {
+      only: "verses",
+      budget: 100,
+      parallel: 1,
+    });
 
     expect(result.remaining).toBeGreaterThan(0);
     expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toHaveLength(0);
@@ -208,8 +214,8 @@ describe("generateMissing", () => {
   it("dos tandas a la vez nunca reservan la misma cita", async () => {
     const t = setup();
     await seedVerses(t);
-    const first = await t.mutation(internal.verseFeedMedia.claim, { limit: 4 });
-    const second = await t.mutation(internal.verseFeedMedia.claim, { limit: 4 });
+    const first = await t.mutation(internal.verseFeedMedia.claim, { only: "verses", limit: 4 });
+    const second = await t.mutation(internal.verseFeedMedia.claim, { only: "verses", limit: 4 });
     const key = (item: { ref: string; kind: string }) => `${item.kind}:${item.ref}`;
     expect(first).toHaveLength(4);
     expect(second).toHaveLength(2);
@@ -220,8 +226,8 @@ describe("generateMissing", () => {
     const t = setup();
     await seedVerses(t);
     stubOpenAI();
-    await t.action(internal.verseFeedMedia.generateMissing, { budget: 6, parallel: 1 });
-    expect(await t.mutation(internal.verseFeedMedia.claim, { limit: 6 })).toHaveLength(0);
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "verses", budget: 6, parallel: 1 });
+    expect(await t.mutation(internal.verseFeedMedia.claim, { only: "verses", limit: 6 })).toHaveLength(0);
 
     // Cambia el texto de la primera cita (otra Biblia cargada, por ejemplo).
     await t.run(async (ctx) => {
@@ -231,9 +237,90 @@ describe("generateMissing", () => {
       await ctx.db.patch(row._id, { text: "Otro texto" });
     });
 
-    const again = await t.mutation(internal.verseFeedMedia.claim, { limit: 6 });
+    const again = await t.mutation(internal.verseFeedMedia.claim, { only: "verses", limit: 6 });
     expect(again).toMatchObject([{ ref: SEEDED[0].ref, kind: "audio" }]);
     expect(again[0].text).toMatch(/^Otro texto/);
+  });
+});
+
+describe("medios de los reels", () => {
+  it("genera imagen y voz por escena: el narrador para las historias, la voz propia para cada personaje", async () => {
+    const t = setup();
+    const requests = stubOpenAI();
+    const story = REEL_POOL.find((reel) => reel.kind === "story")!;
+    const firstScenes = story.scenes.length * 2;
+
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "reels", budget: firstScenes, parallel: 1 });
+
+    const rows = await t.run((ctx) => ctx.db.query("verseFeedMedia").collect());
+    for (const scene of story.scenes) {
+      expect(rows.find((row) => row.ref === scene.mediaRef && row.kind === "image")?.storageId).toBeDefined();
+      const audio = rows.find((row) => row.ref === scene.mediaRef && row.kind === "audio");
+      expect(audio).toMatchObject({ version: "", textHash: textHash(scene.text) });
+    }
+    const speeches = requests.filter((request) => request.url.endsWith("/audio/speech"));
+    expect(speeches.map((request) => request.body.input)).toEqual(story.scenes.map((scene) => scene.text));
+    for (const speech of speeches) expect(speech.body).toMatchObject({ voice: NARRATOR_VOICE.voice });
+    const images = requests.filter((request) => request.url.endsWith("/images/generations"));
+    expect(images.map((request) => request.body.prompt)).toEqual(story.scenes.map((scene) => scene.imagePrompt));
+  });
+
+  it("un personaje habla con su voz y sus instrucciones", async () => {
+    const t = setup();
+    const requests = stubOpenAI();
+    const character = REEL_POOL.find((reel) => reel.kind === "character")!;
+    // Todo lo anterior ya está generado: la tanda llega al primer personaje.
+    await t.run(async (ctx) => {
+      const file = await ctx.storage.store(new Blob(["x"]));
+      for (const reel of REEL_POOL) {
+        if (reel === character) break;
+        for (const scene of reel.scenes) {
+          await ctx.db.insert("verseFeedMedia", {
+            ref: scene.mediaRef,
+            kind: "image",
+            version: "",
+            storageId: file,
+            attempts: 0,
+            updatedAt: 0,
+          });
+          await ctx.db.insert("verseFeedMedia", {
+            ref: scene.mediaRef,
+            kind: "audio",
+            version: "",
+            storageId: file,
+            textHash: textHash(scene.text),
+            attempts: 0,
+            updatedAt: 0,
+          });
+        }
+      }
+    });
+
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "reels", budget: 2, parallel: 1 });
+
+    const speech = requests.find((request) => request.url.endsWith("/audio/speech"))!;
+    expect(speech.body).toMatchObject({ input: character.scenes[0].text, ...reelVoice(character) });
+    expect(String(speech.body.instructions)).toContain(`como ${character.title}`);
+  });
+
+  it("mediaFor encuentra la voz de una escena de reel", async () => {
+    const t = setup();
+    stubOpenAI();
+    const scene = REEL_POOL[0].scenes[0];
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "reels", budget: 2, parallel: 1 });
+    const media = await t.query(internal.verseFeedMedia.mediaFor, { ref: scene.mediaRef });
+    expect(media.image).toMatch(/^https?:\/\//);
+    expect(media.audio).toMatch(/^https?:\/\//);
+  });
+
+  it("solo versículos no toca los reels, y solo reels no toca los versículos", async () => {
+    const t = setup();
+    await seedVerses(t);
+    const verses = await t.mutation(internal.verseFeedMedia.claim, { only: "verses", limit: 50 });
+    expect(verses.every((item) => !item.ref.includes("#"))).toBe(true);
+    const reels = await t.mutation(internal.verseFeedMedia.claim, { only: "reels", limit: 10 });
+    expect(reels).toHaveLength(10);
+    expect(reels.every((item) => item.ref.includes("#"))).toBe(true);
   });
 });
 
@@ -260,7 +347,7 @@ describe("el feed usa los medios guardados", () => {
       }
     });
     const before = await t.query(api.verseFeed.page, { seen: [], seed: 1 });
-    const [first, second] = before.items;
+    const [first, second] = before.items as FeedItem[];
     expect(first.audioUrl).toBeNull();
     await t.run(async (ctx) => {
       const image = await ctx.storage.store(new Blob(["img"], { type: "image/webp" }));
@@ -296,14 +383,15 @@ describe("el feed usa los medios guardados", () => {
 
     // Misma semilla y mismo visto: mismo orden, ahora con los medios de la primera cita.
     const after = await t.query(api.verseFeed.page, { seen: [], seed: 1 });
-    expect(after.items[0].ref).toBe(first.ref);
-    expect(after.items[0].imageUrl).not.toBe(first.imageUrl);
-    expect(after.items[0].audioUrl).toMatch(/^https?:\/\//);
+    const [afterFirst] = after.items as FeedItem[];
+    expect(afterFirst.ref).toBe(first.ref);
+    expect(afterFirst.imageUrl).not.toBe(first.imageUrl);
+    expect(afterFirst.audioUrl).toMatch(/^https?:\/\//);
     const shown =
       first.endVerse === null
         ? `${first.book} ${first.chapter}:${first.verse}`
         : `${first.book} ${first.chapter}:${first.verse}-${first.endVerse}`;
-    expect(after.items[0].imageAlt).toBe(`Ilustración inspirada en ${shown}`);
+    expect(afterFirst.imageAlt).toBe(`Ilustración inspirada en ${shown}`);
     expect(after.items[1]).toMatchObject({ ref: second.ref, imageUrl: second.imageUrl, audioUrl: null });
   });
 });
