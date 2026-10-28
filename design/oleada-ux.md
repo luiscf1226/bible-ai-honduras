@@ -577,3 +577,63 @@ Cada página ordena por: afinidad con los temas de lo que la persona marcó con
 ♥ + ♥ de toda la comunidad + azar. Cada cuatro lugares entra uno al azar puro,
 para descubrir temas nuevos, y no van más de dos del mismo tema por página.
 Cuando ya se vio todo el catálogo, empieza otra vuelta sin repetir los últimos.
+
+## Reels del feed: historias contadas y personajes (`/versiculos`)
+
+Pedido directo del fundador (28 de octubre de 2026): que el feed no sea solo
+versículos, sino también "videos": historias contadas con voz y personajes de
+la Biblia. Se diseñó fuera de Claude Design, con permiso explícito, como el
+resto de esta oleada. El fundador eligió **reels animados, no video de IA**
+(imagen + movimiento + voz + texto que avanza) y que todo sea **gratis**, sin
+Pro ni cuota.
+
+**Dónde entran:** en cada página de ocho, el tercero y el sexto lugar son
+reels (`FEED_REEL_SLOTS`); la primera pantalla siempre es un versículo. Se
+alternan historia y personaje, nunca el mismo personaje dos veces en una
+tanda, y no se repiten hasta haber visto todos. Las versiones de la app que
+ya están en la tienda no los piden (`withReels`) y siguen viendo solo
+versículos.
+
+**Qué se muestra** (`convex/feedReelsCore.ts`). Nada se genera en runtime
+(regla dura #4):
+
+- **Historias contadas:** las 5 Historias ilustradas (4 partes cada una) y las
+  historias en texto que no tienen gemela ilustrada (48, 3 partes cada una).
+  Cada página de la historia en texto es una parte; la cita del final
+  ("(Lucas 2:1–7).") se separa del texto para mostrarla aparte y que la voz
+  no la lea. Las cuenta un narrador (la misma voz serena del feed).
+- **Personajes en 1ra persona:** 3 monólogos por cada personaje de Voces
+  (`docs/content/personajes-feed.json`), curados a mano y anclados a un pasaje
+  de RV1909. Solo personajes humanos (regla dura #2): de Dios y de Jesús se
+  habla en 3ra persona y lo que dijeron va en estilo indirecto. Cada
+  personaje tiene su propia voz. El test del catálogo pasa cada monólogo por
+  `assistantSpeaksAsDivine`.
+
+**Pantalla** (`FeedReelPage`), sobre la misma base que la del versículo:
+
+- Fondo: una imagen de IA vertical por parte (acuarela de libro bíblico, sin
+  texto, nunca Jesús, Dios ni el Espíritu Santo como figura), con el mismo
+  zoom lento (`motion.kenBurns`) y `imageScrim`. Al pasar de parte, la imagen
+  funde a la siguiente en `motion.reelCrossfade` (700 ms) y el texto vuelve a
+  entrar subiendo (`verseRise`). Mientras una parte no tenga su imagen, va la
+  foto de un devocional.
+- **Partes que avanzan solas, como un video:** con voz, al terminar la lectura
+  de una parte se espera `motion.reelSceneGap` (600 ms) y sigue la próxima; en
+  silencio o sin voz generada, cada parte dura su tiempo de lectura (14
+  caracteres por segundo, mínimo 4 s). La última parte se queda en pantalla.
+  Con VoiceOver/TalkBack, el texto es "ajustable": deslizar arriba/abajo pasa
+  de parte.
+- Barra de partes (solo con más de una): tramos de `size.reelProgress` (2)
+  con `radius.pill`, separados `space.xs`, en la fila del ‹ y el sonido, entre
+  los dos botones. Lo visto en `surface`; lo que falta al
+  `opacity.reelTrack` (0.35, token nuevo).
+- Historia: `overline` "HISTORIA · PARTE 2 DE 3", el título en serif
+  `subtitle`, el texto en serif sin comillas (se cuenta) con el mismo tamaño
+  según el largo que el versículo, y la cita en `sansMedium` `label`.
+- Personaje: el `CharacterAvatar` de Voces (`size.cardAvatar`), el nombre en
+  serif `subtitle` y su etiqueta en `caption` `sansLight`; el texto en serif
+  entre comillas (habla él) y "Basado en Éxodo 3:1-12" debajo.
+- Columna de acciones: ♥ (los reels también llevan ♥ y cuenta de la
+  comunidad), Compartir (la parte que se ve, por `shareContent`), **Conversar**
+  (ícono `voice`, solo si hay personaje: abre su chat en Voces) y Leer (el
+  capítulo de la parte que se ve). Doble toque = ♥, igual que el versículo.

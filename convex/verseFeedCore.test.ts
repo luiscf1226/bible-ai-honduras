@@ -14,6 +14,7 @@ import {
   topicAffinity,
   type FeedPassage,
 } from "./verseFeedCore";
+import { FEED_REEL_SLOTS } from "./verseFeedLimits";
 
 // La página que se muestra; `newRound` se prueba aparte.
 const rank = (input: Parameters<typeof rankFeedPage>[0]) => rankFeedPage(input).passages;
@@ -246,8 +247,11 @@ describe("orden del feed", () => {
     ).toBe(false);
   });
 
-  it("lo visto que recuerda el cliente alcanza para el catálogo entero", () => {
-    expect(FEED_SEEN_MAX).toBeGreaterThan(FEED_POOL.length);
+  it("lo visto que recuerda el cliente alcanza para el catálogo entero, con los reels de la vuelta", () => {
+    // En una vuelta de versículos, cada página suma también sus reels (dos de cada ocho lugares).
+    const versesPerPage = FEED_PAGE_SIZE - FEED_REEL_SLOTS.length;
+    const reelsInRound = Math.ceil(FEED_POOL.length / versesPerPage) * FEED_REEL_SLOTS.length;
+    expect(FEED_SEEN_MAX).toBeGreaterThan(FEED_POOL.length + reelsInRound);
   });
 
   it("el scroll no se acaba: 200 páginas seguidas, todas llenas y sin repetir dentro de una vuelta", () => {

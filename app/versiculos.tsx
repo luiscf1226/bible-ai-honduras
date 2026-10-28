@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
-import { useIsFocused } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { router, useIsFocused } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StatusBar, StyleSheet, Text, View, type LayoutChangeEvent, type ViewToken } from "react-native";
 
 import { api } from "../convex/_generated/api";
@@ -8,7 +8,21 @@ import { AppButton } from "../src/components/AppButton";
 import { LoadingState } from "../src/components/LoadingState";
 import { Icon } from "../src/components/Icon";
 import { HeaderIconButton, ScreenHeader } from "../src/components/ScreenHeader";
-import { buildFeedShareText, feedItemKey, type FeedItem } from "../src/features/feed/feedLogic";
+import {
+  buildFeedShareText,
+  buildReelShareText,
+  entryAudioUrl,
+  feedItemKey,
+  isReel,
+  nextScene,
+  reelReadingMs,
+  reelVoiceTimeoutMs,
+  type FeedEntry,
+  type FeedItem,
+  type FeedReelItem,
+  type FeedReelSceneItem,
+} from "../src/features/feed/feedLogic";
+import { FeedReelPage } from "../src/features/feed/FeedReelPage";
 import { FeedVersePage } from "../src/features/feed/FeedVersePage";
 import { useFeedVoice } from "../src/features/feed/useFeedVoice";
 import { useVerseFeed } from "../src/features/feed/useVerseFeed";
@@ -25,6 +39,9 @@ const VIEWABILITY = { itemVisiblePercentThreshold: 60 };
  * por pantalla, swipe vertical sin fin. Se abre desde la tarjeta del inicio.
  * El orden lo arma el servidor con lo que te gusta y lo que más le gusta a la
  * comunidad; compartir pasa por el único dueño del share sheet (regla dura #3).
+ * Entre los versículos entran reels (§Reels del feed): historias contadas y
+ * personajes, con partes que avanzan solas cuando termina la voz (o, sin voz,
+ * con el tiempo de lectura).
  */
 export default function VersiculosScreen() {
   const { color } = useTheme();
@@ -35,9 +52,42 @@ export default function VersiculosScreen() {
   const [height, setHeight] = useState(0);
   // "Leer" abre el lector encima sin desmontar el feed: la barra clara solo mientras se ve el feed.
   const focused = useIsFocused();
-  // La pantalla que se ve: su voz es la que suena.
+  // La pantalla que se ve: su voz es la que suena. En un reel, además, la parte que se ve.
   const [activeIndex, setActiveIndex] = useState(0);
-  const { muted, toggleMuted } = useFeedVoice(items[activeIndex]?.audioUrl ?? null, focused && status === "ready");
+  const [sceneIndex, setSceneIndex] = useState(0);
+  const active = items[activeIndex];
+  const advance = useCallback(() => {
+    if (!active || !isReel(active)) return;
+    setSceneIndex((current) => nextScene(active, current) ?? current);
+  }, [active]);
+  // Termina la voz de una parte: una pausa corta y pasa a la siguiente.
+  const gapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onVoiceFinish = useCallback(() => {
+    if (gapTimer.current) clearTimeout(gapTimer.current);
+    gapTimer.current = setTimeout(advance, tokens.motion.reelSceneGap);
+  }, [advance]);
+  const playing = focused && status === "ready";
+  const { muted, speaking, toggleMuted } = useFeedVoice(entryAudioUrl(active, sceneIndex), playing, onVoiceFinish);
+
+  // Cada pantalla nueva arranca en su primera parte.
+  useEffect(() => {
+    setSceneIndex(0);
+    if (gapTimer.current) clearTimeout(gapTimer.current);
+  }, [activeIndex]);
+  useEffect(
+    () => () => {
+      if (gapTimer.current) clearTimeout(gapTimer.current);
+    },
+    [],
+  );
+  // Sin voz (en silencio o sin voz generada), la parte avanza con el tiempo de lectura. Con voz,
+  // avanza cuando la voz termina; el tope solo evita que un audio que no carga trabe el reel.
+  useEffect(() => {
+    if (!playing || !active || !isReel(active) || nextScene(active, sceneIndex) === null) return;
+    const text = active.scenes[sceneIndex].text;
+    const timer = setTimeout(advance, speaking ? reelVoiceTimeoutMs(text) : reelReadingMs(text));
+    return () => clearTimeout(timer);
+  }, [active, advance, playing, sceneIndex, speaking]);
 
   const onLayout = (event: LayoutChangeEvent) => setHeight(event.nativeEvent.layout.height);
 
@@ -57,6 +107,23 @@ export default function VersiculosScreen() {
     },
     [referralCode],
   );
+  const onShareReel = useCallback(
+    (reel: FeedReelItem, index: number) => {
+      if (!referralCode) return;
+      void shareContent({ referralCode, text: buildReelShareText(reel, index) });
+    },
+    [referralCode],
+  );
+  const onReadScene = useCallback(
+    (scene: FeedReelSceneItem) =>
+      openPassage({
+        book: scene.book,
+        chapter: scene.chapter,
+        ...(scene.verse === null ? {} : { verse: scene.verse }),
+      }),
+    [],
+  );
+  const onTalk = useCallback((slug: string) => router.push(`/voces/${slug}`), []);
   const onRead = useCallback(
     (item: FeedItem) =>
       openPassage({
@@ -68,21 +135,51 @@ export default function VersiculosScreen() {
   );
 
   const renderItem = useCallback(
-    ({ index, item }: { index: number; item: FeedItem }) => (
-      <FeedVersePage
-        height={height}
-        insetBottom={insets.bottom}
-        insetTop={insets.top}
-        item={item}
-        onRead={onRead}
-        onSetLike={setLike}
-        onShare={onShare}
-        shareDisabled={!referralCode}
-        active={index === activeIndex}
-        showHint={index === 0}
-      />
-    ),
-    [activeIndex, height, insets.bottom, insets.top, onRead, onShare, referralCode, setLike],
+    ({ index, item }: { index: number; item: FeedEntry }) =>
+      isReel(item) ? (
+        <FeedReelPage
+          active={index === activeIndex}
+          height={height}
+          insetBottom={insets.bottom}
+          insetTop={insets.top}
+          onRead={onReadScene}
+          onSceneChange={setSceneIndex}
+          onSetLike={setLike}
+          onShare={onShareReel}
+          onTalk={onTalk}
+          reel={item}
+          // Solo la pantalla a la vista avanza; las demás esperan en su primera parte.
+          sceneIndex={index === activeIndex ? sceneIndex : 0}
+          shareDisabled={!referralCode}
+        />
+      ) : (
+        <FeedVersePage
+          height={height}
+          insetBottom={insets.bottom}
+          insetTop={insets.top}
+          item={item}
+          onRead={onRead}
+          onSetLike={setLike}
+          onShare={onShare}
+          shareDisabled={!referralCode}
+          active={index === activeIndex}
+          showHint={index === 0}
+        />
+      ),
+    [
+      activeIndex,
+      height,
+      insets.bottom,
+      insets.top,
+      onRead,
+      onReadScene,
+      onShare,
+      onShareReel,
+      onTalk,
+      referralCode,
+      sceneIndex,
+      setLike,
+    ],
   );
 
   return (
@@ -104,8 +201,8 @@ export default function VersiculosScreen() {
           {focused ? <StatusBar barStyle="light-content" /> : null}
           <FlatList
             data={items}
-            // La pantalla activa cambia la animación de su fondo y la entrada del versículo.
-            extraData={activeIndex}
+            // La pantalla activa cambia la animación de su fondo y la entrada del versículo; en un reel, la parte.
+            extraData={`${activeIndex}:${sceneIndex}`}
             decelerationRate="fast"
             getItemLayout={(_, index) => ({
               index,

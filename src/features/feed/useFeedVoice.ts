@@ -1,4 +1,4 @@
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo } from "react-native";
 
@@ -14,11 +14,23 @@ let sessionMuted: boolean | null = null;
  * deslizar cambia la pista; al salir de la pantalla (o abrir "Leer") se
  * pausa. Respeta el interruptor de silencio del iPhone, no corta la música
  * que la persona tenga sonando y no suena en segundo plano.
+ *
+ * En los reels, `onFinish` avisa cuando la voz de una parte terminó, para
+ * pasar a la siguiente. `speaking` dice si de verdad está sonando una voz
+ * (si no, la parte avanza con el tiempo de lectura).
  */
-export function useFeedVoice(audioUrl: string | null, focused: boolean) {
+export function useFeedVoice(audioUrl: string | null, focused: boolean, onFinish?: () => void) {
   const player = useAudioPlayer(null);
   const [muted, setMuted] = useState(sessionMuted ?? false);
   const loaded = useRef<string | null>(null);
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+
+  // `didJustFinish` queda en true hasta que se carga otra pista: avisa una vez por lectura.
+  const { didJustFinish } = useAudioPlayerStatus(player);
+  useEffect(() => {
+    if (didJustFinish) onFinishRef.current?.();
+  }, [didJustFinish]);
 
   useEffect(() => {
     // iOS no acepta "respetar el silencio" junto con "bajar el volumen de lo demás": se mezcla.
@@ -70,5 +82,5 @@ export function useFeedVoice(audioUrl: string | null, focused: boolean) {
     });
   }, []);
 
-  return { muted, toggleMuted };
+  return { muted, speaking: feedVoiceAction({ audioUrl, focused, muted }) === "play", toggleMuted };
 }

@@ -152,7 +152,7 @@ export const tokens = {
   fontScale: { feedMax: 1.3 },
   // Sobre imágenes (U2): botón volver con fondo surface al 90 % y textos al 85 %.
   // Cinta de satén del separador: brillo (`surface`), sombra (`ink`) y tejido de los bordes.
-  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, feedActionFill: 0.16, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
+  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, feedActionFill: 0.16, reelTrack: 0.35, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
@@ -203,6 +203,8 @@ export const tokens = {
     // táctil) y el corazón grande del doble toque.
     feedAction: 48,
     feedHeart: 96,
+    // Reels del feed: alto de cada tramo de la barra de partes (como `audioProgress`).
+    reelProgress: 2,
   },
   // Hoja del versículo (#232): la fila de arriba lleva 4 acciones + "Más" (5 × `actionTile` = el ancho útil
   // de 360); lo que despliega "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
@@ -224,6 +226,10 @@ export const tokens = {
     kenBurnsShift: 18,
     verseRise: 700,
     verseRiseDistance: 14,
+    // Reels del feed: fundido entre las imágenes de las partes y la pausa entre que
+    // termina la voz de una parte y arranca la siguiente.
+    reelCrossfade: 700,
+    reelSceneGap: 600,
   },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
   storyImage: {

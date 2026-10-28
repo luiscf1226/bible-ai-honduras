@@ -12,13 +12,48 @@ import {
   formatLikes,
   newFeedSeed,
   nextSeenRefs,
+  buildReelShareText,
+  entryAudioUrl,
+  entryImageUrls,
+  isReel,
+  nextScene,
+  reelOverline,
+  reelReadingMs,
+  reelReference,
+  reelVoiceTimeoutMs,
   setLikeLocally,
   settleLike,
   type FeedItem,
+  type FeedReelItem,
 } from "./feedLogic";
+
+function reel(extra: Partial<FeedReelItem> = {}): FeedReelItem {
+  const scene = (n: number) => ({
+    text: `Parte ${n} de la historia.`,
+    reference: `Génesis 1:${n}`,
+    book: "Génesis",
+    chapter: 1,
+    verse: n,
+    imageUrl: `https://example.com/${n}.webp`,
+    imageAlt: "ilustración",
+    audioUrl: n === 2 ? null : `https://example.com/${n}.mp3`,
+  });
+  return {
+    kind: "story",
+    ref: "historia:creacion",
+    title: "La creación",
+    subtitle: "Génesis 1–2",
+    voiceSlug: null,
+    scenes: [scene(1), scene(2), scene(3)],
+    likes: 0,
+    liked: false,
+    ...extra,
+  };
+}
 
 function item(ref: string, extra: Partial<FeedItem> = {}): FeedItem {
   return {
+    kind: "verse",
     ref,
     book: "Salmos",
     chapter: 23,
@@ -147,5 +182,69 @@ describe("semilla", () => {
     const first = newFeedSeed(1000, () => 0.25);
     expect(Number.isInteger(first) && first >= 0).toBe(true);
     expect(newFeedSeed(1000, () => 0.75)).not.toBe(first);
+  });
+});
+
+describe("reels", () => {
+  it("distingue un reel de un versículo", () => {
+    expect(isReel(reel())).toBe(true);
+    expect(isReel(item("Salmos 23:1"))).toBe(false);
+  });
+
+  it("avanza de parte en parte y se queda en la última", () => {
+    expect(nextScene(reel(), 0)).toBe(1);
+    expect(nextScene(reel(), 1)).toBe(2);
+    expect(nextScene(reel(), 2)).toBeNull();
+  });
+
+  it("sin voz, cada parte dura lo que tarda en leerse con calma (y nunca menos de 4 s)", () => {
+    expect(reelReadingMs("Corto.")).toBe(4000);
+    const long = "a".repeat(280);
+    expect(reelReadingMs(long)).toBe(21500);
+    // Con voz, el tope por si la voz no termina es más largo que la lectura.
+    expect(reelVoiceTimeoutMs(long)).toBeGreaterThan(reelReadingMs(long));
+  });
+
+  it("la voz que suena es la de la parte que se ve", () => {
+    const story = reel();
+    expect(entryAudioUrl(story, 0)).toBe("https://example.com/1.mp3");
+    expect(entryAudioUrl(story, 1)).toBeNull();
+    expect(entryAudioUrl(story, 9)).toBe("https://example.com/3.mp3");
+    expect(entryAudioUrl(item("Salmos 23:1", { audioUrl: "https://example.com/v.mp3" }), 4)).toBe(
+      "https://example.com/v.mp3",
+    );
+    expect(entryAudioUrl(undefined, 0)).toBeNull();
+  });
+
+  it("precarga las imágenes de todas las partes", () => {
+    expect(entryImageUrls(reel())).toEqual([
+      "https://example.com/1.webp",
+      "https://example.com/2.webp",
+      "https://example.com/3.webp",
+    ]);
+    expect(entryImageUrls(item("Salmos 23:1"))).toEqual(["https://example.com/a.jpg"]);
+  });
+
+  it("muestra la parte de la historia y la cita; el personaje dice en qué pasaje se basa", () => {
+    expect(reelOverline(reel(), 1)).toBe("HISTORIA · PARTE 2 DE 3");
+    expect(reelOverline(reel({ scenes: reel().scenes.slice(0, 1) }), 0)).toBe("HISTORIA");
+    expect(reelReference(reel(), reel().scenes[0])).toBe("Génesis 1:1");
+    expect(reelReference({ kind: "character" }, { reference: "Éxodo 3:1-12" })).toBe("Basado en Éxodo 3:1-12");
+  });
+
+  it("comparte la parte que se ve, con su origen", () => {
+    expect(buildReelShareText(reel(), 1)).toBe('"Parte 2 de la historia."\n— La creación (Génesis 1:2)');
+    const moises = reel({
+      kind: "character",
+      title: "Moisés",
+      scenes: [{ ...reel().scenes[0], reference: "Éxodo 3:1-12" }],
+    });
+    expect(buildReelShareText(moises, 0)).toBe('"Parte 1 de la historia."\n— Moisés, basado en Éxodo 3:1-12');
+  });
+
+  it("el ♥ funciona igual en un reel", () => {
+    const [liked] = setLikeLocally([reel()], "historia:creacion", true);
+    expect(liked).toMatchObject({ liked: true, likes: 1 });
+    expect(settleLike([liked], "historia:creacion", { liked: false, likes: 0 })[0]).toMatchObject({ liked: false });
   });
 });

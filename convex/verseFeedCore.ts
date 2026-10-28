@@ -59,6 +59,11 @@ function hashOf(text: string): number {
   return hash >>> 0;
 }
 
+/** Foto de un devocional, fija por clave: el fondo de lo que todavía no tiene imagen propia. */
+export function fallbackFeedPhoto(key: string): { imageUrl: string; imageAlt: string } {
+  return IMAGES[hashOf(key) % IMAGES.length];
+}
+
 /** El catálogo del feed, sin citas repetidas. Cada cita junta todos los temas en los que aparece. */
 export function buildFeedPool(
   topics: readonly TopicData[] = TOPICS,
@@ -74,7 +79,7 @@ export function buildFeedPool(
         pool.set(ref, { ...existing, topics: [...existing.topics, topic] });
       return;
     }
-    const picture = image ?? IMAGES[hashOf(ref) % IMAGES.length];
+    const picture = image ?? fallbackFeedPhoto(ref);
     pool.set(ref, {
       ref,
       ...parsed,

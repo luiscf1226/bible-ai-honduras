@@ -8,6 +8,7 @@ import { AiCallError } from "./adminKit/meter";
 import { aiMeter } from "./aiUsage";
 import { AVAILABLE_BIBLE_VERSIONS, DEFAULT_BIBLE_VERSION } from "./bibleVersions";
 import { generateFeedImage } from "./images";
+import { REEL_POOL, reelScene, reelVoice } from "./feedReelsCore";
 import { generateSpeech } from "./speech";
 import { FEED_POOL, FEED_TOPIC_NAMES, feedPassage, type FeedPassage } from "./verseFeedCore";
 import { feedPassageText, spokenText, textHash } from "./verseFeedText";
@@ -23,9 +24,20 @@ import { feedPassageText, spokenText, textHash } from "./verseFeedText";
  *   npx convex run verseFeedMedia:generateMissing '{"budget": 1000}'
  * No hay cron: el fundador decidió quedarse con lo ya generado (27 de
  * octubre de 2026). Lo que falta va con la foto del devocional y sin voz.
+ *
+ * Los reels (§Reels del feed) usan la misma tabla, con el id de cada escena
+ * ("historia:creacion#2") en `ref`: una imagen y una voz por escena, con la
+ * voz del narrador o la del personaje. Solo los reels (~197 + ~197):
+ *   npx convex run verseFeedMedia:generateMissing '{"budget": 400, "only": "reels"}'
  */
 
 export type FeedMediaKind = "image" | "audio";
+
+/** La voz de un reel no depende de la Biblia elegida: el texto es del catálogo, no de una versión. */
+export const REEL_AUDIO_VERSION = "";
+
+/** Qué parte del catálogo generar: todo, solo los versículos o solo los reels. */
+const onlyArg = v.optional(v.union(v.literal("verses"), v.literal("reels")));
 
 /** Reintentos por cita antes de dejarla sin medio (y con la foto de siempre). */
 export const MAX_ATTEMPTS = 3;
@@ -123,7 +135,7 @@ export type ClaimedMedia = { ref: string; kind: FeedMediaKind; version: string; 
  * cuenta como faltante.
  */
 export const claim = internalMutation({
-  args: { limit: v.number() },
+  args: { limit: v.number(), only: onlyArg },
   handler: async (ctx, args): Promise<ClaimedMedia[]> => {
     const now = Date.now();
     const claimed: ClaimedMedia[] = [];
@@ -131,7 +143,28 @@ export const claim = internalMutation({
       ["image", DEFAULT_BIBLE_VERSION],
       ...AVAILABLE_BIBLE_VERSIONS.map((version) => ["audio", version] as [FeedMediaKind, string]),
     ];
-    for (const passage of FEED_POOL) {
+    const reserve = async (
+      ref: string,
+      kind: FeedMediaKind,
+      version: string,
+      row: Awaited<ReturnType<typeof mediaRow>>,
+      text: string,
+      hash: string,
+    ) => {
+      const reservation = { inProgressUntil: now + CLAIM_MS, updatedAt: now };
+      if (row) await ctx.db.patch(row._id, reservation);
+      else
+        await ctx.db.insert("verseFeedMedia", {
+          ref,
+          kind,
+          version: versionFor(kind, version),
+          attempts: 0,
+          ...reservation,
+        });
+      claimed.push({ ref, kind, version, text, textHash: hash });
+    };
+    const verses = args.only === "reels" ? [] : FEED_POOL;
+    for (const passage of verses) {
       for (const [kind, version] of jobs) {
         if (claimed.length >= args.limit) return claimed;
         const row = await mediaRow(ctx, passage.ref, kind, version);
@@ -143,17 +176,23 @@ export const claim = internalMutation({
         const text = spokenText(fitted.text);
         const hash = textHash(text);
         if (row?.storageId && row.textHash === hash) continue;
-        const reservation = { inProgressUntil: now + CLAIM_MS, updatedAt: now };
-        if (row) await ctx.db.patch(row._id, reservation);
-        else
-          await ctx.db.insert("verseFeedMedia", {
-            ref: passage.ref,
-            kind,
-            version: versionFor(kind, version),
-            attempts: 0,
-            ...reservation,
-          });
-        claimed.push({ ref: passage.ref, kind, version, text, textHash: hash });
+        await reserve(passage.ref, kind, version, row, text, hash);
+      }
+    }
+    // Reels: imagen y voz de cada escena, con el texto del catálogo.
+    const reels = args.only === "verses" ? [] : REEL_POOL;
+    for (const reel of reels) {
+      for (const scene of reel.scenes) {
+        for (const kind of ["image", "audio"] as const) {
+          if (claimed.length >= args.limit) return claimed;
+          const row = await mediaRow(ctx, scene.mediaRef, kind, REEL_AUDIO_VERSION);
+          if ((row?.attempts ?? 0) >= MAX_ATTEMPTS) continue;
+          if ((row?.inProgressUntil ?? 0) > now) continue;
+          if (row?.storageId && kind === "image") continue;
+          const hash = textHash(scene.text);
+          if (row?.storageId && row.textHash === hash) continue;
+          await reserve(scene.mediaRef, kind, REEL_AUDIO_VERSION, row, scene.text, hash);
+        }
       }
     }
     return claimed;
@@ -215,12 +254,12 @@ export function isTransientFailure(error: unknown): boolean {
  */
 export const generateMissing = internalAction({
   // `parallel` solo existe para los tests (convex-test no admite escrituras en paralelo en una acción).
-  args: { budget: v.number(), parallel: v.optional(v.number()) },
+  args: { budget: v.number(), parallel: v.optional(v.number()), only: onlyArg },
   handler: async (ctx, args): Promise<{ generated: number; failed: number; remaining: number }> => {
     const parallel = Math.max(1, Math.floor(args.parallel ?? PARALLEL));
     const take = Math.min(BATCH, Math.max(0, Math.floor(args.budget)));
     if (take === 0) return { generated: 0, failed: 0, remaining: args.budget };
-    const todo: ClaimedMedia[] = await ctx.runMutation(internal.verseFeedMedia.claim, { limit: take });
+    const todo: ClaimedMedia[] = await ctx.runMutation(internal.verseFeedMedia.claim, { limit: take, only: args.only });
     const meter = aiMeter(ctx, "verse_feed");
     let generated = 0;
     let failed = 0;
@@ -231,14 +270,18 @@ export const generateMissing = internalAction({
       await Promise.all(
         todo.slice(start, start + parallel).map(async (item) => {
           const passage = feedPassage(item.ref);
-          if (!passage) return;
+          const reel = passage ? null : reelScene(item.ref);
+          if (!passage && !reel) return;
           let storageId: Id<"_storage"> | undefined;
           let countAttempt = true;
           try {
             const blob =
               item.kind === "image"
-                ? await generateFeedImage(feedImagePrompt(passage, item.text), meter)
-                : await generateSpeech(item.text, meter);
+                ? await generateFeedImage(
+                    passage ? feedImagePrompt(passage, item.text) : reel!.scene.imagePrompt,
+                    meter,
+                  )
+                : await generateSpeech(item.text, meter, reel ? reelVoice(reel.reel) : undefined);
             storageId = await ctx.storage.store(blob);
             generated += 1;
           } catch (error) {
@@ -269,7 +312,11 @@ export const generateMissing = internalAction({
     if (todo.length === take && remaining > 0 && !outOfCredit) {
       // Con la mitad o más cayendo por el proveedor, se espera: seguir al toque solo choca con el límite.
       const delay = transient * 2 >= todo.length ? BACKOFF_MS : 0;
-      await ctx.scheduler.runAfter(delay, internal.verseFeedMedia.generateMissing, { budget: remaining, parallel });
+      await ctx.scheduler.runAfter(delay, internal.verseFeedMedia.generateMissing, {
+        budget: remaining,
+        parallel,
+        only: args.only,
+      });
     }
     return { generated, failed, remaining };
   },
@@ -280,9 +327,20 @@ export const progress = internalQuery({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("verseFeedMedia").collect();
-    const ready = (kind: FeedMediaKind) => rows.filter((row) => row.kind === kind && row.storageId).length;
+    // Las escenas de los reels se guardan con su id ("historia:creacion#2"); las citas, con la cita.
+    const isReel = (ref: string) => ref.includes("#");
+    const ready = (kind: FeedMediaKind, reels: boolean) =>
+      rows.filter((row) => row.kind === kind && row.storageId && isReel(row.ref) === reels).length;
     const gaveUp = rows.filter((row) => row.attempts >= MAX_ATTEMPTS).length;
-    return { catalog: FEED_POOL.length, images: ready("image"), audio: ready("audio"), gaveUp };
+    return {
+      catalog: FEED_POOL.length,
+      images: ready("image", false),
+      audio: ready("audio", false),
+      reelScenes: REEL_POOL.reduce((total, reel) => total + reel.scenes.length, 0),
+      reelImages: ready("image", true),
+      reelAudio: ready("audio", true),
+      gaveUp,
+    };
   },
 });
 

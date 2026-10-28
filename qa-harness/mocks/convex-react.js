@@ -14,6 +14,7 @@ import TOPIC_VERSES from "./topic-verses.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
 import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from "../../convex/readingGroupCore";
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
+import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
 import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
@@ -424,7 +425,95 @@ function quota(module) {
   return { used: 1, limit, remaining: limit - 1, isPro: false };
 }
 
+
+// Feed de versículos (#254): citas reales de Versículos por tema con fotos de
+// los devocionales. Páginas sin fin; el ♥ se guarda en memoria. Con
+// `withReels`, el tercero y el sexto lugar son reels reales del catálogo
+// (`convex/feedReelsCore.ts`): historias y personajes, con fotos de los
+// devocionales y sin voz (las partes avanzan con el tiempo de lectura).
+const FEED_IMAGES = [
+  "https://images.unsplash.com/photo-1439853949127-fa647821eba0?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=1600&q=80",
+];
+const FEED_TOPICS = ["Esperanza", "Amor", "Perdón", "Fortaleza", "Paz", null];
+const FEED_CATALOG = Object.entries(TOPIC_VERSES).flatMap(([chapterRef, verses]) => {
+  const split = chapterRef.lastIndexOf(" ");
+  const book = chapterRef.slice(0, split);
+  const chapter = Number(chapterRef.slice(split + 1));
+  return Object.entries(verses).map(([verse, text]) => ({ book, chapter, verse: Number(verse), text }));
+});
+const feedLikes = new Map();
+function feedReelItem(reel) {
+  const liked = feedLikes.get(reel.ref) ?? false;
+  return {
+    kind: reel.kind,
+    ref: reel.ref,
+    title: reel.title,
+    subtitle: reel.subtitle,
+    voiceSlug: reel.voiceSlug,
+    scenes: reel.scenes.map((scene, index) => ({
+      text: scene.text,
+      reference: scene.reference,
+      book: scene.book,
+      chapter: scene.chapter,
+      verse: scene.verse,
+      imageUrl: FEED_IMAGES[(reel.ref.length + index) % FEED_IMAGES.length],
+      imageAlt: `Ilustración de ${reel.title}`,
+      audioUrl: null,
+    })),
+    likes: 12 + (liked ? 1 : 0),
+    liked,
+  };
+}
+function feedPage({ seen = [], seed = 1, withReels = false }) {
+  const verses = feedVersePage(seen, withReels ? 6 : 8);
+  if (!withReels) return { items: verses, newRound: false, skipped: [] };
+  const reels = rankReels({ communityLikes: new Map(), count: 2, likedRefs: [], pool: REEL_POOL, seed: seed + seen.length, seenRefs: seen });
+  const items = [...verses];
+  items.splice(2, 0, feedReelItem(reels[0]));
+  items.splice(5, 0, feedReelItem(reels[1]));
+  return { items, newRound: false, skipped: [] };
+}
+function feedVersePage(seen, count) {
+  const shownVerses = seen.filter((ref) => /\d+:\d+$/.test(ref)).length;
+  const start = shownVerses % FEED_CATALOG.length;
+  return Array.from({ length: count }, (_, offset) => {
+    const index = (start + offset) % FEED_CATALOG.length;
+    const entry = FEED_CATALOG[index];
+    const ref = `${entry.book} ${entry.chapter}:${entry.verse}`;
+    const base = (index * 37) % 1400;
+    const liked = feedLikes.get(ref) ?? false;
+    return {
+      kind: "verse",
+      ref,
+      book: entry.book,
+      chapter: entry.chapter,
+      verse: entry.verse,
+      endVerse: null,
+      text: entry.text,
+      version: "RV1909",
+      topic: FEED_TOPICS[index % FEED_TOPICS.length],
+      imageUrl: FEED_IMAGES[index % FEED_IMAGES.length],
+      imageAlt: "Paisaje",
+      audioUrl: null,
+      likes: base + (liked ? 1 : 0),
+      liked,
+    };
+  });
+}
+
 const handlers = {
+  "verseFeed:page": feedPage,
+  "verseFeed:setLike": ({ ref, liked }) => {
+    feedLikes.set(ref, liked);
+    if (REEL_POOL.some((reel) => reel.ref === ref)) return { liked, likes: 12 + (liked ? 1 : 0) };
+    const index = FEED_CATALOG.findIndex((e) => `${e.book} ${e.chapter}:${e.verse}` === ref);
+    return { liked, likes: ((index * 37) % 1400) + (liked ? 1 : 0) };
+  },
   "users:current": () => ({
     _id: "u1",
     clerkId: "user_qa",

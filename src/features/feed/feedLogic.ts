@@ -1,4 +1,4 @@
-import type { FeedItem } from "../../../convex/verseFeed";
+import type { FeedEntry, FeedItem, FeedReelItem, FeedReelSceneItem } from "../../../convex/verseFeed";
 import { FEED_RECENT_GUARD, FEED_SEEN_MAX } from "../../../convex/verseFeedLimits";
 
 /**
@@ -7,7 +7,15 @@ import { FEED_RECENT_GUARD, FEED_SEEN_MAX } from "../../../convex/verseFeedLimit
  * según el largo, cómo se suman páginas, el ♥ optimista, el doble toque y el
  * texto para compartir.
  */
-export type { FeedItem };
+export type { FeedEntry, FeedItem, FeedReelItem, FeedReelSceneItem };
+
+/** Historia contada o personaje (no un versículo). */
+export function isReel(entry: FeedEntry): entry is FeedReelItem {
+  return entry.kind !== "verse";
+}
+
+/** Lo que tienen en común un versículo y un reel para el ♥. */
+type Likeable = { ref: string; liked: boolean; likes: number };
 
 /** Tamaño del versículo: corto llena la pantalla, largo baja para entrar sin scroll. */
 export type FeedVerseType = "verseFeed" | "verseHero" | "readerBody";
@@ -50,7 +58,7 @@ export function feedItemKey(item: Pick<FeedItem, "ref">, index: number): string 
 }
 
 /** Deja el ♥ de una cita como se pidió; la cuenta cambia solo si el estado cambia. */
-export function setLikeLocally(items: readonly FeedItem[], ref: string, liked: boolean): FeedItem[] {
+export function setLikeLocally<T extends Likeable>(items: readonly T[], ref: string, liked: boolean): T[] {
   return items.map((item) =>
     item.ref === ref && item.liked !== liked
       ? { ...item, liked, likes: Math.max(0, item.likes + (liked ? 1 : -1)) }
@@ -59,11 +67,11 @@ export function setLikeLocally(items: readonly FeedItem[], ref: string, liked: b
 }
 
 /** Deja el ♥ y la cuenta como los dejó el servidor (o como estaban, si falló). */
-export function settleLike(
-  items: readonly FeedItem[],
+export function settleLike<T extends Likeable>(
+  items: readonly T[],
   ref: string,
   result: { liked: boolean; likes: number },
-): FeedItem[] {
+): T[] {
   return items.map((item) => (item.ref === ref ? { ...item, ...result } : item));
 }
 
@@ -122,4 +130,65 @@ export const FEED_PREFETCH_AHEAD = 3;
 /** Semilla nueva por cada vez que se abre el feed: nunca el mismo orden. */
 export function newFeedSeed(now = Date.now(), random = Math.random): number {
   return (Math.floor(random() * 0x7fffffff) ^ now) >>> 0;
+}
+
+/**
+ * Ritmo de lectura (el mismo con el que se estima la voz): cuánto queda una
+ * parte de un reel en pantalla cuando no suena la voz (en silencio o sin voz
+ * generada), para que alcance a leerse con calma.
+ */
+const READING_CHARS_PER_SECOND = 14;
+const READING_PAD_MS = 1500;
+const READING_MIN_MS = 4000;
+
+export function reelReadingMs(text: string): number {
+  return Math.max(READING_MIN_MS, Math.round((text.length / READING_CHARS_PER_SECOND) * 1000) + READING_PAD_MS);
+}
+
+/**
+ * Con voz, la parte avanza cuando la voz termina. Si la voz no termina nunca
+ * (no cargó, se cortó la red), este tope —holgado: una lectura muy lenta—
+ * evita que el reel se quede trabado.
+ */
+export function reelVoiceTimeoutMs(text: string): number {
+  return Math.round((text.length / 8) * 1000) + 5000;
+}
+
+/** La parte siguiente, o null si ya es la última (el reel se queda en ella, como un video que terminó). */
+export function nextScene(reel: Pick<FeedReelItem, "scenes">, index: number): number | null {
+  return index + 1 < reel.scenes.length ? index + 1 : null;
+}
+
+/** "HISTORIA · PARTE 2 DE 3" (una sola parte: "HISTORIA"). */
+export function reelOverline(reel: Pick<FeedReelItem, "scenes">, index: number): string {
+  return reel.scenes.length > 1 ? `HISTORIA · PARTE ${index + 1} DE ${reel.scenes.length}` : "HISTORIA";
+}
+
+/**
+ * La cita debajo del texto. Las historias cuentan el pasaje con sus palabras
+ * y los personajes hablan desde él: ninguno es el texto de RV1909 tal cual,
+ * así que no llevan versión, y el personaje dice "Basado en".
+ */
+export function reelReference(reel: Pick<FeedReelItem, "kind">, scene: Pick<FeedReelSceneItem, "reference">): string {
+  return reel.kind === "character" ? `Basado en ${scene.reference}` : scene.reference;
+}
+
+/** Texto para compartir la parte que se ve, con el mismo formato que un versículo. */
+export function buildReelShareText(reel: Pick<FeedReelItem, "kind" | "title" | "scenes">, index: number): string {
+  const scene = reel.scenes[Math.min(index, reel.scenes.length - 1)];
+  const source =
+    reel.kind === "character" ? `${reel.title}, basado en ${scene.reference}` : `${reel.title} (${scene.reference})`;
+  return `"${scene.text}"\n— ${source}`;
+}
+
+/** La voz que suena: la del versículo, o la de la parte del reel que se ve. */
+export function entryAudioUrl(entry: FeedEntry | undefined, sceneIndex: number): string | null {
+  if (!entry) return null;
+  if (!isReel(entry)) return entry.audioUrl;
+  return entry.scenes[Math.min(sceneIndex, entry.scenes.length - 1)]?.audioUrl ?? null;
+}
+
+/** Todas las imágenes de una entrada, para precargarlas antes de que lleguen a la pantalla. */
+export function entryImageUrls(entry: FeedEntry): string[] {
+  return isReel(entry) ? entry.scenes.map((scene) => scene.imageUrl) : [entry.imageUrl];
 }
