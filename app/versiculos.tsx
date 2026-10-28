@@ -78,15 +78,20 @@ export default function VersiculosScreen() {
     (index: number, scene: number) => setView((current) => (current.index === index ? { index, scene } : current)),
     [],
   );
+  // Con lector de pantalla no avanza solo (WCAG 2.2.2), ni por tiempo ni al terminar la voz:
+  // se pasa de parte con deslizar arriba/abajo.
+  const screenReader = useScreenReaderEnabled();
+  const screenReaderRef = useRef(screenReader);
+  screenReaderRef.current = screenReader;
   // Termina la voz de una parte: una pausa corta y pasa a la siguiente.
   const gapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onVoiceFinish = useCallback(() => {
     if (gapTimer.current) clearTimeout(gapTimer.current);
+    if (screenReaderRef.current) return;
     const { index, scene } = viewRef.current;
     gapTimer.current = setTimeout(() => advanceFrom(index, scene), tokens.motion.reelSceneGap);
   }, [advanceFrom]);
   const playing = focused && status === "ready";
-  const screenReader = useScreenReaderEnabled();
   const { muted, speaking, toggleMuted } = useFeedVoice(entryAudioUrl(active, sceneIndex), playing, onVoiceFinish);
 
   // Otra pantalla, otra parte o el feed fuera de foco ("Leer", "Conversar"): la pausa pendiente ya no corresponde.
@@ -99,7 +104,6 @@ export default function VersiculosScreen() {
   // Sin voz (en silencio o sin voz generada), la parte avanza con el tiempo de lectura. Con voz,
   // avanza cuando la voz termina; el tope solo evita que un audio que no carga trabe el reel.
   useEffect(() => {
-    // Con lector de pantalla no avanza solo (WCAG 2.2.2): pasa de parte con deslizar arriba/abajo.
     if (!playing || screenReader || !scenes || nextScene({ scenes }, sceneIndex) === null) return;
     const text = scenes[sceneIndex].text;
     const timer = setTimeout(
