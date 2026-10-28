@@ -27,8 +27,10 @@ type FeedReelPageProps = {
   active: boolean;
   /** La parte que se ve (la maneja la pantalla del feed: avanza con la voz o con el tiempo de lectura). */
   sceneIndex: number;
+  /** Lugar de esta pantalla en el feed: el cambio de parte solo vale para la pantalla que se ve. */
+  pageIndex: number;
   /** VoiceOver/TalkBack: deslizar arriba/abajo sobre el texto pasa de parte. */
-  onSceneChange: (index: number) => void;
+  onSceneChange: (pageIndex: number, scene: number) => void;
   onSetLike: (ref: string, liked: boolean) => void;
   onShare: (reel: FeedReelItem, sceneIndex: number) => void;
   onRead: (scene: FeedReelSceneItem) => void;
@@ -55,6 +57,7 @@ function FeedReelPageImpl({
   onSetLike,
   onShare,
   onTalk,
+  pageIndex,
   reel,
   sceneIndex,
   shareDisabled,
@@ -105,8 +108,9 @@ function FeedReelPageImpl({
       ? `${reel.title}. ${scene.text}. ${reference}`
       : `${reel.title}, parte ${index + 1} de ${reel.scenes.length}. ${scene.text}. ${reference}`;
   const onAccessibilityAction = (event: AccessibilityActionEvent) => {
-    if (event.nativeEvent.actionName === "increment" && index + 1 < reel.scenes.length) onSceneChange(index + 1);
-    if (event.nativeEvent.actionName === "decrement" && index > 0) onSceneChange(index - 1);
+    if (event.nativeEvent.actionName === "increment" && index + 1 < reel.scenes.length)
+      onSceneChange(pageIndex, index + 1);
+    if (event.nativeEvent.actionName === "decrement" && index > 0) onSceneChange(pageIndex, index - 1);
   };
 
   return (

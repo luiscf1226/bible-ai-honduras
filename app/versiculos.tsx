@@ -27,6 +27,7 @@ import { FeedVersePage } from "../src/features/feed/FeedVersePage";
 import { useFeedVoice } from "../src/features/feed/useFeedVoice";
 import { useVerseFeed } from "../src/features/feed/useVerseFeed";
 import { useScreenInsets } from "../src/hooks/useKeyboardAvoidance";
+import { useScreenReaderEnabled } from "../src/hooks/useScreenReaderEnabled";
 import { openPassage } from "../src/lib/openPassage";
 import { shareContent } from "../src/lib/share";
 import { useTheme } from "../src/theme/ThemeProvider";
@@ -72,7 +73,11 @@ export default function VersiculosScreen() {
       }),
     [scenes],
   );
-  const onSceneChange = useCallback((scene: number) => setView((current) => ({ ...current, scene })), []);
+  // VoiceOver/TalkBack pasa de parte en el reel que tiene el foco: solo cuenta si es la pantalla que se ve.
+  const onSceneChange = useCallback(
+    (index: number, scene: number) => setView((current) => (current.index === index ? { index, scene } : current)),
+    [],
+  );
   // Termina la voz de una parte: una pausa corta y pasa a la siguiente.
   const gapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onVoiceFinish = useCallback(() => {
@@ -81,26 +86,28 @@ export default function VersiculosScreen() {
     gapTimer.current = setTimeout(() => advanceFrom(index, scene), tokens.motion.reelSceneGap);
   }, [advanceFrom]);
   const playing = focused && status === "ready";
+  const screenReader = useScreenReaderEnabled();
   const { muted, speaking, toggleMuted } = useFeedVoice(entryAudioUrl(active, sceneIndex), playing, onVoiceFinish);
 
-  // Otra pantalla u otra parte: la pausa pendiente ya no corresponde.
+  // Otra pantalla, otra parte o el feed fuera de foco ("Leer", "Conversar"): la pausa pendiente ya no corresponde.
   useEffect(
     () => () => {
       if (gapTimer.current) clearTimeout(gapTimer.current);
     },
-    [activeIndex, sceneIndex],
+    [activeIndex, playing, sceneIndex],
   );
   // Sin voz (en silencio o sin voz generada), la parte avanza con el tiempo de lectura. Con voz,
   // avanza cuando la voz termina; el tope solo evita que un audio que no carga trabe el reel.
   useEffect(() => {
-    if (!playing || !scenes || nextScene({ scenes }, sceneIndex) === null) return;
+    // Con lector de pantalla no avanza solo (WCAG 2.2.2): pasa de parte con deslizar arriba/abajo.
+    if (!playing || screenReader || !scenes || nextScene({ scenes }, sceneIndex) === null) return;
     const text = scenes[sceneIndex].text;
     const timer = setTimeout(
       () => advanceFrom(activeIndex, sceneIndex),
       speaking ? reelVoiceTimeoutMs(text) : reelReadingMs(text),
     );
     return () => clearTimeout(timer);
-  }, [activeIndex, advanceFrom, playing, sceneIndex, scenes, speaking]);
+  }, [activeIndex, advanceFrom, playing, sceneIndex, scenes, screenReader, speaking]);
 
   const onLayout = (event: LayoutChangeEvent) => setHeight(event.nativeEvent.layout.height);
 
@@ -160,6 +167,7 @@ export default function VersiculosScreen() {
           onSetLike={setLike}
           onShare={onShareReel}
           onTalk={onTalk}
+          pageIndex={index}
           reel={item}
           // Solo la pantalla a la vista avanza; las demás esperan en su primera parte.
           sceneIndex={index === activeIndex ? sceneIndex : 0}

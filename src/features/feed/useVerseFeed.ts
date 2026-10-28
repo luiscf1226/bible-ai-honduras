@@ -7,6 +7,7 @@ import { track } from "../../lib/telemetry";
 import {
   entryImageUrls,
   FEED_PREFETCH_AHEAD,
+  isReel,
   newFeedSeed,
   nextSeenRefs,
   setLikeLocally,
@@ -136,7 +137,7 @@ export function useVerseFeed(): VerseFeedState {
       const request = (likeRequests.current.get(ref) ?? 0) + 1;
       likeRequests.current.set(ref, request);
       setItems((current) => setLikeLocally(current, ref, liked));
-      if (liked) track("verse_feed_liked");
+      if (liked) track(isReel(item) ? "verse_feed_reel_liked" : "verse_feed_liked");
       const isLatest = () => likeRequests.current.get(ref) === request;
       // Cuando el último pedido termina, la lista vuelve a mandar (sin estado pedido ni confirmado colgando).
       const settle = (state: { liked: boolean; likes: number }) => {
