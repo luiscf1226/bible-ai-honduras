@@ -52,6 +52,7 @@ import type * as rag_ingest from "../rag/ingest.js";
 import type * as rag_llm from "../rag/llm.js";
 import type * as rag_prompts_groupGuide from "../rag/prompts/groupGuide.js";
 import type * as rag_prompts_qa from "../rag/prompts/qa.js";
+import type * as rag_prompts_verseSuggest from "../rag/prompts/verseSuggest.js";
 import type * as rag_retrieve from "../rag/retrieve.js";
 import type * as rag_verses from "../rag/verses.js";
 import type * as reading from "../reading.js";
@@ -135,6 +136,7 @@ declare const fullApi: ApiFromModules<{
   "rag/llm": typeof rag_llm;
   "rag/prompts/groupGuide": typeof rag_prompts_groupGuide;
   "rag/prompts/qa": typeof rag_prompts_qa;
+  "rag/prompts/verseSuggest": typeof rag_prompts_verseSuggest;
   "rag/retrieve": typeof rag_retrieve;
   "rag/verses": typeof rag_verses;
   reading: typeof reading;
