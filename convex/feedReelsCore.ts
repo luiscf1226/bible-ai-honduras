@@ -228,6 +228,11 @@ const SCENE_BY_MEDIA_REF = new Map(
   REEL_POOL.flatMap((reel) => reel.scenes.map((scene) => [scene.mediaRef, { reel, scene }])),
 );
 
+/** ¿Es el ♥ de un reel? Las citas de versículos nunca empiezan así. */
+export function isReelRef(ref: string): boolean {
+  return ref.startsWith("historia:") || ref.startsWith("personaje:");
+}
+
 export function feedReel(ref: string): FeedReel | null {
   return REEL_BY_REF.get(ref) ?? null;
 }

@@ -348,7 +348,9 @@ export const progress = internalQuery({
 export const mediaFor = internalQuery({
   args: { ref: v.string() },
   handler: async (ctx, args) => {
-    const audio = await mediaRow(ctx, args.ref, "audio", DEFAULT_BIBLE_VERSION);
+    // Las voces de los reels ("historia:creacion#2") no dependen de la versión de la Biblia.
+    const reel = reelScene(args.ref) !== null;
+    const audio = await mediaRow(ctx, args.ref, "audio", reel ? REEL_AUDIO_VERSION : DEFAULT_BIBLE_VERSION);
     return {
       image: await feedImageUrl(ctx, args.ref),
       audio: audio?.storageId ? await ctx.storage.getUrl(audio.storageId) : null,

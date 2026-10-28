@@ -303,6 +303,16 @@ describe("medios de los reels", () => {
     expect(String(speech.body.instructions)).toContain(`como ${character.title}`);
   });
 
+  it("mediaFor encuentra la voz de una escena de reel", async () => {
+    const t = setup();
+    stubOpenAI();
+    const scene = REEL_POOL[0].scenes[0];
+    await t.action(internal.verseFeedMedia.generateMissing, { only: "reels", budget: 2, parallel: 1 });
+    const media = await t.query(internal.verseFeedMedia.mediaFor, { ref: scene.mediaRef });
+    expect(media.image).toMatch(/^https?:\/\//);
+    expect(media.audio).toMatch(/^https?:\/\//);
+  });
+
   it("solo versículos no toca los reels, y solo reels no toca los versículos", async () => {
     const t = setup();
     await seedVerses(t);

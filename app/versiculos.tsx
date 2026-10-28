@@ -52,49 +52,62 @@ export default function VersiculosScreen() {
   const [height, setHeight] = useState(0);
   // "Leer" abre el lector encima sin desmontar el feed: la barra clara solo mientras se ve el feed.
   const focused = useIsFocused();
-  // La pantalla que se ve: su voz es la que suena. En un reel, además, la parte que se ve.
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [sceneIndex, setSceneIndex] = useState(0);
+  // La pantalla que se ve (su voz es la que suena) y, en un reel, la parte que se ve. Un solo
+  // estado: al cambiar de pantalla, la parte vuelve a 0 en el mismo render, sin un cuadro intermedio.
+  const [view, setView] = useState({ index: 0, scene: 0 });
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const { index: activeIndex, scene: sceneIndex } = view;
   const active = items[activeIndex];
-  const advance = useCallback(() => {
-    if (!active || !isReel(active)) return;
-    setSceneIndex((current) => nextScene(active, current) ?? current);
-  }, [active]);
+  // Las partes no cambian con un ♥ (el ♥ copia el reel pero no sus partes): los timers no se reinician.
+  const scenes = active && isReel(active) ? active.scenes : null;
+  // Avanza desde una parte concreta: si mientras tanto la persona cambió de pantalla o de parte, no hace nada.
+  const advanceFrom = useCallback(
+    (index: number, scene: number) =>
+      setView((current) => {
+        const next = scenes && nextScene({ scenes }, scene);
+        return current.index === index && current.scene === scene && typeof next === "number"
+          ? { index, scene: next }
+          : current;
+      }),
+    [scenes],
+  );
+  const onSceneChange = useCallback((scene: number) => setView((current) => ({ ...current, scene })), []);
   // Termina la voz de una parte: una pausa corta y pasa a la siguiente.
   const gapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onVoiceFinish = useCallback(() => {
     if (gapTimer.current) clearTimeout(gapTimer.current);
-    gapTimer.current = setTimeout(advance, tokens.motion.reelSceneGap);
-  }, [advance]);
+    const { index, scene } = viewRef.current;
+    gapTimer.current = setTimeout(() => advanceFrom(index, scene), tokens.motion.reelSceneGap);
+  }, [advanceFrom]);
   const playing = focused && status === "ready";
   const { muted, speaking, toggleMuted } = useFeedVoice(entryAudioUrl(active, sceneIndex), playing, onVoiceFinish);
 
-  // Cada pantalla nueva arranca en su primera parte.
-  useEffect(() => {
-    setSceneIndex(0);
-    if (gapTimer.current) clearTimeout(gapTimer.current);
-  }, [activeIndex]);
+  // Otra pantalla u otra parte: la pausa pendiente ya no corresponde.
   useEffect(
     () => () => {
       if (gapTimer.current) clearTimeout(gapTimer.current);
     },
-    [],
+    [activeIndex, sceneIndex],
   );
   // Sin voz (en silencio o sin voz generada), la parte avanza con el tiempo de lectura. Con voz,
   // avanza cuando la voz termina; el tope solo evita que un audio que no carga trabe el reel.
   useEffect(() => {
-    if (!playing || !active || !isReel(active) || nextScene(active, sceneIndex) === null) return;
-    const text = active.scenes[sceneIndex].text;
-    const timer = setTimeout(advance, speaking ? reelVoiceTimeoutMs(text) : reelReadingMs(text));
+    if (!playing || !scenes || nextScene({ scenes }, sceneIndex) === null) return;
+    const text = scenes[sceneIndex].text;
+    const timer = setTimeout(
+      () => advanceFrom(activeIndex, sceneIndex),
+      speaking ? reelVoiceTimeoutMs(text) : reelReadingMs(text),
+    );
     return () => clearTimeout(timer);
-  }, [active, advance, playing, sceneIndex, speaking]);
+  }, [activeIndex, advanceFrom, playing, sceneIndex, scenes, speaking]);
 
   const onLayout = (event: LayoutChangeEvent) => setHeight(event.nativeEvent.layout.height);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const index = viewableItems[0]?.index;
     if (typeof index !== "number") return;
-    setActiveIndex(index);
+    setView((current) => (current.index === index ? current : { index, scene: 0 }));
     onVisibleRef.current(index);
   }).current;
   const onVisibleRef = useRef(onVisible);
@@ -143,7 +156,7 @@ export default function VersiculosScreen() {
           insetBottom={insets.bottom}
           insetTop={insets.top}
           onRead={onReadScene}
-          onSceneChange={setSceneIndex}
+          onSceneChange={onSceneChange}
           onSetLike={setLike}
           onShare={onShareReel}
           onTalk={onTalk}
@@ -174,6 +187,7 @@ export default function VersiculosScreen() {
       onRead,
       onReadScene,
       onShare,
+      onSceneChange,
       onShareReel,
       onTalk,
       referralCode,

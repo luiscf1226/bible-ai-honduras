@@ -4,7 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { resolveBibleVersion } from "./bibleVersions";
-import { feedReel, rankReels, REEL_POOL, type FeedReel, type FeedReelKind } from "./feedReelsCore";
+import { feedReel, isReelRef, rankReels, REEL_POOL, type FeedReel, type FeedReelKind } from "./feedReelsCore";
 import { feedAudioUrl, feedImageUrl, REEL_AUDIO_VERSION } from "./verseFeedMedia";
 import { feedPassageText, spokenText, textHash } from "./verseFeedText";
 import { FEED_PAGE_SIZE, FEED_POOL, FEED_SEEN_MAX, FEED_TOPIC_NAMES, feedPassage, rankFeedPage } from "./verseFeedCore";
@@ -156,11 +156,27 @@ export const page = query({
           .query("verseFeedLikes")
           .withIndex("by_user", (q) => q.eq("userId", user._id))
           .order("desc")
-          .take(LIKES_FOR_AFFINITY)
+          .take(LIKES_FOR_AFFINITY + REEL_POOL.length)
       : [];
-    const likedRefs = likedRows.map((row) => row.ref);
-    const top = await ctx.db.query("verseFeedStats").withIndex("by_likes").order("desc").take(COMMUNITY_TOP);
-    const communityLikes = new Map(top.map((row) => [row.ref, row.likes]));
+    // Los ♥ de reels y de versículos se ordenan por separado: un reel muy querido no le quita
+    // lugar a los versículos de la comunidad ni achica su escala (y al revés).
+    const likedRefs = likedRows
+      .map((row) => row.ref)
+      .filter((ref) => !isReelRef(ref))
+      .slice(0, LIKES_FOR_AFFINITY);
+    const likedReelRefs = likedRows.map((row) => row.ref).filter(isReelRef);
+    const top = await ctx.db
+      .query("verseFeedStats")
+      .withIndex("by_likes")
+      .order("desc")
+      .take(COMMUNITY_TOP + REEL_POOL.length);
+    const communityLikes = new Map(
+      top
+        .filter((row) => !isReelRef(row.ref))
+        .slice(0, COMMUNITY_TOP)
+        .map((row) => [row.ref, row.likes]),
+    );
+    const reelLikes = new Map(top.filter((row) => isReelRef(row.ref)).map((row) => [row.ref, row.likes]));
 
     // Se ordenan de más por si alguna cita no está en la Biblia cargada: la página igual sale llena.
     const { newRound, passages } = rankFeedPage({
@@ -215,9 +231,9 @@ export const page = query({
     if (reelSlots.length === 0 || items.length === 0) return { items, newRound, skipped };
 
     const reels = rankReels({
-      communityLikes,
+      communityLikes: reelLikes,
       count: reelSlots.length,
-      likedRefs,
+      likedRefs: likedReelRefs,
       pool: REEL_POOL,
       seed: args.seed + seenRefs.length,
       seenRefs,
@@ -227,7 +243,7 @@ export const page = query({
       const item = await reelItem(
         ctx,
         reel,
-        communityLikes.get(reel.ref) ?? (await likesFor(ctx, reel.ref)),
+        reelLikes.get(reel.ref) ?? (await likesFor(ctx, reel.ref)),
         user ? await hasLiked(ctx, user._id, reel.ref) : false,
       );
       // Si faltaron versículos, el reel va igual, sin dejar huecos.

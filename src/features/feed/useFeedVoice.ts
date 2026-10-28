@@ -1,8 +1,17 @@
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { setAudioModeAsync, useAudioPlayer, type AudioStatus } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo } from "react-native";
 
 import { feedVoiceAction } from "./feedLogic";
+
+/**
+ * El reproductor es un SharedObject (emite eventos), pero sus tipos no lo dicen
+ * acá: `expo-modules-core` solo está dentro de `expo` y TypeScript no resuelve
+ * la clase base desde `expo-audio`. Solo se usa el evento del estado.
+ */
+type PlaybackEvents = {
+  addListener(event: "playbackStatusUpdate", listener: (status: AudioStatus) => void): { remove(): void };
+};
 
 // Silencio para toda la sesión: si la persona lo apagó (o lo prendió), sigue así al volver a entrar.
 // `null` = todavía no eligió: arranca en silencio solo si usa VoiceOver/TalkBack, para no hablarle encima.
@@ -26,11 +35,14 @@ export function useFeedVoice(audioUrl: string | null, focused: boolean, onFinish
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
 
-  // `didJustFinish` queda en true hasta que se carga otra pista: avisa una vez por lectura.
-  const { didJustFinish } = useAudioPlayerStatus(player);
+  // El fin de la lectura se escucha en el evento, no en un estado de React: en iOS al
+  // `didJustFinish: true` le sigue enseguida otro con false, y un estado podría perderlo.
   useEffect(() => {
-    if (didJustFinish) onFinishRef.current?.();
-  }, [didJustFinish]);
+    const subscription = (player as unknown as PlaybackEvents).addListener("playbackStatusUpdate", (status) => {
+      if (status.didJustFinish) onFinishRef.current?.();
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   useEffect(() => {
     // iOS no acepta "respetar el silencio" junto con "bajar el volumen de lo demás": se mezcla.

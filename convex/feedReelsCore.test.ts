@@ -6,6 +6,7 @@ import {
   CHARACTER_VOICE_SLUGS,
   FEED_TEXT_MAX,
   feedReel,
+  isReelRef,
   NARRATOR_VOICE,
   passageOf,
   rankReels,
@@ -16,6 +17,7 @@ import {
   type FeedReel,
 } from "./feedReelsCore";
 import { STORY_CATALOG } from "./storyCatalog";
+import { FEED_POOL } from "./verseFeedCore";
 import { TEXT_STORY_CATALOG } from "./textStoriesCatalog";
 import { assistantSpeaksAsDivine } from "./voicesGuardrail";
 import { voiceCharacters } from "./voicesCatalog";
@@ -94,6 +96,11 @@ describe("catálogo de reels", () => {
       }
     }
     expect(reelScene("historia:no-existe#1")).toBeNull();
+  });
+
+  it("los ♥ de reels y de versículos se distinguen por la cita", () => {
+    for (const reel of REEL_POOL) expect(isReelRef(reel.ref)).toBe(true);
+    for (const passage of FEED_POOL) expect(isReelRef(passage.ref)).toBe(false);
   });
 
   it("las historias contadas usan la voz del narrador", () => {
