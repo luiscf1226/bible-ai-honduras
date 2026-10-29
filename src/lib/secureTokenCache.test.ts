@@ -235,6 +235,32 @@ describe("createSecureTokenCache", () => {
       }
     });
 
+    it("si el keychain rechaza la escritura pero deja leer, no vuelve el token viejo", async () => {
+      const { spies } = almacenamiento({
+        setItemAsync: vi.fn(async () => {
+          throw new Error("keystore rechazó la escritura");
+        }),
+      });
+      const cache = createSecureTokenCache(spies, silencio);
+
+      expect(await cache.getToken("__clerk_client_jwt")).toBeNull();
+      await cache.saveToken("__clerk_client_jwt", "tok_signed_in");
+      expect(await cache.getToken("__clerk_client_jwt")).toBe("tok_signed_in");
+    });
+
+    it("después de clearToken no se vuelve a leer el token borrado del keychain", async () => {
+      const { spies, store } = almacenamiento({
+        deleteItemAsync: vi.fn(async () => {
+          throw new Error("keychain bloqueado");
+        }),
+      });
+      store.set("__clerk_client_jwt", "tok_abc");
+      const cache = createSecureTokenCache(spies, silencio);
+
+      await cache.clearToken("__clerk_client_jwt");
+      expect(await cache.getToken("__clerk_client_jwt")).toBeNull();
+    });
+
     it("una lectura normal no espera al tope", async () => {
       const { spies, store } = almacenamiento();
       store.set("k", "v");

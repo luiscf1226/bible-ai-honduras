@@ -35,8 +35,10 @@ import { timedOut, withTimeout } from "./withTimeout";
  * Clerk: si el keychain no acepta una escritura, el token queda en memoria y la
  * sesión sigue en esta corrida.
  *
- * Una lectura que falla o vence devuelve **lo último que se leyó o guardó en
- * esta sesión**, no `null`: como Clerk lee antes de cada request, un `null` a
+ * Lo que esta sesión guardó o borró manda sobre el keychain: solo este proceso
+ * escribe estas keys, y si una escritura falló, leer el keychain devolvería el
+ * token viejo. Una lectura que falla o vence devuelve **lo último que se leyó o
+ * guardó en esta sesión**, no `null`: como Clerk lee antes de cada request, un `null` a
  * mitad de sesión mandaría el request sin el JWT del cliente y Clerk cerraría
  * la sesión. La primera lectura de cada key (todavía sin nada conocido) tiene
  * un tope más largo: rendirse ahí con `null` hace que Clerk cree un cliente
@@ -71,14 +73,14 @@ export function createSecureTokenCache(
 ): SecureTokenCache {
   // Lo último que se leyó o guardó por key en esta sesión (ver arriba).
   const known = new Map<string, string | null>();
-  // Sube con cada escritura o borrado: una lectura lenta que empezó antes no
-  // pisa en `known` un valor más nuevo.
-  const versions = new Map<string, number>();
-  const bump = (key: string) => versions.set(key, (versions.get(key) ?? 0) + 1);
+  // Keys que esta sesión guardó o borró: para ellas `known` es la verdad.
+  const written = new Set<string>();
 
   return {
     async getToken(key) {
-      const version = versions.get(key);
+      if (written.has(key)) {
+        return known.get(key) ?? null;
+      }
       const limit = known.has(key) ? timeoutMs : firstReadTimeoutMs;
       try {
         const value = await withTimeout(storage.getItemAsync(key), limit);
@@ -86,7 +88,7 @@ export function createSecureTokenCache(
           onError(`Leer "${key}" del almacenamiento seguro tardó más de ${limit} ms; se usa lo último conocido`, null);
           return known.get(key) ?? null;
         }
-        if (versions.get(key) !== version) {
+        if (written.has(key)) {
           // Mientras se leía, Clerk guardó o borró: manda lo más nuevo.
           return known.get(key) ?? null;
         }
@@ -100,7 +102,7 @@ export function createSecureTokenCache(
       }
     },
     async saveToken(key, token) {
-      bump(key);
+      written.add(key);
       known.set(key, token);
       try {
         if ((await withTimeout(storage.setItemAsync(key, token), timeoutMs)) === timedOut) {
@@ -113,7 +115,7 @@ export function createSecureTokenCache(
       }
     },
     async clearToken(key) {
-      bump(key);
+      written.add(key);
       known.delete(key);
       try {
         if ((await withTimeout(storage.deleteItemAsync(key), timeoutMs)) === timedOut) {
