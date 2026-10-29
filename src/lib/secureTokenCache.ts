@@ -31,18 +31,23 @@ import { timedOut, withTimeout } from "./withTimeout";
  * Clerk espera este cache antes de cada request (`getToken`) y después de cada
  * respuesta (`saveToken`). Si una llamada a SecureStore nunca contesta, Clerk
  * no termina de cargar y la app se queda en blanco para siempre. Por eso cada
- * llamada tiene un tope de `timeoutMs`; escribir o borrar se rinden sin trabar
- * a Clerk.
+ * llamada tiene un tope, y escribir o borrar —aunque fallen— nunca traban a
+ * Clerk: si el keychain no acepta una escritura, el token queda en memoria y la
+ * sesión sigue en esta corrida.
  *
  * Una lectura que falla o vence devuelve **lo último que se leyó o guardó en
  * esta sesión**, no `null`: como Clerk lee antes de cada request, un `null` a
  * mitad de sesión mandaría el request sin el JWT del cliente y Clerk cerraría
- * la sesión. Solo sin nada conocido (la primera lectura al abrir) se sigue sin
- * token.
+ * la sesión. La primera lectura de cada key (todavía sin nada conocido) tiene
+ * un tope más largo: rendirse ahí con `null` hace que Clerk cree un cliente
+ * nuevo y pise el JWT guardado, o sea, cerrar la sesión.
  */
 
 /** Tope por llamada a SecureStore. Leer el keychain tarda milisegundos. */
 export const SECURE_STORE_TIMEOUT_MS = 3_000;
+
+/** Tope de la primera lectura de cada key: más largo, pero por debajo de `CLERK_LOAD_RETRY_MS`. */
+export const SECURE_STORE_FIRST_READ_TIMEOUT_MS = 10_000;
 
 /** Lo que Clerk necesita de un almacenamiento seguro. */
 export type SecureStorageLike = {
@@ -62,16 +67,27 @@ export function createSecureTokenCache(
   storage: SecureStorageLike,
   onError: (message: string, error: unknown) => void = console.error,
   timeoutMs: number = SECURE_STORE_TIMEOUT_MS,
+  firstReadTimeoutMs: number = SECURE_STORE_FIRST_READ_TIMEOUT_MS,
 ): SecureTokenCache {
   // Lo último que se leyó o guardó por key en esta sesión (ver arriba).
   const known = new Map<string, string | null>();
+  // Sube con cada escritura o borrado: una lectura lenta que empezó antes no
+  // pisa en `known` un valor más nuevo.
+  const versions = new Map<string, number>();
+  const bump = (key: string) => versions.set(key, (versions.get(key) ?? 0) + 1);
 
   return {
     async getToken(key) {
+      const version = versions.get(key);
+      const limit = known.has(key) ? timeoutMs : firstReadTimeoutMs;
       try {
-        const value = await withTimeout(storage.getItemAsync(key), timeoutMs);
+        const value = await withTimeout(storage.getItemAsync(key), limit);
         if (value === timedOut) {
-          onError(`Leer "${key}" del almacenamiento seguro tardó más de ${timeoutMs} ms; se usa lo último conocido`, null);
+          onError(`Leer "${key}" del almacenamiento seguro tardó más de ${limit} ms; se usa lo último conocido`, null);
+          return known.get(key) ?? null;
+        }
+        if (versions.get(key) !== version) {
+          // Mientras se leía, Clerk guardó o borró: manda lo más nuevo.
           return known.get(key) ?? null;
         }
         known.set(key, value);
@@ -84,12 +100,20 @@ export function createSecureTokenCache(
       }
     },
     async saveToken(key, token) {
+      bump(key);
       known.set(key, token);
-      if ((await withTimeout(storage.setItemAsync(key, token), timeoutMs)) === timedOut) {
-        onError(`Guardar "${key}" en el almacenamiento seguro tardó más de ${timeoutMs} ms; se sigue sin esperar`, null);
+      try {
+        if ((await withTimeout(storage.setItemAsync(key, token), timeoutMs)) === timedOut) {
+          onError(`Guardar "${key}" en el almacenamiento seguro tardó más de ${timeoutMs} ms; se sigue sin esperar`, null);
+        }
+      } catch (error) {
+        // Clerk espera esto después de cada respuesta sin atrapar errores: si
+        // lanzara, Clerk nunca terminaría de cargar. El token queda en memoria.
+        onError(`No se pudo guardar "${key}" en el almacenamiento seguro; queda solo en memoria`, error);
       }
     },
     async clearToken(key) {
+      bump(key);
       known.delete(key);
       try {
         if ((await withTimeout(storage.deleteItemAsync(key), timeoutMs)) === timedOut) {
