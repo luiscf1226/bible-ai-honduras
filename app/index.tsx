@@ -5,6 +5,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 
 import { api } from "../convex/_generated/api";
 import { AI_CONSENT_VERSION } from "../convex/users";
+import { StartupLoading } from "../src/components/StartupLoading";
 import { STARTUP_STALL_MS, decideStartupRoute } from "../src/features/auth/startupRoute";
 
 /**
@@ -66,7 +67,7 @@ export default function Index() {
   }, [clerkLoaded, getToken, isAuthenticated, isLoading, isSignedIn, sesionSinConvex, sessionId]);
 
   if (decision.kind === "esperar") {
-    return null;
+    return <StartupLoading testID="startup-esperar" />;
   }
   return <Redirect href={decision.route} />;
 }

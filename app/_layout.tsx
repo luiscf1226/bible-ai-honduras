@@ -1,13 +1,15 @@
 import { DMSans_300Light, DMSans_400Regular, DMSans_500Medium, useFonts as useDMSans } from "@expo-google-fonts/dm-sans";
 import { EBGaramond_400Regular, useFonts as useEBGaramond } from "@expo-google-fonts/eb-garamond";
-import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
+import { ClerkProvider, useAuth } from "@clerk/expo";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { useEffect } from "react";
+import { useEffect, useState, type PropsWithChildren } from "react";
 import { StatusBar } from "react-native";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 import { FullScreenNotice } from "../src/components/FullScreenNotice";
+import { StartupLoading } from "../src/components/StartupLoading";
+import { FONTS_TIMEOUT_MS, fontsReady as areFontsReady } from "../src/features/auth/startupGate";
 import { OfflineSyncProvider } from "../src/features/offline/OfflineSyncProvider";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
 import { useGroupInvite } from "../src/hooks/useGroupInvite";
@@ -24,7 +26,7 @@ import { ThemeProvider, useTheme } from "../src/theme/ThemeProvider";
 installGlobalErrorReporting();
 track("app_opened");
 configureDailyReminderNotifications();
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 if (!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
   throw new Error(
@@ -90,14 +92,38 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
+/**
+ * Reemplaza a `<ClerkLoaded>`, que no pinta nada mientras Clerk carga: si Clerk
+ * nunca terminaba, la app quedaba en blanco para siempre (rechazo 2.1(a) de la
+ * 1.0.2). Acá se ve el logo y, pasado `CLERK_LOAD_RETRY_MS`, un "Reintentar"
+ * que recarga la app.
+ */
+function ClerkStartupGate({ children }: PropsWithChildren) {
+  const { isLoaded } = useAuth();
+  if (isLoaded) {
+    return children;
+  }
+  return <StartupLoading testID="startup-clerk" />;
+}
+
 export default function RootLayout() {
   const [dmSansLoaded, dmSansError] = useDMSans({ DMSans_300Light, DMSans_400Regular, DMSans_500Medium });
   const [ebGaramondLoaded, ebGaramondError] = useEBGaramond({ EBGaramond_400Regular });
-  const fontsReady = (dmSansLoaded || dmSansError != null) && (ebGaramondLoaded || ebGaramondError != null);
+  const [fontsTimedOut, setFontsTimedOut] = useState(false);
+  const fontsReady = areFontsReady({
+    loaded: [dmSansLoaded, ebGaramondLoaded],
+    errors: [dmSansError, ebGaramondError],
+    timedOut: fontsTimedOut,
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setFontsTimedOut(true), FONTS_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (fontsReady) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => undefined);
     }
   }, [fontsReady]);
 
@@ -106,8 +132,10 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={clerkTokenCache}>
-      <ClerkLoaded>
+    // Sin componentes nativos de Clerk (AuthView, UserButton) no hace falta
+    // sincronizar el cliente nativo: es un camino nativo menos en el arranque.
+    <ClerkProvider __experimental_disableNativeClientSync publishableKey={clerkPublishableKey} tokenCache={clerkTokenCache}>
+      <ClerkStartupGate>
         <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
           <ThemeProvider>
             {/* Cola sin conexión del lector (#182): necesita Convex y la sesión. */}
@@ -116,7 +144,7 @@ export default function RootLayout() {
             </OfflineSyncProvider>
           </ThemeProvider>
         </ConvexProviderWithClerk>
-      </ClerkLoaded>
+      </ClerkStartupGate>
     </ClerkProvider>
   );
 }

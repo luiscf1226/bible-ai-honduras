@@ -1,3 +1,5 @@
+import { timedOut, withTimeout } from "./withTimeout";
+
 /**
  * Fábrica del token cache de Clerk, sin dependencias nativas — issue #124.
  *
@@ -24,7 +26,20 @@
  *    `tokenCache?.clearToken?.(CLERK_CLIENT_JWT_KEY)` cuando el cliente nativo
  *    dice que ya no hay token. Sin implementarlo, el JWT del cliente quedaba
  *    escrito en el keychain después de cerrar sesión.
+ *
+ * ## Ninguna llamada al keychain puede colgar el arranque (rechazo 2.1(a) de la 1.0.2)
+ *
+ * Clerk espera este cache antes de cada request (`getToken`) y después de cada
+ * respuesta (`saveToken`). Si una llamada a SecureStore nunca contesta, Clerk
+ * no termina de cargar y la app se queda en blanco para siempre. Por eso cada
+ * llamada tiene un tope de `timeoutMs`: leer se rinde con `null` (Clerk pide un
+ * cliente nuevo) y escribir o borrar se rinden sin trabar a Clerk. Un error de
+ * verdad se sigue tratando como antes.
  */
+
+/** Tope por llamada a SecureStore. Leer el keychain tarda milisegundos. */
+export const SECURE_STORE_TIMEOUT_MS = 3_000;
+
 
 /** Lo que Clerk necesita de un almacenamiento seguro. */
 export type SecureStorageLike = {
@@ -43,11 +58,17 @@ export type SecureTokenCache = {
 export function createSecureTokenCache(
   storage: SecureStorageLike,
   onError: (message: string, error: unknown) => void = console.error,
+  timeoutMs: number = SECURE_STORE_TIMEOUT_MS,
 ): SecureTokenCache {
   return {
     async getToken(key) {
       try {
-        return await storage.getItemAsync(key);
+        const value = await withTimeout(storage.getItemAsync(key), timeoutMs);
+        if (value === timedOut) {
+          onError(`Leer "${key}" del almacenamiento seguro tardó más de ${timeoutMs} ms; se sigue sin token`, null);
+          return null;
+        }
+        return value;
       } catch (error) {
         // NO se borra la key: ver el comentario de arriba. Perder la sesión por
         // un fallo de lectura transitorio es el peor resultado posible.
@@ -56,11 +77,15 @@ export function createSecureTokenCache(
       }
     },
     async saveToken(key, token) {
-      await storage.setItemAsync(key, token);
+      if ((await withTimeout(storage.setItemAsync(key, token), timeoutMs)) === timedOut) {
+        onError(`Guardar "${key}" en el almacenamiento seguro tardó más de ${timeoutMs} ms; se sigue sin esperar`, null);
+      }
     },
     async clearToken(key) {
       try {
-        await storage.deleteItemAsync(key);
+        if ((await withTimeout(storage.deleteItemAsync(key), timeoutMs)) === timedOut) {
+          onError(`Borrar "${key}" del almacenamiento seguro tardó más de ${timeoutMs} ms; se sigue sin esperar`, null);
+        }
       } catch (error) {
         // Que falle el borrado no debe tumbar un sign-out.
         onError(`No se pudo borrar "${key}" del almacenamiento seguro`, error);

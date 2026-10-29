@@ -83,4 +83,57 @@ describe("createSecureTokenCache", () => {
 
     await expect(createSecureTokenCache(spies, silencio).saveToken("k", "v")).rejects.toThrow("disco lleno");
   });
+
+  describe("ninguna llamada colgada traba a Clerk (rechazo 2.1(a) de la 1.0.2)", () => {
+    const nunca = () => new Promise<never>(() => {});
+
+    it("leer que nunca contesta devuelve null al vencer el tope", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({ getItemAsync: vi.fn(nunca) });
+        const onError = vi.fn();
+        const lectura = createSecureTokenCache(spies, onError, 50).getToken("__clerk_client_jwt");
+
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(lectura).resolves.toBeNull();
+        expect(onError).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("guardar que nunca contesta se rinde sin lanzar", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({ setItemAsync: vi.fn(nunca) });
+        const onError = vi.fn();
+        const escritura = createSecureTokenCache(spies, onError, 50).saveToken("k", "v");
+
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(escritura).resolves.toBeUndefined();
+        expect(onError).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("borrar que nunca contesta se rinde sin lanzar", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({ deleteItemAsync: vi.fn(nunca) });
+        const borrado = createSecureTokenCache(spies, silencio, 50).clearToken("k");
+
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(borrado).resolves.toBeUndefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("una lectura normal no espera al tope", async () => {
+      const { spies, store } = almacenamiento();
+      store.set("k", "v");
+      expect(await createSecureTokenCache(spies, silencio, 60_000).getToken("k")).toBe("v");
+    });
+  });
 });
