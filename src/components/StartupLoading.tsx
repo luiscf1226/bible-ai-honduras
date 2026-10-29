@@ -7,15 +7,17 @@ import { tokens } from "../theme/tokens";
 
 /**
  * Lo que se ve mientras el arranque espera (Clerk, Convex): el logo sobre el
- * fondo del splash, nunca una pantalla vacía. Pasado `CLERK_LOAD_RETRY_MS`
- * ofrece "Reintentar", que recarga la app — rechazo 2.1(a) de la 1.0.2.
+ * fondo del splash, nunca una pantalla vacía. Con `retry`, pasado
+ * `CLERK_LOAD_RETRY_MS` ofrece "Reintentar", que recarga la app — rechazo
+ * 2.1(a) de la 1.0.2. Sin `retry` cuando otra salida ya está prevista (en
+ * `app/index.tsx`, `STARTUP_STALL_MS` manda al splash).
  */
-export function StartupLoading({ testID }: { testID: string }) {
+export function StartupLoading({ retry, testID }: { retry: boolean; testID: string }) {
   return (
     <View style={styles.screen}>
       <LoadingState
         message="Abriendo la app…"
-        onRetry={() => void reloadAppAsync("El arranque no terminó").catch(() => undefined)}
+        onRetry={retry ? () => void reloadAppAsync("El arranque no terminó").catch(() => undefined) : undefined}
         retryAfterMs={CLERK_LOAD_RETRY_MS}
         showBrand
         testID={testID}

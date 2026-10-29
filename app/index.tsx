@@ -67,7 +67,7 @@ export default function Index() {
   }, [clerkLoaded, getToken, isAuthenticated, isLoading, isSignedIn, sesionSinConvex, sessionId]);
 
   if (decision.kind === "esperar") {
-    return <StartupLoading testID="startup-esperar" />;
+    return <StartupLoading retry={false} testID="startup-esperar" />;
   }
   return <Redirect href={decision.route} />;
 }

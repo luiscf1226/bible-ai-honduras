@@ -130,6 +130,61 @@ describe("createSecureTokenCache", () => {
       }
     });
 
+    it("a mitad de sesión, una lectura que vence devuelve el último token y no cierra la sesión", async () => {
+      vi.useFakeTimers();
+      try {
+        let colgar = false;
+        const { spies, store } = almacenamiento({
+          getItemAsync: vi.fn(async (key: string) => (colgar ? nunca() : (store.get(key) ?? null))),
+        });
+        const cache = createSecureTokenCache(spies, silencio, 50);
+        await cache.saveToken("__clerk_client_jwt", "tok_abc");
+
+        colgar = true;
+        const lectura = cache.getToken("__clerk_client_jwt");
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(lectura).resolves.toBe("tok_abc");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("una lectura que falla después de leer bien devuelve lo leído", async () => {
+      let fallar = false;
+      const { spies, store } = almacenamiento({
+        getItemAsync: vi.fn(async (key: string) => {
+          if (fallar) throw new Error("keychain bloqueado");
+          return store.get(key) ?? null;
+        }),
+      });
+      store.set("__clerk_client_jwt", "tok_abc");
+      const cache = createSecureTokenCache(spies, silencio);
+      expect(await cache.getToken("__clerk_client_jwt")).toBe("tok_abc");
+
+      fallar = true;
+      expect(await cache.getToken("__clerk_client_jwt")).toBe("tok_abc");
+    });
+
+    it("después de clearToken, una lectura que vence ya no devuelve el token borrado", async () => {
+      vi.useFakeTimers();
+      try {
+        let colgar = false;
+        const { spies } = almacenamiento({
+          getItemAsync: vi.fn(async () => (colgar ? nunca() : null)),
+        });
+        const cache = createSecureTokenCache(spies, silencio, 50);
+        await cache.saveToken("__clerk_client_jwt", "tok_abc");
+        await cache.clearToken("__clerk_client_jwt");
+
+        colgar = true;
+        const lectura = cache.getToken("__clerk_client_jwt");
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(lectura).resolves.toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("una lectura normal no espera al tope", async () => {
       const { spies, store } = almacenamiento();
       store.set("k", "v");

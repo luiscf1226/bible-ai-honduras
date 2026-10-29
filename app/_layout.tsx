@@ -103,7 +103,7 @@ function ClerkStartupGate({ children }: PropsWithChildren) {
   if (isLoaded) {
     return children;
   }
-  return <StartupLoading testID="startup-clerk" />;
+  return <StartupLoading retry testID="startup-clerk" />;
 }
 
 export default function RootLayout() {
@@ -117,9 +117,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    if (fontsReady) {
+      return;
+    }
     const timer = setTimeout(() => setFontsTimedOut(true), FONTS_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [fontsReady]);
 
   useEffect(() => {
     if (fontsReady) {
