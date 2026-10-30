@@ -1,0 +1,11 @@
+appId: com.bibleaihonduras.app
+---
+- launchApp:
+    clearState: true
+- takeScreenshot: arranque-0s
+- extendedWaitUntil:
+    visible: "Toca para entrar"
+    timeout: 45000
+    optional: true
+- takeScreenshot: arranque-45s
+- assertVisible: "Toca para entrar"

@@ -44,6 +44,14 @@
         "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-kudu-508.convex.cloud",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsubGNmYXBwcy5jb20k"
       }
+    },
+    "ios-sim": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {
