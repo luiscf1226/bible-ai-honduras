@@ -92,7 +92,7 @@ export default function VersiculosScreen() {
     gapTimer.current = setTimeout(() => advanceFrom(index, scene), tokens.motion.reelSceneGap);
   }, [advanceFrom]);
   const playing = focused && status === "ready";
-  const { muted, speaking, toggleMuted } = useFeedVoice(entryAudioUrl(active, sceneIndex), playing, onVoiceFinish);
+  const { available: voiceAvailable, muted, speaking, toggleMuted } = useFeedVoice(entryAudioUrl(active, sceneIndex), playing, onVoiceFinish);
 
   // Otra pantalla, otra parte o el feed fuera de foco ("Leer", "Conversar"): la pausa pendiente ya no corresponde.
   useEffect(
@@ -258,7 +258,7 @@ export default function VersiculosScreen() {
         style={[styles.header, { top: insets.top + tokens.space.sm }]}
         testID="feed-back"
         trailing={
-          status === "ready" ? (
+          status === "ready" && voiceAvailable ? (
             <HeaderIconButton
               accessibilityLabel={muted ? "Activar la voz" : "Silenciar la voz"}
               onImage

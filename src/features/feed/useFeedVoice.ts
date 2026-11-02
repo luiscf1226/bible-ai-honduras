@@ -1,98 +1,12 @@
-import { setAudioModeAsync, useAudioPlayer, type AudioStatus } from "expo-audio";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo } from "react-native";
-
-import { feedVoiceAction } from "./feedLogic";
-
 /**
- * El reproductor es un SharedObject (emite eventos), pero sus tipos no lo dicen
- * acá: `expo-modules-core` solo está dentro de `expo` y TypeScript no resuelve
- * la clase base desde `expo-audio`. Solo se usa el evento del estado.
- */
-type PlaybackEvents = {
-  addListener(event: "playbackStatusUpdate", listener: (status: AudioStatus) => void): { remove(): void };
-};
-
-// Silencio para toda la sesión: si la persona lo apagó (o lo prendió), sigue así al volver a entrar.
-// `null` = todavía no eligió: arranca en silencio solo si usa VoiceOver/TalkBack, para no hablarle encima.
-let sessionMuted: boolean | null = null;
-
-/**
- * Voz del feed de versículos: lee el versículo que está en pantalla, como el
- * sonido de un video de TikTok. Un solo reproductor para todo el feed: al
- * deslizar cambia la pista; al salir de la pantalla (o abrir "Leer") se
- * pausa. Respeta el interruptor de silencio del iPhone, no corta la música
- * que la persona tenga sonando y no suena en segundo plano.
+ * Voz del feed de versículos — apagada en la 1.0.2.
  *
- * En los reels, `onFinish` avisa cuando la voz de una parte terminó, para
- * pasar a la siguiente. `speaking` dice si de verdad está sonando una voz
- * (si no, la parte avanza con el tiempo de lectura).
+ * La voz usaba `expo-audio`, el único módulo nativo nuevo entre el build 30
+ * (que abrió bien en el iPad de App Review) y los builds 33 y 35, rechazados por
+ * pantalla blanca al abrir (2.1(a), iPadOS 27). Hasta probarlo en iOS, el feed
+ * va sin voz: no se muestra el botón de sonido y los reels avanzan con el tiempo
+ * de lectura. La firma se mantiene para devolver la voz sin tocar la pantalla.
  */
-export function useFeedVoice(audioUrl: string | null, focused: boolean, onFinish?: () => void) {
-  const player = useAudioPlayer(null);
-  const [muted, setMuted] = useState(sessionMuted ?? false);
-  const loaded = useRef<string | null>(null);
-  const onFinishRef = useRef(onFinish);
-  onFinishRef.current = onFinish;
-
-  // El fin de la lectura se escucha en el evento, no en un estado de React: en iOS al
-  // `didJustFinish: true` le sigue enseguida otro con false, y un estado podría perderlo.
-  useEffect(() => {
-    const subscription = (player as unknown as PlaybackEvents).addListener("playbackStatusUpdate", (status) => {
-      if (status.didJustFinish) onFinishRef.current?.();
-    });
-    return () => subscription.remove();
-  }, [player]);
-
-  useEffect(() => {
-    // iOS no acepta "respetar el silencio" junto con "bajar el volumen de lo demás": se mezcla.
-    setAudioModeAsync({
-      playsInSilentMode: false,
-      shouldPlayInBackground: false,
-      interruptionMode: "mixWithOthers",
-    }).catch((error: unknown) => console.warn("No se pudo configurar el audio del feed", error));
-    if (sessionMuted !== null) return;
-    let current = true;
-    AccessibilityInfo.isScreenReaderEnabled().then(
-      (enabled) => {
-        if (current && enabled && sessionMuted === null) setMuted(true);
-      },
-      () => undefined,
-    );
-    return () => {
-      current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    try {
-      if (feedVoiceAction({ audioUrl, focused, muted }) === "pause") {
-        player.pause();
-        return;
-      }
-      if (audioUrl && loaded.current !== audioUrl) {
-        player.replace({ uri: audioUrl });
-        loaded.current = audioUrl;
-      } else {
-        // La misma pista otra vez (volvió al foco o quitó el silencio): desde el principio.
-        void player.seekTo(0).then(
-          () => player.play(),
-          () => player.play(),
-        );
-        return;
-      }
-      player.play();
-    } catch {
-      // Sin audio el feed sigue igual: la voz es un extra.
-    }
-  }, [audioUrl, focused, muted, player]);
-
-  const toggleMuted = useCallback(() => {
-    setMuted((current) => {
-      sessionMuted = !current;
-      return !current;
-    });
-  }, []);
-
-  return { muted, speaking: feedVoiceAction({ audioUrl, focused, muted }) === "play", toggleMuted };
+export function useFeedVoice(_audioUrl: string | null, _focused: boolean, _onFinish?: () => void) {
+  return { available: false, muted: true, speaking: false, toggleMuted: () => undefined };
 }
