@@ -1,0 +1,53 @@
+name: iOS arranque (simulador)
+
+# Diagnóstico del rechazo 2.1(a): instala el build de simulador de EAS, lo abre
+# en iPhone y iPad Air 11" (M3) y guarda capturas + el log del sistema.
+on:
+  push:
+    branches: [t3/ios-sim-repro]
+
+jobs:
+  arranque:
+    runs-on: macos-26
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        device: ["iPhone 17", "iPad Air 11-inch (M3)"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bajar el .app
+        run: |
+          url=$(cat .github/ios-sim-build-url)
+          curl -sL "$url" -o app.tar.gz
+          mkdir app && tar -xzf app.tar.gz -C app
+          find app -maxdepth 2 -name "*.app"
+      - name: Simuladores disponibles
+        run: xcrun simctl list devices available | head -60
+      - name: Abrir la app
+        env:
+          DEVICE: ${{ matrix.device }}
+        run: |
+          set -x
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,os,sys;d=json.load(sys.stdin)['devices'];n=os.environ['DEVICE'];c=[x for r in sorted(d,reverse=True) for x in d[r] if x['name']==n];print(c[0]['udid'] if c else '')")
+          if [ -z "$udid" ]; then
+            fam=$( [[ "$DEVICE" == iPad* ]] && echo iPad || echo iPhone )
+            udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];c=[x for r in sorted(d,reverse=True) for x in d[r] if x['name'].startswith('$fam')];print(c[0]['udid'])")
+          fi
+          xcrun simctl boot "$udid"; xcrun simctl bootstatus "$udid" -b
+          app=$(find app -maxdepth 2 -name "*.app" | head -1)
+          xcrun simctl install "$udid" "$app"
+          mkdir -p out
+          start=$(date "+%Y-%m-%d %H:%M:%S")
+          xcrun simctl launch "$udid" com.bibleaihonduras.app
+          for s in 3 10 25 45; do sleep $(( s - ${prev:-0} )); prev=$s; xcrun simctl io "$udid" screenshot "out/t${s}s.png"; done
+          xcrun simctl spawn "$udid" launchctl list | grep -i bibleai || echo "PROCESO NO ESTÁ CORRIENDO"
+          xcrun simctl spawn "$udid" log show --start "$start" --style compact --predicate 'process == "3C"' > out/log-3c.txt || true
+          xcrun simctl spawn "$udid" log show --start "$start" --style compact --predicate 'eventMessage CONTAINS[c] "3C" OR process == "ReportCrash" OR process == "SpringBoard" AND eventMessage CONTAINS[c] "bibleai"' > out/log-sistema.txt || true
+          ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | tail; cp ~/Library/Logs/DiagnosticReports/3C* out/ 2>/dev/null || true
+          grep -i -E "error|fault|exception|fatal|warn" out/log-3c.txt | tail -150 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arranque-${{ matrix.device }}
+          path: out
