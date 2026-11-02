@@ -21,7 +21,7 @@ jobs:
           url=$(cat .github/ios-sim-build-url)
           curl -sL "$url" -o app.tar.gz
           mkdir app && tar -xzf app.tar.gz -C app
-          find app -maxdepth 2 -name "*.app"
+          find app -name "*.app" -type d -prune
       - name: Simuladores disponibles
         run: xcrun simctl list devices available | head -60
       - name: Abrir la app
@@ -35,7 +35,7 @@ jobs:
             udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];c=[x for r in sorted(d,reverse=True) for x in d[r] if x['name'].startswith('$fam')];print(c[0]['udid'])")
           fi
           xcrun simctl boot "$udid"; xcrun simctl bootstatus "$udid" -b
-          app=$(find app -maxdepth 2 -name "*.app" | head -1)
+          app=$(find app -name "*.app" -type d -prune | head -1)
           xcrun simctl install "$udid" "$app"
           mkdir -p out
           start=$(date "+%Y-%m-%d %H:%M:%S")
