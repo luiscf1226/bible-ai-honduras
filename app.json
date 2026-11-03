@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "3C",
+    "name": "Bible AI Honduras",
     "slug": "bible-ai-honduras",
     "version": "1.0.2",
     "orientation": "portrait",
@@ -10,6 +10,7 @@
     "plugins": [
       "expo-router",
       "./plugins/withWorkRuntimeKtx",
+      "./plugins/withDisplayName",
       "expo-font",
       "expo-notifications",
       [
