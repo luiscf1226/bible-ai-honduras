@@ -3,64 +3,88 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Devocional diario, lectura de la Biblia y preguntas con citas. Descargá Bible AI Honduras.">
-  <title>Bible AI Honduras</title>
+  <meta name="description" content="Devocional diario, la Biblia RV1909 y preguntas con citas. Descargá 3C gratis para iPhone y Android.">
+  <title>3C: Biblia y Devocional AI</title>
+  <link rel="icon" href="./icon.png">
+  <link rel="apple-touch-icon" href="./icon.png">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="shell">
     <header class="masthead">
-      <a class="brand" href="./">Bible AI Honduras</a>
-      <span class="eyebrow">Información legal</span>
+      <a class="brand" href="./">3C · Biblia y Devocional AI</a>
+      <a class="eyebrow" href="#descargar">Descargar</a>
     </header>
-    <div class="layout">
-      <section class="intro">
-        <p class="eyebrow">Lectura clara</p>
-        <h1>Tu fe es personal. Tus datos también.</h1>
-        <p class="lede">Conocé qué información usa la app y cómo podés borrar tu historial, cerrar sesión o eliminar tu cuenta (desde la app o por solicitud externa).</p>
-      </section>
-      <section class="content" aria-label="Descargar la app y opciones de privacidad">
-        <h2>Descargá la app</h2>
-        <p>La edición 1.0 es gratuita, sin compras ni suscripciones. Devocional diario, la Biblia RV1909 y preguntas con citas; las funciones con IA tienen límites de uso.</p>
-        <div class="actions">
-          <a class="button" id="play-link" href="https://play.google.com/store/apps/details?id=com.bibleaihonduras.app">Google Play</a>
-          <a class="button" id="ios-link" href="https://apps.apple.com/app/id6807627270">App Store</a>
-        </div>
-        <!-- Solo con ?ref=: quien compartió el link. Play recibe el código solo;
-             en iPhone hay que abrir la app desde acá o escribirlo en Ajustes. -->
-        <div class="notice" id="invite" hidden>
-          <p>Te invitaron con el código <strong id="invite-code"></strong>.</p>
-          <p>En Android, instalá desde el botón de Google Play y listo. En iPhone, cuando la tengás instalada, <a id="open-app" href="bibleai://home">abrila desde acá</a> o escribí el código en Ajustes → ¿Te invitó alguien?</p>
-        </div>
 
-        <!-- Solo con &grupo=: invitación a un plan en grupo (#185). El token se
-             valida con el mismo patrón que convex/readingGroupCore.ts. -->
-        <div class="notice" id="group-invite" hidden>
-          <p><strong>Te invitaron a leer la Biblia en grupo.</strong> En el grupo solo se ve tu nombre y cuántos días del plan llevás leídos.</p>
-          <p>Si ya tenés la app, <a id="open-group" href="bibleai://grupo">abrí la invitación</a>. Si no, instalala primero y después volvé a tocar el link que te mandaron por WhatsApp.</p>
-        </div>
+    <section class="hero" id="descargar" aria-labelledby="descargar-titulo">
+      <img class="app-icon" src="./icon.png" alt="" width="96" height="96">
+      <p class="eyebrow">Gratis · iPhone y Android</p>
+      <h1 id="descargar-titulo">Tu devocional de cada día, en el teléfono.</h1>
+      <p class="lede">Devocional diario, la Biblia RV1909 y preguntas con citas. La versión 1.0 es gratuita, sin compras ni suscripciones; las funciones con IA tienen límites de uso.</p>
 
-        <h2>Información disponible</h2>
-        <p>Publicamos estas páginas para que las podás consultar dentro o fuera de la app.</p>
-        <div class="actions">
-          <a class="button" href="./privacidad/">Leer la política</a>
-          <a class="button secondary" href="./soporte/">Ayuda y soporte</a>
-          <a class="button secondary" href="./terminos/">Términos de uso</a>
-          <a class="button secondary" href="./eliminar-cuenta/">Eliminar una cuenta</a>
-        </div>
-        <footer>© 2026 Bible AI Honduras · Contacto: <a href="mailto:luiscf1226@gmail.com">luiscf1226@gmail.com</a></footer>
-      </section>
-    </div>
+      <div class="downloads" id="downloads">
+        <article class="download" id="download-ios">
+          <p class="eyebrow">iPhone y iPad</p>
+          <h2>App Store</h2>
+          <p>Instalala como cualquier otra app desde la tienda de Apple.</p>
+          <a class="button" id="ios-link" href="https://apps.apple.com/app/id6807627270">Descargar en el App Store</a>
+        </article>
+
+        <article class="download" id="download-android">
+          <p class="eyebrow">Android</p>
+          <h2>Descarga directa (APK)</h2>
+          <p>Todavía no estamos en Google Play. Mientras tanto, instalá el archivo oficial:</p>
+          <a class="button" id="apk-link" href="https://github.com/luiscf1226/bible-ai-honduras/releases/latest/download/3C.apk" download>Descargar APK para Android</a>
+          <ol class="steps">
+            <li>Tocá el botón y esperá a que termine la descarga.</li>
+            <li>Abrí el archivo <strong>3C.apk</strong> desde las notificaciones o la carpeta Descargas.</li>
+            <li>Si Android lo pide, permití <strong>“Instalar apps desconocidas”</strong> para tu navegador y volvé atrás.</li>
+            <li>Tocá <strong>Instalar</strong>. Si aparece Play Protect, elegí <strong>“Instalar de todas formas”</strong>.</li>
+          </ol>
+        </article>
+      </div>
+
+      <!-- Solo con ?ref=: quien compartió el link. Sin Google Play no hay
+           referrer automático: en las dos plataformas el código se escribe en
+           Ajustes o se abre la app desde acá. -->
+      <div class="notice" id="invite" hidden>
+        <p>Te invitaron con el código <strong id="invite-code"></strong>.</p>
+        <p>Cuando tengás la app instalada, <a id="open-app" href="bibleai://home">abrila desde acá</a> o escribí el código en Ajustes → ¿Te invitó alguien?</p>
+      </div>
+
+      <!-- Solo con &grupo=: invitación a un plan en grupo (#185). El token se
+           valida con el mismo patrón que convex/readingGroupCore.ts. -->
+      <div class="notice" id="group-invite" hidden>
+        <p><strong>Te invitaron a leer la Biblia en grupo.</strong> En el grupo solo se ve tu nombre y cuántos días del plan llevás leídos.</p>
+        <p>Si ya tenés la app, <a id="open-group" href="bibleai://grupo">abrí la invitación</a>. Si no, instalala primero y después volvé a tocar el link que te mandaron por WhatsApp.</p>
+      </div>
+    </section>
+
+    <section class="info" aria-labelledby="info-titulo">
+      <p class="eyebrow">Información legal</p>
+      <h2 id="info-titulo">Tu fe es personal. Tus datos también.</h2>
+      <p>Conocé qué información usa la app y cómo podés borrar tu historial, cerrar sesión o eliminar tu cuenta (desde la app o por solicitud externa).</p>
+      <div class="actions">
+        <a class="button" href="./privacidad/">Leer la política</a>
+        <a class="button secondary" href="./soporte/">Ayuda y soporte</a>
+        <a class="button secondary" href="./terminos/">Términos de uso</a>
+        <a class="button secondary" href="./eliminar-cuenta/">Eliminar una cuenta</a>
+      </div>
+      <footer>© 2026 Bible AI Honduras · Contacto: <a href="mailto:luiscf1226@gmail.com">luiscf1226@gmail.com</a></footer>
+    </section>
   </main>
   <script>
+    // En Android mostramos primero la descarga del APK.
+    if (/android/i.test(navigator.userAgent)) {
+      var downloads = document.getElementById("downloads");
+      downloads.insertBefore(document.getElementById("download-android"), downloads.firstChild);
+    }
     // Atribución de invitaciones (PRD §9b). El código se valida antes de
     // tocar la página: nada de la URL entra al DOM sin pasar por el patrón.
     (function () {
       var raw = new URLSearchParams(window.location.search).get("ref") || "";
       var code = raw.trim().toUpperCase();
       if (!/^BAH-[0-9A-Z]{7}$/.test(code)) return;
-      var play = document.getElementById("play-link");
-      play.href = play.href + "&referrer=" + encodeURIComponent("ref=" + code);
       document.getElementById("open-app").href = "bibleai://home?ref=" + code;
       document.getElementById("invite-code").textContent = code;
       document.getElementById("invite").hidden = false;
