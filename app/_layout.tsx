@@ -1,5 +1,11 @@
-import { DMSans_300Light, DMSans_400Regular, DMSans_500Medium, useFonts as useDMSans } from "@expo-google-fonts/dm-sans";
-import { EBGaramond_400Regular, useFonts as useEBGaramond } from "@expo-google-fonts/eb-garamond";
+// Por subruta: el índice de cada paquete hace require de todos sus pesos (28
+// archivos, 5,7 MB) y Metro los mete todos al binario aunque se usen 4.
+import { DMSans_300Light } from "@expo-google-fonts/dm-sans/300Light";
+import { DMSans_400Regular } from "@expo-google-fonts/dm-sans/400Regular";
+import { DMSans_500Medium } from "@expo-google-fonts/dm-sans/500Medium";
+import { useFonts as useDMSans } from "@expo-google-fonts/dm-sans/useFonts";
+import { EBGaramond_400Regular } from "@expo-google-fonts/eb-garamond/400Regular";
+import { useFonts as useEBGaramond } from "@expo-google-fonts/eb-garamond/useFonts";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useEffect, useState, type PropsWithChildren } from "react";
