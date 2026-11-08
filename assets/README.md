@@ -26,7 +26,12 @@ crema / marrón / salvia de `design/tokens.json`.
 
 ```sh
 python3 assets/generate-icons.py
+oxipng -o max --strip safe --zopfli assets/*.png
 ```
+
+`oxipng` recomprime sin pérdida (mismos píxeles, mismas dimensiones): en la
+1.0.3 bajó icon, splash, adaptive y favicon de 2,2 MB a 1,9 MB. Lo mismo vale para `design/logo.png`, el
+único de estos que la app carga en runtime (`Brand.tsx`, `VerseStoryCard.tsx`).
 
 Si cambia el logo, reemplazar `logo-source.png` (1024×1024, cuadrado, sin
 esquinas redondeadas ni texto) y volver a correr el script.
