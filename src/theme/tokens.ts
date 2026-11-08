@@ -205,6 +205,10 @@ export const tokens = {
     feedHeart: 96,
     // Reels del feed: alto de cada tramo de la barra de partes (como `audioProgress`).
     reelProgress: 2,
+    // Amigos: contador de no leídos (mismo lado que `icon.md`) y alto máximo del
+    // campo del chat antes de hacer scroll (4 renglones de `type.body`).
+    badge: 20,
+    composerMax: 104,
   },
   // Hoja del versículo (#232): la fila de arriba lleva 4 acciones + "Más" (5 × `actionTile` = el ancho útil
   // de 360); lo que despliega "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.

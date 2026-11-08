@@ -12,6 +12,7 @@ import { StartupLoading } from "../src/components/StartupLoading";
 import { FONTS_TIMEOUT_MS, fontsReady as areFontsReady } from "../src/features/auth/startupGate";
 import { OfflineSyncProvider } from "../src/features/offline/OfflineSyncProvider";
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
+import { useFriendInvite } from "../src/hooks/useFriendInvite";
 import { useGroupInvite } from "../src/hooks/useGroupInvite";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
@@ -41,6 +42,7 @@ function AppNavigator() {
   useVerseWidgetSync();
   useReferralAttribution();
   useGroupInvite();
+  useFriendInvite();
   const { dark } = useTheme();
   const appUpdate = useAppUpdate();
 

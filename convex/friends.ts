@@ -493,6 +493,30 @@ async function deliver(
   return id;
 }
 
+type VersePayload = NonNullable<Doc<"directMessages">["verse"]>;
+
+/** El versículo (o el rango acotado) con su texto de la Biblia cargada. null si no existe. */
+async function loadVerse(ctx: QueryCtx, ref: { book: string; chapter: number; verse: number; verseEnd?: number }): Promise<VersePayload | null> {
+  const end = verseRangeEnd(ref);
+  if (end === null) return null;
+  const rows = await ctx.db
+    .query("verses")
+    .withIndex("by_ref", (q) =>
+      q.eq("version", DEFAULT_BIBLE_VERSION).eq("book", ref.book).eq("chapter", ref.chapter).gte("verse", ref.verse).lte("verse", end),
+    )
+    .collect();
+  if (rows.length === 0 || rows[0]!.verse !== ref.verse) return null;
+  const lastVerse = rows[rows.length - 1]!.verse;
+  return {
+    book: ref.book,
+    chapter: ref.chapter,
+    verse: ref.verse,
+    ...(lastVerse > ref.verse ? { verseEnd: lastVerse } : {}),
+    version: DEFAULT_BIBLE_VERSION,
+    text: rows.map((row) => row.text.trim()).join(" "),
+  };
+}
+
 export const sendText = mutation({
   args: { friendshipId: v.id("friendships"), text: v.string() },
   handler: async (ctx, args): Promise<{ status: SendStatus }> => {
@@ -521,42 +545,20 @@ export const sendVerse = mutation({
     verseEnd: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<{ status: SendStatus }> => {
-    const end = verseRangeEnd(args);
-    if (end === null) return { status: "verse_not_found" };
+    const verse = await loadVerse(ctx, args);
+    if (!verse) return { status: "verse_not_found" };
     const now = Date.now();
     const target = await sendTarget(ctx, args.friendshipId, now);
     if (target.status !== "ready") return { status: target.status };
-    const rows = await ctx.db
-      .query("verses")
-      .withIndex("by_ref", (q) =>
-        q
-          .eq("version", DEFAULT_BIBLE_VERSION)
-          .eq("book", args.book)
-          .eq("chapter", args.chapter)
-          .gte("verse", args.verse)
-          .lte("verse", end),
-      )
-      .collect();
-    if (rows.length === 0 || rows[0]!.verse !== args.verse) return { status: "verse_not_found" };
-    const lastVerse = rows[rows.length - 1]!.verse;
-    await deliver(
-      ctx,
-      target,
-      {
-        kind: "verse",
-        verse: {
-          book: args.book,
-          chapter: args.chapter,
-          verse: args.verse,
-          ...(lastVerse > args.verse ? { verseEnd: lastVerse } : {}),
-          version: DEFAULT_BIBLE_VERSION,
-          text: rows.map((row) => row.text.trim()).join(" "),
-        },
-      },
-      now,
-    );
+    await deliver(ctx, target, { kind: "verse", verse }, now);
     return { status: "ok" };
   },
+});
+
+/** Lo que se va a mandar, para mostrarlo antes de elegir a quién. */
+export const versePreview = query({
+  args: { book: v.string(), chapter: v.number(), verse: v.number(), verseEnd: v.optional(v.number()) },
+  handler: async (ctx, args) => await loadVerse(ctx, args),
 });
 
 /** Al abrir el chat: todo lo que hay quedó leído. */

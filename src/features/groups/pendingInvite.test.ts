@@ -21,4 +21,10 @@ describe("shouldOpenPendingInvite", () => {
     expect(shouldOpenPendingInvite({ pendingToken: token, signedIn: false, pathname: "/home" })).toBe(false);
     expect(shouldOpenPendingInvite({ pendingToken: token, signedIn: true, pathname: "/grupo" })).toBe(false);
   });
+
+  it("la invitación a ser amigos espera en su propia pantalla (1.0.3)", () => {
+    const code = "BAH-1234ABC";
+    expect(shouldOpenPendingInvite({ pendingToken: code, signedIn: true, pathname: "/home", invitePath: "/amigo" })).toBe(true);
+    expect(shouldOpenPendingInvite({ pendingToken: code, signedIn: true, pathname: "/amigo", invitePath: "/amigo" })).toBe(false);
+  });
 });
