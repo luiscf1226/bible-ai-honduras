@@ -34,6 +34,8 @@ export default function AgregarAmigoScreen() {
   const accept = useMutation(api.friends.accept);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // La consulta ya pasa a "sent" sola; esto evita un segundo toque mientras llega.
+  const [requested, setRequested] = useState(false);
 
   // Igual que la invitación a un grupo: con sesión, esta pantalla consume el pendiente.
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function AgregarAmigoScreen() {
         openChat(result.friendshipId);
         return;
       }
+      if (result.status === "sent" || result.status === "already_sent") setRequested(true);
       setMessage(requestStatusCopy(result.status));
     } catch {
       setMessage("No se pudo mandar la solicitud. Revisá tu conexión e intentá de nuevo.");
@@ -115,8 +118,8 @@ export default function AgregarAmigoScreen() {
           <AppButton disabled={busy} onPress={() => void acceptRequest(preview.friendshipId!)} testID="amigo-aceptar">
             Te mandó una solicitud · Aceptar
           </AppButton>
-        ) : preview.relation === "sent" ? (
-          <Notice text={requestStatusCopy("already_sent")} soft />
+        ) : preview.relation === "sent" || requested ? (
+          message ? null : <Notice text={requestStatusCopy("already_sent")} soft />
         ) : (
           <AppButton disabled={busy} icon="plus" onPress={() => void add()} testID="amigo-agregar">
             {busy ? "Enviando…" : "Agregar"}

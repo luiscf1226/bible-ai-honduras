@@ -54,7 +54,9 @@ export default function FriendChatScreen() {
   const report = useMutation(api.friends.report);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  // `info` = confirmación (reporte enviado); `error` = lo que no se pudo hacer.
+  const [notice, setNoticeState] = useState<{ text: string; tone: "info" | "error" } | null>(null);
+  const setNotice = (text: string | null, tone: "info" | "error" = "error") => setNoticeState(text ? { text, tone } : null);
   const [sheet, setSheet] = useState<Sheet>(null);
 
   const messageCount = thread?.messages.length ?? 0;
@@ -121,7 +123,7 @@ export default function FriendChatScreen() {
       if (result.status === "too_many") setNotice("Ya hiciste muchos reportes hoy. Si es urgente, bloqueá a la persona desde el menú.");
       else if (result.status !== "ok") setNotice("Ese mensaje ya no está.");
       else if (alsoBlock) router.replace("/amigos");
-      else setNotice("Gracias. Revisamos cada reporte en menos de 24 horas.");
+      else setNotice("Gracias. Revisamos cada reporte en menos de 24 horas.", "info");
     } catch {
       setNotice("No se pudo enviar el reporte. Revisá tu conexión e intentá de nuevo.");
     }
@@ -315,8 +317,12 @@ export default function FriendChatScreen() {
         {thread.gate === "rules_required" ? null : (
           <View style={[styles.composer, { borderTopColor: color.border }]}>
             {notice ? (
-              <Text accessibilityRole="alert" style={[styles.notice, { color: color.danger }]} testID="amigos-chat-aviso">
-                {notice}
+              <Text
+                accessibilityRole="alert"
+                style={[styles.notice, { color: notice.tone === "error" ? color.danger : color.inkMuted }]}
+                testID="amigos-chat-aviso"
+              >
+                {notice.text}
               </Text>
             ) : null}
             {thread.canWrite ? (
@@ -348,7 +354,11 @@ export default function FriendChatScreen() {
               </View>
             ) : (
               <Text style={[styles.bodySm, { color: color.inkSoft }]}>
-                {thread.gate === "suspended" ? sendStatusCopy("suspended") : "Cuando acepte la solicitud, van a poder escribirse."}
+                {thread.gate === "suspended"
+                  ? sendStatusCopy("suspended")
+                  : thread.requestedByMe
+                    ? "Cuando acepte la solicitud, van a poder escribirse."
+                    : "Aceptá la solicitud para escribirse. Si no conocés a esta persona, podés bloquearla desde el menú."}
               </Text>
             )}
           </View>

@@ -16,6 +16,7 @@ import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
 import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
+import { friendHandlers, friendsRulesAcceptedAt } from "./friends";
 import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
@@ -507,6 +508,7 @@ function feedVersePage(seen, count) {
 }
 
 const handlers = {
+  ...friendHandlers(notify),
   "verseFeed:page": feedPage,
   "verseFeed:setLike": ({ ref, liked }) => {
     feedLikes.set(ref, liked);
@@ -531,6 +533,7 @@ const handlers = {
     birthday: db.birthday,
     faithDate: db.faithDate,
     faithDateKind: db.faithDateKind,
+    communityRulesAcceptedAt: friendsRulesAcceptedAt(),
   }),
   "users:setPersonalDates": (args) => {
     for (const key of ["birthday", "faithDate", "faithDateKind"]) {

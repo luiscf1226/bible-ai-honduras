@@ -126,11 +126,19 @@ export default function AmigosScreen() {
           <ListCard testID="amigos-solicitudes">
             {overview.requests.map((request, index) => (
               <View key={request.friendshipId} style={styles.personRow} testID={`amigos-solicitud-${index}`}>
-                <FriendAvatar initial={request.initial} />
-                <View style={styles.personText}>
-                  <Text style={[styles.name, { color: color.ink }]}>{request.name}</Text>
-                  <Text style={[styles.caption, { color: color.inkSoft }]}>Quiere ser tu amigo</Text>
-                </View>
+                {/* Tocar a la persona abre la solicitud, con el menú para reportar o bloquear. */}
+                <Pressable
+                  accessibilityHint="Abre la solicitud. Desde ahí también podés reportar o bloquear."
+                  accessibilityRole="button"
+                  onPress={() => openChat(request.friendshipId)}
+                  style={withPressed(styles.personTap)}
+                >
+                  <FriendAvatar initial={request.initial} />
+                  <View style={styles.personText}>
+                    <Text style={[styles.name, { color: color.ink }]}>{request.name}</Text>
+                    <Text style={[styles.caption, { color: color.inkSoft }]}>Quiere ser tu amigo</Text>
+                  </View>
+                </Pressable>
                 <View style={styles.requestActions}>
                   <SmallButton
                     disabled={busyId !== null}
@@ -201,11 +209,11 @@ export default function AmigosScreen() {
             {overview.code}
           </Text>
           <View style={styles.buttons}>
-            <AppButton icon="whatsapp" onPress={() => void invite()} style={styles.flex} testID="amigos-invitar">
+            <AppButton icon="whatsapp" onPress={() => void invite()} testID="amigos-invitar">
               Invitar por WhatsApp
             </AppButton>
-            <AppButton icon="copy" onPress={() => void copyCode()} style={styles.flex} testID="amigos-copiar" variant="secondary">
-              Copiar
+            <AppButton icon="copy" onPress={() => void copyCode()} testID="amigos-copiar" variant="secondary">
+              Copiar mi código
             </AppButton>
           </View>
         </View>
@@ -326,7 +334,6 @@ function SmallButton({
 
 const styles = StyleSheet.create({
   content: { gap: tokens.space.md, paddingBottom: tokens.space.xxl },
-  flex: { flex: 1 },
   body: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.body.size, lineHeight: tokens.type.body.lineHeight },
   bodySm: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
   note: {
@@ -351,6 +358,7 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.space.lg,
   },
   personText: { flex: 1, gap: tokens.space.xxs },
+  personTap: { alignItems: "center", flex: 1, flexDirection: "row", gap: tokens.space.md },
   name: { fontFamily: tokens.font.serif, fontSize: tokens.type.subtitle.size, lineHeight: tokens.type.bodySm.lineHeight },
   preview: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
   previewUnread: { fontFamily: tokens.font.sansMedium, fontSize: tokens.type.bodySm.size, lineHeight: tokens.type.bodySm.lineHeight },
@@ -372,7 +380,7 @@ const styles = StyleSheet.create({
   },
   cardGap: { marginTop: tokens.space.md },
   code: { fontFamily: tokens.font.serif, fontSize: tokens.type.title.size, lineHeight: tokens.type.title.lineHeight },
-  buttons: { flexDirection: "row", gap: tokens.space.sm, marginTop: tokens.space.xs },
+  buttons: { gap: tokens.space.sm, marginTop: tokens.space.xs },
   label: { fontFamily: tokens.font.sans, fontSize: tokens.type.label.size, lineHeight: tokens.type.subtitle.lineHeight },
   inputRow: {
     alignItems: "center",
