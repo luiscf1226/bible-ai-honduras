@@ -55,6 +55,10 @@ export default defineSchema({
     // hasta esta fecha (7 días). Para hacerla permanente, el fundador pone
     // `friendsSuspendedAt`.
     friendsSuspendedUntil: v.optional(v.number()),
+    // Cuándo venció la última suspensión automática. Lo escribe la tarea que
+    // corre al vencer: un cambio en la fila hace que las pantallas suscritas
+    // vuelvan a preguntar y muestren de nuevo el campo para escribir.
+    friendsSuspensionExpiredAt: v.optional(v.number()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])

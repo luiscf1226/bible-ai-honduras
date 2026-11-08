@@ -106,15 +106,21 @@ function normalize(text: string): string {
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
     .replace(CONFUSABLE, (char) => CONFUSABLES[char] ?? char)
-    .replace(/[03457@$]/g, (char) => LOOKALIKES[char] ?? char)
-    // "!" e "|" entre letras: "p!ja", "cu|o".
-    .replace(/(?<=[a-z1])[!|](?=[a-z1])/g, (char) => (char === "!" ? "i" : "l"));
+    .replace(/[03457@$]/g, (char) => LOOKALIKES[char] ?? char);
 }
 
-/** Las lecturas del texto: "1" como "i" o como "l", y "v" como "v" o como "u". */
+const SYMBOL_LETTER = /(?<=[a-z1])[!|](?=[a-z1])/;
+
+/**
+ * Las lecturas del texto: "!" e "|" entre letras como letra ("p!ja", "cu|o") o
+ * como separador ("pu!ta"); "1" como "i" o como "l"; "v" como "v" o como "u".
+ */
 function readings(normalized: string): string[] {
-  const ones = normalized.includes("1") ? [normalized.replace(/1/g, "i"), normalized.replace(/1/g, "l")] : [normalized];
-  return normalized.includes("v") ? ones.flatMap((text) => [text, text.replace(/v/g, "u")]) : ones;
+  const symbols = SYMBOL_LETTER.test(normalized)
+    ? [normalized, normalized.replace(new RegExp(SYMBOL_LETTER, "g"), (char) => (char === "!" ? "i" : "l"))]
+    : [normalized];
+  const ones = symbols.flatMap((text) => (text.includes("1") ? [text.replace(/1/g, "i"), text.replace(/1/g, "l")] : [text]));
+  return ones.flatMap((text) => (text.includes("v") ? [text, text.replace(/v/g, "u")] : [text]));
 }
 
 type Piece = { word: string; spaced: boolean };

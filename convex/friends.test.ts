@@ -720,8 +720,11 @@ describe("friends — bloquear y reportar", () => {
     // No es la permanente: esa la pone el fundador.
     expect((await carla.query(api.users.current, {}))?.friendsSuspendedAt).toBeUndefined();
 
-    // A los 7 días vuelve a escribir.
-    vi.setSystemTime(Date.now() + AUTO_SUSPEND_DAYS * DAY_MS);
+    // A los 7 días vuelve a escribir, y la fila cambia para que las pantallas abiertas se enteren.
+    const until = Date.now() + AUTO_SUSPEND_DAYS * DAY_MS;
+    vi.setSystemTime(until);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect((await carla.query(api.users.current, {}))?.friendsSuspensionExpiredAt).toBe(until);
     expect(await carla.query(api.friends.overview, {})).toMatchObject({ suspended: false, suspendedUntil: null });
     expect((await carla.mutation(api.friends.sendText, { friendshipId: first!.friendshipId, text: "hola" })).status).toBe("ok");
     // Los reportes de antes ya no cuentan: uno más de los mismos no la vuelve a suspender.

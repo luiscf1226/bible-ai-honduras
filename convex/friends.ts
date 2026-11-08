@@ -897,9 +897,22 @@ async function suspendIfWidelyReported(ctx: MutationCtx, reporterId: Id<"users">
     .withIndex("by_reported_qualified", (q) => q.eq("reportedId", reportedId).gte("qualifiedAt", since))
     .take(AUTO_SUSPEND_REPORTERS);
   if (reporters.length >= AUTO_SUSPEND_REPORTERS) {
-    await ctx.db.patch(reportedId, { friendsSuspendedUntil: now + AUTO_SUSPEND_DAYS * DAY_MS });
+    const until = now + AUTO_SUSPEND_DAYS * DAY_MS;
+    await ctx.db.patch(reportedId, { friendsSuspendedUntil: until });
+    await ctx.scheduler.runAt(until, internal.friends.expireSuspension, { userId: reportedId });
   }
 }
+
+/** Al vencer una suspensión automática: un cambio en la fila para que las pantallas abiertas se enteren. */
+export const expireSuspension = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    const until = user?.friendsSuspendedUntil;
+    if (!user || until === undefined || until > Date.now()) return;
+    await ctx.db.patch(user._id, { friendsSuspensionExpiredAt: until });
+  },
+});
 
 /**
  * Cola de reportes para el fundador (panel de Convex → Functions). Para sacar

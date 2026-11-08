@@ -134,6 +134,13 @@ describe("checkMessageContent", () => {
     }
   });
 
+  it("da el mismo resultado al revisar el mismo mensaje varias veces seguidas", () => {
+    for (let index = 0; index < 4; index += 1) {
+      expect(blocked("sos una pu!ta")).toBe(true);
+      expect(blocked("¡Hola!|Bendiciones")).toBe(false);
+    }
+  });
+
   it("no se esquiva con números, símbolos, otros alfabetos ni letras repetidas al final", () => {
     for (const text of [
       "qué pvt4 vida",
@@ -141,6 +148,9 @@ describe("checkMessageContent", () => {
       "sos una 1diota", // 1 como i
       "sos un p!jud0",
       "sos un cu|ero",
+      "sos una pu!ta", // "!" como separador
+      "sos una pu|ta",
+      "andate a la mier!da",
       "sos una p\u057Dta", // u armenia
       "sos una \u0440\u057Dta", // p cirílica y u armenia
       "sos un \u0441\u0446lero", // c y u cirílicas
