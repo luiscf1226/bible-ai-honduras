@@ -49,6 +49,10 @@ const APP_METRICS: Record<string, MetricDescriptor> = {
   "plans.active_7d": { label: "Planes activos (7 días)", format: "number", chart: "bars", dimLabel: "Plan", aggregate: "last" },
   "plans.streaks": { label: "Rachas de lectura", format: "number", chart: "bars", dimLabel: "Días seguidos", aggregate: "last" },
   "groups.total": { label: "Grupos de lectura", format: "number", chart: "kpi" },
+  "friends.total": { label: "Amistades", format: "number", chart: "kpi" },
+  "friends.messages_new": { label: "Mensajes entre amigos", format: "number", chart: "series" },
+  "friends.reports_new": { label: "Reportes nuevos", format: "number", chart: "series", dimLabel: "Motivo" },
+  "friends.blocks_new": { label: "Bloqueos nuevos", format: "number", chart: "series" },
 };
 
 export const MANIFEST: Manifest = {
@@ -75,6 +79,8 @@ export const MANIFEST: Manifest = {
       title: "Biblia",
       metrics: ["bible.chapters_opened", "bible.highlights_new", "bible.bookmarks_new", "bible.memory_new", "plans.active_7d", "plans.streaks", "groups.total"],
     },
+    // Amigos (1.0.3): solo cuántos. Lo reportado se revisa con `friends:recentReports`.
+    { title: "Amigos", metrics: ["friends.total", "friends.messages_new", "friends.reports_new", "friends.blocks_new"] },
     { title: "Embudo", metrics: ["std.funnel"] },
     { title: "Salud", metrics: ["std.errors", "std.errors_fatal"] },
   ],
@@ -112,6 +118,11 @@ export const MANIFEST: Manifest = {
     link: "Link de invitación",
     play: "Play Store",
     manual: "Código manual",
+    ofensivo: "Insultos, odio o acoso",
+    sexual: "Contenido sexual",
+    estafa: "Ventas, préstamos o estafas",
+    privado: "Datos privados",
+    peligro: "Alguien en peligro",
   },
   metrics: { ...STANDARD_METRICS, ...APP_METRICS },
 };
@@ -194,6 +205,22 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   });
   const groups = (await ctx.db.query("readingGroups").collect()).filter((row) => row.createdAt < endMs);
 
+  const friendships = (await ctx.db.query("friendships").collect()).filter(
+    (row) => row.status === "accepted" && (row.acceptedAt ?? row.createdAt) < endMs,
+  );
+  const directMessages = await ctx.db
+    .query("directMessages")
+    .withIndex("by_creation_time", (q) => q.gte("_creationTime", startMs).lt("_creationTime", endMs))
+    .collect();
+  const reports = await ctx.db
+    .query("userReports")
+    .withIndex("by_created", (q) => q.gte("createdAt", startMs).lt("createdAt", endMs))
+    .collect();
+  const blocks = await ctx.db
+    .query("userBlocks")
+    .withIndex("by_creation_time", (q) => q.gte("_creationTime", startMs).lt("_creationTime", endMs))
+    .collect();
+
   return [
     { key: "users.total", value: users.length },
     { key: "users.new", value: newUsers.length },
@@ -211,6 +238,10 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     ...withTotal("plans.active_7d", tally(activePlans.map((row) => row.planId))),
     ...withTotal("plans.streaks", tally(activePlans.map((row) => streakBucket(row.currentStreak)))),
     { key: "groups.total", value: groups.length },
+    { key: "friends.total", value: friendships.length },
+    { key: "friends.messages_new", value: directMessages.length },
+    ...withTotal("friends.reports_new", tally(reports.map((row) => row.reason))),
+    { key: "friends.blocks_new", value: blocks.length },
   ];
 }
 

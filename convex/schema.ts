@@ -44,6 +44,12 @@ export default defineSchema({
     birthday: v.optional(v.string()),
     faithDate: v.optional(v.string()),
     faithDateKind: v.optional(v.union(v.literal("bautismo"), v.literal("conversion"))),
+    // Normas de Amigos (1.0.3): cuándo aceptó "cero tolerancia a contenido
+    // ofensivo o abuso". Sin esto no puede agregar amigos ni escribir.
+    communityRulesAcceptedAt: v.optional(v.number()),
+    // Lo pone el fundador a mano (panel de Convex) después de revisar un
+    // reporte: la cuenta sigue leyendo, pero no escribe ni agrega amigos.
+    friendsSuspendedAt: v.optional(v.number()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])
@@ -494,6 +500,80 @@ export default defineSchema({
       ),
     ),
   }).index("by_conversation", ["conversationId"]),
+
+  // ── Amigos y chat 1 a 1 (1.0.3) ─────────────────────────
+  // Una fila por par de personas, solicitud o amistad. `userA` < `userB` (por
+  // id) para que el par tenga una sola fila sin importar quién la pidió. Las
+  // tablas `conversations`/`messages` son del chat con IA: esto va aparte.
+  friendships: defineTable({
+    userA: v.id("users"),
+    userB: v.id("users"),
+    requestedBy: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("accepted")),
+    createdAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    lastMessageAt: v.optional(v.number()),
+    // Hasta dónde leyó cada lado: lo de después cuenta como no leído.
+    readAtA: v.optional(v.number()),
+    readAtB: v.optional(v.number()),
+  })
+    .index("by_userA", ["userA"])
+    .index("by_userB", ["userB"])
+    .index("by_pair", ["userA", "userB"]),
+
+  // Mensajes entre amigos. El texto de un versículo lo pone el servidor desde
+  // la Biblia cargada (regla dura #4), nunca el teléfono.
+  directMessages: defineTable({
+    friendshipId: v.id("friendships"),
+    senderId: v.id("users"),
+    kind: v.union(v.literal("text"), v.literal("verse")),
+    text: v.optional(v.string()),
+    verse: v.optional(
+      v.object({
+        book: v.string(),
+        chapter: v.number(),
+        verse: v.number(),
+        verseEnd: v.optional(v.number()),
+        version: v.string(),
+        text: v.string(),
+      }),
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_friendship", ["friendshipId", "createdAt"])
+    // Límite de ritmo: cuántos mandó en el último minuto.
+    .index("by_sender", ["senderId", "createdAt"]),
+
+  // Bloquear borra la amistad y oculta todo en los dos sentidos; quien quedó
+  // bloqueado no puede volver a pedir amistad. No se le avisa.
+  userBlocks: defineTable({
+    blockerId: v.id("users"),
+    blockedId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_blocker", ["blockerId", "blockedId"])
+    .index("by_blocked", ["blockedId", "blockerId"]),
+
+  // Reportes para el fundador (docs/spikes/moderacion-contenido-usuarios.md §3):
+  // un motivo de una lista fija, sin texto libre. `evidence` es copia de lo
+  // reportado, porque bloquear después borra la conversación.
+  userReports: defineTable({
+    reporterId: v.id("users"),
+    reportedId: v.id("users"),
+    reason: v.union(
+      v.literal("estafa"),
+      v.literal("ofensivo"),
+      v.literal("sexual"),
+      v.literal("privado"),
+      v.literal("peligro"),
+    ),
+    messageId: v.optional(v.id("directMessages")),
+    evidence: v.array(v.object({ text: v.string(), createdAt: v.number() })),
+    createdAt: v.number(),
+  })
+    .index("by_reporter", ["reporterId", "createdAt"])
+    .index("by_reported", ["reportedId"])
+    .index("by_created", ["createdAt"]),
 
   stories: defineTable({
     userId: v.id("users"),
