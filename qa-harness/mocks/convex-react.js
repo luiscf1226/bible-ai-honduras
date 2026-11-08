@@ -16,7 +16,8 @@ import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
 import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
-import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
+import { photosFor } from "../../convex/verseImageCore";
+import { aiImageScenario, atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
@@ -418,7 +419,7 @@ function planProgress() {
 }
 
 function quota(module) {
-  const limits = { qa: 5, voices: 5, feelings: 3, stories: 1 };
+  const limits = { qa: 5, voices: 5, feelings: 3, stories: 1, verseImage: 3 };
   const limit = limits[module] ?? 5;
   if (isPro()) return { used: 0, limit, remaining: limit, isPro: true };
   if (atLimit()) return { used: limit, limit, remaining: 0, isPro: false };
@@ -506,7 +507,44 @@ function feedVersePage(seen, count) {
   });
 }
 
+// Crear imagen: texto de Versículos por tema si la cita está, si no el
+// placeholder de Salmos 46. Los fondos pintados viven en memoria.
+const paintedBackgrounds = new Set();
+const AI_BACKGROUND = "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80";
+function verseImageText({ book, chapter, verse, verseEnd }) {
+  const chapterVerses = TOPIC_VERSES[`${book} ${chapter}`];
+  const last = Math.min(verseEnd ?? verse, verse + 5);
+  const texts = [];
+  for (let current = verse; current <= last; current += 1) {
+    const text = chapterVerses?.[String(current)] ?? VERSES[current - 1]?.text;
+    if (!text) break;
+    texts.push(text);
+  }
+  return { text: texts.length ? texts.join(" ") : null, endVerse: texts.length > 1 ? verse + texts.length - 1 : null };
+}
+function verseImageKey({ book, chapter, verse, verseEnd }) {
+  return `${book} ${chapter}:${verse}${verseEnd ? `-${verseEnd}` : ""}`;
+}
+
 const handlers = {
+  "verseImage:compose": (args) => {
+    const key = verseImageKey(args);
+    const { text, endVerse } = verseImageText(args);
+    return {
+      version: db.bibleVersion,
+      text: isEmpty() ? null : text,
+      endVerse,
+      aiImageUrl: aiImageScenario() === "lista" || paintedBackgrounds.has(key) ? AI_BACKGROUND : null,
+      photos: photosFor(key),
+    };
+  },
+  "verseImage:generateBackground": (args) => {
+    if (atLimit()) return { status: "limit_reached" };
+    if (aiImageScenario() === "sin-saldo") return { status: "failed", reason: "no_credit" };
+    paintedBackgrounds.add(verseImageKey(args));
+    notify();
+    return { status: "ready" };
+  },
   "verseFeed:page": feedPage,
   "verseFeed:setLike": ({ ref, liked }) => {
     feedLikes.set(ref, liked);

@@ -1,8 +1,7 @@
 import { useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { PixelRatio, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
-import { captureRef } from "react-native-view-shot";
+import { ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
@@ -23,11 +22,13 @@ import {
   fittingFormats,
   type DedicationTemplateId,
 } from "../src/features/dedicate/dedication";
+import { captureStoryImage } from "../src/features/home/captureStory";
+import { ComposerField as Field, OffscreenCapture } from "../src/features/home/StoryComposerParts";
 import { VerseStoryCard } from "../src/features/home/VerseStoryCard";
-import { storyCaptureSize, storyFrame, type StoryFormat } from "../src/features/home/verseStoryLayout";
+import { storyFrame, type StoryFormat } from "../src/features/home/verseStoryLayout";
 import { readPauseParams } from "../src/features/pause/pause";
 import { formatCitation } from "../src/lib/citation";
-import { asFileUri, shareImage } from "../src/lib/share";
+import { shareImage } from "../src/lib/share";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
 
@@ -82,14 +83,9 @@ export default function DedicateScreen() {
     setSharing(true);
     setFeedback(null);
     try {
-      const fileUri = await captureRef(captureRefView, {
-        format: "png",
-        quality: 1,
-        result: Platform.OS === "web" ? "data-uri" : "tmpfile",
-        ...storyCaptureSize(Platform.OS, PixelRatio.get(), tokens.storyImage, format),
-      });
+      const fileUri = await captureStoryImage(captureRefView, { format });
       const result = await shareImage({
-        fileUri: asFileUri(fileUri),
+        fileUri,
         origin: "dedicated",
         referralCode,
         text: buildDedicationShareText({ to, reference: formatCitation(passage), version }),
@@ -209,12 +205,7 @@ export default function DedicateScreen() {
       </ScrollView>
 
       {/* Imagen a tamaño de captura, fuera de pantalla (mismo generador que #161). */}
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        pointerEvents="none"
-        style={[styles.offscreen, { left: -windowWidth * 2 }]}
-      >
+      <OffscreenCapture>
         <VerseStoryCard
           citation={citation}
           dedication={{ to: previewTo, message, block }}
@@ -225,21 +216,8 @@ export default function DedicateScreen() {
           seasonName={template.overline}
           verseText={verseText ?? ""}
         />
-      </View>
+      </OffscreenCapture>
     </AppScreen>
-  );
-}
-
-function Field({ children, counter, label }: { children: React.ReactNode; counter?: string; label: string }) {
-  const { color } = useTheme();
-  return (
-    <View style={styles.field}>
-      <View style={styles.fieldHeader}>
-        <Text style={[styles.overline, { color: color.accent }]}>{label}</Text>
-        {counter ? <Text style={[styles.counter, { color: color.inkFaint }]}>{counter}</Text> : null}
-      </View>
-      {children}
-    </View>
   );
 }
 
@@ -256,14 +234,6 @@ const styles = StyleSheet.create({
   },
   previewWrap: { alignItems: "center" },
   preview: { borderRadius: tokens.radius.lg, borderWidth: 1, overflow: "hidden" },
-  field: { gap: tokens.space.sm },
-  fieldHeader: { alignItems: "baseline", flexDirection: "row", justifyContent: "space-between" },
-  overline: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.overline.size,
-    letterSpacing: tokens.type.overline.letterSpacing,
-    lineHeight: tokens.type.overline.lineHeight,
-  },
   counter: { fontFamily: tokens.font.sansLight, fontSize: tokens.type.caption.size, lineHeight: tokens.type.caption.lineHeight },
   input: {
     borderRadius: tokens.radius.lg,
@@ -281,5 +251,4 @@ const styles = StyleSheet.create({
     lineHeight: tokens.type.caption.lineHeight,
     textAlign: "center",
   },
-  offscreen: { position: "absolute", top: 0 },
 });

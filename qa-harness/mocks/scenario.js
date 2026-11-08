@@ -48,3 +48,10 @@ export function hasPlan() {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("plan") === "1";
 }
+
+// Crear imagen: `?ia=sin-saldo` (OpenAI sin saldo) o `?ia=lista` (la cita ya
+// tiene fondo con IA). Sin el parámetro, la cita no tiene y se puede pintar.
+export function aiImageScenario() {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("ia");
+}

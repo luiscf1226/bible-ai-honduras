@@ -77,6 +77,8 @@ import type * as verseFeedCore from "../verseFeedCore.js";
 import type * as verseFeedLimits from "../verseFeedLimits.js";
 import type * as verseFeedMedia from "../verseFeedMedia.js";
 import type * as verseFeedText from "../verseFeedText.js";
+import type * as verseImage from "../verseImage.js";
+import type * as verseImageCore from "../verseImageCore.js";
 import type * as voices from "../voices.js";
 import type * as voicesCatalog from "../voicesCatalog.js";
 import type * as voicesGuardrail from "../voicesGuardrail.js";
@@ -160,6 +162,8 @@ declare const fullApi: ApiFromModules<{
   verseFeedLimits: typeof verseFeedLimits;
   verseFeedMedia: typeof verseFeedMedia;
   verseFeedText: typeof verseFeedText;
+  verseImage: typeof verseImage;
+  verseImageCore: typeof verseImageCore;
   voices: typeof voices;
   voicesCatalog: typeof voicesCatalog;
   voicesGuardrail: typeof voicesGuardrail;

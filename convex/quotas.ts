@@ -11,15 +11,18 @@ const moduleValidator = v.union(
   v.literal("voices"),
   v.literal("feelings"),
   v.literal("stories"),
+  v.literal("verseImage"),
 );
 
-export type QuotaModule = "qa" | "voices" | "feelings" | "stories";
+export type QuotaModule = "qa" | "voices" | "feelings" | "stories" | "verseImage";
 
 export const QUOTA_LIMITS: Record<QuotaModule, number> = {
   qa: 5,
   voices: 5,
   feelings: 3,
   stories: 1,
+  // Fondos con IA de "Crear imagen" (convex/verseImage.ts): cada uno es una imagen de OpenAI.
+  verseImage: 3,
 };
 
 export const LIMITS = QUOTA_LIMITS;
@@ -60,7 +63,12 @@ async function isUserPro(ctx: QueryCtx | MutationCtx, userId: Id<"users">): Prom
   return entitlementIsActive(row);
 }
 
-async function consume(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
+/**
+ * Consume una unidad de cuota dentro de otra mutación (p. ej. reservar un
+ * fondo con IA en `verseImage.ts`), para que reservar y descontar sean
+ * atómicos. Sigue siendo este servicio el que decide.
+ */
+export async function consume(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
   if (await isUserPro(ctx, userId)) {
     return { allowed: true as const };
   }
@@ -78,6 +86,16 @@ async function consume(ctx: MutationCtx, userId: Id<"users">, module: QuotaModul
     await ctx.db.insert("usage", { userId, module, day, count: 1 });
   }
   return { allowed: true as const };
+}
+
+/**
+ * Devuelve una unidad cuando lo que se pagó con ella no llegó (el proveedor
+ * de IA falló): un error de OpenAI no le gasta el día a la persona.
+ */
+export async function refund(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
+  if (await isUserPro(ctx, userId)) return;
+  const row = await usageRow(ctx, userId, module, dayKey(module));
+  if (row && row.count > 0) await ctx.db.patch(row._id, { count: row.count - 1 });
 }
 
 async function remainingFor(ctx: QueryCtx, userId: Id<"users">, module: QuotaModule) {

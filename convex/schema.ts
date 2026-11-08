@@ -431,6 +431,7 @@ export default defineSchema({
       v.literal("voices"),
       v.literal("feelings"),
       v.literal("stories"),
+      v.literal("verseImage"),
     ),
     day: v.string(), // "2026-08-18"; use "lifetime" for stories
     count: v.number(),

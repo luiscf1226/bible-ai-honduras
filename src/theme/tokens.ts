@@ -205,10 +205,13 @@ export const tokens = {
     feedHeart: 96,
     // Reels del feed: alto de cada tramo de la barra de partes (como `audioProgress`).
     reelProgress: 2,
+    // Crear imagen: vista previa grande (9:16 y cuadrada) y miniatura 3:4 de cada fondo del carrusel.
+    verseImagePreview: { story: 252, square: 320 },
+    styleThumb: { width: 60, height: 80 },
   },
-  // Hoja del versículo (#232): la fila de arriba lleva 4 acciones + "Más" (5 × `actionTile` = el ancho útil
-  // de 360); lo que despliega "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
-  grid: { chapterColumns: 5, actionColumns: 4, primaryActionColumns: 5 },
+  // Hoja del versículo (#232): la fila de arriba lleva 5 acciones (con "Imagen") + "Más"; lo que despliega
+  // "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
+  grid: { chapterColumns: 5, actionColumns: 4, primaryActionColumns: 6 },
   // Duraciones en ms (#203). Lentas a propósito; con "reducir movimiento" no se anima.
   motion: {
     pause: 60000,
@@ -254,6 +257,12 @@ export const tokens = {
     dedicationVerseMin: 36,
     dedicationRuleWidth: 120,
     dedicationRule: 3,
+    // Crear imagen: Póster (versículo grande abajo, a la izquierda) y Minimal
+    // (más chico, con una línea fina sobre la cita).
+    posterVerseMax: 100,
+    minimalVerseMax: 64,
+    minimalRule: 2,
+    minimalRuleWidth: 96,
   },
 } as const;
 
