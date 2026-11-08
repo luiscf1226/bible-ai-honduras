@@ -49,6 +49,10 @@ const APP_METRICS: Record<string, MetricDescriptor> = {
   "plans.active_7d": { label: "Planes activos (7 días)", format: "number", chart: "bars", dimLabel: "Plan", aggregate: "last" },
   "plans.streaks": { label: "Rachas de lectura", format: "number", chart: "bars", dimLabel: "Días seguidos", aggregate: "last" },
   "groups.total": { label: "Grupos de lectura", format: "number", chart: "kpi" },
+  "friends.total": { label: "Amistades", format: "number", chart: "kpi" },
+  "friends.messages_new": { label: "Mensajes entre amigos", format: "number", chart: "series" },
+  "friends.reports_new": { label: "Reportes nuevos", format: "number", chart: "series", dimLabel: "Motivo" },
+  "friends.blocks_new": { label: "Bloqueos nuevos", format: "number", chart: "series" },
 };
 
 export const MANIFEST: Manifest = {
@@ -75,6 +79,8 @@ export const MANIFEST: Manifest = {
       title: "Biblia",
       metrics: ["bible.chapters_opened", "bible.highlights_new", "bible.bookmarks_new", "bible.memory_new", "plans.active_7d", "plans.streaks", "groups.total"],
     },
+    // Amigos (1.0.3): solo cuántos. Lo reportado se revisa con `friends:recentReports`.
+    { title: "Amigos", metrics: ["friends.total", "friends.messages_new", "friends.reports_new", "friends.blocks_new"] },
     { title: "Embudo", metrics: ["std.funnel"] },
     { title: "Salud", metrics: ["std.errors", "std.errors_fatal"] },
   ],
@@ -112,6 +118,11 @@ export const MANIFEST: Manifest = {
     link: "Link de invitación",
     play: "Play Store",
     manual: "Código manual",
+    ofensivo: "Insultos, odio o acoso",
+    sexual: "Contenido sexual",
+    estafa: "Ventas, préstamos o estafas",
+    privado: "Datos privados",
+    peligro: "Alguien en peligro",
   },
   metrics: { ...STANDARD_METRICS, ...APP_METRICS },
 };
@@ -150,6 +161,10 @@ export function streakBucket(streak: number): string {
  * Métricas propias de un día. `users`, `entitlements`, `userPlanProgress` y
  * `readingGroups` se leen completas (son una fila por persona o grupo): alcanza
  * para el volumen de hoy. Lo "nuevo" usa índices por fecha.
+ *
+ * Amigos no carga amistades, mensajes, reportes ni bloqueos: todo sale de
+ * los contadores de `friendDailyStats`, que suman cada mutación y no se
+ * pierden cuando después se borra una conversación o una cuenta.
  */
 async function appRows(ctx: MutationCtx, day: string, window: { startMs: number; endMs: number }): Promise<Row[]> {
   const { startMs, endMs } = window;
@@ -194,6 +209,21 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   });
   const groups = (await ctx.db.query("readingGroups").collect()).filter((row) => row.createdAt < endMs);
 
+  // Amigos: solo los contadores chicos de `friendDailyStats`. Las amistades
+  // a la fecha son las que empezaron menos las que terminaron hasta ese día
+  // (8 filas por día: ~3.000 por año).
+  const friendStats = await ctx.db
+    .query("friendDailyStats")
+    .withIndex("by_day_shard", (q) => q.lte("day", day))
+    .collect();
+  const friendsToday = friendStats.filter((row) => row.day === day);
+  const sum = (rows: typeof friendStats, pick: (row: (typeof friendStats)[number]) => number | undefined) =>
+    rows.reduce((total, row) => total + (pick(row) ?? 0), 0);
+  const reportsByReason = new Map<string, number>();
+  for (const row of friendsToday) {
+    for (const [reason, count] of Object.entries(row.reports ?? {})) reportsByReason.set(reason, (reportsByReason.get(reason) ?? 0) + count);
+  }
+
   return [
     { key: "users.total", value: users.length },
     { key: "users.new", value: newUsers.length },
@@ -211,6 +241,10 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     ...withTotal("plans.active_7d", tally(activePlans.map((row) => row.planId))),
     ...withTotal("plans.streaks", tally(activePlans.map((row) => streakBucket(row.currentStreak)))),
     { key: "groups.total", value: groups.length },
+    { key: "friends.total", value: sum(friendStats, (row) => row.accepted) - sum(friendStats, (row) => row.ended) },
+    { key: "friends.messages_new", value: sum(friendsToday, (row) => row.messages) },
+    ...withTotal("friends.reports_new", reportsByReason),
+    { key: "friends.blocks_new", value: sum(friendsToday, (row) => row.blocks) },
   ];
 }
 

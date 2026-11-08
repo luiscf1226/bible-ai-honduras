@@ -15,9 +15,14 @@ import {
   buildReelShareText,
   entryAudioUrl,
   entryImageUrls,
+  FEED_MODE_TABS,
+  feedCaption,
+  feedPassageTarget,
   isReel,
+  isSidewaysDrag,
+  neighborMode,
+  sidewaysSwipe,
   nextScene,
-  reelOverline,
   reelReadingMs,
   reelReference,
   reelVoiceTimeoutMs,
@@ -225,9 +230,7 @@ describe("reels", () => {
     expect(entryImageUrls(item("Salmos 23:1"))).toEqual(["https://example.com/a.jpg"]);
   });
 
-  it("muestra la parte de la historia y la cita; el personaje dice en qué pasaje se basa", () => {
-    expect(reelOverline(reel(), 1)).toBe("HISTORIA · PARTE 2 DE 3");
-    expect(reelOverline(reel({ scenes: reel().scenes.slice(0, 1) }), 0)).toBe("HISTORIA");
+  it("la historia muestra la cita de la parte; el personaje dice en qué pasaje se basa", () => {
     expect(reelReference(reel(), reel().scenes[0])).toBe("Génesis 1:1");
     expect(reelReference({ kind: "character" }, { reference: "Éxodo 3:1-12" })).toBe("Basado en Éxodo 3:1-12");
   });
@@ -246,5 +249,66 @@ describe("reels", () => {
     const [liked] = setLikeLocally([reel()], "historia:creacion", true);
     expect(liked).toMatchObject({ liked: true, likes: 1 });
     expect(settleLike([liked], "historia:creacion", { liked: false, likes: 0 })[0]).toMatchObject({ liked: false });
+  });
+});
+
+describe("modos del feed", () => {
+  it("las pestañas van en el orden del diseño, una por modo del servidor", () => {
+    expect(FEED_MODE_TABS.map((tab) => tab.label)).toEqual(["Para ti", "Versículos", "Historias", "Personajes"]);
+  });
+
+  it("la vecina se queda en el borde", () => {
+    expect(neighborMode("para-ti", 1)).toBe("versiculos");
+    expect(neighborMode("para-ti", -1)).toBe("para-ti");
+    expect(neighborMode("personajes", 1)).toBe("personajes");
+    expect(neighborMode("historias", -1)).toBe("versiculos");
+  });
+
+  it("solo un arrastre claramente de lado cambia de modo", () => {
+    expect(isSidewaysDrag(30, 5, 48)).toBe(true);
+    expect(isSidewaysDrag(30, 20, 48)).toBe(false);
+    expect(isSidewaysDrag(10, 0, 48)).toBe(false);
+    expect(sidewaysSwipe(-60, 10, 48)).toBe(1);
+    expect(sidewaysSwipe(60, -10, 48)).toBe(-1);
+    expect(sidewaysSwipe(40, 0, 48)).toBeNull();
+    expect(sidewaysSwipe(-80, 50, 48)).toBeNull();
+  });
+});
+
+describe("leyenda y versículo de la pantalla", () => {
+  it("un versículo: @versión, cita y tema", () => {
+    expect(feedCaption(item("Salmos 23:1"), 0)).toEqual({ source: "@RV1909", detail: "Salmos 23:1 · Paz" });
+    expect(feedCaption(item("Filipenses 4:6-7", { book: "Filipenses", chapter: 4, verse: 6, endVerse: 7, topic: null }), 0)).toEqual({
+      source: "@RV1909",
+      detail: "Filipenses 4:6-7",
+    });
+  });
+
+  it("una historia: @título, cita de la parte y en qué parte va", () => {
+    expect(feedCaption(reel(), 1)).toEqual({ source: "@La creación", detail: "Génesis 1:2 · Historia · Parte 2 de 3" });
+  });
+
+  it("un personaje: @nombre, el pasaje en que se basa y su etiqueta sin repetir el libro", () => {
+    const moises = reel({ kind: "character", title: "Moisés", subtitle: "Éxodo · el que dudó de sí mismo" });
+    expect(feedCaption({ ...moises, scenes: moises.scenes.slice(0, 1) }, 0)).toEqual({
+      source: "@Moisés",
+      detail: "Basado en Génesis 1:1 · el que dudó de sí mismo",
+    });
+    expect(feedCaption({ ...moises, subtitle: "Profeta", scenes: moises.scenes.slice(0, 1) }, 0).detail).toBe(
+      "Basado en Génesis 1:1 · Profeta",
+    );
+  });
+
+  it("el versículo para Imagen / Enviar: el del feed (con rango), el de la parte, o nada si la parte cita un capítulo", () => {
+    expect(feedPassageTarget(item("Salmos 23:1"), 0)).toEqual({ book: "Salmos", chapter: 23, verse: 1 });
+    expect(feedPassageTarget(item("Salmos 23:1-2", { endVerse: 2 }), 0)).toEqual({
+      book: "Salmos",
+      chapter: 23,
+      verse: 1,
+      verseEnd: 2,
+    });
+    expect(feedPassageTarget(reel(), 2)).toEqual({ book: "Génesis", chapter: 1, verse: 3 });
+    const whole = reel();
+    expect(feedPassageTarget({ ...whole, scenes: whole.scenes.map((scene) => ({ ...scene, verse: null })) }, 0)).toBeNull();
   });
 });

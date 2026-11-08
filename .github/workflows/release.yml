@@ -27,6 +27,10 @@ on:
         description: "Texto de Novedades para la App Store (opcional)"
         type: string
         default: ""
+      lanzar_al_aprobar:
+        description: "Publicar en la App Store apenas Apple la apruebe (si no, queda MANUAL)"
+        type: boolean
+        default: false
 
 concurrency:
   group: release
@@ -96,4 +100,5 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           NOVEDADES: ${{ inputs.novedades }}
+          LANZAR_AL_APROBAR: ${{ inputs.lanzar_al_aprobar && '1' || '' }}
         run: node scripts/submit-app-review.mjs

@@ -7,7 +7,7 @@ import type { FeedEntry, FeedItem, FeedReelItem } from "./verseFeed";
 import { textHash } from "./verseFeedText";
 import { REEL_POOL } from "./feedReelsCore";
 import { FEED_PAGE_SIZE, FEED_POOL, FEED_RECENT_GUARD } from "./verseFeedCore";
-import { FEED_REEL_SLOTS } from "./verseFeedLimits";
+import { FEED_REEL_PAGE_SIZE, FEED_REEL_SLOTS } from "./verseFeedLimits";
 
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
@@ -237,6 +237,71 @@ describe("verseFeed.page con reels", () => {
     expect(same.scenes[0].imageUrl).not.toBe(reel.scenes[0].imageUrl);
     expect(same.scenes[0].audioUrl).toMatch(/^https?:\/\//);
     expect(same.scenes[0].imageAlt).toBe(`Ilustración de ${reel.title}, parte 1`);
+  });
+});
+
+describe("verseFeed.page con modos", () => {
+  it("Para ti es la mezcla de siempre, aunque no mande withReels", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const mixed = await t.query(api.verseFeed.page, { seen: [], seed: 4, withReels: true });
+    const forYou = await t.query(api.verseFeed.page, { seen: [], seed: 4, mode: "para-ti" });
+    expect(forYou).toEqual(mixed);
+  });
+
+  it("Versículos trae solo versículos, aunque pida reels", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    const { items } = await t.query(api.verseFeed.page, { seen: [], seed: 4, withReels: true, mode: "versiculos" });
+    expect(verses(items)).toHaveLength(FEED_PAGE_SIZE);
+  });
+
+  it("Historias y Personajes traen solo reels de ese tipo, sin repetir lo visto", async () => {
+    const t = convexTest(schema, modules);
+    await seedPool(t);
+    for (const [mode, kind] of [
+      ["historias", "story"],
+      ["personajes", "character"],
+    ] as const) {
+      const seen: string[] = [];
+      for (let page = 0; page < 3; page += 1) {
+        const { items, newRound } = await t.query(api.verseFeed.page, { seen, seed: 7, mode });
+        expect(newRound).toBe(false);
+        expect(items).toHaveLength(FEED_REEL_PAGE_SIZE);
+        for (const item of items) {
+          expect(item.kind).toBe(kind);
+          expect(seen).not.toContain(item.ref);
+        }
+        seen.push(...items.map((item) => item.ref));
+      }
+    }
+  });
+
+  it("en Personajes, cuando ya se vieron todos, avisa que empieza otra vuelta y la página sale llena", async () => {
+    const t = convexTest(schema, modules);
+    const seen = REEL_POOL.filter((reel) => reel.kind === "character").map((reel) => reel.ref);
+    const { items, newRound } = await t.query(api.verseFeed.page, { seen, seed: 2, mode: "personajes" });
+    expect(newRound).toBe(true);
+    expect(items).toHaveLength(FEED_REEL_PAGE_SIZE);
+    // Los últimos vistos no vuelven enseguida: con pocos personajes, todos menos los que llenan la tanda.
+    const recent = seen.slice(-(seen.length - FEED_REEL_PAGE_SIZE));
+    for (const item of items) expect(recent).not.toContain(item.ref);
+  });
+
+  it("rechaza un modo que no existe", async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.query(api.verseFeed.page, { seen: [], seed: 1, mode: "videos" as "para-ti" }),
+    ).rejects.toThrow();
+  });
+});
+
+describe("verseFeed.preview", () => {
+  it("da la foto de la cita del día, y la de IA cuando ya existe", async () => {
+    const t = convexTest(schema, modules);
+    const first = await t.query(api.verseFeed.preview, { dateKey: "2026-11-08" });
+    expect(first.imageUrl).toMatch(/^https:\/\//);
+    expect(await t.query(api.verseFeed.preview, { dateKey: "2026-11-08" })).toEqual(first);
   });
 });
 

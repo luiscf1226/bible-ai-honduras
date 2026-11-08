@@ -38,6 +38,13 @@ const SEASON_BLOCK_EM = 2;
 
 export type StoryFormat = "story" | "square";
 
+/**
+ * Composición de la imagen (design/oleada-ux.md §Crear imagen): `classic`
+ * centrada (la de siempre), `poster` con el versículo grande abajo a la
+ * izquierda y `minimal` más chico, sin comillas, con una línea fina sobre la cita.
+ */
+export type StoryLayout = "classic" | "poster" | "minimal";
+
 /** Bloque "Para …" + dedicatoria del versículo dedicado (#202), ya medido. */
 export type DedicationBlock = {
   /** Tamaño del "Para …", en píxeles de salida. */
@@ -54,6 +61,10 @@ export type VerseStoryOptions = {
   format?: StoryFormat;
   /** Versículo dedicado (#202): su bloque resta alto y el versículo puede bajar hasta `dedicationVerseMin`. */
   dedication?: DedicationBlock;
+  /** Composición (default `classic`). */
+  layout?: StoryLayout;
+  /** El texto va entero (#202, Crear imagen): como en la dedicatoria, puede bajar hasta `dedicationVerseMin`. */
+  fitWhole?: boolean;
 };
 
 /** Alto y margen vertical de la imagen según el formato. */
@@ -99,12 +110,29 @@ export function estimateLines(text: string, charsPerLine: number): number {
   return lines;
 }
 
+/** Lo que suma la línea de cada composición con su aire: Póster arriba del versículo, Minimal sobre la cita. */
+export function layoutRuleHeight(layout: StoryLayout = "classic", image: StoryImageTokens = tokens.storyImage): number {
+  if (layout === "poster") return image.dedicationRule + image.reference;
+  if (layout === "minimal") return image.minimalRule + image.reference;
+  return 0;
+}
+
+/** Tamaño máximo del versículo según la composición. */
+export function layoutVerseMax(layout: StoryLayout = "classic", image: StoryImageTokens = tokens.storyImage): number {
+  if (layout === "poster") return image.posterVerseMax;
+  if (layout === "minimal") return image.minimalVerseMax;
+  return image.verseMax;
+}
+
 /** Alto disponible para el versículo, descontando márgenes, cita, marca y, si hay, la temporada. */
 export function verseAreaHeight(image: StoryImageTokens = tokens.storyImage, options: VerseStoryOptions = {}): number {
   const frame = storyFrame(image, options.format);
   const season = options.withSeason ? image.season * SEASON_BLOCK_EM : 0;
   const dedication = options.dedication ? dedicationBlockHeight(options.dedication, image) : 0;
-  return frame.height - frame.paddingY * 2 - image.reference * REFERENCE_BLOCK_EM - image.brand * BRAND_BLOCK_EM - season - dedication;
+  const rule = layoutRuleHeight(options.layout, image);
+  return (
+    frame.height - frame.paddingY * 2 - image.reference * REFERENCE_BLOCK_EM - image.brand * BRAND_BLOCK_EM - season - dedication - rule
+  );
 }
 
 export function verseStoryLayout(
@@ -122,8 +150,8 @@ export function verseStoryLayout(
   };
 
   // Un versículo dedicado nunca se corta (#202: "sin editar"): puede achicarse más.
-  const minFont = options.dedication ? image.dedicationVerseMin : image.verseMin;
-  for (let fontSize = image.verseMax; fontSize >= minFont; fontSize -= FONT_STEP) {
+  const minFont = options.dedication || options.fitWhole ? image.dedicationVerseMin : image.verseMin;
+  for (let fontSize = layoutVerseMax(options.layout, image); fontSize >= minFont; fontSize -= FONT_STEP) {
     const candidate = measure(fontSize);
     if (candidate.lines * candidate.lineHeight <= availableHeight) {
       return { ...candidate, truncated: false };
@@ -135,6 +163,18 @@ export function verseStoryLayout(
 }
 
 /**
+ * Formatos en los que `text` entra entero (nunca cortado). Los textos muy
+ * largos solo entran en 9:16; si ni ahí entran, ninguno.
+ */
+export function fittingStoryFormats(
+  text: string,
+  options: Omit<VerseStoryOptions, "format"> = {},
+  image: StoryImageTokens = tokens.storyImage,
+): StoryFormat[] {
+  return (["story", "square"] as const).filter((format) => !verseStoryLayout(text, image, { ...options, format }).truncated);
+}
+
+/**
  * Medidas fijas de la imagen (marca y aire), en píxeles de salida. Salen del
  * tamaño de la marca y de la cita (`storyImage`), no de números sueltos.
  */
@@ -142,10 +182,14 @@ export function storyChrome(image: StoryImageTokens = tokens.storyImage) {
   return {
     logoSize: image.brand * 2,
     brandGap: image.brand / 2,
+    // Aire sobre la marca: lo que queda de `BRAND_BLOCK_EM` después del logo.
+    brandAir: image.brand * (BRAND_BLOCK_EM - 2),
     referenceGap: image.reference,
     // Temporada (#199): el renglón del nombre y el espaciado de `overline`, en proporción.
     seasonLineHeight: image.season * image.verseLineHeight,
     seasonLetterSpacing: image.season * tokens.type.overline.letterSpacing,
+    // Minimal (Crear imagen): la cita en mayúsculas con el espaciado de `overline`.
+    citationLetterSpacing: image.reference * tokens.type.overline.letterSpacing,
   };
 }
 

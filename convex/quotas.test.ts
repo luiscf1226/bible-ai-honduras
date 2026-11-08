@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 
 import { api, internal } from "./_generated/api";
-import { QUOTA_LIMITS } from "./quotas";
+import { charge, QUOTA_LIMITS, refund } from "./quotas";
 import schema from "./schema";
 
 const modules = {
@@ -215,5 +215,20 @@ describe("quotas.checkAndConsumeForUser", () => {
 
     const remaining = await asUser(t, "user_rag").query(api.quotas.remaining, { module: "voices" });
     expect(remaining).toMatchObject({ used: 1, remaining: 4, isPro: false });
+  });
+});
+
+describe("quotas.refund", () => {
+  it("devuelve al día en que se cobró aunque la falla llegue pasada la medianoche", async () => {
+    const t = convexTest(schema, modules);
+    const { userId } = await seedUser(t, "user_refund");
+    const charged = await t.run((ctx) => charge(ctx, userId, "verseImage"));
+    expect(charged).toMatchObject({ allowed: true });
+    const day = (charged as { day: string }).day;
+    await t.run((ctx) => ctx.db.insert("usage", { userId, module: "verseImage", day: "2099-01-01", count: 1 }));
+
+    await t.run((ctx) => refund(ctx, userId, "verseImage", day));
+    const rows = await t.run((ctx) => ctx.db.query("usage").collect());
+    expect(Object.fromEntries(rows.map((row) => [row.day, row.count]))).toEqual({ [day]: 0, "2099-01-01": 1 });
   });
 });

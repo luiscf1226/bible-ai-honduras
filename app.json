@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bible AI Honduras",
     "slug": "bible-ai-honduras",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,6 +18,10 @@
         {
           "ios": {
             "deploymentTarget": "17.0"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],

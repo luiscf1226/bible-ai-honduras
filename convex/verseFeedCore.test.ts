@@ -8,13 +8,15 @@ import {
   FEED_POOL,
   FEED_RECENT_GUARD,
   FEED_SEEN_MAX,
+  feedPagePlan,
+  feedPreviewPassage,
   fitPassageText,
   parseFeedRef,
   rankFeedPage,
   topicAffinity,
   type FeedPassage,
 } from "./verseFeedCore";
-import { FEED_REEL_SLOTS } from "./verseFeedLimits";
+import { FEED_REEL_PAGE_SIZE, FEED_REEL_SLOTS } from "./verseFeedLimits";
 
 // La página que se muestra; `newRound` se prueba aparte.
 const rank = (input: Parameters<typeof rankFeedPage>[0]) => rankFeedPage(input).passages;
@@ -307,5 +309,36 @@ describe("lo que entra en una pantalla", () => {
   it("si ni el primer versículo entra, no se muestra", () => {
     expect(fitPassageText(rows, 100)).toBeNull();
     expect(fitPassageText([], 300)).toBeNull();
+  });
+});
+
+describe("feedPagePlan", () => {
+  it("sin modo hace lo de siempre: con withReels mezcla, sin él solo versículos", () => {
+    expect(feedPagePlan(undefined, false)).toEqual({ verses: FEED_PAGE_SIZE, reelSlots: [], reelKind: null });
+    expect(feedPagePlan(undefined, true)).toEqual({
+      verses: FEED_PAGE_SIZE - FEED_REEL_SLOTS.length,
+      reelSlots: FEED_REEL_SLOTS,
+      reelKind: null,
+    });
+  });
+
+  it("Para ti siempre mezcla; Versículos nunca trae reels", () => {
+    expect(feedPagePlan("para-ti", false)).toEqual(feedPagePlan(undefined, true));
+    expect(feedPagePlan("versiculos", true)).toEqual({ verses: FEED_PAGE_SIZE, reelSlots: [], reelKind: null });
+  });
+
+  it("Historias y Personajes son páginas de solo reels de ese tipo", () => {
+    const slots = Array.from({ length: FEED_REEL_PAGE_SIZE }, (_, slot) => slot);
+    expect(feedPagePlan("historias", false)).toEqual({ verses: 0, reelSlots: slots, reelKind: "story" });
+    expect(feedPagePlan("personajes", true)).toEqual({ verses: 0, reelSlots: slots, reelKind: "character" });
+  });
+});
+
+describe("feedPreviewPassage", () => {
+  it("es la misma cita todo el día, cambia con los días y siempre es una cita por tema", () => {
+    expect(feedPreviewPassage("2026-11-08").ref).toBe(feedPreviewPassage("2026-11-08").ref);
+    const week = new Set(Array.from({ length: 7 }, (_, day) => feedPreviewPassage(`2026-11-${10 + day}`).ref));
+    expect(week.size).toBeGreaterThan(1);
+    for (const ref of week) expect(FEED_POOL.find((passage) => passage.ref === ref)!.topics.length).toBeGreaterThan(0);
   });
 });

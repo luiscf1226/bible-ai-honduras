@@ -41,11 +41,13 @@
 | `size.actionTile` | 64 | | Celda de la barra de herramientas del versículo (U4) |
 | `size.ring` | 1.5 | | Anillo `accent` del personaje del mes (#200) |
 | `grid.actionColumns` | 4 | | Columnas de esa barra (U4); desde #232, las acciones que despliega "Más" |
-| `grid.primaryActionColumns` | 5 | | Fila de arriba de la hoja del versículo: 4 acciones + "Más" (#232) |
+| `grid.primaryActionColumns` | 6 | | Fila de arriba de la hoja del versículo: 4 acciones + "Más" (#232); 5 + "Más" desde la 1.0.3 (Imagen) |
 | `size.noteEditorMin` | 180 | | Alto mínimo del campo "Mis notas" del editor de prédica (#232) |
 | `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30, temporada 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
 | `season.{reforma,gratitud,adviento,anio-nuevo}` | ver `tokens.json` | | Capa de temporada (#199) |
 | `seasonDecor.*` | warm · gold · leaf · deep, día y noche | | Tonos de la guirnalda de temporada |
+| `size.badge` | 20 | | Contador de no leídos de Amigos (mismo lado que `icon.md`) |
+| `size.composerMax` | 104 | | Alto máximo del campo del chat de Amigos (4 renglones de `body`) |
 
 ## Íconos
 
@@ -55,7 +57,9 @@ imagen, amanecer, guardado, reloj, candado, refrescar) se copiaron tal cual.
 Los nuevos siguen el mismo trazo de 1.3 sobre 24: `menu`, `search`, `plus`,
 `note`, `highlight`, `ribbon`, `share`, `copy`, `voice`, `textSize`, `calendar`;
 y desde #232 `home`, `person`, `gear` (Ajustes: el sol se leía como "modo
-día/noche"), `more` (tres puntos) y `sermon` (cuaderno con renglones).
+día/noche"), `more` (tres puntos) y `sermon` (cuaderno con renglones). Para
+Amigos (1.0.3): `friends` (dos personas), `flag` (reportar) y `block` (círculo
+tachado).
 Color siempre desde `useTheme().color`. **No se usan emojis como íconos.**
 
 ---
@@ -419,7 +423,7 @@ tarjetas de antes). Guardados, subrayados y separador viven en Mi espacio.
 ### Hoja del versículo
 
 Fila de arriba (`grid.primaryActionColumns`): Guardar, Nota, Compartir,
-Preguntar y **Más** (`more`). "Más" se vuelve "Menos" en `accent` y despliega
+**Imagen** (desde la 1.0.3, §Crear imagen), Preguntar y **Más** (`more`). "Más" se vuelve "Menos" en `accent` y despliega
 el resto abajo, separado por una línea `border`, en `grid.actionColumns`.
 
 ### Mi espacio
@@ -637,3 +641,308 @@ versículos.
   comunidad), Compartir (la parte que se ve, por `shareContent`), **Conversar**
   (ícono `voice`, solo si hay personaje: abre su chat en Voces) y Leer (el
   capítulo de la parte que se ve). Doble toque = ♥, igual que el versículo.
+
+## Crear imagen (`/imagen`)
+
+Pedido directo del fundador (8 de noviembre de 2026, versión 1.0.3): "sería
+bonito que te dé la opción de hacer una imagen así bonita por el versículo que
+decidas". Se diseñó fuera de Claude Design, con permiso explícito, como el
+resto de esta oleada. "Dedicar" (#202) sigue igual: es la variante con "Para …".
+
+**Entradas** (`openVerseImage({ book, chapter, verse, verseEnd? })`):
+
+- Hoja del versículo: acción **Imagen** (ícono `image`) en la fila de arriba,
+  al lado de Compartir. La fila pasa a 5 acciones + "Más":
+  `grid.primaryActionColumns` 6.
+- `/hoy`: fila "Crear imagen con otro estilo" (`image`) arriba de "Dedicar
+  este versículo".
+- Feed de versículos: el botón `onImage` del riel llama a `openVerseImage` con
+  la cita (y el rango) que se ve.
+
+**Pantalla** (`app/imagen.tsx`), de arriba abajo, con el `ScreenHeader`
+"Crear imagen":
+
+- **Vista previa grande**: la `VerseStoryCard` a `size.verseImagePreview`
+  (token nuevo: 252 de ancho en 9:16, 320 en cuadrada), con `radius.lg` y
+  borde `border`, centrada.
+- **FONDO** (`overline` `accent`): carrusel horizontal que llega a los bordes
+  de la pantalla, separado `space.md`. Cada miniatura es 3:4,
+  `size.styleThumb` (token nuevo, 60 × 80), `radius.md`, borde de
+  `size.ring` en `border` (o `accent` si está elegida), con el color o la foto
+  con `imageScrim` de noche y un "Aa" en serif `subtitle` en la tinta de ese
+  fondo. Debajo, el nombre en `caption` (`ink` si está elegida, si no
+  `inkMuted`). En orden:
+  1. **Con IA**: si la cita ya tiene fondo de IA (el del feed, o el de una
+     cita del feed que la contiene: "Filipenses 4:6" usa el de "4:6-7"), es
+     una miniatura más. Si no, es una miniatura `surface` con borde punteado
+     `borderStrong` y el ícono `image` en `accent`: tocarla pinta el fondo
+     (`ActivityIndicator` `accent` y "Pintando…" mientras tanto) y, al
+     llegar, queda elegido.
+  2. Las fotos de los devocionales ("Foto 1"…), empezando por la que el feed
+     le da a esa cita.
+  3. Los colores lisos de "Dedicar" (`storyPalettes`): Papel (`paper`),
+     Noche, el de la temporada activa (con su nombre arriba de la imagen) y
+     Arena (`surfaceSunk` con `sage`).
+  Si el fondo con IA no sale, una línea `caption` `sansLight` `inkSoft` debajo
+  del carrusel lo explica (cuota del día, sin saldo en OpenAI, falla) y
+  ofrece las fotos y los colores. **Nunca bloquea compartir.**
+- **COMPOSICIÓN** (`FilterPills`): Clásica · Póster · Minimal.
+  - Clásica: la de siempre (#161), centrada, entre comillas, hasta
+    `storyImage.verseMax`.
+  - Póster: el versículo grande abajo a la izquierda, hasta
+    `storyImage.posterVerseMax` (token nuevo, 100 px de salida), con un
+    filete `accent` arriba (`dedicationRule` × `dedicationRuleWidth`), la
+    cita debajo alineada a la izquierda y la marca también.
+  - Minimal: sin comillas, hasta `storyImage.minimalVerseMax` (token nuevo,
+    64), con una línea fina `accent` (`minimalRule` 2 × `minimalRuleWidth` 96,
+    tokens nuevos) y la cita en mayúsculas con el espaciado de `overline`.
+- **FORMATO** (`FilterPills`): "Estado · 9:16" y "Cuadrado". El texto va
+  siempre entero (como en Dedicar puede bajar hasta `dedicationVerseMin`): si
+  no entra en la cuadrada, solo se ofrece 9:16 con una línea que lo explica; si
+  ni en 9:16 entra (un rango muy largo), se pide elegir menos versículos.
+- Botones en fila: **Compartir imagen** (`AppButton` principal, ícono
+  `share`; pasa por `shareImage`, origen `verse_image`) y **Dedicar**
+  (secundario, `gift`; abre `/dedicar` con el mismo versículo; no aparece con
+  un rango, porque Dedicar es de un versículo).
+
+El último fondo, composición y formato elegidos se recuerdan en el teléfono
+(AsyncStorage). Si el fondo recordado no existe para otra cita (por ejemplo,
+"Con IA"), abre con el de IA si hay, si no con la primera foto.
+
+**Qué se muestra** (`convex/verseImage.ts`): el texto es el del corpus en la
+versión de la persona, sin editar (regla dura #4); un rango llega hasta 6
+versículos. El fondo con IA es el mismo del feed (`verseFeedMedia`, mismo
+prompt y misma llave): pintarlo acá también ilustra el feed, y nunca muestra a
+Jesús, Dios ni el Espíritu Santo como figura. Cada fondo nuevo consume la cuota
+`verseImage` (3 por día) de `convex/quotas.ts`; si OpenAI falla, la cuota se
+devuelve. Lo que ya tiene fondo no cobra nada.
+
+| Token | Valor | Uso |
+|---|---|---|
+| `size.verseImagePreview` | 9:16 252 · cuadrada 320 | Vista previa de Crear imagen |
+| `size.styleThumb` | 60 × 80 | Miniatura de cada fondo del carrusel |
+| `storyImage.posterVerseMax` | 100 | Tope del versículo en Póster (px de salida) |
+| `storyImage.minimalVerseMax` | 64 | Tope del versículo en Minimal |
+| `storyImage.minimalRule` / `minimalRuleWidth` | 2 / 96 | Línea fina de Minimal |
+| `grid.primaryActionColumns` | 6 | Fila de arriba de la hoja con Imagen |
+
+## Feed en modo TikTok: modos, pantalla completa y entrada en Inicio (`/versiculos`, 1.0.3)
+
+Pedido directo del fundador (8 de noviembre de 2026): que el feed sea un
+"modo TikTok" mucho más obvio, con modos distintos. Se diseñó fuera de Claude
+Design, con permiso explícito, como el resto de esta oleada. Sigue **dentro de
+Inicio** (lo eligió el fundador el 27 de octubre), sin pestaña propia: lo que
+cambia es que la entrada no se puede pasar por alto. Esta sección **reemplaza**
+en §Feed de versículos y §Reels del feed lo que dice del ‹ de volver, la pista
+"Deslizá para ver más", el tema y la cita arriba del versículo, la columna de
+acciones y la barra de partes en la fila del ‹.
+
+**Modos** (pestañas de texto arriba, centradas, flotando sobre la imagen):
+"Para ti" (la mezcla de siempre: versículos y, en el 3.º y 6.º lugar,
+historias y personajes), "Versículos" (solo versículos), "Historias" (solo
+historias contadas) y "Personajes" (solo personajes en 1ra persona).
+
+- Cada modo **filtra en el servidor**: `verseFeed.page` recibe `mode`
+  (validado; `convex/verseFeedLimits.ts` `FEED_MODES`). Sin `mode` —los builds
+  que ya están en la tienda— se comporta como antes (`withReels`). En
+  Historias y Personajes cada página trae 4 reels de ese tipo
+  (`FEED_REEL_PAGE_SIZE`); cuando ya se vieron todos, empieza otra vuelta sin
+  los últimos.
+- Etiquetas en `sansMedium` `bodySm`, en `surface`; la activa entera, las
+  demás al `opacity.feedTabIdle` (0.6, token nuevo). Debajo de la activa, un
+  subrayado corto `size.feedTabUnderline` (18 × 2, token nuevo) con
+  `radius.pill`. Separadas `space.md`. Si con la letra del sistema agrandada
+  no entran (tope `fontScale.feedMax`), la fila se desliza y lleva la activa a
+  la vista.
+- Se cambia tocando la pestaña o **deslizando de lado** (más de
+  `motion.feedModeSwipe`, 48 px, y el doble de horizontal que de vertical; el
+  contenido sigue un poco al dedo y vuelve con un resorte). El swipe vertical,
+  el toque y el doble toque siguen siendo del feed.
+- Al cambiar de modo la lista arranca arriba; cada modo guarda su propio
+  "visto" y su semilla mientras el feed está abierto, así volver a una pestaña
+  trae lo que todavía no se vio en ella.
+- A11y: la fila es `tablist`, cada pestaña `tab` con `selected`.
+
+**Pantalla completa inmersiva:**
+
+- Sin barra de estado mientras se ve el feed (vuelve al salir o al abrir
+  "Leer"). Sin encabezado de pantalla: arriba a la izquierda un ✕ discreto
+  (`close`, `icon.md`, `surface`, sin círculo, área `size.backButton` +
+  `hitSlop`); a la derecha, un hueco del mismo ancho para que las pestañas
+  queden centradas (ahí vuelve el botón de sonido el día que vuelva la voz).
+- Fondo de la pantalla `night.bg` también de día: mientras carga un modo, las
+  pestañas en `surface` se siguen leyendo. La carga y el error van en
+  `surface` (`sansLight` `bodySm`; "Intentar de nuevo" en una píldora
+  `surface` al `opacity.feedActionFill`).
+
+**Riel derecho** (abajo, separado `space.lg`), como TikTok:
+
+1. **Avatar** circular `size.feedAction` con borde `surface` de `size.ring`:
+   el libro (`book` `icon.lg` sobre `surface` al `feedActionFill`) en un
+   versículo —abre el capítulo—, el `CharacterAvatar` en un personaje —abre
+   su chat en Voces— o la primera imagen de la historia —abre el capítulo de
+   la parte que se ve—.
+2. ♥ con la cuenta de la comunidad (igual que antes).
+3. Compartir (por `shareContent`, regla dura #3).
+4. **Imagen** (`image`) y **Enviar** (`send`): opcionales, solo si la
+   pantalla recibe `onImage` / `onSend`, y solo si lo que se ve tiene un
+   versículo (una parte que cita un capítulo entero no lo tiene). Los conecta
+   la integración de la 1.0.3 con la imagen del versículo y el chat con
+   amigos.
+5. En un personaje, **Leer**; en una historia que invita a un personaje,
+   **Conversar**.
+
+**Leyenda** abajo a la izquierda (debajo del texto, al lado del riel):
+"@fuente" en `sansMedium` `label` (`@RV1909` —la versión que se ve—,
+`@Moisés`, `@El arca de Noé`) y una línea en `sans` `bodySm` al `imageMuted`
+con la cita y el tema ("1 Corintios 13:4 · Esperanza"), la parte ("Génesis
+3:1–7 · Historia · Parte 1 de 3") o el pasaje y la etiqueta del personaje
+("Basado en 1 Reyes 19:11-13 · agotado después del triunfo"). Por eso el
+centro queda solo con el texto: el versículo entre comillas; la historia con
+su título en serif `subtitle` arriba; el personaje con sus palabras entre
+comillas.
+
+**Barra de partes de los reels:** pegada abajo (sobre el margen seguro), de
+borde a borde, tramos de `size.reelProgress` separados `space.xxs`. Lo visto
+en `surface`, lo que falta al `opacity.reelTrack`, y el tramo de la parte que
+se ve **se llena en lo que dura la parte** (el mismo tiempo de lectura con el
+que avanza). Con lector de pantalla o "reducir movimiento", el tramo queda
+lleno y la parte no avanza sola.
+
+**Pista de la primera vez:** sobre la leyenda, al centro, una píldora
+`night.imageScrim` con `radius.xxl`: `chevronDown` girado hacia arriba que
+sube y baja `motion.verseRiseDistance` cada `motion.feedHintBounce` (900 ms,
+token nuevo), "Deslizá hacia arriba" en `sansMedium` `label` y "o de lado para
+cambiar de modo" en `caption`. Aparece y se va con fundido (`verseRise`); se
+va al deslizar, al cambiar de modo o sola a los `motion.feedHint` (5 s, token
+nuevo). Sale una sola vez por teléfono (AsyncStorage; si no hay
+almacenamiento, vuelve a salir). No sale con lector de pantalla.
+
+**Entrada en Inicio:**
+
+- La tarjeta del feed pasa a ser una **tarjeta héroe** de alto fijo
+  `size.feedHeroCard` (148, token nuevo), `radius.xxl`, de borde a borde con
+  una vista previa en movimiento: la foto de una cita del día
+  (`verseFeed.preview`, la misma para todos ese día, con su imagen de IA si ya
+  existe) con el zoom lento de Ken Burns mientras Inicio está a la vista, y
+  `imageScrim`. Arriba, `overline` "VERSÍCULOS · HISTORIAS · PERSONAJES";
+  abajo, "Versículos para vos" en serif `verseHero` y un botón ▶ "Para ti"
+  (píldora `surface`, `play` relleno `icon.sm` y `sansMedium` `label` en
+  `ink`). Antes de que llegue la foto, la tarjeta es `night.bg`. El
+  versículo del día sigue estirándose con lo que sobra: un día normal el
+  inicio entra en una pantalla de 390 × 844.
+- En el encabezado de Inicio, a la izquierda de Ajustes, un **▶** redondo del
+  mismo tamaño (`size.logoSmall`) con fondo `accent` y `play` relleno en
+  `surface`: abre el feed en "Para ti".
+
+**Rendimiento:** la lista arma solo la pantalla que se ve y sus vecinas
+(`windowSize` 3, `initialNumToRender` 1, `maxToRenderPerBatch` 2,
+`removeClippedSubviews`); las pantallas son `memo` y al cambiar la que se ve
+solo cambian las props de la que entra y la que sale. Se precargan las fotos
+de las dos primeras pantallas y, al quedar una a la vista, las de la
+siguiente (todas las partes, si es un reel).
+## Amigos y chat 1 a 1 (`/amigos`)
+
+Pedido directo del fundador (8 de noviembre de 2026, versión 1.0.3): "conectar
+cuentas y hablar chat mediante la app". Se diseñó fuera de Claude Design, con
+permiso explícito, como el resto de esta oleada. Alcance elegido: amigos +
+chat 1 a 1 con reportar, bloquear y filtro de contenido (Apple 1.2), y mandar
+un versículo dentro del chat. Gratis, sin cuota. Sin notificaciones push en
+esta versión: el contador de no leídos es lo que avisa.
+
+**Entradas:**
+
+- Inicio: la tarjeta de contexto (`ContextCard`) suma el tipo `friends`, segundo
+  en prioridad después de "Hay una versión nueva": un `HomeCard` con ícono
+  `friends`, título "Amigos" y la línea "Tenés 2 mensajes sin leer y 1
+  solicitud de amistad." Solo aparece con algo pendiente.
+- Mi espacio → Conversaciones: renglón "Amigos" con la cuenta de amigos y, en
+  serif, lo pendiente ("2 mensajes sin leer") o cómo empezar.
+- Hoja del versículo → "Más" → "Enviar a un amigo" (ícono `friends`).
+- Link de WhatsApp (`…/?ref=BAH-…&amigo=1` → `bibleai://amigo?code=…`).
+
+**Normas (primera vez):** antes de ver o mandar nada, una tarjeta `surface`
+con borde, `radius.xxl`: overline `accent` "ANTES DE EMPEZAR", título serif
+`title` "Normas de Amigos", una línea `bodySm` `inkMuted` y las normas en
+renglones con `check` en `sage` y texto `sans` `bodySm` `ink`. Abajo, el
+enlace a los términos (`caption` `accentDeep`) y el `AppButton` "Acepto las
+normas". La fecha se guarda en la cuenta (`users.communityRulesAcceptedAt`).
+
+**Lista** (`app/amigos/index.tsx`), de arriba abajo, con `ListSectionLabel`:
+
+1. **Solicitudes**: `ListCard` con renglones de persona: avatar (círculo
+   `accent` de `size.cardAvatar` con la inicial en serif `subtitle`
+   `avatarInitial`), nombre en serif `subtitle`, "Quiere ser tu amigo" en
+   `caption` `inkSoft`, y dos pills chicas (`radius.pill`, `caption`
+   `sansMedium`): "Rechazar" (borde `borderStrong`) y "Aceptar" (relleno `ink`,
+   texto `surface`).
+2. **Tus amigos**: el mismo renglón con la vista previa del último mensaje
+   (`bodySm` `inkMuted`; en `sansMedium` `ink` si hay no leídos; "Vos: …" si
+   lo escribiste vos; "Versículo · Juan 3:16" si es un versículo). A la
+   derecha, la hora (`caption`; `accentDeep` si hay no leídos) y el contador:
+   círculo `accent` de `size.badge` con el número en `caption` `sansMedium`
+   `surface` ("99+" arriba de 99). Vacío: una línea `body` `inkMuted`.
+3. **Agregar amigos**: tarjeta "Tu código" con el código en serif `title` y
+   dos `AppButton` apilados: "Invitar por WhatsApp" (`whatsapp`, por
+   `shareContent`, regla dura #3) y "Copiar mi código" (`secondary`). Debajo,
+   "Agregar con código": campo pill con borde `borderStrong` y la pill
+   "Buscar"; abre la tarjeta de la persona.
+4. **Esperando respuesta**: las solicitudes que mandaste, con "Cancelar".
+5. **Personas bloqueadas**: un `ListRow` con la cuenta que despliega cada
+   persona con "Desbloquear".
+6. Nota final en `caption` `inkSoft`: quién te escribe y cuándo se borran los
+   mensajes.
+
+**Tarjeta de la persona** (`app/amigo/index.tsx`): tarjeta `radius.xxl` con
+el avatar, overline `accent` "AMIGO EN 3C", el nombre en serif `title` y el
+código en `caption`. El botón cambia según la relación: "Agregar" (`plus`),
+"Te mandó una solicitud · Aceptar", "Ya son amigos · Abrir el chat", o el
+aviso de solicitud enviada. Se ve el primer nombre y la inicial del apellido
+("Ana L."), nunca el correo.
+
+**Chat** (`app/amigos/[friendshipId].tsx`), sobre la base del chat de Voces:
+
+- Encabezado con borde inferior `border`: ‹, avatar de `size.logoSmall`,
+  nombre en serif `subtitle` y "Amigo en 3C" en `caption`; a la derecha el
+  botón redondo `more` que abre el menú.
+- Separador de día centrado ("HOY", "AYER", "LUNES 2 DE NOVIEMBRE") en
+  `overline` `sansMedium` `inkSoft`, con el calendario de Honduras.
+- Burbujas `radius.xl`, borde de 1, hasta el 84 % del ancho: las mías a la
+  derecha en `ink` con texto `surface`; las de la otra persona a la izquierda
+  en `surface` con borde `border`. Texto `sans` `body`. Debajo, la hora en
+  `caption` `inkFaint`; en mi último mensaje, "· Visto" cuando ya lo leyó.
+- **Versículo**: la burbuja pasa a `paper` con borde `border` (de los dos
+  lados): overline `accent` "VERSÍCULO", el texto en serif `subtitle` entre
+  comillas, y abajo la cita con la versión en `caption` `sansMedium`
+  `inkMuted` y una pill "Leer" (`book`, `accentDeep`) que abre el lector. El
+  texto lo pone el servidor desde la Biblia cargada (regla dura #4).
+- Campo de texto: caja `radius.xl` con borde `borderStrong`, multilínea hasta
+  `size.composerMax`, máximo 1000 caracteres, y el botón redondo
+  `size.sendButton` con `send` (relleno `ink`; `inkFaint` vacío). El teclado
+  se maneja como en Voces (`KeyboardAvoidingView` + `useScrollToEndOnKeyboard`).
+- Avisos arriba del campo en `bodySm`: en `danger` lo que no se envió ("tiene
+  palabras ofensivas", "muchos mensajes seguidos"), en `inkMuted` las
+  confirmaciones ("Gracias. Revisamos cada reporte en menos de 24 horas.").
+- Solicitud pendiente: caja `surfaceSunk` con la explicación y, si te la
+  mandaron, "Aceptar".
+
+**Hojas** (`FriendSheet`, la misma hoja de abajo del selector de pasajes de
+Preguntar: velo `ink`, esquinas `radius.xxl`, título serif `qaPickTitle`,
+opciones en una tarjeta con divisores, ícono `accent` o `danger`):
+
+- Menú: "Reportar a …" (`flag`), "Bloquear a …" (`block`, en `danger`) y
+  "Dejar de ser amigos" (`close`).
+- Toque largo sobre un mensaje: "Copiar" y, si no es tuyo, "Reportar este
+  mensaje".
+- Reportar: cinco motivos fijos sin texto libre (insultos/odio/acoso,
+  contenido sexual, ventas/préstamos/estafas, datos privados, alguien en
+  peligro; docs/spikes/moderacion-contenido-usuarios.md §3) y después
+  "¿También querés bloquear a …?" con "Reportar y bloquear" o "Solo reportar".
+- Bloquear y dejar de ser amigos piden confirmación con lo que pasa ("se
+  borra la conversación para los dos").
+
+**Enviar a un amigo** (`app/amigos/enviar.tsx`): el versículo tal como va a
+llegar (la misma tarjeta `paper` del chat, sin "Leer") y, debajo, "¿A quién se
+lo mandás?" con los amigos en renglones y un botón redondo `send` cada uno. Al
+tocar, se manda y se abre ese chat.
+

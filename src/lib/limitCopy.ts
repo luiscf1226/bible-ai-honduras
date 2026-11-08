@@ -1,4 +1,4 @@
-import { QUOTA_LIMITS, type QuotaModule } from "../../convex/quotas";
+import { QUOTA_LIMITS, type QuotaModule } from "../../convex/quotaLimits";
 
 const DAILY_TAIL =
   "Vuelven a medianoche de Honduras, y el devocional del día sigue abierto para vos.";
@@ -12,6 +12,9 @@ export function limitBodyFor(module: QuotaModule): string {
   }
   if (module === "feelings") {
     return `Usaste tus ${QUOTA_LIMITS.feelings} devocionales gratis de hoy. ${DAILY_TAIL}`;
+  }
+  if (module === "verseImage") {
+    return `Ya hiciste tus ${QUOTA_LIMITS.verseImage} fondos con IA de hoy. Mañana podés hacer más; mientras, elegí una foto o un color.`;
   }
   return "Ya usaste tu historia de muestra: incluye una generación por cuenta y no se renueva cada día. Podés seguir leyendo las historias en texto y abrir tu historia ilustrada.";
 }

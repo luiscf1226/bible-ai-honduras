@@ -8,6 +8,7 @@ describe("limitBodyFor", () => {
     expect(limitBodyFor("qa")).toContain(`${QUOTA_LIMITS.qa} preguntas`);
     expect(limitBodyFor("voices")).toContain(`${QUOTA_LIMITS.voices} conversaciones`);
     expect(limitBodyFor("feelings")).toContain(`${QUOTA_LIMITS.feelings} devocionales`);
+    expect(limitBodyFor("verseImage")).toContain(`${QUOTA_LIMITS.verseImage} fondos con IA`);
   });
 
   it("los cupos diarios coinciden con el cambio de fecha del servidor", () => {

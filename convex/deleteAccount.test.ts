@@ -21,6 +21,7 @@ const modules = {
   "./devotional.ts": () => import("./devotional"),
   "./bibleVersions.ts": () => import("./bibleVersions"),
   "./voicesCatalog.ts": () => import("./voicesCatalog"),
+  "./friends.ts": () => import("./friends"),
 };
 
 function asUser(t: ReturnType<typeof convexTest>, clerkId: string, email?: string) {
@@ -325,6 +326,13 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       sermonNotes: 1,
       memoryVerses: 1,
       verseFeedLikes: 1,
+      friendships: 0,
+      directMessages: 0,
+      userBlocks: 0,
+      userReports: 0,
+      userReportPairs: 0,
+      friendRequestEvents: 0,
+      friendRates: 0,
       users: 1,
     });
 
@@ -450,6 +458,82 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     const after = await tableDump(t);
     expect(after.prayerRequests).toHaveLength(0);
     expect(after.memoryVerses).toHaveLength(0);
+  });
+
+  it("Amigos (1.0.3): borra amistades con su conversación, bloqueos y reportes en los dos sentidos", async () => {
+    const t = convexTest(schema, modules);
+    const ana = asUser(t, "user_ana_amigos");
+    const beto = asUser(t, "user_beto_amigos");
+    const caro = asUser(t, "user_caro_amigos");
+    const dani = asUser(t, "user_dani_amigos");
+    await ana.mutation(api.users.upsert, {});
+    await beto.mutation(api.users.upsert, {});
+    await caro.mutation(api.users.upsert, {});
+    await dani.mutation(api.users.upsert, {});
+    for (const person of [ana, beto, caro, dani]) await person.mutation(api.friends.acceptRules, {});
+    const codeOf = async (person: typeof ana) => (await person.query(api.users.current, {}))!.referralCode;
+
+    // Ana ↔ Beto amigos, con mensajes de los dos; Caro le pidió amistad a Ana.
+    const withBeto = await ana.mutation(api.friends.request, { code: await codeOf(beto) });
+    await beto.mutation(api.friends.accept, { friendshipId: withBeto.friendshipId! });
+    await ana.mutation(api.friends.sendText, { friendshipId: withBeto.friendshipId!, text: "Hola Beto" });
+    await beto.mutation(api.friends.sendText, { friendshipId: withBeto.friendshipId!, text: "Hola Ana" });
+    await caro.mutation(api.friends.request, { code: await codeOf(ana) });
+    // Ana reportó y bloqueó a Dani; Dani también reportó a Ana.
+    const withDani = await ana.mutation(api.friends.request, { code: await codeOf(dani) });
+    await dani.mutation(api.friends.accept, { friendshipId: withDani.friendshipId! });
+    await dani.mutation(api.friends.report, { friendshipId: withDani.friendshipId!, reason: "ofensivo" });
+    await ana.mutation(api.friends.report, { friendshipId: withDani.friendshipId!, reason: "estafa", alsoBlock: true });
+    // Beto y Caro son amigos entre ellos: eso no es de Ana y se queda.
+    const betoCaro = await beto.mutation(api.friends.request, { code: await codeOf(caro) });
+    await caro.mutation(api.friends.accept, { friendshipId: betoCaro.friendshipId! });
+    await caro.mutation(api.friends.sendText, { friendshipId: betoCaro.friendshipId!, text: "Bendiciones" });
+
+    // Las filas por par que cuenta la suspensión automática, en los dos sentidos.
+    await t.run(async (ctx) => {
+      const byClerk = async (clerkId: string) =>
+        (await ctx.db.query("users").withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId)).unique())!._id;
+      const [anaId, betoId, caroId] = [await byClerk("user_ana_amigos"), await byClerk("user_beto_amigos"), await byClerk("user_caro_amigos")];
+      await ctx.db.insert("userReportPairs", { reportedId: betoId, reporterId: anaId, qualifiedAt: 1 });
+      await ctx.db.insert("userReportPairs", { reportedId: anaId, reporterId: caroId, qualifiedAt: 1 });
+      await ctx.db.insert("userReportPairs", { reportedId: betoId, reporterId: caroId, qualifiedAt: 1 });
+    });
+
+    stubClerkDelete();
+    const result = await ana.action(api.users.deleteAccount, {});
+
+    expect(result.deleted).toMatchObject({
+      friendships: 2,
+      directMessages: 2,
+      userBlocks: 1,
+      userReports: 2,
+      userReportPairs: 2,
+      // Lo que pidió Ana, lo que le pidió Caro y su límite de ritmo.
+      friendRequestEvents: 3,
+      friendRates: 1,
+      users: 1,
+    });
+    const left = await t.run(async (ctx) => ({
+      friendships: await ctx.db.query("friendships").collect(),
+      directMessages: await ctx.db.query("directMessages").collect(),
+      userBlocks: await ctx.db.query("userBlocks").collect(),
+      userReports: await ctx.db.query("userReports").collect(),
+      userReportPairs: await ctx.db.query("userReportPairs").collect(),
+      friendRequestEvents: await ctx.db.query("friendRequestEvents").collect(),
+      friendRates: await ctx.db.query("friendRates").collect(),
+    }));
+    expect(left.friendships.map((row) => row._id)).toEqual([betoCaro.friendshipId]);
+    expect(left.directMessages.map((row) => row.text)).toEqual(["Bendiciones"]);
+    expect(left.userBlocks).toHaveLength(0);
+    expect(left.userReports).toHaveLength(0);
+    // Solo queda lo de Caro sobre Beto.
+    expect(left.userReportPairs).toHaveLength(1);
+    expect(left.friendRequestEvents).toHaveLength(1);
+    expect(left.friendRates).toHaveLength(2);
+    // Para Beto, Ana ya no está.
+    expect((await beto.query(api.friends.overview, {}))?.friends.map((row) => row.friendshipId)).toEqual([
+      betoCaro.friendshipId,
+    ]);
   });
 
   it("una cuenta con muchas filas se borra completa en varias pasadas", async () => {
@@ -628,6 +712,13 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       sermonNotes: 0,
       memoryVerses: 0,
       verseFeedLikes: 0,
+      friendships: 0,
+      directMessages: 0,
+      userBlocks: 0,
+      userReports: 0,
+      userReportPairs: 0,
+      friendRequestEvents: 0,
+      friendRates: 0,
       users: 0,
     });
     const after = await tableDump(t);

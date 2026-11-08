@@ -2,7 +2,7 @@ import type { IconName } from "../../components/Icon";
 import { copyToClipboard } from "../../lib/clipboard";
 import { goToChat } from "../../lib/goToChat";
 import { goToVoices } from "../../lib/goToVoices";
-import { openDedication, openSermonNotePicker, openTimeline } from "../../lib/openPassage";
+import { openDedication, openSendToFriend, openSermonNotePicker, openTimeline, openVerseImage } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
 import { hasCrossReferences } from "./crossReferences";
@@ -22,7 +22,8 @@ import { eraForChapter } from "./timeline";
  *
  * Desde #232 (Fase 3) la hoja muestra solo las `primary` (Guardar, Nota,
  * Compartir, Preguntar) y un "Más" que despliega el resto. Una acción nueva
- * entra en "Más" salvo que se decida otra cosa: la fila de arriba no crece.
+ * entra en "Más" salvo que se decida otra cosa: en la 1.0.3 el fundador sumó
+ * "Imagen" arriba, al lado de Compartir, y ahí la fila llegó a su tope.
  */
 export type VerseActionContext = {
   verse: ReadingVerse;
@@ -120,6 +121,18 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     },
   },
   {
+    // Crear imagen (design/oleada-ux.md §Crear imagen): el versículo como imagen bonita, con
+    // fotos, colores o un fondo con IA. Va en la fila de arriba, al lado de Compartir.
+    id: "image",
+    primary: true,
+    icon: "image",
+    label: () => "Imagen",
+    accessibilityLabel: () => "Crear imagen con este versículo",
+    accessibilityHint: () => "Elegí un fondo y una composición para compartirlo como imagen.",
+    testID: "reading-action-image",
+    onPress: (ctx) => openVerseImage(ctx.verse),
+  },
+  {
     // Dedicar (#202): imagen "Para …" por WhatsApp. Gratis: es el canal de crecimiento.
     id: "dedicate",
     icon: "gift",
@@ -128,6 +141,17 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     accessibilityHint: () => "Arma una imagen con el versículo y una dedicatoria para mandar por WhatsApp.",
     testID: "reading-action-dedicate",
     onPress: (ctx) => openDedication(ctx.verse),
+  },
+  {
+    // Amigos (1.0.3): mandar el versículo por el chat de la app. El texto lo
+    // pone el servidor desde la Biblia cargada.
+    id: "send-friend",
+    icon: "friends",
+    label: () => "Enviar a un amigo",
+    accessibilityHint: () => "Elegí a qué amigo mandarle este versículo por el chat de la app.",
+    testID: "reading-action-send-friend",
+    visible: (ctx) => ctx.signedIn,
+    onPress: (ctx) => openSendToFriend(ctx.verse),
   },
   {
     // Escuchar (#157): voz del sistema desde este versículo. Gratis, sin cuota.

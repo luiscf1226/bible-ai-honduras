@@ -52,7 +52,7 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 |---|---|
 | `?qa=free` (default) | usuario gratis con cuota disponible |
 | `?qa=pro` | entitlement Pro activo |
-| `?qa=limit` | cuota agotada en los 4 módulos |
+| `?qa=limit` | cuota agotada en todos los módulos (también los fondos con IA de Crear imagen) |
 | `?qa=empty` | hilos e historial vacíos, capítulo sin versículos indexados |
 | `?qa=error` | `devotional:today` falla |
 | `?qa=loading` | todas las `useQuery` en `undefined` |
@@ -67,6 +67,8 @@ python3 qa-harness/build-report.py --embed      # QA-REPORT.html portable (~12 M
 | `?fechas=hoy` / `?fechas=1` | Tus fechas (#204): cumpleaños y bautismo que caen hoy (tarjeta arriba del inicio) o en otra fecha (solo se ven en Mi espacio). Sin el parámetro, sin fechas |
 | `?rc=none` / `?rc=error` / `?rc=cancel` · `?precio=L 124.00` | Paywall (#144). Solo si arrancaste con `EXPO_PUBLIC_REVENUECAT_API_KEY=qa_harness`: sin `?rc=` hay oferta mensual a `US$4.99` (o el `?precio=` que pases); `none` sin offering, `error` la tienda sin red, `cancel` la persona cancela la compra. Sin la key se ve "Pro todavía no está a la venta" |
 | `?plan=1` | plan anual empezado, en el día 5 con los días 3 y 4 pendientes |
+| `?ia=lista` / `?ia=sin-saldo` | Crear imagen (`/imagen`): la cita ya tiene fondo con IA, o pintarlo falla porque OpenAI no tiene saldo. Sin el parámetro, la cita no tiene fondo y "Con IA" lo pinta (queda en memoria). Con `?qa=limit`, la cuota del día está agotada |
+| `?amigos=normas` / `?amigos=vacio` | Amigos (1.0.3, `mocks/friends.js`): sin las normas aceptadas, o sin amigos ni solicitudes. Sin el parámetro hay 3 amigos (uno con mensajes sin leer y un versículo), una solicitud, una enviada y una persona bloqueada. `/amigo?code=BAH-7K2M9QX` muestra la tarjeta para agregar |
 
 La Biblia sin conexión se descarga de verdad desde Ajustes: el manifiesto del
 harness trae los 66 libros (con los versículos placeholder) como `data:` URLs y
@@ -98,7 +100,11 @@ empezar de cero, borrá el `localStorage` del sitio.
 - Feed de versículos (`/versiculos`): `verseFeed:page` arma páginas sin fin con
   citas reales de Versículos por tema y, con `withReels`, dos reels reales del
   catálogo (`convex/feedReelsCore.ts`) por página. Sin voz (`audioUrl: null`):
-  las partes de una historia avanzan con el tiempo de lectura.
+  las partes de una historia avanzan con el tiempo de lectura. Con `mode`
+  ("historias" / "personajes") la página son 4 reels de ese tipo; "versiculos",
+  solo versículos. `verseFeed:preview` (la foto de la tarjeta héroe del inicio)
+  es siempre la misma. La pista "Deslizá hacia arriba" sale una sola vez por
+  navegador (`localStorage`, `feed.swipeHintSeen`): borralo para volver a verla.
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
   historial" no aparece en el navegador. En iOS/Android sí.
 - "Proteger lo personal" guarda la preferencia en `localStorage` en web

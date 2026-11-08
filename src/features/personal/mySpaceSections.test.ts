@@ -23,6 +23,7 @@ describe("Mi espacio (#169)", () => {
       "prayers",
       "sermonNotes",
       "conversations",
+      "friends",
     ]);
     for (const section of sections) {
       expect(section.count).toBe(0);
@@ -103,6 +104,21 @@ describe("Mi espacio (#169)", () => {
       "fe:prayers",
       "fe:sermonNotes",
       "conversaciones:conversations",
+      "conversaciones:friends",
     ]);
+  });
+
+  it("Amigos (1.0.3): lo pendiente primero, y abre /amigos", () => {
+    const friends = (data: { friends: number; requests: number; unread: number }) =>
+      buildMySpaceSections({ ...empty, friends: data }).find((s) => s.id === "friends");
+    expect(friends({ friends: 2, requests: 1, unread: 3 })).toMatchObject({
+      count: 2,
+      detail: "3 mensajes sin leer",
+      action: "Abrir",
+      destination: { kind: "route", href: "/amigos" },
+    });
+    expect(friends({ friends: 0, requests: 2, unread: 0 })).toMatchObject({ count: 2, detail: "2 solicitudes de amistad" });
+    expect(friends({ friends: 4, requests: 0, unread: 0 })).toMatchObject({ count: 4, action: "Ver todo" });
+    expect(friends({ friends: 0, requests: 0, unread: 0 })?.action).toBe("Empezar");
   });
 });

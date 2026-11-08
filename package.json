@@ -18,6 +18,15 @@
     "spike:images": "node scripts/benchmark-image-providers.mjs",
     "build:local": "bash scripts/build-local.sh"
   },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "react-native-reanimated",
+        "react-native-gesture-handler",
+        "@solana-mobile/mobile-wallet-adapter-protocol"
+      ]
+    }
+  },
   "dependencies": {
     "@clerk/expo": "^4.5.0",
     "@expo-google-fonts/dm-sans": "^0.4.2",

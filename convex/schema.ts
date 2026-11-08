@@ -44,6 +44,21 @@ export default defineSchema({
     birthday: v.optional(v.string()),
     faithDate: v.optional(v.string()),
     faithDateKind: v.optional(v.union(v.literal("bautismo"), v.literal("conversion"))),
+    // Normas de Amigos (1.0.3): cuándo aceptó "cero tolerancia a contenido
+    // ofensivo o abuso". Sin esto no puede agregar amigos ni escribir.
+    communityRulesAcceptedAt: v.optional(v.number()),
+    // Lo pone el fundador a mano (panel de Convex) después de revisar un
+    // reporte: la cuenta sigue leyendo, pero no escribe ni agrega amigos. No
+    // vence.
+    friendsSuspendedAt: v.optional(v.number()),
+    // Suspensión automática por reportes de varias personas: lo mismo, pero
+    // hasta esta fecha (7 días). Para hacerla permanente, el fundador pone
+    // `friendsSuspendedAt`.
+    friendsSuspendedUntil: v.optional(v.number()),
+    // Cuándo venció la última suspensión automática. Lo escribe la tarea que
+    // corre al vencer: un cambio en la fila hace que las pantallas suscritas
+    // vuelvan a preguntar y muestren de nuevo el campo para escribir.
+    friendsSuspensionExpiredAt: v.optional(v.number()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])
@@ -431,6 +446,7 @@ export default defineSchema({
       v.literal("voices"),
       v.literal("feelings"),
       v.literal("stories"),
+      v.literal("verseImage"),
     ),
     day: v.string(), // "2026-08-18"; use "lifetime" for stories
     count: v.number(),
@@ -494,6 +510,153 @@ export default defineSchema({
       ),
     ),
   }).index("by_conversation", ["conversationId"]),
+
+  // ── Amigos y chat 1 a 1 (1.0.3) ─────────────────────────
+  // Una fila por par de personas, solicitud o amistad. `userA` < `userB` (por
+  // id) para que el par tenga una sola fila sin importar quién la pidió. Las
+  // tablas `conversations`/`messages` son del chat con IA: esto va aparte.
+  friendships: defineTable({
+    userA: v.id("users"),
+    userB: v.id("users"),
+    requestedBy: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("accepted")),
+    createdAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    lastMessageAt: v.optional(v.number()),
+    // Número del último mensaje (cada mensaje lleva el suyo en `seq`) y hasta
+    // cuál leyó cada lado: dos mensajes del mismo milisegundo no se confunden.
+    // Opcionales: las filas y mensajes de antes se comparan por fecha.
+    messageSeq: v.optional(v.number()),
+    readSeqA: v.optional(v.number()),
+    readSeqB: v.optional(v.number()),
+    // Hasta dónde leyó cada lado, en fecha ("Visto").
+    readAtA: v.optional(v.number()),
+    readAtB: v.optional(v.number()),
+    // Mensajes sin leer de cada lado y la vista previa del último, al día con
+    // cada envío y cada "leído": la lista de amigos y los contadores no leen
+    // mensajes. Opcionales: una fila sin ellos cuenta como cero / sin mensajes.
+    unreadA: v.optional(v.number()),
+    unreadB: v.optional(v.number()),
+    lastMessage: v.optional(
+      v.object({
+        senderId: v.id("users"),
+        kind: v.union(v.literal("text"), v.literal("verse")),
+        // Texto en una línea y recortado, o la cita del versículo.
+        snippet: v.string(),
+      }),
+    ),
+  })
+    .index("by_userA", ["userA"])
+    .index("by_userB", ["userB"])
+    .index("by_pair", ["userA", "userB"]),
+
+  // Mensajes entre amigos. El texto de un versículo lo pone el servidor desde
+  // la Biblia cargada (regla dura #4), nunca el teléfono.
+  directMessages: defineTable({
+    friendshipId: v.id("friendships"),
+    senderId: v.id("users"),
+    kind: v.union(v.literal("text"), v.literal("verse")),
+    text: v.optional(v.string()),
+    verse: v.optional(
+      v.object({
+        book: v.string(),
+        chapter: v.number(),
+        verse: v.number(),
+        verseEnd: v.optional(v.number()),
+        version: v.string(),
+        text: v.string(),
+      }),
+    ),
+    createdAt: v.number(),
+    // Orden dentro de la amistad (`friendships.messageSeq`). Falta en los de antes.
+    seq: v.optional(v.number()),
+  })
+    .index("by_friendship", ["friendshipId", "createdAt"])
+    .index("by_sender", ["senderId", "createdAt"]),
+
+  // Límite de ritmo de mensajes (balde de fichas, `takeRateToken`). Aparte de
+  // `directMessages` para que borrar la conversación no lo reinicie.
+  friendRates: defineTable({
+    userId: v.id("users"),
+    tokens: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Historial de solicitudes de amistad: "sent" por cada una que se mandó
+  // (aunque después se cancele) y "declined" cuando la otra persona la rechazó.
+  // Sostiene los topes por día, por destinatario y la espera después de un
+  // rechazo. Lo de más de una semana se va borrando al pedir otra.
+  friendRequestEvents: defineTable({
+    requesterId: v.id("users"),
+    targetId: v.id("users"),
+    kind: v.union(v.literal("sent"), v.literal("declined")),
+    createdAt: v.number(),
+  })
+    .index("by_requester", ["requesterId", "kind", "createdAt"])
+    .index("by_requester_target", ["requesterId", "targetId", "kind", "createdAt"])
+    .index("by_requester_created", ["requesterId", "createdAt"])
+    .index("by_target", ["targetId"]),
+
+  // Contadores de Amigos por día (Honduras), repartidos en unas pocas filas
+  // para que dos envíos a la vez no choquen: mensajes, amistades que empezaron
+  // y que terminaron, reportes por motivo y bloqueos. El dashboard suma estas
+  // filas chicas y no lee amistades, mensajes ni reportes. Los opcionales
+  // faltan en las filas de antes.
+  friendDailyStats: defineTable({
+    day: v.string(),
+    shard: v.number(),
+    messages: v.number(),
+    accepted: v.optional(v.number()),
+    ended: v.optional(v.number()),
+    blocks: v.optional(v.number()),
+    reports: v.optional(v.record(v.string(), v.number())),
+  }).index("by_day_shard", ["day", "shard"]),
+
+  // Bloquear borra la amistad y oculta todo en los dos sentidos; quien quedó
+  // bloqueado no puede volver a pedir amistad. No se le avisa.
+  userBlocks: defineTable({
+    blockerId: v.id("users"),
+    blockedId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_blocker", ["blockerId", "blockedId"])
+    .index("by_blocked", ["blockedId", "blockerId"]),
+
+  // Reportes para el fundador (docs/spikes/moderacion-contenido-usuarios.md §3):
+  // un motivo de una lista fija, sin texto libre. `evidence` es copia de lo
+  // reportado, porque bloquear después borra la conversación.
+  userReports: defineTable({
+    reporterId: v.id("users"),
+    reportedId: v.id("users"),
+    reason: v.union(
+      v.literal("estafa"),
+      v.literal("ofensivo"),
+      v.literal("sexual"),
+      v.literal("privado"),
+      v.literal("peligro"),
+    ),
+    messageId: v.optional(v.id("directMessages")),
+    evidence: v.array(v.object({ text: v.string(), createdAt: v.number() })),
+    // Si cuenta para la suspensión automática (`reportCountsForSuspension`).
+    // Los demás esperan revisión a mano.
+    countsForSuspension: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_reporter", ["reporterId", "createdAt"])
+    .index("by_reported", ["reportedId"])
+    .index("by_created", ["createdAt"]),
+
+  // Una fila chica por par (reportado, quien reporta), al día con cada
+  // reporte: la suspensión automática cuenta estas filas y no lee la evidencia
+  // de `userReports`. `qualifiedAt` es el último reporte del par que contó.
+  userReportPairs: defineTable({
+    reportedId: v.id("users"),
+    reporterId: v.id("users"),
+    qualifiedAt: v.optional(v.number()),
+  })
+    .index("by_reported_reporter", ["reportedId", "reporterId"])
+    .index("by_reported_qualified", ["reportedId", "qualifiedAt"])
+    .index("by_reporter", ["reporterId"]),
 
   stories: defineTable({
     userId: v.id("users"),

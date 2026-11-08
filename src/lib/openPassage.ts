@@ -27,6 +27,22 @@ export function openDedication(passage: { book: string; chapter: number; verse: 
   });
 }
 
+/**
+ * "Crear imagen" de un versículo o un rango corto (design/oleada-ux.md
+ * §Crear imagen): desde la hoja del versículo, `/hoy` y el feed.
+ */
+export function openVerseImage(passage: { book: string; chapter: number; verse: number; verseEnd?: number | null }) {
+  router.push({
+    pathname: "/imagen",
+    params: {
+      book: passage.book,
+      chapter: String(passage.chapter),
+      verse: String(passage.verse),
+      ...(passage.verseEnd ? { verseEnd: String(passage.verseEnd) } : {}),
+    },
+  });
+}
+
 /** Pantalla de un plan de lectura: el anual o un recorrido corto (#115). */
 export function openReadingPlan(planId: string) {
   router.push({ pathname: "/leer/plan", params: { planId } });
@@ -53,5 +69,21 @@ export function openSermonNotePicker(passage: { book: string; chapter: number; v
   router.push({
     pathname: "/notas/agregar",
     params: { book: passage.book, chapter: String(passage.chapter), verse: String(passage.verse) },
+  });
+}
+
+/**
+ * "Enviar a un amigo" (1.0.3): elegir a quién mandarle el versículo. El texto
+ * lo pone el servidor desde la Biblia cargada; acá solo viaja la cita.
+ */
+export function openSendToFriend(passage: { book: string; chapter: number; verse: number; verseEnd?: number }) {
+  router.push({
+    pathname: "/amigos/enviar",
+    params: {
+      book: passage.book,
+      chapter: String(passage.chapter),
+      verse: String(passage.verse),
+      ...(passage.verseEnd === undefined ? {} : { verseEnd: String(passage.verseEnd) }),
+    },
   });
 }

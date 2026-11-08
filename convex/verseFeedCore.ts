@@ -1,6 +1,14 @@
 import topicVersesJson from "../docs/content/versiculos-por-tema.json";
 import { devotionalCatalog } from "./devotionalCatalog";
-import { FEED_PAGE_SIZE, FEED_RECENT_GUARD, FEED_TEXT_MAX } from "./verseFeedLimits";
+import type { FeedReelKind } from "./feedReelsCore";
+import {
+  FEED_PAGE_SIZE,
+  FEED_RECENT_GUARD,
+  FEED_REEL_PAGE_SIZE,
+  FEED_REEL_SLOTS,
+  FEED_TEXT_MAX,
+  type FeedMode,
+} from "./verseFeedLimits";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos): un scroll
@@ -100,7 +108,36 @@ export function feedPassage(ref: string): FeedPassage | null {
   return POOL_BY_REF.get(ref) ?? null;
 }
 
+// Las citas por tema, no las de los devocionales: la foto de un devocional ya sale en la tarjeta de arriba.
+const TOPIC_POOL = FEED_POOL.filter((passage) => passage.topics.length > 0);
+
+/** La cita que da la foto de la tarjeta del feed en el inicio: una por día, la misma para todos. */
+export function feedPreviewPassage(dateKey: string, pool: readonly FeedPassage[] = TOPIC_POOL): FeedPassage {
+  return pool[hashOf(dateKey) % pool.length];
+}
+
 export { FEED_PAGE_SIZE, FEED_RECENT_GUARD, FEED_SEEN_MAX } from "./verseFeedLimits";
+
+/** Cómo se arma una página según el modo: cuántos versículos, en qué lugares van reels y de qué tipo. */
+export type FeedPagePlan = {
+  verses: number;
+  reelSlots: readonly number[];
+  /** null = historias y personajes alternados (la mezcla de "Para ti"). */
+  reelKind: FeedReelKind | null;
+};
+
+/**
+ * Sin modo (builds viejos) manda `withReels`, como siempre. "Para ti" siempre
+ * lleva reels: solo lo piden los builds que ya los saben mostrar.
+ */
+export function feedPagePlan(mode: FeedMode | undefined, withReels: boolean): FeedPagePlan {
+  const reelPage = Array.from({ length: FEED_REEL_PAGE_SIZE }, (_, slot) => slot);
+  if (mode === "historias") return { verses: 0, reelSlots: reelPage, reelKind: "story" };
+  if (mode === "personajes") return { verses: 0, reelSlots: reelPage, reelKind: "character" };
+  const mixed = mode === "para-ti" || (mode === undefined && withReels);
+  const reelSlots = mixed ? FEED_REEL_SLOTS.filter((slot) => slot < FEED_PAGE_SIZE) : [];
+  return { verses: FEED_PAGE_SIZE - reelSlots.length, reelSlots, reelKind: null };
+}
 
 // Pesos del orden. Lo que te gusta pesa más que lo que le gusta a todos, y el
 // azar alcanza para que el feed nunca sea el mismo dos veces.

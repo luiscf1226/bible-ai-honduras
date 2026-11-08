@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/expo";
 import { useConvexAuth, useQuery } from "convex/react";
 
 import { api } from "../convex/_generated/api";
-import { AI_CONSENT_VERSION } from "../convex/users";
+import { AI_CONSENT_VERSION } from "../convex/aiConsent";
 import { StartupLoading } from "../src/components/StartupLoading";
 import { STARTUP_STALL_MS, decideStartupRoute } from "../src/features/auth/startupRoute";
 

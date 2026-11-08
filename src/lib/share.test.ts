@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { friendCodeFromUrl } from "../../convex/friendsCore";
 import { inviteTokenFromUrl } from "../../convex/readingGroupCore";
 import {
+  buildFriendInviteLink,
   buildGroupInviteLink,
   asFileUri,
   buildReferralLink,
@@ -53,6 +55,12 @@ describe("buildShareMessage", () => {
     expect(message).toContain(buildGroupInviteLink("BAH-XYZ", token));
     expect(buildGroupInviteLink("BAH-XYZ", token)).toBe(`${buildReferralLink("BAH-XYZ")}&grupo=${token}`);
     expect(inviteTokenFromUrl(buildGroupInviteLink("BAH-XYZ", token))).toBe(token);
+  });
+
+  it("invitación a ser amigos (1.0.3): el link de referido con `amigo`, que la app sabe leer", () => {
+    const message = buildShareMessage("Agregame", "BAH-1234ABC", undefined, true);
+    expect(message).toBe(`Agregame\n\n${buildReferralLink("BAH-1234ABC")}&amigo=1`);
+    expect(friendCodeFromUrl(buildFriendInviteLink("BAH-1234ABC"))).toBe("BAH-1234ABC");
   });
 });
 

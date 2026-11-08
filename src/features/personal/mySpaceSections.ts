@@ -19,7 +19,8 @@ export type MySpaceSectionId =
   | "memorize"
   | "prayers"
   | "sermonNotes"
-  | "conversations";
+  | "conversations"
+  | "friends";
 
 /** Los grupos de la pantalla, en orden (#232). */
 export type MySpaceGroup = "biblia" | "fe" | "conversaciones";
@@ -33,7 +34,16 @@ export type MySpaceDestination =
   | { kind: "passage"; passage: VerseRef }
   | {
       kind: "route";
-      href: "/leer" | "/leer/guardados" | "/leer/subrayados" | "/historial" | "/preguntar" | "/memorizar" | "/oracion" | "/notas";
+      href:
+        | "/leer"
+        | "/leer/guardados"
+        | "/leer/subrayados"
+        | "/historial"
+        | "/preguntar"
+        | "/memorizar"
+        | "/oracion"
+        | "/notas"
+        | "/amigos";
     };
 
 export type MySpaceSection = {
@@ -59,7 +69,16 @@ export type MySpaceData = {
   prayers: Array<{ text: string; answeredAt: number | null }>;
   /** Notas de prédica, la más reciente primero, con su título para mostrar. */
   sermonNotes: Array<{ displayTitle: string }>;
+  /** Amigos (1.0.3): cuántos, solicitudes recibidas y mensajes sin leer. */
+  friends?: { friends: number; requests: number; unread: number };
 };
+
+function friendsDetail({ friends, requests, unread }: { friends: number; requests: number; unread: number }): string {
+  if (unread > 0) return unread === 1 ? "1 mensaje sin leer" : `${unread > 99 ? "99+" : unread} mensajes sin leer`;
+  if (requests > 0) return requests === 1 ? "1 solicitud de amistad" : `${requests} solicitudes de amistad`;
+  if (friends > 0) return "Escribiles o mandales un versículo";
+  return "Agregá a alguien con su código y mándense versículos por el chat de la app.";
+}
 
 const formatRef = (ref: VerseRef) => `${ref.book} ${ref.chapter}:${ref.verse}`;
 
@@ -70,6 +89,8 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
   const openPrayers = data.prayers.filter((item) => item.answeredAt === null);
   const answeredPrayers = data.prayers.length - openPrayers.length;
   const { total: memorizing, dueCount } = data.memorize;
+  const friends = data.friends ?? { friends: 0, requests: 0, unread: 0 };
+  const friendsPending = friends.unread > 0 || friends.requests > 0;
 
   return [
     {
@@ -153,6 +174,16 @@ export function buildMySpaceSections(data: MySpaceData): MySpaceSection[] {
       detail: data.history[0]?.title ?? "Tus preguntas, tus devocionales de Sentir y tus charlas con personajes quedan aquí.",
       action: data.history.length > 0 ? VIEW_ALL : START,
       destination: { kind: "route", href: data.history.length > 0 ? "/historial" : "/preguntar" },
+    },
+    {
+      id: "friends",
+      group: "conversaciones",
+      title: "Amigos",
+      // Con solicitudes y sin amigos todavía, el número no puede decir 0.
+      count: friends.friends + (friends.friends === 0 ? friends.requests : 0),
+      detail: friendsDetail(friends),
+      action: friendsPending ? "Abrir" : friends.friends > 0 ? VIEW_ALL : START,
+      destination: { kind: "route", href: "/amigos" },
     },
   ];
 }
