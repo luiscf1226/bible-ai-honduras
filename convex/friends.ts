@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { DEFAULT_BIBLE_VERSION } from "./bibleVersions";
+import { makeReferralCode } from "./users";
 import { checkMessageContent } from "./chatFilter";
 import {
   AUTO_SUSPEND_REPORTERS,
@@ -962,3 +963,55 @@ export async function deleteFriendDataForUser(
   for (const page of pages) done = done && (await page.next(1)).length === 0;
   return { deleted, done };
 }
+
+const REVIEW_FRIEND_CLERK_ID = "review_team_3c";
+
+/**
+ * App Review: un amigo de prueba, "3C" (el equipo), con una conversación (un saludo
+ * y un versículo) para la cuenta demo, así la revisión puede probar el chat,
+ * reportar y bloquear. Nadie puede iniciar sesión como ese amigo. Idempotente.
+ */
+export const seedReviewFriend = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args): Promise<{ status: "demo_not_found" | "exists" | "created" }> => {
+    const demo = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (!demo) return { status: "demo_not_found" };
+    const now = Date.now();
+    let team = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", REVIEW_FRIEND_CLERK_ID))
+      .unique();
+    if (!team) {
+      const id = await ctx.db.insert("users", {
+        clerkId: REVIEW_FRIEND_CLERK_ID,
+        name: "3C",
+        bibleVersion: DEFAULT_BIBLE_VERSION,
+        referralCode: makeReferralCode(REVIEW_FRIEND_CLERK_ID),
+        communityRulesAcceptedAt: now,
+      });
+      team = (await ctx.db.get(id))!;
+    }
+    if (await findPair(ctx, demo._id, team._id)) return { status: "exists" };
+
+    const friendshipId = await ctx.db.insert("friendships", {
+      ...orderedPair(demo._id, team._id),
+      requestedBy: team._id,
+      status: "accepted",
+      createdAt: now,
+      acceptedAt: now,
+    });
+    const target = async () => ({ user: team, row: (await ctx.db.get(friendshipId))! });
+    await deliver(
+      ctx,
+      await target(),
+      { kind: "text", text: "¡Hola! Somos el equipo de 3C. Este chat es de prueba: escribí, mandá un versículo desde la Biblia, o usá ••• para reportar o bloquear." },
+      now - 60_000,
+    );
+    const verse = await loadVerse(ctx, { book: "Salmos", chapter: 23, verse: 1 });
+    if (verse) await deliver(ctx, await target(), { kind: "verse", verse }, now);
+    return { status: "created" };
+  },
+});

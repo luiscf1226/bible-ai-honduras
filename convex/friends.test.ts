@@ -709,3 +709,27 @@ describe("friends — bloquear y reportar", () => {
     expect(await ana.mutation(api.friends.report, { friendshipId, reason: "ofensivo" })).toEqual({ status: "too_many" });
   });
 });
+
+describe("friends — amigo de prueba para App Review", () => {
+  it("la cuenta demo recibe al amigo 3C con un saludo y un versículo, una sola vez", async () => {
+    const t = convexTest(schema, modules);
+    await seedVerses(t);
+    const demo = asUser(t, "user_demo");
+    await demo.mutation(api.users.upsert, {});
+    await t.run((ctx) => ctx.db.query("users").first().then((row) => ctx.db.patch(row!._id, { email: "demo@example.com" })));
+
+    expect(await t.mutation(internal.friends.seedReviewFriend, { email: "nadie@example.com" })).toEqual({ status: "demo_not_found" });
+    expect(await t.mutation(internal.friends.seedReviewFriend, { email: "demo@example.com" })).toEqual({ status: "created" });
+    expect(await t.mutation(internal.friends.seedReviewFriend, { email: "demo@example.com" })).toEqual({ status: "exists" });
+
+    await demo.mutation(api.friends.acceptRules, {});
+    const overview = await demo.query(api.friends.overview, {});
+    expect(overview?.friends).toHaveLength(1);
+    expect(overview?.friends[0]).toMatchObject({ name: "3C" });
+    const page = await demo.query(api.friends.messages, {
+      friendshipId: overview!.friends[0]!.friendshipId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(page.page.map((message) => message.kind).sort()).toEqual(["text", "verse"]);
+  });
+});
