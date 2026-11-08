@@ -222,7 +222,7 @@ export function VerseStoryCard({
               { color: palette ? muted : tokens.color.surface, fontSize: px(image.brand), lineHeight: px(image.brand * image.verseLineHeight) },
             ]}
           >
-            Bible AI Honduras
+            3C · Biblia y Devocional
           </Text>
         </View>
       </View>
