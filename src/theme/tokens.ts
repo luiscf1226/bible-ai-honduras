@@ -152,7 +152,7 @@ export const tokens = {
   fontScale: { feedMax: 1.3 },
   // Sobre imágenes (U2): botón volver con fondo surface al 90 % y textos al 85 %.
   // Cinta de satén del separador: brillo (`surface`), sombra (`ink`) y tejido de los bordes.
-  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, feedActionFill: 0.16, reelTrack: 0.35, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
+  opacity: { pressed: 0.9, imageButton: 0.9, imageMuted: 0.85, feedActionFill: 0.16, feedTabIdle: 0.6, reelTrack: 0.35, ribbonSheen: 0.38, ribbonShadow: 0.16, ribbonWeave: 0.45 },
   radius: { sm: 11, md: 14, lg: 16, xl: 18, xxl: 22, pill: 999 },
   space: { xxs: 2, xs: 6, sm: 9, md: 12, lg: 14, xl: 20, xxl: 22 },
   cardPadding: { vertical: 16, horizontal: 18 },
@@ -208,6 +208,10 @@ export const tokens = {
     // Crear imagen: vista previa grande (9:16 y cuadrada) y miniatura 3:4 de cada fondo del carrusel.
     verseImagePreview: { story: 252, square: 320 },
     styleThumb: { width: 60, height: 80 },
+
+    // Feed en modo TikTok: subrayado corto de la pestaña activa y alto de la tarjeta héroe del inicio.
+    feedTabUnderline: { width: 18, height: 2 },
+    feedHeroCard: 148,
   },
   // Hoja del versículo (#232): la fila de arriba lleva 5 acciones (con "Imagen") + "Más"; lo que despliega
   // "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
@@ -233,6 +237,11 @@ export const tokens = {
     // termina la voz de una parte y arranca la siguiente.
     reelCrossfade: 700,
     reelSceneGap: 600,
+    // Feed en modo TikTok: la pista de la primera vez se va sola, su flecha sube y baja, y
+    // cuánto (px) hay que arrastrar de lado para cambiar de modo.
+    feedHint: 5000,
+    feedHintBounce: 900,
+    feedModeSwipe: 48,
   },
   // Imagen 9:16 para el estado de WhatsApp (#161, U2): píxeles de salida.
   storyImage: {

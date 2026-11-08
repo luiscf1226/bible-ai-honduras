@@ -1,5 +1,5 @@
 import type { FeedEntry, FeedItem, FeedReelItem, FeedReelSceneItem } from "../../../convex/verseFeed";
-import { FEED_RECENT_GUARD, FEED_SEEN_MAX } from "../../../convex/verseFeedLimits";
+import { FEED_RECENT_GUARD, FEED_SEEN_MAX, type FeedMode } from "../../../convex/verseFeedLimits";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos). Todo lo que no
@@ -7,7 +7,7 @@ import { FEED_RECENT_GUARD, FEED_SEEN_MAX } from "../../../convex/verseFeedLimit
  * según el largo, cómo se suman páginas, el ♥ optimista, el doble toque y el
  * texto para compartir.
  */
-export type { FeedEntry, FeedItem, FeedReelItem, FeedReelSceneItem };
+export type { FeedEntry, FeedItem, FeedMode, FeedReelItem, FeedReelSceneItem };
 
 /** Historia contada o personaje (no un versículo). */
 export function isReel(entry: FeedEntry): entry is FeedReelItem {
@@ -159,11 +159,6 @@ export function nextScene(reel: Pick<FeedReelItem, "scenes">, index: number): nu
   return index + 1 < reel.scenes.length ? index + 1 : null;
 }
 
-/** "HISTORIA · PARTE 2 DE 3" (una sola parte: "HISTORIA"). */
-export function reelOverline(reel: Pick<FeedReelItem, "scenes">, index: number): string {
-  return reel.scenes.length > 1 ? `HISTORIA · PARTE ${index + 1} DE ${reel.scenes.length}` : "HISTORIA";
-}
-
 /**
  * La cita debajo del texto. Las historias cuentan el pasaje con sus palabras
  * y los personajes hablan desde él: ninguno es el texto de RV1909 tal cual,
@@ -191,4 +186,73 @@ export function entryAudioUrl(entry: FeedEntry | undefined, sceneIndex: number):
 /** Todas las imágenes de una entrada, para precargarlas antes de que lleguen a la pantalla. */
 export function entryImageUrls(entry: FeedEntry): string[] {
   return isReel(entry) ? entry.scenes.map((scene) => scene.imageUrl) : [entry.imageUrl];
+}
+
+// ── Modo TikTok (design/oleada-ux.md §Feed en modo TikTok) ───────────────────
+
+/** Las pestañas de arriba, en orden: deslizar de lado pasa a la vecina. */
+export const FEED_MODE_TABS: readonly { mode: FeedMode; label: string }[] = [
+  { mode: "para-ti", label: "Para ti" },
+  { mode: "versiculos", label: "Versículos" },
+  { mode: "historias", label: "Historias" },
+  { mode: "personajes", label: "Personajes" },
+];
+
+/** La pestaña vecina (1 = la de la derecha), o la misma si ya es la del borde. */
+export function neighborMode(mode: FeedMode, direction: 1 | -1): FeedMode {
+  const index = FEED_MODE_TABS.findIndex((tab) => tab.mode === mode);
+  const next = Math.min(FEED_MODE_TABS.length - 1, Math.max(0, index + direction));
+  return FEED_MODE_TABS[next].mode;
+}
+
+/**
+ * Un arrastre que es claramente de lado (el doble de horizontal que vertical):
+ * solo ese se lo queda el cambio de modo; el resto es el scroll del feed.
+ */
+export function isSidewaysDrag(dx: number, dy: number, threshold: number): boolean {
+  return Math.abs(dx) > threshold / 2 && Math.abs(dx) > Math.abs(dy) * 2;
+}
+
+/** Al soltar: hacia dónde cambia el modo (arrastrar a la izquierda trae la pestaña de la derecha), o null. */
+export function sidewaysSwipe(dx: number, dy: number, threshold: number): 1 | -1 | null {
+  if (Math.abs(dx) < threshold || Math.abs(dx) < Math.abs(dy) * 2) return null;
+  return dx < 0 ? 1 : -1;
+}
+
+/**
+ * Leyenda de abajo a la izquierda: la fuente con "@" ("@RV1909", "@Moisés",
+ * "@El arca de Noé") y una línea con la cita y el tema o el tipo.
+ */
+export function feedCaption(entry: FeedEntry, sceneIndex: number): { source: string; detail: string } {
+  if (!isReel(entry)) {
+    const verses = entry.endVerse === null ? `${entry.verse}` : `${entry.verse}-${entry.endVerse}`;
+    const reference = `${entry.book} ${entry.chapter}:${verses}`;
+    return { source: `@${entry.version}`, detail: entry.topic ? `${reference} · ${entry.topic}` : reference };
+  }
+  const index = Math.min(sceneIndex, entry.scenes.length - 1);
+  const reference = reelReference(entry, entry.scenes[index]);
+  if (entry.kind === "character") {
+    // La etiqueta empieza con el libro ("1 Reyes · agotado después del triunfo"), que la cita ya dice.
+    const tag = entry.subtitle.split(" · ").slice(1).join(" · ") || entry.subtitle;
+    return { source: `@${entry.title}`, detail: `${reference} · ${tag}` };
+  }
+  const part = entry.scenes.length > 1 ? ` · Parte ${index + 1} de ${entry.scenes.length}` : "";
+  return { source: `@${entry.title}`, detail: `${reference} · Historia${part}` };
+}
+
+/** El versículo de lo que se ve, para "Imagen" y "Enviar". */
+export type FeedPassageTarget = { book: string; chapter: number; verse: number; verseEnd?: number };
+
+/**
+ * El versículo de la pantalla que se ve: el del feed, o el de la parte del
+ * reel. null si la parte cita un capítulo entero ("1 Samuel 17"): no hay un
+ * versículo para hacer la imagen o mandar.
+ */
+export function feedPassageTarget(entry: FeedEntry, sceneIndex: number): FeedPassageTarget | null {
+  if (!isReel(entry)) {
+    const base = { book: entry.book, chapter: entry.chapter, verse: entry.verse };
+    return entry.endVerse === null ? base : { ...base, verseEnd: entry.endVerse };
+  }
+  const scene = entry.scenes[Math.min(sceneIndex, entry.scenes.length - 1)];
+  return scene && scene.verse !== null ? { book: scene.book, chapter: scene.chapter, verse: scene.verse } : null;
 }

@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View, type AccessibilityActionEvent } from "react-native";
+import { Animated, Image, Pressable, StyleSheet, Text, View, type AccessibilityActionEvent } from "react-native";
 
 import { voiceCharacters } from "../../../convex/voicesCatalog";
 import { KenBurnsImage } from "../../components/KenBurnsImage";
@@ -9,16 +9,25 @@ import { tokens } from "../../theme/tokens";
 import { CharacterAvatar } from "../voices/CharacterAvatar";
 import {
   createDoubleTapDetector,
+  feedCaption,
+  feedPassageTarget,
   feedVerseType,
-  formatLikes,
-  reelOverline,
   reelReference,
   type FeedReelItem,
   type FeedReelSceneItem,
 } from "./feedLogic";
-import { FeedAction, feedStyles, HeartBurst, useHeartBurst } from "./FeedParts";
+import {
+  FeedAction,
+  FeedCaption,
+  FeedRail,
+  feedStyles,
+  HeartBurst,
+  ReelProgress,
+  useHeartBurst,
+  type FeedExtraActions,
+} from "./FeedParts";
 
-type FeedReelPageProps = {
+type FeedReelPageProps = FeedExtraActions & {
   reel: FeedReelItem;
   height: number;
   insetTop: number;
@@ -27,6 +36,8 @@ type FeedReelPageProps = {
   active: boolean;
   /** La parte que se ve (la maneja la pantalla del feed: avanza con la voz o con el tiempo de lectura). */
   sceneIndex: number;
+  /** Cuánto dura la parte que se ve, para llenar su tramo de la barra; null si no avanza sola. */
+  sceneMs: number | null;
   /** Lugar de esta pantalla en el feed: el cambio de parte solo vale para la pantalla que se ve. */
   pageIndex: number;
   /** VoiceOver/TalkBack: deslizar arriba/abajo sobre el texto pasa de parte. */
@@ -41,25 +52,29 @@ type FeedReelPageProps = {
 const CHARACTERS = new Map(voiceCharacters.map((character) => [character.slug, character]));
 
 /**
- * Un reel del feed (design/oleada-ux.md §Reels del feed): una historia contada
- * o un personaje que habla en 1ra persona. Las partes se suceden como un
- * video: la imagen funde a la siguiente, el texto entra subiendo y arriba una
- * barra de tramos dice en qué parte va. Misma columna de acciones y mismo
- * doble toque que un versículo, más "Conversar" cuando hay un personaje.
+ * Un reel del feed (design/oleada-ux.md §Reels del feed y §Feed en modo
+ * TikTok): una historia contada o un personaje que habla en 1ra persona. Las
+ * partes se suceden como un video: la imagen funde a la siguiente, el texto
+ * entra subiendo y la barra fina de abajo se llena parte por parte. El riel
+ * lleva arriba el retrato del personaje (abre su chat) o la imagen de la
+ * historia (abre el capítulo); mismo doble toque que un versículo.
  */
 function FeedReelPageImpl({
   active,
   height,
   insetBottom,
   insetTop,
+  onImage,
   onRead,
   onSceneChange,
+  onSend,
   onSetLike,
   onShare,
   onTalk,
   pageIndex,
   reel,
   sceneIndex,
+  sceneMs,
   shareDisabled,
 }: FeedReelPageProps) {
   const { color } = useTheme();
@@ -100,8 +115,11 @@ function FeedReelPageImpl({
   };
 
   const character = reel.kind === "character" && reel.voiceSlug ? CHARACTERS.get(reel.voiceSlug) : undefined;
+  // Una historia puede invitar a conversar con su personaje.
+  const storyGuest = !character && reel.voiceSlug ? CHARACTERS.get(reel.voiceSlug) : undefined;
   const textType = tokens.type[feedVerseType(scene.text)];
   const reference = reelReference(reel, scene);
+  const caption = feedCaption(reel, index);
   const many = reel.scenes.length > 1;
   const spoken =
     reel.kind === "character"
@@ -129,146 +147,113 @@ function FeedReelPageImpl({
       <View style={[StyleSheet.absoluteFill, { backgroundColor: color.imageScrim }]} />
       <Pressable accessible={false} onPress={onPress} style={StyleSheet.absoluteFill} testID="feed-double-tap" />
 
-      {many ? (
-        // Tramos de las partes, en la fila del ‹ y el sonido (entre los dos botones).
-        <View
-          pointerEvents="none"
-          style={[
-            styles.progress,
-            { top: insetTop + tokens.space.sm + (tokens.size.backButton - tokens.size.reelProgress) / 2 },
-          ]}
-          testID="reel-progress"
-        >
-          {reel.scenes.map((_, scene) => (
-            <View
-              key={scene}
-              style={[
-                styles.segment,
-                { backgroundColor: tokens.color.surface, opacity: scene <= index ? 1 : tokens.opacity.reelTrack },
-              ]}
-            />
-          ))}
-        </View>
-      ) : null}
-
       <View
         pointerEvents="box-none"
         style={[
           styles.body,
-          { paddingBottom: insetBottom + tokens.space.xxl, paddingTop: insetTop + tokens.size.feedAction },
+          { paddingBottom: insetBottom + tokens.space.xl, paddingTop: insetTop + tokens.size.feedAction },
         ]}
       >
-        <Animated.View
-          accessibilityActions={
-            many
-              ? [
-                  { name: "increment", label: "Parte siguiente" },
-                  { name: "decrement", label: "Parte anterior" },
-                ]
-              : undefined
-          }
-          accessibilityLabel={spoken}
-          accessibilityRole={many ? "adjustable" : undefined}
-          accessible
-          onAccessibilityAction={onAccessibilityAction}
-          pointerEvents="none"
-          style={[
-            styles.textBlock,
-            {
-              opacity: rise,
-              transform: [
+        <View pointerEvents="box-none" style={feedStyles.column}>
+          <View pointerEvents="none" style={feedStyles.center}>
+            <Animated.View
+              accessibilityActions={
+                many
+                  ? [
+                      { name: "increment", label: "Parte siguiente" },
+                      { name: "decrement", label: "Parte anterior" },
+                    ]
+                  : undefined
+              }
+              accessibilityLabel={spoken}
+              accessibilityRole={many ? "adjustable" : undefined}
+              accessible
+              onAccessibilityAction={onAccessibilityAction}
+              style={[
+                styles.textBlock,
                 {
-                  translateY: rise.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [tokens.motion.verseRiseDistance, 0],
-                  }),
+                  opacity: rise,
+                  transform: [
+                    {
+                      translateY: rise.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [tokens.motion.verseRiseDistance, 0],
+                      }),
+                    },
+                  ],
                 },
-              ],
-            },
-          ]}
-        >
-          {character ? (
-            <View style={styles.speaker}>
-              <CharacterAvatar character={character} size={tokens.size.cardAvatar} />
-              <View style={styles.speakerText}>
-                <Text style={[styles.title, { color: tokens.color.surface }]}>{reel.title}</Text>
+              ]}
+            >
+              {character ? null : (
                 <Text
                   maxFontSizeMultiplier={tokens.fontScale.feedMax}
-                  style={[styles.tag, { color: tokens.color.surface }]}
+                  style={[styles.title, { color: tokens.color.surface }]}
                 >
-                  {reel.subtitle}
+                  {reel.title}
                 </Text>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.heading}>
-              <Text style={[styles.overline, { color: tokens.color.surface }]}>{reelOverline(reel, index)}</Text>
+              )}
               <Text
                 maxFontSizeMultiplier={tokens.fontScale.feedMax}
-                style={[styles.title, { color: tokens.color.surface }]}
+                style={[
+                  styles.text,
+                  { color: tokens.color.surface, fontSize: textType.size, lineHeight: textType.lineHeight },
+                ]}
+                testID="reel-text"
               >
-                {reel.title}
+                {/* El personaje habla: va entre comillas. La historia se cuenta: sin comillas. */}
+                {character ? `“${scene.text}”` : scene.text}
               </Text>
-            </View>
-          )}
-          <Text
-            maxFontSizeMultiplier={tokens.fontScale.feedMax}
-            style={[
-              styles.text,
-              { color: tokens.color.surface, fontSize: textType.size, lineHeight: textType.lineHeight },
-            ]}
-            testID="reel-text"
-          >
-            {/* El personaje habla: va entre comillas. La historia se cuenta: sin comillas. */}
-            {character ? `“${scene.text}”` : scene.text}
-          </Text>
-          <Text
-            maxFontSizeMultiplier={tokens.fontScale.feedMax}
-            style={[styles.reference, { color: tokens.color.surface }]}
-          >
-            {reference}
-          </Text>
-        </Animated.View>
+            </Animated.View>
+          </View>
+          <FeedCaption detail={caption.detail} source={caption.source} />
+        </View>
 
-        <View style={feedStyles.actions}>
-          <FeedAction
-            accessibilityLabel={reel.liked ? "Quitar ♥" : "Dar ♥"}
-            filled={reel.liked}
-            icon="heart"
-            iconColor={reel.liked ? color.accent : tokens.color.surface}
-            label={formatLikes(reel.likes)}
-            onPress={() => onSetLike(reel.ref, !reel.liked)}
-            selected={reel.liked}
-            testID="feed-like"
-          />
-          <FeedAction
-            accessibilityLabel={
-              reel.kind === "character" ? `Compartir lo que dice ${reel.title}` : "Compartir esta parte"
-            }
-            disabled={shareDisabled}
-            icon="whatsapp"
-            label="Compartir"
-            onPress={() => onShare(reel, index)}
-            testID="feed-share"
-          />
-          {reel.voiceSlug && CHARACTERS.has(reel.voiceSlug) ? (
+        <FeedRail
+          avatar={
+            character ? (
+              <CharacterAvatar character={character} size={tokens.size.feedAction - tokens.size.ring * 2} />
+            ) : (
+              <Image
+                accessibilityIgnoresInvertColors
+                resizeMode="cover"
+                source={{ uri: reel.scenes[0].imageUrl }}
+                style={StyleSheet.absoluteFill}
+              />
+            )
+          }
+          avatarLabel={character ? `Conversar con ${character.name}` : `Leer ${scene.reference}`}
+          liked={reel.liked}
+          likes={reel.likes}
+          onAvatar={() => (character ? onTalk(character.slug) : onRead(scene))}
+          onImage={onImage}
+          onLike={() => onSetLike(reel.ref, !reel.liked)}
+          onSend={onSend}
+          onShare={() => onShare(reel, index)}
+          shareDisabled={shareDisabled}
+          shareLabel={reel.kind === "character" ? `Compartir lo que dice ${reel.title}` : "Compartir esta parte"}
+          target={feedPassageTarget(reel, index)}
+        >
+          {character ? (
             <FeedAction
-              accessibilityLabel={`Conversar con ${CHARACTERS.get(reel.voiceSlug)!.name}`}
+              accessibilityLabel={`Leer ${scene.reference}`}
+              icon="book"
+              label="Leer"
+              onPress={() => onRead(scene)}
+              testID="feed-read"
+            />
+          ) : storyGuest ? (
+            <FeedAction
+              accessibilityLabel={`Conversar con ${storyGuest.name}`}
               icon="voice"
               label="Conversar"
-              onPress={() => onTalk(reel.voiceSlug!)}
+              onPress={() => onTalk(storyGuest.slug)}
               testID="feed-talk"
             />
           ) : null}
-          <FeedAction
-            accessibilityLabel={`Leer ${scene.reference}`}
-            icon="book"
-            label="Leer"
-            onPress={() => onRead(scene)}
-            testID="feed-read"
-          />
-        </View>
+        </FeedRail>
       </View>
+
+      {many ? <ReelProgress bottom={insetBottom} count={reel.scenes.length} index={index} sceneMs={sceneMs} /> : null}
 
       <HeartBurst burst={burst} />
     </View>
@@ -279,48 +264,17 @@ export const FeedReelPage = memo(FeedReelPageImpl);
 
 const styles = StyleSheet.create({
   page: { overflow: "hidden", width: "100%" },
-  progress: {
-    flexDirection: "row",
-    gap: tokens.space.xs,
-    left: tokens.screenPadding.horizontal + tokens.size.backButton + tokens.space.md,
-    position: "absolute",
-    right: tokens.screenPadding.horizontal + tokens.size.backButton + tokens.space.md,
-  },
-  segment: { borderRadius: tokens.radius.pill, flex: 1, height: tokens.size.reelProgress },
   body: {
-    alignItems: "flex-end",
     flex: 1,
     flexDirection: "row",
     gap: tokens.space.lg,
     paddingHorizontal: tokens.screenPadding.horizontal,
   },
-  textBlock: { alignSelf: "center", flex: 1, gap: tokens.space.lg },
-  heading: { gap: tokens.space.xs },
-  speaker: { alignItems: "center", flexDirection: "row", gap: tokens.space.md },
-  speakerText: { flex: 1 },
-  overline: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.overline.size,
-    letterSpacing: tokens.type.overline.letterSpacing,
-    lineHeight: tokens.type.overline.lineHeight,
-    opacity: tokens.opacity.imageMuted,
-  },
+  textBlock: { gap: tokens.space.md },
   title: {
     fontFamily: tokens.font.serif,
     fontSize: tokens.type.subtitle.size,
     lineHeight: tokens.type.subtitle.lineHeight,
   },
-  tag: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.caption.size,
-    lineHeight: tokens.type.caption.lineHeight,
-    opacity: tokens.opacity.imageMuted,
-  },
   text: { fontFamily: tokens.font.serif },
-  reference: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.label.size,
-    lineHeight: tokens.type.bodySm.lineHeight,
-    opacity: tokens.opacity.imageMuted,
-  },
 });

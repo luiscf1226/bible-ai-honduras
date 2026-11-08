@@ -470,9 +470,18 @@ function feedReelItem(reel) {
     liked,
   };
 }
-function feedPage({ seen = [], seed = 1, withReels = false }) {
-  const verses = feedVersePage(seen, withReels ? 6 : 8);
-  if (!withReels) return { items: verses, newRound: false, skipped: [] };
+// Modos del feed (§Feed en modo TikTok): "historias" y "personajes" son páginas de 4 reels de ese tipo,
+// "versiculos" solo versículos y "para-ti" la mezcla (como `withReels`).
+function feedPage({ seen = [], seed = 1, withReels = false, mode }) {
+  if (mode === "historias" || mode === "personajes") {
+    const kind = mode === "historias" ? "story" : "character";
+    const pool = REEL_POOL.filter((reel) => reel.kind === kind);
+    const reels = rankReels({ communityLikes: new Map(), count: 4, likedRefs: [], pool, seed: seed + seen.length, seenRefs: seen });
+    return { items: reels.map(feedReelItem), newRound: false, skipped: [] };
+  }
+  const mixed = mode === "para-ti" || (mode === undefined && withReels);
+  const verses = feedVersePage(seen, mixed ? 6 : 8);
+  if (!mixed) return { items: verses, newRound: false, skipped: [] };
   const reels = rankReels({ communityLikes: new Map(), count: 2, likedRefs: [], pool: REEL_POOL, seed: seed + seen.length, seenRefs: seen });
   const items = [...verses];
   items.splice(2, 0, feedReelItem(reels[0]));
@@ -546,6 +555,7 @@ const handlers = {
     return { status: "ready" };
   },
   "verseFeed:page": feedPage,
+  "verseFeed:preview": () => ({ imageUrl: FEED_IMAGES[3], imageAlt: "Paisaje" }),
   "verseFeed:setLike": ({ ref, liked }) => {
     feedLikes.set(ref, liked);
     if (REEL_POOL.some((reel) => reel.ref === ref)) return { liked, likes: 12 + (liked ? 1 : 0) };
