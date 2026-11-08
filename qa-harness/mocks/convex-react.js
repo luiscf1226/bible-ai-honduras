@@ -17,6 +17,7 @@ import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
 import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
 import { photosFor } from "../../convex/verseImageCore";
+import { friendHandlers, friendsRulesAcceptedAt } from "./friends";
 import { aiImageScenario, atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
@@ -554,6 +555,7 @@ const handlers = {
     notify();
     return { status: "ready" };
   },
+  ...friendHandlers(notify),
   "verseFeed:page": feedPage,
   "verseFeed:preview": () => ({ imageUrl: FEED_IMAGES[3], imageAlt: "Paisaje" }),
   "verseFeed:setLike": ({ ref, liked }) => {
@@ -579,6 +581,7 @@ const handlers = {
     birthday: db.birthday,
     faithDate: db.faithDate,
     faithDateKind: db.faithDateKind,
+    communityRulesAcceptedAt: friendsRulesAcceptedAt(),
   }),
   "users:setPersonalDates": (args) => {
     for (const key of ["birthday", "faithDate", "faithDateKind"]) {

@@ -2,7 +2,7 @@ import type { IconName } from "../../components/Icon";
 import { copyToClipboard } from "../../lib/clipboard";
 import { goToChat } from "../../lib/goToChat";
 import { goToVoices } from "../../lib/goToVoices";
-import { openDedication, openSermonNotePicker, openTimeline, openVerseImage } from "../../lib/openPassage";
+import { openDedication, openSendToFriend, openSermonNotePicker, openTimeline, openVerseImage } from "../../lib/openPassage";
 import { track } from "../../lib/telemetry";
 import { voiceDraftFor, type ChapterVoice } from "./chapterVoice";
 import { hasCrossReferences } from "./crossReferences";
@@ -141,6 +141,17 @@ export const VERSE_ACTIONS: readonly VerseAction[] = [
     accessibilityHint: () => "Arma una imagen con el versículo y una dedicatoria para mandar por WhatsApp.",
     testID: "reading-action-dedicate",
     onPress: (ctx) => openDedication(ctx.verse),
+  },
+  {
+    // Amigos (1.0.3): mandar el versículo por el chat de la app. El texto lo
+    // pone el servidor desde la Biblia cargada.
+    id: "send-friend",
+    icon: "friends",
+    label: () => "Enviar a un amigo",
+    accessibilityHint: () => "Elegí a qué amigo mandarle este versículo por el chat de la app.",
+    testID: "reading-action-send-friend",
+    visible: (ctx) => ctx.signedIn,
+    onPress: (ctx) => openSendToFriend(ctx.verse),
   },
   {
     // Escuchar (#157): voz del sistema desde este versículo. Gratis, sin cuota.

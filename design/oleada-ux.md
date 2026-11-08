@@ -46,6 +46,8 @@
 | `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30, temporada 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
 | `season.{reforma,gratitud,adviento,anio-nuevo}` | ver `tokens.json` | | Capa de temporada (#199) |
 | `seasonDecor.*` | warm · gold · leaf · deep, día y noche | | Tonos de la guirnalda de temporada |
+| `size.badge` | 20 | | Contador de no leídos de Amigos (mismo lado que `icon.md`) |
+| `size.composerMax` | 104 | | Alto máximo del campo del chat de Amigos (4 renglones de `body`) |
 
 ## Íconos
 
@@ -55,7 +57,9 @@ imagen, amanecer, guardado, reloj, candado, refrescar) se copiaron tal cual.
 Los nuevos siguen el mismo trazo de 1.3 sobre 24: `menu`, `search`, `plus`,
 `note`, `highlight`, `ribbon`, `share`, `copy`, `voice`, `textSize`, `calendar`;
 y desde #232 `home`, `person`, `gear` (Ajustes: el sol se leía como "modo
-día/noche"), `more` (tres puntos) y `sermon` (cuaderno con renglones).
+día/noche"), `more` (tres puntos) y `sermon` (cuaderno con renglones). Para
+Amigos (1.0.3): `friends` (dos personas), `flag` (reportar) y `block` (círculo
+tachado).
 Color siempre desde `useTheme().color`. **No se usan emojis como íconos.**
 
 ---
@@ -837,3 +841,108 @@ almacenamiento, vuelve a salir). No sale con lector de pantalla.
 solo cambian las props de la que entra y la que sale. Se precargan las fotos
 de las dos primeras pantallas y, al quedar una a la vista, las de la
 siguiente (todas las partes, si es un reel).
+## Amigos y chat 1 a 1 (`/amigos`)
+
+Pedido directo del fundador (8 de noviembre de 2026, versión 1.0.3): "conectar
+cuentas y hablar chat mediante la app". Se diseñó fuera de Claude Design, con
+permiso explícito, como el resto de esta oleada. Alcance elegido: amigos +
+chat 1 a 1 con reportar, bloquear y filtro de contenido (Apple 1.2), y mandar
+un versículo dentro del chat. Gratis, sin cuota. Sin notificaciones push en
+esta versión: el contador de no leídos es lo que avisa.
+
+**Entradas:**
+
+- Inicio: la tarjeta de contexto (`ContextCard`) suma el tipo `friends`, segundo
+  en prioridad después de "Hay una versión nueva": un `HomeCard` con ícono
+  `friends`, título "Amigos" y la línea "Tenés 2 mensajes sin leer y 1
+  solicitud de amistad." Solo aparece con algo pendiente.
+- Mi espacio → Conversaciones: renglón "Amigos" con la cuenta de amigos y, en
+  serif, lo pendiente ("2 mensajes sin leer") o cómo empezar.
+- Hoja del versículo → "Más" → "Enviar a un amigo" (ícono `friends`).
+- Link de WhatsApp (`…/?ref=BAH-…&amigo=1` → `bibleai://amigo?code=…`).
+
+**Normas (primera vez):** antes de ver o mandar nada, una tarjeta `surface`
+con borde, `radius.xxl`: overline `accent` "ANTES DE EMPEZAR", título serif
+`title` "Normas de Amigos", una línea `bodySm` `inkMuted` y las normas en
+renglones con `check` en `sage` y texto `sans` `bodySm` `ink`. Abajo, el
+enlace a los términos (`caption` `accentDeep`) y el `AppButton` "Acepto las
+normas". La fecha se guarda en la cuenta (`users.communityRulesAcceptedAt`).
+
+**Lista** (`app/amigos/index.tsx`), de arriba abajo, con `ListSectionLabel`:
+
+1. **Solicitudes**: `ListCard` con renglones de persona: avatar (círculo
+   `accent` de `size.cardAvatar` con la inicial en serif `subtitle`
+   `avatarInitial`), nombre en serif `subtitle`, "Quiere ser tu amigo" en
+   `caption` `inkSoft`, y dos pills chicas (`radius.pill`, `caption`
+   `sansMedium`): "Rechazar" (borde `borderStrong`) y "Aceptar" (relleno `ink`,
+   texto `surface`).
+2. **Tus amigos**: el mismo renglón con la vista previa del último mensaje
+   (`bodySm` `inkMuted`; en `sansMedium` `ink` si hay no leídos; "Vos: …" si
+   lo escribiste vos; "Versículo · Juan 3:16" si es un versículo). A la
+   derecha, la hora (`caption`; `accentDeep` si hay no leídos) y el contador:
+   círculo `accent` de `size.badge` con el número en `caption` `sansMedium`
+   `surface` ("99+" arriba de 99). Vacío: una línea `body` `inkMuted`.
+3. **Agregar amigos**: tarjeta "Tu código" con el código en serif `title` y
+   dos `AppButton` apilados: "Invitar por WhatsApp" (`whatsapp`, por
+   `shareContent`, regla dura #3) y "Copiar mi código" (`secondary`). Debajo,
+   "Agregar con código": campo pill con borde `borderStrong` y la pill
+   "Buscar"; abre la tarjeta de la persona.
+4. **Esperando respuesta**: las solicitudes que mandaste, con "Cancelar".
+5. **Personas bloqueadas**: un `ListRow` con la cuenta que despliega cada
+   persona con "Desbloquear".
+6. Nota final en `caption` `inkSoft`: quién te escribe y cuándo se borran los
+   mensajes.
+
+**Tarjeta de la persona** (`app/amigo/index.tsx`): tarjeta `radius.xxl` con
+el avatar, overline `accent` "AMIGO EN 3C", el nombre en serif `title` y el
+código en `caption`. El botón cambia según la relación: "Agregar" (`plus`),
+"Te mandó una solicitud · Aceptar", "Ya son amigos · Abrir el chat", o el
+aviso de solicitud enviada. Se ve el primer nombre y la inicial del apellido
+("Ana L."), nunca el correo.
+
+**Chat** (`app/amigos/[friendshipId].tsx`), sobre la base del chat de Voces:
+
+- Encabezado con borde inferior `border`: ‹, avatar de `size.logoSmall`,
+  nombre en serif `subtitle` y "Amigo en 3C" en `caption`; a la derecha el
+  botón redondo `more` que abre el menú.
+- Separador de día centrado ("HOY", "AYER", "LUNES 2 DE NOVIEMBRE") en
+  `overline` `sansMedium` `inkSoft`, con el calendario de Honduras.
+- Burbujas `radius.xl`, borde de 1, hasta el 84 % del ancho: las mías a la
+  derecha en `ink` con texto `surface`; las de la otra persona a la izquierda
+  en `surface` con borde `border`. Texto `sans` `body`. Debajo, la hora en
+  `caption` `inkFaint`; en mi último mensaje, "· Visto" cuando ya lo leyó.
+- **Versículo**: la burbuja pasa a `paper` con borde `border` (de los dos
+  lados): overline `accent` "VERSÍCULO", el texto en serif `subtitle` entre
+  comillas, y abajo la cita con la versión en `caption` `sansMedium`
+  `inkMuted` y una pill "Leer" (`book`, `accentDeep`) que abre el lector. El
+  texto lo pone el servidor desde la Biblia cargada (regla dura #4).
+- Campo de texto: caja `radius.xl` con borde `borderStrong`, multilínea hasta
+  `size.composerMax`, máximo 1000 caracteres, y el botón redondo
+  `size.sendButton` con `send` (relleno `ink`; `inkFaint` vacío). El teclado
+  se maneja como en Voces (`KeyboardAvoidingView` + `useScrollToEndOnKeyboard`).
+- Avisos arriba del campo en `bodySm`: en `danger` lo que no se envió ("tiene
+  palabras ofensivas", "muchos mensajes seguidos"), en `inkMuted` las
+  confirmaciones ("Gracias. Revisamos cada reporte en menos de 24 horas.").
+- Solicitud pendiente: caja `surfaceSunk` con la explicación y, si te la
+  mandaron, "Aceptar".
+
+**Hojas** (`FriendSheet`, la misma hoja de abajo del selector de pasajes de
+Preguntar: velo `ink`, esquinas `radius.xxl`, título serif `qaPickTitle`,
+opciones en una tarjeta con divisores, ícono `accent` o `danger`):
+
+- Menú: "Reportar a …" (`flag`), "Bloquear a …" (`block`, en `danger`) y
+  "Dejar de ser amigos" (`close`).
+- Toque largo sobre un mensaje: "Copiar" y, si no es tuyo, "Reportar este
+  mensaje".
+- Reportar: cinco motivos fijos sin texto libre (insultos/odio/acoso,
+  contenido sexual, ventas/préstamos/estafas, datos privados, alguien en
+  peligro; docs/spikes/moderacion-contenido-usuarios.md §3) y después
+  "¿También querés bloquear a …?" con "Reportar y bloquear" o "Solo reportar".
+- Bloquear y dejar de ser amigos piden confirmación con lo que pasa ("se
+  borra la conversación para los dos").
+
+**Enviar a un amigo** (`app/amigos/enviar.tsx`): el versículo tal como va a
+llegar (la misma tarjeta `paper` del chat, sin "Leer") y, debajo, "¿A quién se
+lo mandás?" con los amigos en renglones y un botón redondo `send` cada uno. Al
+tocar, se manda y se abre ese chat.
+

@@ -10,6 +10,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
+import { deleteFriendDataForUser } from "./friends";
 import { deleteConversationsForUser } from "./history";
 import { deleteMemoryVersesForUser } from "./memorize";
 import { deletePrayersForUser } from "./prayers";
@@ -383,6 +384,9 @@ export const setPersonalDates = mutation({
 //   sermonNotes    → notas de prédica (#232)
 //   memoryVerses   → versículos para memorizar (#158)
 //   verseFeedLikes → ♥ del feed de versículos (también descuenta `verseFeedStats`)
+//   friendships / directMessages / userBlocks / userReports → Amigos (1.0.3):
+//                    amistades con su conversación entera, bloqueos y reportes
+//                    en los dos sentidos
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 
@@ -408,6 +412,10 @@ export type PurgeCounts = {
   sermonNotes: number;
   memoryVerses: number;
   verseFeedLikes: number;
+  friendships: number;
+  directMessages: number;
+  userBlocks: number;
+  userReports: number;
   users: number;
 };
 
@@ -445,6 +453,10 @@ function emptyPurgeCounts(): PurgeCounts {
     sermonNotes: 0,
     memoryVerses: 0,
     verseFeedLikes: 0,
+    friendships: 0,
+    directMessages: 0,
+    userBlocks: 0,
+    userReports: 0,
     users: 0,
   };
 }
@@ -586,6 +598,9 @@ export const purgeAccountData = internalMutation({
     const feedLikes = await deleteVerseFeedLikesForUser(ctx, user._id, PURGE_BUDGET);
     deleted.verseFeedLikes = feedLikes.deleted;
 
+    const friends = await deleteFriendDataForUser(ctx, user._id, PURGE_BUDGET);
+    Object.assign(deleted, friends.deleted);
+
     const childrenDone =
       conversations.done &&
       stories.done &&
@@ -595,7 +610,8 @@ export const purgeAccountData = internalMutation({
       prayers.done &&
       sermonNotes.done &&
       memory.done &&
-      feedLikes.done;
+      feedLikes.done &&
+      friends.done;
     if (!childrenDone) {
       return { done: false, deleted };
     }
@@ -697,6 +713,10 @@ export const deleteAccount = action({
       deleted.sermonNotes += result.deleted.sermonNotes;
       deleted.memoryVerses += result.deleted.memoryVerses;
       deleted.verseFeedLikes += result.deleted.verseFeedLikes;
+      deleted.friendships += result.deleted.friendships;
+      deleted.directMessages += result.deleted.directMessages;
+      deleted.userBlocks += result.deleted.userBlocks;
+      deleted.userReports += result.deleted.userReports;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

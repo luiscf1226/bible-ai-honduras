@@ -46,7 +46,7 @@ import { useFeedVoice } from "../src/features/feed/useFeedVoice";
 import { useVerseFeed } from "../src/features/feed/useVerseFeed";
 import { useScreenInsets } from "../src/hooks/useKeyboardAvoidance";
 import { useScreenReaderEnabled } from "../src/hooks/useScreenReaderEnabled";
-import { openPassage, openVerseImage } from "../src/lib/openPassage";
+import { openPassage, openSendToFriend, openVerseImage } from "../src/lib/openPassage";
 import { shareContent } from "../src/lib/share";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
@@ -64,7 +64,7 @@ const LOADING_MESSAGE: Record<FeedMode, string> = {
 };
 
 const onImage: (target: FeedPassageTarget) => void = openVerseImage;
-const onSend: ((target: FeedPassageTarget) => void) | undefined = undefined;
+const onSend: (target: FeedPassageTarget) => void = openSendToFriend;
 
 /**
  * Feed en modo TikTok (design/oleada-ux.md §Feed de versículos, §Reels del

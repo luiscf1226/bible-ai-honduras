@@ -19,8 +19,27 @@ export function buildGroupInviteLink(referralCode: string, groupInviteToken: str
   return `${buildReferralLink(referralCode)}&grupo=${encodeURIComponent(groupInviteToken)}`;
 }
 
-export function buildShareMessage(text: string, referralCode: string, groupInviteToken?: string): string {
-  const link = groupInviteToken ? buildGroupInviteLink(referralCode, groupInviteToken) : buildReferralLink(referralCode);
+/**
+ * Invitación a ser amigos (1.0.3): el link del sitio con `&amigo=1`. El código
+ * de amigo es el mismo `referralCode`, así que el `ref` sirve para las dos
+ * cosas; el sitio ofrece abrirlo en la app (`bibleai://amigo?code=…`) o
+ * instalarla primero.
+ */
+export function buildFriendInviteLink(referralCode: string): string {
+  return `${buildReferralLink(referralCode)}&amigo=1`;
+}
+
+export function buildShareMessage(
+  text: string,
+  referralCode: string,
+  groupInviteToken?: string,
+  friendInvite = false,
+): string {
+  const link = groupInviteToken
+    ? buildGroupInviteLink(referralCode, groupInviteToken)
+    : friendInvite
+      ? buildFriendInviteLink(referralCode)
+      : buildReferralLink(referralCode);
   return `${text}\n\n${link}`;
 }
 
@@ -130,10 +149,12 @@ export async function shareContent(params: {
   referralCode: string;
   /** Solo la invitación a un grupo (#185): agrega el token al link. */
   groupInviteToken?: string;
+  /** Invitación a ser amigos (1.0.3): el link abre la tarjeta para agregarte. */
+  friendInvite?: boolean;
 }): Promise<ShareResult> {
   try {
     const Share = await loadNative();
-    const message = buildShareMessage(params.text, params.referralCode, params.groupInviteToken);
+    const message = buildShareMessage(params.text, params.referralCode, params.groupInviteToken, params.friendInvite);
     const result = await Share.share({ message });
 
     if (result.action === Share.dismissedAction) {

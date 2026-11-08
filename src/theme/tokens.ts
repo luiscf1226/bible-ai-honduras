@@ -212,6 +212,10 @@ export const tokens = {
     // Feed en modo TikTok: subrayado corto de la pestaña activa y alto de la tarjeta héroe del inicio.
     feedTabUnderline: { width: 18, height: 2 },
     feedHeroCard: 148,
+    // Amigos: contador de no leídos (mismo lado que `icon.md`) y alto máximo del
+    // campo del chat antes de hacer scroll (4 renglones de `type.body`).
+    badge: 20,
+    composerMax: 104,
   },
   // Hoja del versículo (#232): la fila de arriba lleva 5 acciones (con "Imagen") + "Más"; lo que despliega
   // "Más" sigue en 4 columnas para que "Memorizando" o "Relacionados" no se corten.
