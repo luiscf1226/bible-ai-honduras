@@ -1,29 +1,35 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Icon } from "../../components/Icon";
 import { KenBurnsImage } from "../../components/KenBurnsImage";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { useTheme } from "../../theme/ThemeProvider";
 import { tokens } from "../../theme/tokens";
 import {
   createDoubleTapDetector,
+  feedCaption,
+  feedPassageTarget,
   feedReference,
   feedVerseText,
   feedVerseType,
-  formatLikes,
   type FeedItem,
 } from "./feedLogic";
-import { FeedAction, feedStyles, HeartBurst, useHeartBurst } from "./FeedParts";
+import {
+  FeedBookAvatar,
+  FeedCaption,
+  FeedRail,
+  feedStyles,
+  HeartBurst,
+  useHeartBurst,
+  type FeedExtraActions,
+} from "./FeedParts";
 
-type FeedVersePageProps = {
+type FeedVersePageProps = FeedExtraActions & {
   item: FeedItem;
   height: number;
   /** Margen de arriba y abajo para no quedar debajo de la isla / la barra del sistema. */
   insetTop: number;
   insetBottom: number;
-  /** Solo la primera pantalla invita a deslizar. */
-  showHint: boolean;
   /** La pantalla que se ve: su fondo se mueve y su versículo entra subiendo. */
   active: boolean;
   onSetLike: (ref: string, liked: boolean) => void;
@@ -33,12 +39,13 @@ type FeedVersePageProps = {
 };
 
 /**
- * Una pantalla del feed (design/oleada-ux.md §Feed de versículos): la foto del
- * devocional a pantalla completa con `imageScrim`, el tema en `overline`, el
- * versículo en serif (más chico cuanto más largo, para que entre sin scroll),
- * la cita, y a la derecha la columna ♥ / Compartir / Leer. Doble toque en
- * cualquier lado = ♥ con un corazón grande que aparece y se va (con
- * VoiceOver/TalkBack, el ♥ es el botón).
+ * Una pantalla del feed (design/oleada-ux.md §Feed de versículos y §Feed en
+ * modo TikTok): la imagen a pantalla completa con `imageScrim`, el versículo
+ * en serif al centro (más chico cuanto más largo, para que entre sin scroll),
+ * la leyenda "@RV1909" con la cita y el tema abajo a la izquierda, y a la
+ * derecha el riel: el libro (abre el capítulo), ♥, Compartir y, si vienen,
+ * Imagen y Enviar. Doble toque en cualquier lado = ♥ con un corazón grande
+ * que aparece y se va (con VoiceOver/TalkBack, el ♥ es el botón).
  */
 function FeedVersePageImpl({
   active,
@@ -46,11 +53,12 @@ function FeedVersePageImpl({
   insetBottom,
   insetTop,
   item,
+  onImage,
   onRead,
+  onSend,
   onSetLike,
   onShare,
   shareDisabled,
-  showHint,
 }: FeedVersePageProps) {
   const { color } = useTheme();
   const reduceMotion = useReduceMotion();
@@ -71,6 +79,7 @@ function FeedVersePageImpl({
   }, [active, reduceMotion, rise]);
   const text = feedVerseText(item.text);
   const verseType = tokens.type[feedVerseType(text)];
+  const caption = feedCaption(item, 0);
 
   const onPress = () => {
     if (!isDoubleTap(Date.now())) return;
@@ -93,7 +102,7 @@ function FeedVersePageImpl({
       {/*
         El doble toque vive en una capa detrás del contenido y fuera de la
         accesibilidad: si toda la página fuera un botón, VoiceOver la leería
-        como un solo elemento y no llegaría a ♥ / Compartir / Leer.
+        como un solo elemento y no llegaría al riel.
       */}
       <Pressable accessible={false} onPress={onPress} style={StyleSheet.absoluteFill} testID="feed-double-tap" />
 
@@ -103,90 +112,62 @@ function FeedVersePageImpl({
         style={[
           styles.body,
           {
-            paddingBottom: insetBottom + tokens.space.xxl,
+            paddingBottom: insetBottom + tokens.space.xl,
             paddingTop: insetTop + tokens.size.feedAction,
           },
         ]}
       >
-        <Animated.View
-          accessibilityLabel={`${text}. ${feedReference(item)}`}
-          accessible
-          pointerEvents="none"
-          style={[
-            styles.verseBlock,
-            {
-              opacity: rise,
-              transform: [
-                {
-                  translateY: rise.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [tokens.motion.verseRiseDistance, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={[styles.overline, { color: tokens.color.surface }]}>
-            {(item.topic ?? "Versículo").toUpperCase()}
-          </Text>
-          <Text
-            maxFontSizeMultiplier={tokens.fontScale.feedMax}
-            style={[
-              styles.verse,
-              {
-                color: tokens.color.surface,
-                fontSize: verseType.size,
-                lineHeight: verseType.lineHeight,
-              },
-            ]}
-            testID="feed-verse-text"
-          >
-            “{text}”
-          </Text>
-          <Text
-            maxFontSizeMultiplier={tokens.fontScale.feedMax}
-            style={[styles.reference, { color: tokens.color.surface }]}
-          >
-            {feedReference(item)}
-          </Text>
-        </Animated.View>
-
-        <View style={feedStyles.actions}>
-          <FeedAction
-            accessibilityLabel={item.liked ? "Quitar ♥" : "Dar ♥"}
-            filled={item.liked}
-            icon="heart"
-            iconColor={item.liked ? color.accent : tokens.color.surface}
-            label={formatLikes(item.likes)}
-            onPress={() => onSetLike(item.ref, !item.liked)}
-            selected={item.liked}
-            testID="feed-like"
-          />
-          <FeedAction
-            accessibilityLabel="Compartir versículo"
-            disabled={shareDisabled}
-            icon="whatsapp"
-            label="Compartir"
-            onPress={() => onShare(item)}
-            testID="feed-share"
-          />
-          <FeedAction
-            accessibilityLabel="Leer el capítulo"
-            icon="book"
-            label="Leer"
-            onPress={() => onRead(item)}
-            testID="feed-read"
-          />
+        <View pointerEvents="box-none" style={feedStyles.column}>
+          <View pointerEvents="none" style={feedStyles.center}>
+            <Animated.View
+              accessibilityLabel={`${text}. ${feedReference(item)}`}
+              accessible
+              style={{
+                opacity: rise,
+                transform: [
+                  {
+                    translateY: rise.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [tokens.motion.verseRiseDistance, 0],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Text
+                maxFontSizeMultiplier={tokens.fontScale.feedMax}
+                style={[
+                  styles.verse,
+                  {
+                    color: tokens.color.surface,
+                    fontSize: verseType.size,
+                    lineHeight: verseType.lineHeight,
+                  },
+                ]}
+                testID="feed-verse-text"
+              >
+                “{text}”
+              </Text>
+            </Animated.View>
+          </View>
+          <FeedCaption detail={caption.detail} source={caption.source} />
         </View>
+
+        <FeedRail
+          avatar={<FeedBookAvatar />}
+          avatarLabel={`Leer ${item.book} ${item.chapter}`}
+          liked={item.liked}
+          likes={item.likes}
+          onAvatar={() => onRead(item)}
+          onImage={onImage}
+          onLike={() => onSetLike(item.ref, !item.liked)}
+          onSend={onSend}
+          onShare={() => onShare(item)}
+          shareDisabled={shareDisabled}
+          shareLabel="Compartir versículo"
+          target={feedPassageTarget(item, 0)}
+        />
       </View>
-
-      {showHint ? (
-        <View pointerEvents="none" style={[styles.hint, { bottom: insetBottom + tokens.space.xs }]}>
-          <Icon color={tokens.color.surface} name="chevronDown" size="sm" />
-          <Text style={[styles.hintText, { color: tokens.color.surface }]}>Deslizá para ver más</Text>
-        </View>
-      ) : null}
 
       <HeartBurst burst={burst} />
     </View>
@@ -198,32 +179,10 @@ export const FeedVersePage = memo(FeedVersePageImpl);
 const styles = StyleSheet.create({
   page: { overflow: "hidden", width: "100%" },
   body: {
-    alignItems: "flex-end",
     flex: 1,
     flexDirection: "row",
     gap: tokens.space.lg,
     paddingHorizontal: tokens.screenPadding.horizontal,
   },
-  verseBlock: { alignSelf: "center", flex: 1, gap: tokens.space.lg },
-  overline: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.overline.size,
-    letterSpacing: tokens.type.overline.letterSpacing,
-    lineHeight: tokens.type.overline.lineHeight,
-    opacity: tokens.opacity.imageMuted,
-  },
   verse: { fontFamily: tokens.font.serif },
-  reference: {
-    fontFamily: tokens.font.sansMedium,
-    fontSize: tokens.type.label.size,
-    lineHeight: tokens.type.bodySm.lineHeight,
-    opacity: tokens.opacity.imageMuted,
-  },
-  hint: { alignItems: "center", alignSelf: "center", gap: tokens.space.xxs, position: "absolute" },
-  hintText: {
-    fontFamily: tokens.font.sansLight,
-    fontSize: tokens.type.caption.size,
-    lineHeight: tokens.type.caption.lineHeight,
-    opacity: tokens.opacity.imageMuted,
-  },
 });

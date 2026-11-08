@@ -6,7 +6,8 @@ import { AppScreen } from "../../src/components/AppScreen";
 import { Brand } from "../../src/components/Brand";
 import { Icon } from "../../src/components/Icon";
 import { homeRows, visibleHomeCards } from "../../src/features/home/cards";
-import { greetingFor, hondurasDate, hondurasHour } from "../../src/features/home/homeCards";
+import { openFromHome } from "../../src/features/home/cards/HomeCard";
+import { greetingFor, HOME_ROUTES, hondurasDate, hondurasHour } from "../../src/features/home/homeCards";
 import { hondurasToday } from "../../src/features/widget/verseWidget";
 import { subscribeToDailyReminderTaps } from "../../src/lib/dailyReminder";
 import { withPressed } from "../../src/theme/pressed";
@@ -52,16 +53,30 @@ export default function HomeScreen() {
               <Text style={[styles.greeting, { color: color.ink }]}>{greetingFor(hondurasHour())}</Text>
             </View>
           </View>
-          <Pressable
-            accessibilityLabel="Ajustes"
-            accessibilityRole="button"
-            hitSlop={tokens.space.xs}
-            onPress={() => router.push("/ajustes")}
-            style={withPressed(styles.settingsButton, { backgroundColor: color.surface, borderColor: color.borderStrong })}
-            testID="home-settings"
-          >
-            <Icon color={color.inkMuted} name="gear" size="md" />
-          </Pressable>
+          <View style={styles.headerActions}>
+            {/* ▶ del feed (design/oleada-ux.md §Feed en modo TikTok): el feed vive en Inicio, sin pestaña propia. */}
+            <Pressable
+              accessibilityHint="Abre el feed a pantalla completa para deslizar."
+              accessibilityLabel="Para ti"
+              accessibilityRole="button"
+              hitSlop={tokens.space.xs}
+              onPress={() => openFromHome(HOME_ROUTES.feed)}
+              style={withPressed(styles.headerButton, { backgroundColor: color.accent, borderColor: color.accent })}
+              testID="home-feed-play"
+            >
+              <Icon color={color.surface} filled name="play" size="md" />
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Ajustes"
+              accessibilityRole="button"
+              hitSlop={tokens.space.xs}
+              onPress={() => router.push("/ajustes")}
+              style={withPressed(styles.headerButton, { backgroundColor: color.surface, borderColor: color.borderStrong })}
+              testID="home-settings"
+            >
+              <Icon color={color.inkMuted} name="gear" size="md" />
+            </Pressable>
+          </View>
         </View>
 
         {/* La tarjeta del versículo se estira sola (`flex: 1`) con el alto que sobra. */}
@@ -98,7 +113,8 @@ const styles = StyleSheet.create({
   },
   identity: { alignItems: "center", flexDirection: "row", flex: 1, gap: tokens.space.md },
   identityText: { flex: 1 },
-  settingsButton: {
+  headerActions: { flexDirection: "row", gap: tokens.space.sm },
+  headerButton: {
     alignItems: "center",
     borderRadius: tokens.radius.pill,
     borderWidth: 1,

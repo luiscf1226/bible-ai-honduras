@@ -224,6 +224,24 @@ export function buildStoryReels(
 
 export const REEL_POOL: readonly FeedReel[] = [...buildStoryReels(), ...buildCharacterReels()];
 const REEL_BY_REF = new Map(REEL_POOL.map((reel) => [reel.ref, reel]));
+const REEL_POOL_BY_KIND: Readonly<Record<FeedReelKind, readonly FeedReel[]>> = {
+  story: REEL_POOL.filter((reel) => reel.kind === "story"),
+  character: REEL_POOL.filter((reel) => reel.kind === "character"),
+};
+
+/** Los reels de un modo: solo historias, solo personajes, o todos (null). */
+export function reelPool(kind: FeedReelKind | null): readonly FeedReel[] {
+  return kind ? REEL_POOL_BY_KIND[kind] : REEL_POOL;
+}
+
+/**
+ * En los modos de solo reels, la página empieza otra vuelta cuando ya no
+ * quedan sin ver para llenarla (como `rankFeedPage` con los versículos).
+ */
+export function reelsNewRound(pool: readonly FeedReel[], seenRefs: readonly string[], count: number): boolean {
+  const seen = new Set(seenRefs);
+  return pool.filter((reel) => !seen.has(reel.ref)).length < count;
+}
 const SCENE_BY_MEDIA_REF = new Map(
   REEL_POOL.flatMap((reel) => reel.scenes.map((scene) => [scene.mediaRef, { reel, scene }])),
 );
@@ -315,7 +333,9 @@ export function rankReels({ communityLikes, count, likedRefs, pool, seed, seenRe
   const seen = new Set(seenRefs);
   let candidates = pool.filter((reel) => !seen.has(reel.ref));
   if (candidates.length < count) {
-    const recent = new Set(seenRefs.slice(-FEED_RECENT_GUARD));
+    // Con un pool chico (solo personajes) el resguardo deja lugar para llenar la tanda.
+    const guard = Math.min(FEED_RECENT_GUARD, pool.length - count);
+    const recent = new Set(guard > 0 ? seenRefs.slice(-guard) : []);
     candidates = pool.filter((reel) => !recent.has(reel.ref));
     if (candidates.length < count) candidates = [...pool];
   }

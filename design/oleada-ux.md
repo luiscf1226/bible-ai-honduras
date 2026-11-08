@@ -637,3 +637,119 @@ versículos.
   comunidad), Compartir (la parte que se ve, por `shareContent`), **Conversar**
   (ícono `voice`, solo si hay personaje: abre su chat en Voces) y Leer (el
   capítulo de la parte que se ve). Doble toque = ♥, igual que el versículo.
+
+## Feed en modo TikTok: modos, pantalla completa y entrada en Inicio (`/versiculos`, 1.0.3)
+
+Pedido directo del fundador (8 de noviembre de 2026): que el feed sea un
+"modo TikTok" mucho más obvio, con modos distintos. Se diseñó fuera de Claude
+Design, con permiso explícito, como el resto de esta oleada. Sigue **dentro de
+Inicio** (lo eligió el fundador el 27 de octubre), sin pestaña propia: lo que
+cambia es que la entrada no se puede pasar por alto. Esta sección **reemplaza**
+en §Feed de versículos y §Reels del feed lo que dice del ‹ de volver, la pista
+"Deslizá para ver más", el tema y la cita arriba del versículo, la columna de
+acciones y la barra de partes en la fila del ‹.
+
+**Modos** (pestañas de texto arriba, centradas, flotando sobre la imagen):
+"Para ti" (la mezcla de siempre: versículos y, en el 3.º y 6.º lugar,
+historias y personajes), "Versículos" (solo versículos), "Historias" (solo
+historias contadas) y "Personajes" (solo personajes en 1ra persona).
+
+- Cada modo **filtra en el servidor**: `verseFeed.page` recibe `mode`
+  (validado; `convex/verseFeedLimits.ts` `FEED_MODES`). Sin `mode` —los builds
+  que ya están en la tienda— se comporta como antes (`withReels`). En
+  Historias y Personajes cada página trae 4 reels de ese tipo
+  (`FEED_REEL_PAGE_SIZE`); cuando ya se vieron todos, empieza otra vuelta sin
+  los últimos.
+- Etiquetas en `sansMedium` `bodySm`, en `surface`; la activa entera, las
+  demás al `opacity.feedTabIdle` (0.6, token nuevo). Debajo de la activa, un
+  subrayado corto `size.feedTabUnderline` (18 × 2, token nuevo) con
+  `radius.pill`. Separadas `space.md`. Si con la letra del sistema agrandada
+  no entran (tope `fontScale.feedMax`), la fila se desliza y lleva la activa a
+  la vista.
+- Se cambia tocando la pestaña o **deslizando de lado** (más de
+  `motion.feedModeSwipe`, 48 px, y el doble de horizontal que de vertical; el
+  contenido sigue un poco al dedo y vuelve con un resorte). El swipe vertical,
+  el toque y el doble toque siguen siendo del feed.
+- Al cambiar de modo la lista arranca arriba; cada modo guarda su propio
+  "visto" y su semilla mientras el feed está abierto, así volver a una pestaña
+  trae lo que todavía no se vio en ella.
+- A11y: la fila es `tablist`, cada pestaña `tab` con `selected`.
+
+**Pantalla completa inmersiva:**
+
+- Sin barra de estado mientras se ve el feed (vuelve al salir o al abrir
+  "Leer"). Sin encabezado de pantalla: arriba a la izquierda un ✕ discreto
+  (`close`, `icon.md`, `surface`, sin círculo, área `size.backButton` +
+  `hitSlop`); a la derecha, un hueco del mismo ancho para que las pestañas
+  queden centradas (ahí vuelve el botón de sonido el día que vuelva la voz).
+- Fondo de la pantalla `night.bg` también de día: mientras carga un modo, las
+  pestañas en `surface` se siguen leyendo. La carga y el error van en
+  `surface` (`sansLight` `bodySm`; "Intentar de nuevo" en una píldora
+  `surface` al `opacity.feedActionFill`).
+
+**Riel derecho** (abajo, separado `space.lg`), como TikTok:
+
+1. **Avatar** circular `size.feedAction` con borde `surface` de `size.ring`:
+   el libro (`book` `icon.lg` sobre `surface` al `feedActionFill`) en un
+   versículo —abre el capítulo—, el `CharacterAvatar` en un personaje —abre
+   su chat en Voces— o la primera imagen de la historia —abre el capítulo de
+   la parte que se ve—.
+2. ♥ con la cuenta de la comunidad (igual que antes).
+3. Compartir (por `shareContent`, regla dura #3).
+4. **Imagen** (`image`) y **Enviar** (`send`): opcionales, solo si la
+   pantalla recibe `onImage` / `onSend`, y solo si lo que se ve tiene un
+   versículo (una parte que cita un capítulo entero no lo tiene). Los conecta
+   la integración de la 1.0.3 con la imagen del versículo y el chat con
+   amigos.
+5. En un personaje, **Leer**; en una historia que invita a un personaje,
+   **Conversar**.
+
+**Leyenda** abajo a la izquierda (debajo del texto, al lado del riel):
+"@fuente" en `sansMedium` `label` (`@RV1909` —la versión que se ve—,
+`@Moisés`, `@El arca de Noé`) y una línea en `sans` `bodySm` al `imageMuted`
+con la cita y el tema ("1 Corintios 13:4 · Esperanza"), la parte ("Génesis
+3:1–7 · Historia · Parte 1 de 3") o el pasaje y la etiqueta del personaje
+("Basado en 1 Reyes 19:11-13 · agotado después del triunfo"). Por eso el
+centro queda solo con el texto: el versículo entre comillas; la historia con
+su título en serif `subtitle` arriba; el personaje con sus palabras entre
+comillas.
+
+**Barra de partes de los reels:** pegada abajo (sobre el margen seguro), de
+borde a borde, tramos de `size.reelProgress` separados `space.xxs`. Lo visto
+en `surface`, lo que falta al `opacity.reelTrack`, y el tramo de la parte que
+se ve **se llena en lo que dura la parte** (el mismo tiempo de lectura con el
+que avanza). Con lector de pantalla o "reducir movimiento", el tramo queda
+lleno y la parte no avanza sola.
+
+**Pista de la primera vez:** sobre la leyenda, al centro, una píldora
+`night.imageScrim` con `radius.xxl`: `chevronDown` girado hacia arriba que
+sube y baja `motion.verseRiseDistance` cada `motion.feedHintBounce` (900 ms,
+token nuevo), "Deslizá hacia arriba" en `sansMedium` `label` y "o de lado para
+cambiar de modo" en `caption`. Aparece y se va con fundido (`verseRise`); se
+va al deslizar, al cambiar de modo o sola a los `motion.feedHint` (5 s, token
+nuevo). Sale una sola vez por teléfono (AsyncStorage; si no hay
+almacenamiento, vuelve a salir). No sale con lector de pantalla.
+
+**Entrada en Inicio:**
+
+- La tarjeta del feed pasa a ser una **tarjeta héroe** de alto fijo
+  `size.feedHeroCard` (148, token nuevo), `radius.xxl`, de borde a borde con
+  una vista previa en movimiento: la foto de una cita del día
+  (`verseFeed.preview`, la misma para todos ese día, con su imagen de IA si ya
+  existe) con el zoom lento de Ken Burns mientras Inicio está a la vista, y
+  `imageScrim`. Arriba, `overline` "VERSÍCULOS · HISTORIAS · PERSONAJES";
+  abajo, "Versículos para vos" en serif `verseHero` y un botón ▶ "Para ti"
+  (píldora `surface`, `play` relleno `icon.sm` y `sansMedium` `label` en
+  `ink`). Antes de que llegue la foto, la tarjeta es `night.bg`. El
+  versículo del día sigue estirándose con lo que sobra: un día normal el
+  inicio entra en una pantalla de 390 × 844.
+- En el encabezado de Inicio, a la izquierda de Ajustes, un **▶** redondo del
+  mismo tamaño (`size.logoSmall`) con fondo `accent` y `play` relleno en
+  `surface`: abre el feed en "Para ti".
+
+**Rendimiento:** la lista arma solo la pantalla que se ve y sus vecinas
+(`windowSize` 3, `initialNumToRender` 1, `maxToRenderPerBatch` 2,
+`removeClippedSubviews`); las pantallas son `memo` y al cambiar la que se ve
+solo cambian las props de la que entra y la que sale. Se precargan las fotos
+de las dos primeras pantallas y, al quedar una a la vista, las de la
+siguiente (todas las partes, si es un reel).

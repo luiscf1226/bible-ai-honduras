@@ -11,7 +11,9 @@ import {
   passageOf,
   rankReels,
   REEL_POOL,
+  reelPool,
   reelScene,
+  reelsNewRound,
   reelVoice,
   splitPageReference,
   type FeedReel,
@@ -200,5 +202,22 @@ describe("orden de los reels", () => {
   it("con un catálogo vacío o sin lugares, no devuelve nada", () => {
     expect(rankReels({ ...base, count: 2, pool: [], seed: 1 })).toEqual([]);
     expect(rankReels({ ...base, count: 0, pool: REEL_POOL, seed: 1 })).toEqual([]);
+  });
+});
+
+describe("reelPool y reelsNewRound", () => {
+  it("separa historias de personajes y sin tipo devuelve todo", () => {
+    expect(reelPool("story").every((reel) => reel.kind === "story")).toBe(true);
+    expect(reelPool("character").every((reel) => reel.kind === "character")).toBe(true);
+    expect(reelPool("story").length + reelPool("character").length).toBe(REEL_POOL.length);
+    expect(reelPool(null)).toBe(REEL_POOL);
+  });
+
+  it("empieza otra vuelta cuando no quedan sin ver para llenar la tanda", () => {
+    const pool = reelPool("character");
+    expect(reelsNewRound(pool, [], 4)).toBe(false);
+    const allButThree = pool.slice(3).map((reel) => reel.ref);
+    expect(reelsNewRound(pool, allButThree, 4)).toBe(true);
+    expect(reelsNewRound(pool, allButThree, 3)).toBe(false);
   });
 });

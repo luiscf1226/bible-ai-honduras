@@ -98,7 +98,11 @@ empezar de cero, borrá el `localStorage` del sitio.
 - Feed de versículos (`/versiculos`): `verseFeed:page` arma páginas sin fin con
   citas reales de Versículos por tema y, con `withReels`, dos reels reales del
   catálogo (`convex/feedReelsCore.ts`) por página. Sin voz (`audioUrl: null`):
-  las partes de una historia avanzan con el tiempo de lectura.
+  las partes de una historia avanzan con el tiempo de lectura. Con `mode`
+  ("historias" / "personajes") la página son 4 reels de ese tipo; "versiculos",
+  solo versículos. `verseFeed:preview` (la foto de la tarjeta héroe del inicio)
+  es siempre la misma. La pista "Deslizá hacia arriba" sale una sola vez por
+  navegador (`localStorage`, `feed.swipeHintSeen`): borralo para volver a verla.
 - `Alert.alert` no existe en react-native-web → el diálogo de "Borrar mi
   historial" no aparece en el navegador. En iOS/Android sí.
 - "Proteger lo personal" guarda la preferencia en `localStorage` en web

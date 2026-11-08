@@ -171,7 +171,10 @@ export const STORIES_CARD_CAPTION = "Historias bíblicas en texto e imágenes";
 // ── Feed de versículos ───────────────────────────────────────────────────────
 
 export const FEED_CARD_TITLE = "Versículos para vos";
-export const FEED_CARD_CAPTION = "Deslizá uno tras otro y dale ♥ a los que te hablan";
+/** Los modos del feed, en la línea de arriba de la tarjeta héroe. */
+export const FEED_CARD_OVERLINE = "VERSÍCULOS · HISTORIAS · PERSONAJES";
+/** El botón ▶ de la tarjeta: abre la pestaña "Para ti". */
+export const FEED_CARD_PLAY = "Para ti";
 
 // ── Encabezado ───────────────────────────────────────────────────────────────
 
