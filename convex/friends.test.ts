@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { MAX_CONNECTIONS, MESSAGE_MAX_LENGTH, MESSAGES_PER_MINUTE, REPORTS_PER_DAY } from "./friendsCore";
+import { AUTO_SUSPEND_REPORTERS, MAX_CONNECTIONS, MESSAGE_MAX_LENGTH, MESSAGES_PER_MINUTE, REPORTS_PER_DAY } from "./friendsCore";
 import schema from "./schema";
 
 const modules = {
@@ -383,6 +383,33 @@ describe("friends — bloquear y reportar", () => {
     ]);
     expect(await t.run((ctx) => ctx.db.query("directMessages").collect())).toHaveLength(0);
     expect(await ana.query(api.friends.blocked, {})).toHaveLength(1);
+  });
+
+  it("cuando varias personas distintas reportan a alguien, Amigos lo suspende solo", async () => {
+    const t = convexTest(schema, modules);
+    const carla = await signUp(t, "user_carla", "Carla Ríos");
+    const reporters = [];
+    for (let index = 0; index < AUTO_SUSPEND_REPORTERS; index += 1) {
+      const reporter = await signUp(t, `user_r${index}`, `Persona ${index}`);
+      const sent = await reporter.mutation(api.friends.request, { code: await codeOf(carla) });
+      await carla.mutation(api.friends.accept, { friendshipId: sent.friendshipId! });
+      reporters.push({ reporter, friendshipId: sent.friendshipId! });
+    }
+    const suspended = async () => (await carla.query(api.friends.overview, {}))?.suspended;
+
+    const [first, ...rest] = reporters;
+    // La misma persona reportando varias veces no alcanza.
+    await first!.reporter.mutation(api.friends.report, { friendshipId: first!.friendshipId, reason: "ofensivo" });
+    await first!.reporter.mutation(api.friends.report, { friendshipId: first!.friendshipId, reason: "ofensivo" });
+    for (const { reporter, friendshipId } of rest.slice(0, -1)) {
+      await reporter.mutation(api.friends.report, { friendshipId, reason: "ofensivo" });
+    }
+    expect(await suspended()).toBe(false);
+
+    const last = rest.at(-1)!;
+    await last.reporter.mutation(api.friends.report, { friendshipId: last.friendshipId, reason: "sexual" });
+    expect(await suspended()).toBe(true);
+    expect((await carla.mutation(api.friends.sendText, { friendshipId: first!.friendshipId, text: "hola" })).status).toBe("suspended");
   });
 
   it("tope de reportes por día", async () => {

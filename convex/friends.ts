@@ -19,6 +19,7 @@ import {
   parseFriendCode,
   RATE_WINDOW_MS,
   readField,
+  AUTO_SUSPEND_REPORTERS,
   REPORT_EVIDENCE,
   REPORTS_PER_DAY,
   type RequestStatus,
@@ -668,10 +669,24 @@ export const report = mutation({
       evidence: evidence.map((message) => ({ text: evidenceText(message), createdAt: message.createdAt })),
       createdAt: now,
     });
+    await suspendIfWidelyReported(ctx, mine.otherId, now);
     if (args.alsoBlock) await blockPerson(ctx, user._id, mine.otherId, mine.row);
     return { status: "ok" };
   },
 });
+
+async function suspendIfWidelyReported(ctx: MutationCtx, reportedId: Id<"users">, now: number) {
+  const reported = await ctx.db.get(reportedId);
+  if (!reported || reported.friendsSuspendedAt !== undefined) return;
+  const reporters = new Set<string>();
+  for await (const row of ctx.db.query("userReports").withIndex("by_reported", (q) => q.eq("reportedId", reportedId))) {
+    reporters.add(row.reporterId);
+    if (reporters.size >= AUTO_SUSPEND_REPORTERS) {
+      await ctx.db.patch(reportedId, { friendsSuspendedAt: now });
+      return;
+    }
+  }
+}
 
 /**
  * Cola de reportes para el fundador (panel de Convex → Functions). Para sacar

@@ -24,6 +24,11 @@ export const UNREAD_CAP = 99;
 export const MAX_VERSE_SPAN = 10;
 /** Reportes por persona por día (spike de moderación §5). */
 export const REPORTS_PER_DAY = 10;
+/**
+ * Personas distintas que tienen que reportar a alguien para que Amigos lo suspenda solo, sin
+ * esperar a que el fundador lea la cola (Apple 1.2 pide actuar sobre los reportes).
+ */
+export const AUTO_SUSPEND_REPORTERS = 3;
 /** Cuántos mensajes de la otra persona se copian como evidencia de un reporte. */
 export const REPORT_EVIDENCE = 5;
 
