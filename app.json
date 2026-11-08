@@ -18,6 +18,10 @@
         {
           "ios": {
             "deploymentTarget": "17.0"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
