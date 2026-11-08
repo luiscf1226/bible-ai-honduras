@@ -46,7 +46,7 @@ import { useFeedVoice } from "../src/features/feed/useFeedVoice";
 import { useVerseFeed } from "../src/features/feed/useVerseFeed";
 import { useScreenInsets } from "../src/hooks/useKeyboardAvoidance";
 import { useScreenReaderEnabled } from "../src/hooks/useScreenReaderEnabled";
-import { openPassage } from "../src/lib/openPassage";
+import { openPassage, openVerseImage } from "../src/lib/openPassage";
 import { shareContent } from "../src/lib/share";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
@@ -63,9 +63,7 @@ const LOADING_MESSAGE: Record<FeedMode, string> = {
   personajes: "Buscando personajes…",
 };
 
-// "Imagen" y "Enviar" del riel se conectan con la imagen del versículo y el chat con amigos
-// (otras unidades de la 1.0.3); sin función, el botón no se muestra.
-const onImage: ((target: FeedPassageTarget) => void) | undefined = undefined;
+const onImage: (target: FeedPassageTarget) => void = openVerseImage;
 const onSend: ((target: FeedPassageTarget) => void) | undefined = undefined;
 
 /**
