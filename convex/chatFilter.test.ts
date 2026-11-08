@@ -113,4 +113,99 @@ describe("checkMessageContent", () => {
       expect(blocked(text), text).toBe(true);
     }
   });
+
+  it("no se esquiva partiendo la palabra dentro de una oración", () => {
+    for (const text of [
+      "sos una put a",
+      "sos una p uta",
+      "andate a la mier da",
+      "qué ver ga contigo",
+      "sos un pen dejo",
+      "sos una mal parida",
+      "sos un ma ri con",
+      "sos un idio ta y lo sabés",
+      "sos un hijo de p u t a",
+      "andate a la m i e r d a",
+      "sos un c u l e r o",
+      "sos un ce ro te",
+      "sos una pu.ta de verdad",
+    ]) {
+      expect(blocked(text), text).toBe(true);
+    }
+  });
+
+  it("no se esquiva con números, símbolos, otros alfabetos ni letras repetidas al final", () => {
+    for (const text of [
+      "qué pvt4 vida",
+      "sos un cu1o", // 1 como l
+      "sos una 1diota", // 1 como i
+      "sos un p!jud0",
+      "sos un cu|ero",
+      "sos una p\u057Dta", // u armenia
+      "sos una \u0440\u057Dta", // p cirílica y u armenia
+      "sos un \u0441\u0446lero", // c y u cirílicas
+      "sos una p\u03BCta", // mu griega
+      "sos un cu\u0142ero", // ł
+      "sos un \u1D04\u1D1C\u029F\u1D0F", // versalitas
+      "sos una perraa",
+      "sos una puuutaaaa",
+      "maaaariiiicoooon",
+    ]) {
+      expect(blocked(text), JSON.stringify(text)).toBe(true);
+    }
+  });
+
+  it("deja pasar oraciones normales aunque dos palabras seguidas formen una grosería", () => {
+    for (const text of [
+      "Ayer se me apagó la computadora en pleno culto",
+      "Hubo una disputa entre los hermanos y ya se arreglaron",
+      "Cuidá su reputación en el trabajo",
+      "Desde el barco se veía el mar icono de la costa norte",
+      "Fui a ver gas natural para la cocina",
+      "Salí con chamarra porque hace frío",
+      "El monte es tupido por tanta lluvia",
+      "El cabro no vino al ensayo",
+      "El cabro nada en el río los sábados",
+      "Saqué cero te digo, pero voy a estudiar más",
+      "El cerro te espera para la caminata",
+      "¿Jugamos play o vamos al parque?",
+      "Salí con Mari con los niños al parque",
+      "El imputado salió libre",
+      "Me puse la pijama y me dormí",
+      "Qué estupendo sermón el de hoy",
+      "Leí la bitácora del viaje misionero",
+      "La culebra del Génesis engañó a Eva",
+      "No me siento culpable",
+      "Calculo que llego a las 7",
+      "Tengo un pendiente con el pastor",
+      "Le compré un perro a mi hija",
+      "Pasame la pera que está en la mesa",
+      "Vamos a computar los votos del comité",
+      "Esa es la ruta más corta a Tegucigalpa",
+      "La puerta de la iglesia estaba abierta",
+      "Disputaron la final en San Pedro Sula",
+      "Oremos por la reputación del ministerio",
+      "Mañana hay vigilia a las 10",
+      "¿Viste el versículo que te mandé? Salmos 23:1",
+      "El culto de jóvenes empieza a las 6",
+      "Compré verduras en el mercado",
+      "Me caí de la bici pero estoy bien",
+      "Te llamo a las 8 para orar",
+      "La ramera de Jericó escondió a los espías",
+      "Voy a la capital con mi papá",
+      "El cipote se portó bien, maje",
+      "Mi abuela tiene 91 años",
+      "La sopa de caracol estaba deliciosa",
+      "Va a llover, llevate el paraguas",
+      "Se fue la luz en todo el barrio",
+      "El vuelo sale a las 5:40",
+      "Me puse a estudiar Romanos 8",
+      "Pídele a Dios sabiduría",
+      "Hoy cumplí 30 años, gracias a Dios",
+      "Pasame la receta de las tortillas",
+      "Vivo en la colonia Kennedy",
+    ]) {
+      expect(blocked(text), text).toBe(false);
+    }
+  });
 });

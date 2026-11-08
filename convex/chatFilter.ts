@@ -7,17 +7,17 @@
  *
  * Normaliza lo que se usa para esquivar una lista: mayúsculas, tildes,
  * letras de ancho completo o "de adorno" (NFKC), caracteres invisibles
- * (zero-width, selectores de variante, marcas de formato), letras cirílicas o
- * griegas que se ven igual, números en lugar de letras ("put4", "m13rda"),
- * letras repetidas ("puuuuta") y palabras partidas ("p.u.t.a", "p u t a",
- * "pu.ta", "pu ta").
+ * (zero-width, selectores de variante, marcas de formato), letras de otros
+ * alfabetos que se ven igual (cirílico, griego, armenio, latín con trazos o
+ * versalitas), números y símbolos en lugar de letras ("put4", "pvt4", "m13rda")
+ * y letras repetidas, también al final ("puuuuta", "perraa").
  *
- * Partes que se juntan: las separadas sin espacio ("pu.ta", "pu-ta") y las de
- * una o dos letras separadas por espacio ("pu ta"). Dos palabras normales
- * separadas por espacio no se juntan ("ver gas" no es "vergas"). El mensaje
- * entero aplastado (sin separadores ni repeticiones) también se compara.
- * Nunca se busca una palabra *adentro* de otra: "computadora", "disputa" y
- * "reputación" pasan.
+ * Palabras partidas: además de cada palabra sola, se juntan tramos cortos de
+ * palabras seguidas ("sos una put a", "la mier da", "p.u.t.a") y se comparan
+ * contra la lista con sus terminaciones conocidas. Las combinaciones normales
+ * del español que juntas forman una grosería ("mar icono", "ver gas",
+ * "es tupido") están en `BENIGN_JOINS`. Nunca se busca una palabra *adentro*
+ * de otra: "computadora", "disputa" y "reputación" pasan.
  *
  * Quedan afuera a propósito palabras que en la Biblia o en la vida de iglesia
  * son normales ("zorras" de Mateo 8:20, "ramera", "prostituta") y modismos
@@ -49,48 +49,83 @@ const BLOCKED_STEMS = [
   "estupid", "idiot", "fuck", "motherfuck", "bitch",
 ];
 
-// Números y símbolos que se usan como letras.
-const LOOKALIKES: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
+// Para lo que se arma juntando palabras no alcanza con "empieza con la raíz"
+// ("cabro" + "necesito" empieza con "cabron"): la raíz tiene que llevar una
+// de estas terminaciones y nada más.
+const STEM_ENDINGS = ["", "a", "o", "e", "s", "as", "os", "es", "ada", "ado", "adas", "ados", "azo", "ing", "er", "ers", "ez"];
+const STEM_FORMS = new Set(BLOCKED_STEMS.flatMap((stem) => STEM_ENDINGS.map((ending) => stem + ending)));
 
-// Letras cirílicas y griegas que se ven como latinas (ya en minúscula).
+/**
+ * Palabras seguidas del español que, juntas, forman algo de la lista. Cada una
+ * es la primera palabra y el comienzo de la segunda: "mar" + "icono…",
+ * "ver" + "gas". Si un tramo empieza así, no se junta.
+ */
+const BENIGN_JOINS: ReadonlyArray<readonly [string, string]> = [
+  ["mar", "icon"], // el mar icono de
+  ["mari", "con"], // salí con Mari con los niños
+  ["ver", "gas"], // ver gas natural
+  ["es", "tupid"], // el monte es tupido
+  ["cabro", "n"], // el cabro no vino, el cabro nada
+  ["cero", "t"], // saqué cero te digo
+  ["cerro", "t"], // el cerro te espera, me cerró te digo
+  ["play", "o"], // la play o el cine
+];
+
+// Números y símbolos que se usan como letras. El "1" puede ser "i" o "l" y la
+// "v" puede ser "u" ("pvta"): se prueban las dos lecturas.
+const LOOKALIKES: Record<string, string> = { "0": "o", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
+
+// Letras que se ven como latinas (ya en minúscula y sin marcas combinadas).
 const CONFUSABLES: Record<string, string> = {
-  а: "a", в: "b", е: "e", ё: "e", к: "k", м: "m", н: "h", о: "o", р: "p", с: "c", т: "t", у: "y", х: "x", і: "i", ј: "j", ѕ: "s",
-  α: "a", β: "b", ε: "e", η: "n", ι: "i", κ: "k", ν: "v", ο: "o", ρ: "p", τ: "t", υ: "u", χ: "x",
+  // Cirílico.
+  а: "a", в: "b", г: "r", е: "e", ё: "e", и: "u", к: "k", м: "m", н: "h", о: "o", п: "n", р: "p", с: "c", т: "t", у: "y", х: "x",
+  ц: "u", ь: "b", і: "i", ї: "i", ј: "j", ѕ: "s", ԁ: "d", ԛ: "q", ԝ: "w", ѵ: "v", ү: "y", һ: "h", ӏ: "l", ӧ: "o", ԍ: "g",
+  // Griego.
+  α: "a", β: "b", γ: "y", ε: "e", η: "n", ι: "i", κ: "k", μ: "u", ν: "v", ο: "o", ρ: "p", ϱ: "p", σ: "o", ς: "c", ϲ: "c",
+  τ: "t", υ: "u", χ: "x", ω: "w", ϳ: "j",
+  // Armenio.
+  ա: "w", գ: "q", զ: "q", հ: "h", ո: "n", ռ: "n", ս: "u", ց: "g", ւ: "l", օ: "o", ք: "p",
+  // Latín con trazos (NFD no los separa), IPA y versalitas.
+  ı: "i", ȷ: "j", ł: "l", ƚ: "l", ɫ: "l", ø: "o", ɵ: "o", đ: "d", ɗ: "d", ħ: "h", ɦ: "h", ŧ: "t", ƫ: "t", ƀ: "b", ɓ: "b",
+  ɑ: "a", ɐ: "a", ɡ: "g", ɠ: "g", ɨ: "i", ɩ: "i", ɱ: "m", ɲ: "n", ŋ: "n", ɽ: "r", ʂ: "s", ʉ: "u", ʋ: "v", ƴ: "y", ʐ: "z",
+  ᴀ: "a", ʙ: "b", ᴄ: "c", ᴅ: "d", ᴇ: "e", ꜰ: "f", ɢ: "g", ʜ: "h", ɪ: "i", ᴊ: "j", ᴋ: "k", ʟ: "l", ᴍ: "m", ɴ: "n",
+  ᴏ: "o", ᴘ: "p", ʀ: "r", ꜱ: "s", ᴛ: "t", ᴜ: "u", ᴠ: "v", ᴡ: "w", ʏ: "y", ᴢ: "z",
 };
+const CONFUSABLE = new RegExp(`[${Object.keys(CONFUSABLES).join("")}]`, "gu");
 
 // Invisibles: formato (Cf: zero-width, joiners, marcas de dirección, guion
 // blando, BOM), selectores de variante y rellenos que se ven como espacio vacío.
 const INVISIBLE = /[\p{Cf}\u{FE00}-\u{FE0F}\u{E0100}-\u{E01EF}\u{180B}-\u{180F}\u{115F}\u{1160}\u{3164}\u{FFA0}\u{2800}]/gu;
 
+/** El texto en minúsculas latinas sin tildes; "1" y "v" quedan para `readings`. */
 function normalize(text: string): string {
   return text
     .normalize("NFKC")
     .replace(INVISIBLE, "")
     .toLowerCase()
-    .replace(/[\u0400-\u04ff\u0370-\u03ff]/g, (char) => CONFUSABLES[char] ?? char)
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
-    .replace(/[0134578@$]/g, (char) => LOOKALIKES[char] ?? char);
+    .replace(CONFUSABLE, (char) => CONFUSABLES[char] ?? char)
+    .replace(/[03457@$]/g, (char) => LOOKALIKES[char] ?? char)
+    // "!" e "|" entre letras: "p!ja", "cu|o".
+    .replace(/(?<=[a-z1])[!|](?=[a-z1])/g, (char) => (char === "!" ? "i" : "l"));
 }
 
-type Piece = { word: string; joinsPrevious: boolean };
+/** Las lecturas del texto: "1" como "i" o como "l", y "v" como "v" o como "u". */
+function readings(normalized: string): string[] {
+  const ones = normalized.includes("1") ? [normalized.replace(/1/g, "i"), normalized.replace(/1/g, "l")] : [normalized];
+  return normalized.includes("v") ? ones.flatMap((text) => [text, text.replace(/v/g, "u")]) : ones;
+}
 
-/**
- * Las partes con letras del texto, cada una marcando si se puede juntar con la
- * anterior: separadas sin espacio, o las dos de una o dos letras.
- */
+type Piece = { word: string; spaced: boolean };
+
+/** Las palabras del texto, cada una marcando si había un espacio antes. */
 function piecesOf(text: string): Piece[] {
-  const normalized = normalize(text);
   const pieces: Piece[] = [];
   let lastEnd = 0;
-  let previous = "";
-  for (const match of normalized.matchAll(/[a-z]+/g)) {
-    const word = match[0];
-    const gap = normalized.slice(lastEnd, match.index);
-    const joinsPrevious = previous !== "" && (!/\s/.test(gap) || (previous.length <= 2 && word.length <= 2));
-    pieces.push({ word, joinsPrevious });
-    lastEnd = match.index + word.length;
-    previous = word;
+  for (const match of text.matchAll(/[a-z]+/g)) {
+    pieces.push({ word: match[0], spaced: /\s/.test(text.slice(lastEnd, match.index)) });
+    lastEnd = match.index + match[0].length;
   }
   return pieces;
 }
@@ -98,66 +133,73 @@ function piecesOf(text: string): Piece[] {
 // Largo máximo de una palabra armada juntando partes: la más larga de la
 // lista con margen para letras repetidas.
 const MAX_JOINED = 24;
+// Más tramos de letras repetidas que esto y solo se prueban "todas simples" y "todas dobles".
+const MAX_RUNS = 6;
 
-/** Cada parte sola y cada tramo de partes que se pueden juntar ("pu"+"ta"). */
-function candidatesOf(pieces: Piece[]): { words: string[]; joined: string[] } {
-  const words = pieces.map((piece) => piece.word);
-  const joined: string[] = [];
-  for (let start = 0; start < pieces.length; start += 1) {
-    let word = pieces[start]!.word;
-    for (let next = start + 1; next < pieces.length && pieces[next]!.joinsPrevious; next += 1) {
-      word += pieces[next]!.word;
-      if (word.length > MAX_JOINED) break;
-      joined.push(word);
-    }
-  }
-  return { words, joined };
-}
-
-const hasDoubleLetter = (word: string) => /(.)\1/.test(word);
-const squash = (word: string) => word.replace(/(.)\1+/g, "$1");
-
-// Las palabras de la lista sin letras dobles: contra estas se compara una
-// palabra con todas sus repeticiones aplastadas ("puuta" → "puta"). Las que
-// tienen doble ("perra") no entran, porque aplastadas chocan con palabras
-// normales ("pera").
-const SINGLE_LETTER_WORDS = new Set([...BLOCKED_WORDS].filter((word) => !hasDoubleLetter(word)));
-
-// Para lo que se arma juntando partes no alcanza con "empieza con la raíz"
-// ("cabro" + "necesito" empieza con "cabron"): la raíz tiene que llevar una
-// de estas terminaciones y nada más.
-const STEM_ENDINGS = ["", "a", "o", "e", "s", "as", "os", "es", "ada", "ado", "adas", "ados", "azo", "ing", "er", "ers", "ez"];
-const STEM_FORMS = new Set(BLOCKED_STEMS.flatMap((stem) => STEM_ENDINGS.map((ending) => stem + ending)));
-
-/** Las formas de una palabra que se comparan contra la lista. */
-function variantsOf(token: string): { exact: string[]; squashed: string } {
-  return {
-    exact: [token, token.replace(/(.)\1{2,}/g, "$1"), token.replace(/(.)\1{2,}/g, "$1$1")],
-    squashed: squash(token),
+/**
+ * Las formas de una palabra con cada tramo de letras repetidas leído como una
+ * letra o como dos: "perrraa" → "pera", "perra", "peraa"…, "puuuta" → "puta".
+ */
+function runForms(word: string): string[] {
+  const runs = [...word.matchAll(/(.)\1+/g)];
+  if (runs.length === 0) return [word];
+  const build = (pick: (index: number) => number) => {
+    let out = "";
+    let cursor = 0;
+    runs.forEach((run, index) => {
+      out += word.slice(cursor, run.index) + run[1]!.repeat(pick(index));
+      cursor = run.index + run[0].length;
+    });
+    return out + word.slice(cursor);
   };
-}
-
-function matchesList(token: string, stems: (word: string) => boolean): boolean {
-  const { exact, squashed } = variantsOf(token);
-  if (exact.some((word) => BLOCKED_WORDS.has(word))) return true;
-  if (SINGLE_LETTER_WORDS.has(squashed)) return true;
-  return [...exact, squashed].some(stems);
+  if (runs.length > MAX_RUNS) return [build(() => 1), build(() => 2)];
+  return Array.from({ length: 2 ** runs.length }, (_, mask) => build((index) => ((mask >> index) & 1) + 1));
 }
 
 /** Una palabra suelta: puede empezar con una raíz ("pendejos"). */
-const isBlockedWord = (token: string) => matchesList(token, (word) => BLOCKED_STEMS.some((stem) => word.startsWith(stem)));
+const isBlockedWord = (token: string) =>
+  runForms(token).some((form) => BLOCKED_WORDS.has(form) || BLOCKED_STEMS.some((stem) => form.startsWith(stem)));
 
 /** Una palabra armada juntando partes: raíz solo con terminación conocida. */
-const isBlockedJoin = (token: string) => matchesList(token, (word) => STEM_FORMS.has(word));
+const isBlockedJoin = (token: string) => runForms(token).some((form) => BLOCKED_WORDS.has(form) || STEM_FORMS.has(form));
+
+const isBenignJoin = (words: string[]) =>
+  BENIGN_JOINS.some(([first, second]) => words[0] === first && words[1]!.startsWith(second));
+
+/**
+ * Los tramos de palabras seguidas que se juntan: de 2 y 3 palabras siempre, de
+ * 4 si son todas de hasta 3 letras ("p ut a s"), y cualquier tramo de partes
+ * pegadas sin espacio o de una o dos letras ("p.u.u.t.a", "p u u t a a").
+ */
+function joinsOf(pieces: Piece[]): string[][] {
+  const joins: string[][] = [];
+  for (let start = 0; start < pieces.length; start += 1) {
+    const words = [pieces[start]!.word];
+    let length = words[0]!.length;
+    let chained = true;
+    let shortOnly = length <= 3;
+    for (let end = start + 1; end < pieces.length; end += 1) {
+      const piece = pieces[end]!;
+      chained &&= !piece.spaced || (pieces[end - 1]!.word.length <= 2 && piece.word.length <= 2);
+      shortOnly &&= piece.word.length <= 3;
+      words.push(piece.word);
+      length += piece.word.length;
+      if (length > MAX_JOINED || (words.length > 3 && !chained && !(words.length === 4 && shortOnly))) break;
+      joins.push([...words]);
+    }
+  }
+  return joins;
+}
+
+function isBlockedText(text: string): boolean {
+  const pieces = piecesOf(text);
+  if (pieces.some((piece) => isBlockedWord(piece.word))) return true;
+  return joinsOf(pieces).some((words) => !isBenignJoin(words) && isBlockedJoin(words.join("")));
+}
 
 export type FilterResult = { ok: true } | { ok: false; reason: "offensive" };
 
 export function checkMessageContent(text: string): FilterResult {
-  const pieces = piecesOf(text);
-  const { words, joined } = candidatesOf(pieces);
-  // El mensaje entero sin separadores ("p - u - u . t a", "put a"); las
-  // repeticiones las aplasta `matchesList`.
-  const whole = words.join("");
-  const blocked = words.some(isBlockedWord) || joined.some(isBlockedJoin) || (whole.length <= MAX_JOINED && isBlockedJoin(whole));
+  const blocked = readings(normalize(text)).some(isBlockedText);
   return blocked ? { ok: false, reason: "offensive" } : { ok: true };
 }
