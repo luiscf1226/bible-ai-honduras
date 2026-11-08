@@ -9,13 +9,13 @@ import { AiCallError } from "./adminKit/meter";
 import { aiMeter } from "./aiUsage";
 import { DEFAULT_BIBLE_VERSION } from "./bibleVersions";
 import { generateFeedImage } from "./images";
-import { consume, refund } from "./quotas";
+import { charge, refund } from "./quotas";
 import { bibleVersionForIdentity } from "./rag/verses";
-import { fitPassageText } from "./verseFeedCore";
 import { feedImagePrompt, feedImageUrl } from "./verseFeedMedia";
 import {
   clampEndVerse,
   feedRefsCovering,
+  imagePromptText,
   photosFor,
   topicsFor,
   verseImageRef,
@@ -108,7 +108,7 @@ export type GenerateBackgroundResult =
 
 type StartResult =
   | { status: "ready" | "busy" | "limit_reached" | "unavailable" }
-  | { status: "go"; userId: Id<"users">; ref: string; text: string };
+  | { status: "go"; userId: Id<"users">; ref: string; text: string; chargedDay: string | null };
 
 /**
  * Reserva el fondo de una cita y descuenta la cuota en la misma mutación: dos
@@ -127,8 +127,8 @@ export const start = internalMutation({
     if (await aiBackground(ctx, passage)) return { status: "ready" };
 
     // El prompt usa RV1909 (como el feed): la imagen es la misma para todas las versiones.
-    const fitted = fitPassageText(await passageRows(ctx, passage, DEFAULT_BIBLE_VERSION));
-    if (!fitted) return { status: "unavailable" };
+    const promptText = imagePromptText(await passageRows(ctx, passage, DEFAULT_BIBLE_VERSION));
+    if (!promptText) return { status: "unavailable" };
 
     const ref = verseImageRef(passage);
     const row = await ctx.db
@@ -138,21 +138,22 @@ export const start = internalMutation({
     const now = Date.now();
     if ((row?.inProgressUntil ?? 0) > now) return { status: "busy" };
 
-    const quota = await consume(ctx, user._id, "verseImage");
+    const quota = await charge(ctx, user._id, "verseImage");
     if (!quota.allowed) return { status: "limit_reached" };
+    const chargedDay = quota.day;
 
     const reservation = { inProgressUntil: now + RESERVATION_MS, updatedAt: now };
     if (row) await ctx.db.patch(row._id, reservation);
     else await ctx.db.insert("verseFeedMedia", { ref, kind: "image", version: "", attempts: 0, ...reservation });
-    return { status: "go", userId: user._id, ref, text: feedVerseText(fitted.text) };
+    return { status: "go", userId: user._id, ref, text: feedVerseText(promptText), chargedDay };
   },
 });
 
 /** Si el proveedor falló, la cuota vuelve: la persona no pierde su fondo del día. */
 export const refundQuota = internalMutation({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), day: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {
-    await refund(ctx, args.userId, "verseImage");
+    if (args.day) await refund(ctx, args.userId, "verseImage", args.day);
   },
 });
 
@@ -191,7 +192,7 @@ export const generateBackground = action({
       countAttempt: false,
     });
     if (failure) {
-      await ctx.runMutation(internal.verseImage.refundQuota, { userId: started.userId });
+      await ctx.runMutation(internal.verseImage.refundQuota, { userId: started.userId, day: started.chargedDay });
       return failure;
     }
     return { status: "ready" };

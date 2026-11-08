@@ -1,5 +1,6 @@
 import { devotionalCatalog } from "./devotionalCatalog";
-import { fallbackFeedPhoto, FEED_POOL, type FeedPassage } from "./verseFeedCore";
+import { fallbackFeedPhoto, FEED_POOL, fitPassageText, type FeedPassage } from "./verseFeedCore";
+import { FEED_TEXT_MAX } from "./verseFeedLimits";
 
 /**
  * "Crear imagen" de cualquier versículo (design/oleada-ux.md §Crear imagen).
@@ -7,6 +8,21 @@ import { fallbackFeedPhoto, FEED_POOL, type FeedPassage } from "./verseFeedCore"
  * para sus fondos de IA), qué fondos del feed ya le sirven y las fotos del
  * catálogo, en un orden fijo por cita.
  */
+
+/**
+ * Texto que inspira el fondo con IA. Es el mismo recorte del feed, pero un versículo que solo ya
+ * pasa el tope del feed igual tiene fondo: el prompt se queda con sus primeras palabras (la
+ * imagen no muestra este texto; el versículo entero lo pone la tarjeta).
+ */
+export function imagePromptText(rows: readonly { verse: number; text: string }[]): string | null {
+  const fitted = fitPassageText(rows);
+  if (fitted) return fitted.text;
+  const first = [...rows].sort((a, b) => a.verse - b.verse)[0]?.text.trim();
+  if (!first) return null;
+  const cut = first.slice(0, FEED_TEXT_MAX);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${lastSpace > 0 ? cut.slice(0, lastSpace) : cut}…`;
+}
 
 /** Tope de un rango: más versículos ya no entran enteros en la imagen. */
 export const VERSE_IMAGE_MAX_VERSES = 6;

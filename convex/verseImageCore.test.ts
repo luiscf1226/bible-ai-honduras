@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { fallbackFeedPhoto, type FeedPassage } from "./verseFeedCore";
-import { clampEndVerse, feedRefsCovering, photosFor, topicsFor, VERSE_IMAGE_MAX_VERSES, verseImageRef } from "./verseImageCore";
+import { clampEndVerse, feedRefsCovering, imagePromptText, photosFor, topicsFor, VERSE_IMAGE_MAX_VERSES, verseImageRef } from "./verseImageCore";
 
 const passage = (ref: string, book: string, chapter: number, verse: number, endVerse: number | null): FeedPassage => ({
   ref,
@@ -68,5 +68,23 @@ describe("photosFor", () => {
     expect([...photosFor("Salmos 23:1")].sort((a, b) => a.id.localeCompare(b.id))).toEqual(
       [...photos].sort((a, b) => a.id.localeCompare(b.id)),
     );
+  });
+});
+
+describe("imagePromptText", () => {
+  it("usa el recorte del feed cuando entra", () => {
+    expect(imagePromptText([{ verse: 2, text: "segundo" }, { verse: 1, text: "primero" }])).toBe("primero segundo");
+  });
+
+  it("un versículo largo igual tiene fondo: el prompt se queda con sus primeras palabras", () => {
+    const long = Array.from({ length: 90 }, (_, index) => `palabra${index}`).join(" ");
+    const text = imagePromptText([{ verse: 1, text: long }])!;
+    expect(text.length).toBeLessThanOrEqual(301);
+    expect(text.endsWith("…")).toBe(true);
+    expect(long.startsWith(text.slice(0, -1))).toBe(true);
+  });
+
+  it("sin texto no hay prompt", () => {
+    expect(imagePromptText([])).toBeNull();
   });
 });

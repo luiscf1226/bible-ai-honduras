@@ -252,6 +252,12 @@ const alreadySubmitted = all.find((item) => item.attributes.versionString === ve
 if (alreadySubmitted) {
   const { data: assignedBuild } = await api("GET", `/v1/appStoreVersions/${alreadySubmitted.id}/build`);
   if (assignedBuild?.id !== build.id) throw new Error("La versión ya está en revisión con otro build; no se modificará.");
+  if (alreadySubmitted.attributes.releaseType !== releaseType) {
+    console.log(
+      `::warning::La versión ya está en revisión con lanzamiento ${alreadySubmitted.attributes.releaseType}; ` +
+        `no se cambia a ${releaseType}. Cambialo en App Store Connect si hace falta.`,
+    );
+  }
   console.log(`Estado confirmado: ${alreadySubmitted.attributes.appStoreState}.`);
   console.log(`Versión ${version} (build ${build.attributes.version}) ya enviada a App Review.`);
   process.exit(0);

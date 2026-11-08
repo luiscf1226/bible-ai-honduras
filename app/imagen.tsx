@@ -98,12 +98,17 @@ export default function VerseImageScreen() {
   const version = composed?.version ?? "";
   const reference = passage ? verseImageReference(passage, composed?.endVerse ?? null) : "";
   const citation = `${reference} · ${version}`;
+  const withSeason = background?.id === "temporada" && Boolean(season?.name);
   const formats = useMemo(
     () =>
       verseText
-        ? fittingStoryFormats(style.layout === "minimal" ? verseText : `“${verseText}”`, { layout: style.layout, fitWhole: true })
+        ? fittingStoryFormats(style.layout === "minimal" ? verseText : `“${verseText}”`, {
+            layout: style.layout,
+            fitWhole: true,
+            withSeason,
+          })
         : [],
-    [style.layout, verseText],
+    [style.layout, verseText, withSeason],
   );
   const format = formats.includes(style.format) ? style.format : (formats[0] ?? "story");
   const tooLong = Boolean(verseText) && formats.length === 0;
