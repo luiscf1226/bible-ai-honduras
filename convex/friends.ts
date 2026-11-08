@@ -9,12 +9,14 @@ import { DEFAULT_BIBLE_VERSION } from "./bibleVersions";
 import { makeReferralCode } from "./users";
 import { checkMessageContent } from "./chatFilter";
 import {
+  AUTO_SUSPEND_DAYS,
   AUTO_SUSPEND_REPORTERS,
   cleanMessageText,
   DECLINED_COOLDOWN_DAYS,
   friendDisplayName,
   friendInitial,
   hondurasDay,
+  isFriendsSuspended,
   MAX_CONNECTIONS,
   MESSAGE_MAX_LENGTH,
   messagePreview,
@@ -23,6 +25,7 @@ import {
   parseFriendCode,
   previewSnippet,
   readField,
+  readSeqField,
   REPORT_EVIDENCE,
   REPORT_SCAN,
   reportCountsForSuspension,
@@ -32,6 +35,7 @@ import {
   type RequestStatus,
   type SendStatus,
   statsShard,
+  suspendedUntil,
   takeRateToken,
   UNREAD_CAP,
   unreadField,
@@ -52,7 +56,8 @@ import {
  *   rechazo (`friendRequestEvents`, no se borra al cancelar).
  * - Reportar (con copia de lo reportado) y bloquear. Bloquear borra la
  *   amistad y su conversación, y la otra persona ya no te encuentra. Tres
- *   reportes con evidencia de personas distintas suspenden solos.
+ *   reportes que cuentan (`reportCountsForSuspension`) de personas distintas
+ *   suspenden solos por `AUTO_SUSPEND_DAYS` días.
  * - Ningún id de usuario sale al teléfono: todo se pide por `friendshipId`
  *   o por código, y cada función verifica que seas parte del par.
  */
@@ -88,8 +93,8 @@ async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
 }
 
 /** Por qué esta cuenta todavía no puede escribir ni agregar amigos, o null. */
-function socialGate(user: Doc<"users">): "suspended" | "rules_required" | null {
-  if (user.friendsSuspendedAt !== undefined) return "suspended";
+function socialGate(user: Doc<"users">, now: number): "suspended" | "rules_required" | null {
+  if (isFriendsSuspended(user, now)) return "suspended";
   if (user.communityRulesAcceptedAt === undefined) return "rules_required";
   return null;
 }
@@ -193,6 +198,8 @@ export type FriendsOverview = {
   code: string;
   rulesAccepted: boolean;
   suspended: boolean;
+  /** Fin de una suspensión automática; null si no hay o si es permanente. */
+  suspendedUntil: number | null;
   requests: PendingRow[];
   sent: PendingRow[];
   friends: FriendRow[];
@@ -233,10 +240,12 @@ export const overview = query({
     requests.sort((a, b) => b.createdAt - a.createdAt);
     sent.sort((a, b) => b.createdAt - a.createdAt);
     friends.sort((a, b) => b.sortAt - a.sortAt);
+    const now = Date.now();
     return {
       code: user.referralCode,
       rulesAccepted: user.communityRulesAcceptedAt !== undefined,
-      suspended: user.friendsSuspendedAt !== undefined,
+      suspended: isFriendsSuspended(user, now),
+      suspendedUntil: suspendedUntil(user, now),
       requests,
       sent,
       friends: friends.map(({ sortAt: _sortAt, ...friend }) => friend),
@@ -317,7 +326,7 @@ export const thread = query({
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine) return null;
     const { row, otherId } = mine;
-    const gate = socialGate(user);
+    const gate = socialGate(user, Date.now());
     return {
       friendshipId: row._id,
       status: row.status,
@@ -450,7 +459,8 @@ export const request = mutation({
   args: { code: v.string() },
   handler: async (ctx, args): Promise<{ status: RequestStatus; friendshipId?: Id<"friendships"> }> => {
     const user = await requireUser(ctx);
-    const gate = socialGate(user);
+    const now = Date.now();
+    const gate = socialGate(user, now);
     if (gate) return { status: gate };
     const other = await userByCode(ctx, args.code);
     if (!other) return { status: "not_found" };
@@ -461,7 +471,7 @@ export const request = mutation({
     if (existing) {
       if (existing.status === "accepted") return { status: "already_friends", friendshipId: existing._id };
       if (existing.requestedBy === user._id) return { status: "already_sent", friendshipId: existing._id };
-      await ctx.db.patch(existing._id, { status: "accepted", acceptedAt: Date.now() });
+      await acceptFriendship(ctx, existing._id, now);
       return { status: "accepted", friendshipId: existing._id };
     }
 
@@ -471,7 +481,6 @@ export const request = mutation({
     ) {
       return { status: "too_many" };
     }
-    const now = Date.now();
     const limit = await requestLimit(ctx, user._id, other._id, now);
     if (limit) return { status: limit };
     const friendshipId = await ctx.db.insert("friendships", {
@@ -485,16 +494,23 @@ export const request = mutation({
   },
 });
 
+/** Una solicitud pasa a amistad; cuenta para el dashboard. */
+async function acceptFriendship(ctx: MutationCtx, friendshipId: Id<"friendships">, now: number) {
+  await ctx.db.patch(friendshipId, { status: "accepted", acceptedAt: now });
+  await bumpDailyStats(ctx, friendshipId, now, { accepted: 1 });
+}
+
 /** Aceptar una solicitud que te mandaron. */
 export const accept = mutation({
   args: { friendshipId: v.id("friendships") },
   handler: async (ctx, args): Promise<{ status: "ok" | "not_found" | "suspended" | "rules_required" }> => {
     const user = await requireUser(ctx);
-    const gate = socialGate(user);
+    const now = Date.now();
+    const gate = socialGate(user, now);
     if (gate) return { status: gate };
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine || mine.row.status !== "pending" || mine.row.requestedBy === user._id) return { status: "not_found" };
-    await ctx.db.patch(mine.row._id, { status: "accepted", acceptedAt: Date.now() });
+    await acceptFriendship(ctx, mine.row._id, now);
     return { status: "ok" };
   },
 });
@@ -502,6 +518,7 @@ export const accept = mutation({
 /** Borra la amistad y, en segundo plano, toda su conversación. */
 async function endFriendship(ctx: MutationCtx, row: Doc<"friendships">): Promise<void> {
   await ctx.db.delete(row._id);
+  if (row.status === "accepted") await bumpDailyStats(ctx, row._id, Date.now(), { ended: 1 });
   if (row.lastMessageAt !== undefined) {
     await ctx.scheduler.runAfter(0, internal.friends.purgeConversation, { friendshipId: row._id });
   }
@@ -553,7 +570,7 @@ type SendTarget = { status: "ready"; user: Doc<"users">; row: Doc<"friendships">
 
 async function sendTarget(ctx: MutationCtx, friendshipId: Id<"friendships">, now: number): Promise<SendTarget> {
   const user = await requireUser(ctx);
-  const gate = socialGate(user);
+  const gate = socialGate(user, now);
   if (gate) return { status: gate };
   const mine = await myFriendship(ctx, friendshipId, user._id);
   if (!mine || mine.row.status !== "accepted") return { status: "not_friends" };
@@ -576,15 +593,28 @@ async function spendRateToken(ctx: MutationCtx, userId: Id<"users">, now: number
   return true;
 }
 
-async function bumpDailyStats(ctx: MutationCtx, friendshipId: Id<"friendships">, now: number) {
+type StatsChange = { messages?: number; accepted?: number; ended?: number; blocks?: number; report?: Doc<"userReports">["reason"] };
+
+/** Suma a los contadores del día (`friendDailyStats`), en la fila de esta amistad. */
+async function bumpDailyStats(ctx: MutationCtx, friendshipId: Id<"friendships">, now: number, change: StatsChange) {
   const day = hondurasDay(now);
   const shard = statsShard(friendshipId);
   const row = await ctx.db
     .query("friendDailyStats")
     .withIndex("by_day_shard", (q) => q.eq("day", day).eq("shard", shard))
     .unique();
-  if (row) await ctx.db.patch(row._id, { messages: row.messages + 1 });
-  else await ctx.db.insert("friendDailyStats", { day, shard, messages: 1 });
+  const add = (current: number | undefined, delta: number | undefined) => (current ?? 0) + (delta ?? 0);
+  const reports = { ...row?.reports };
+  if (change.report) reports[change.report] = (reports[change.report] ?? 0) + 1;
+  const next = {
+    messages: add(row?.messages, change.messages),
+    accepted: add(row?.accepted, change.accepted),
+    ended: add(row?.ended, change.ended),
+    blocks: add(row?.blocks, change.blocks),
+    reports,
+  };
+  if (row) await ctx.db.patch(row._id, next);
+  else await ctx.db.insert("friendDailyStats", { day, shard, ...next });
 }
 
 async function deliver(
@@ -593,24 +623,28 @@ async function deliver(
   message: Pick<Doc<"directMessages">, "kind" | "text" | "verse">,
   now: number,
 ): Promise<Id<"directMessages">> {
+  const { row, user } = target;
+  const seq = (row.messageSeq ?? 0) + 1;
   const id = await ctx.db.insert("directMessages", {
-    friendshipId: target.row._id,
-    senderId: target.user._id,
+    friendshipId: row._id,
+    senderId: user._id,
     ...message,
     createdAt: now,
+    seq,
   });
-  const { row, user } = target;
   const otherId = otherSide(row, user._id)!;
   // Lo que uno manda ya lo leyó (y contestar es leer): mi contador queda en
   // cero y el de la otra persona suma uno.
   await ctx.db.patch(row._id, {
     lastMessageAt: now,
+    messageSeq: seq,
     lastMessage: { senderId: user._id, kind: message.kind, snippet: previewSnippet(message) },
     [readField(row, user._id)]: now,
+    [readSeqField(row, user._id)]: seq,
     [unreadField(row, user._id)]: 0,
     [unreadField(row, otherId)]: unreadOf(row, otherId) + 1,
   });
-  await bumpDailyStats(ctx, row._id, now);
+  await bumpDailyStats(ctx, row._id, now, { messages: 1 });
   return id;
 }
 
@@ -687,6 +721,8 @@ export const versePreview = query({
 /**
  * Con el chat en pantalla: leído hasta `upTo` (el último mensaje que se ve).
  * Si llegó otro después, ese sigue sin leer. Sin `upTo`, todo lo que hay.
+ * Compara por el número de cada mensaje (`seq`): dos mensajes del mismo
+ * milisegundo no se confunden. Los mensajes de antes, sin número, por fecha.
  */
 export const markRead = mutation({
   args: { friendshipId: v.id("friendships"), upTo: v.optional(v.id("directMessages")) },
@@ -696,27 +732,37 @@ export const markRead = mutation({
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine) return null;
     const { row, otherId } = mine;
-    const lastMessageAt = row.lastMessageAt;
-    let upToAt = lastMessageAt;
+    if (row.lastMessageAt === undefined) return null;
+    const lastSeq = row.messageSeq ?? 0;
+    let upTo = { at: row.lastMessageAt, seq: lastSeq };
     if (args.upTo) {
       const seen = await ctx.db.get(args.upTo);
       if (!seen || seen.friendshipId !== row._id) return null;
-      upToAt = seen.createdAt;
+      upTo = { at: seen.createdAt, seq: seen.seq ?? 0 };
     }
-    const field = readField(row, user._id);
-    const readAt = row[field] ?? 0;
+    const atField = readField(row, user._id);
+    const seqField = readSeqField(row, user._id);
+    const readAt = row[atField] ?? 0;
+    const readSeq = row[seqField] ?? 0;
     // Sin mensajes nuevos no se escribe: abrir el chat no despierta las consultas del otro lado.
-    if (lastMessageAt === undefined || upToAt === undefined || upToAt <= readAt) return null;
+    const advances = upTo.seq > 0 ? upTo.seq > readSeq : upTo.at > readAt;
+    if (!advances) return null;
     let unread = 0;
-    if (lastMessageAt > upToAt) {
+    if (upTo.seq > 0 ? lastSeq > upTo.seq : row.lastMessageAt > upTo.at) {
       // Llegó algo después de lo que se ve: se cuenta solo eso (pocos, recién llegados).
       const after = await ctx.db
         .query("directMessages")
-        .withIndex("by_friendship", (q) => q.eq("friendshipId", row._id).gt("createdAt", upToAt))
+        .withIndex("by_friendship", (q) => q.eq("friendshipId", row._id).gte("createdAt", upTo.at))
         .take(UNREAD_CAP + 1);
-      unread = after.filter((message) => message.senderId === otherId).length;
+      const isAfter = (message: Doc<"directMessages">) =>
+        upTo.seq > 0 && message.seq !== undefined ? message.seq > upTo.seq : message.createdAt > upTo.at;
+      unread = after.filter((message) => message.senderId === otherId && isAfter(message)).length;
     }
-    await ctx.db.patch(row._id, { [field]: upToAt, [unreadField(row, user._id)]: unread });
+    await ctx.db.patch(row._id, {
+      [atField]: Math.max(readAt, upTo.at),
+      ...(upTo.seq > 0 ? { [seqField]: upTo.seq } : {}),
+      [unreadField(row, user._id)]: unread,
+    });
     return null;
   },
 });
@@ -725,7 +771,9 @@ export const markRead = mutation({
 
 async function blockPerson(ctx: MutationCtx, me: Id<"users">, otherId: Id<"users">, row: Doc<"friendships">) {
   if (!(await findBlock(ctx, me, otherId))) {
-    await ctx.db.insert("userBlocks", { blockerId: me, blockedId: otherId, createdAt: Date.now() });
+    const now = Date.now();
+    await ctx.db.insert("userBlocks", { blockerId: me, blockedId: otherId, createdAt: now });
+    await bumpDailyStats(ctx, row._id, now, { blocks: 1 });
   }
   await endFriendship(ctx, row);
 }
@@ -807,6 +855,9 @@ export const report = mutation({
     const countsForSuspension = reportCountsForSuspension({
       friendshipAccepted: mine.row.status === "accepted",
       evidenceCount: evidence.length,
+      reporterSince: user._creationTime,
+      friendsSince: mine.row.acceptedAt ?? mine.row.createdAt,
+      now,
     });
     await ctx.db.insert("userReports", {
       reporterId: user._id,
@@ -817,35 +868,43 @@ export const report = mutation({
       countsForSuspension,
       createdAt: now,
     });
-    if (countsForSuspension) await suspendIfWidelyReported(ctx, mine.otherId, now);
+    await bumpDailyStats(ctx, mine.row._id, now, { report: args.reason });
+    if (countsForSuspension) await suspendIfWidelyReported(ctx, user._id, mine.otherId, now);
     if (args.alsoBlock) await blockPerson(ctx, user._id, mine.otherId, mine.row);
     return { status: "ok" };
   },
 });
 
 /**
- * Suspende a quien juntó reportes con evidencia de `AUTO_SUSPEND_REPORTERS`
- * personas distintas. Los reportes sin evidencia no cuentan: quedan en la cola.
+ * Anota que este par cuenta (una fila chica por par en `userReportPairs`) y
+ * suspende por `AUTO_SUSPEND_DAYS` días a quien junta `AUTO_SUSPEND_REPORTERS`
+ * personas distintas. Solo cuentan los reportes de después de la última
+ * suspensión automática: al vencer, hacen falta reportes nuevos.
  */
-async function suspendIfWidelyReported(ctx: MutationCtx, reportedId: Id<"users">, now: number) {
+async function suspendIfWidelyReported(ctx: MutationCtx, reporterId: Id<"users">, reportedId: Id<"users">, now: number) {
+  const pair = await ctx.db
+    .query("userReportPairs")
+    .withIndex("by_reported_reporter", (q) => q.eq("reportedId", reportedId).eq("reporterId", reporterId))
+    .unique();
+  if (pair) await ctx.db.patch(pair._id, { qualifiedAt: now });
+  else await ctx.db.insert("userReportPairs", { reportedId, reporterId, qualifiedAt: now });
+
   const reported = await ctx.db.get(reportedId);
-  if (!reported || reported.friendsSuspendedAt !== undefined) return;
-  const reporters = new Set<string>();
-  const counted = ctx.db
-    .query("userReports")
-    .withIndex("by_reported_counts", (q) => q.eq("reportedId", reportedId).eq("countsForSuspension", true));
-  for await (const row of counted) {
-    reporters.add(row.reporterId);
-    if (reporters.size >= AUTO_SUSPEND_REPORTERS) {
-      await ctx.db.patch(reportedId, { friendsSuspendedAt: now });
-      return;
-    }
+  if (!reported || isFriendsSuspended(reported, now)) return;
+  const since = reported.friendsSuspendedUntil ?? 0;
+  const reporters = await ctx.db
+    .query("userReportPairs")
+    .withIndex("by_reported_qualified", (q) => q.eq("reportedId", reportedId).gte("qualifiedAt", since))
+    .take(AUTO_SUSPEND_REPORTERS);
+  if (reporters.length >= AUTO_SUSPEND_REPORTERS) {
+    await ctx.db.patch(reportedId, { friendsSuspendedUntil: now + AUTO_SUSPEND_DAYS * DAY_MS });
   }
 }
 
 /**
  * Cola de reportes para el fundador (panel de Convex → Functions). Para sacar
- * a alguien de Amigos: poner `friendsSuspendedAt` en su fila de `users`.
+ * a alguien de Amigos para siempre: poner `friendsSuspendedAt` en su fila de
+ * `users` (la automática, `friendsSuspendedUntil`, vence a los 7 días).
  */
 export const recentReports = internalQuery({
   args: { limit: v.optional(v.number()) },
@@ -855,6 +914,7 @@ export const recentReports = internalQuery({
       .withIndex("by_created")
       .order("desc")
       .take(Math.min(Math.max(1, Math.floor(args.limit ?? 50)), 200));
+    const now = Date.now();
     return await Promise.all(
       rows.map(async (row) => {
         const reported = await ctx.db.get(row.reportedId);
@@ -864,7 +924,8 @@ export const recentReports = internalQuery({
           reason: row.reason,
           reportedUserId: row.reportedId,
           reportedEmail: reported?.email ?? null,
-          reportedSuspended: reported?.friendsSuspendedAt !== undefined,
+          reportedSuspended: reported ? isFriendsSuspended(reported, now) : false,
+          reportedSuspendedUntil: reported ? suspendedUntil(reported, now) : null,
           countsForSuspension: row.countsForSuspension ?? false,
           evidence: row.evidence,
         };
@@ -880,6 +941,7 @@ export type FriendPurgeCounts = {
   directMessages: number;
   userBlocks: number;
   userReports: number;
+  userReportPairs: number;
   friendRequestEvents: number;
   friendRates: number;
 };
@@ -888,7 +950,8 @@ export type FriendPurgeCounts = {
  * Cascada de borrado de cuenta: las amistades y solicitudes con sus
  * conversaciones enteras (también lo que escribió la otra persona en ese
  * chat), los bloqueos en los dos sentidos y los reportes que hizo o que le
- * hicieron (la evidencia es copia de lo que escribió), el historial de
+ * hicieron (la evidencia es copia de lo que escribió) con sus filas de
+ * `userReportPairs`, el historial de
  * solicitudes en los dos sentidos y su límite de ritmo. Gasta a lo sumo
  * `budget` borrados; `done: false` pide otra pasada.
  */
@@ -902,6 +965,7 @@ export async function deleteFriendDataForUser(
     directMessages: 0,
     userBlocks: 0,
     userReports: 0,
+    userReportPairs: 0,
     friendRequestEvents: 0,
     friendRates: 0,
   };
@@ -926,6 +990,7 @@ export async function deleteFriendDataForUser(
       .take(Math.min(budget - spent, 128));
     if (messages.length === 0) {
       await ctx.db.delete(row._id);
+      if (row.status === "accepted") await bumpDailyStats(ctx, row._id, Date.now(), { ended: 1 });
       deleted.friendships += 1;
       spent += 1;
       continue;
@@ -935,13 +1000,21 @@ export async function deleteFriendDataForUser(
     spent += messages.length;
   }
 
-  type PurgeKey = "userBlocks" | "userReports" | "friendRequestEvents" | "friendRates";
-  type PurgeId = Id<"userBlocks"> | Id<"userReports"> | Id<"friendRequestEvents"> | Id<"friendRates">;
+  type PurgeKey = "userBlocks" | "userReports" | "userReportPairs" | "friendRequestEvents" | "friendRates";
+  type PurgeId = Id<"userBlocks"> | Id<"userReports"> | Id<"userReportPairs"> | Id<"friendRequestEvents"> | Id<"friendRates">;
   const pages: Array<{ key: PurgeKey; next: (limit: number) => Promise<{ _id: PurgeId }[]> }> = [
     { key: "userBlocks", next: (limit) => ctx.db.query("userBlocks").withIndex("by_blocker", (q) => q.eq("blockerId", userId)).take(limit) },
     { key: "userBlocks", next: (limit) => ctx.db.query("userBlocks").withIndex("by_blocked", (q) => q.eq("blockedId", userId)).take(limit) },
     { key: "userReports", next: (limit) => ctx.db.query("userReports").withIndex("by_reporter", (q) => q.eq("reporterId", userId)).take(limit) },
     { key: "userReports", next: (limit) => ctx.db.query("userReports").withIndex("by_reported", (q) => q.eq("reportedId", userId)).take(limit) },
+    {
+      key: "userReportPairs",
+      next: (limit) => ctx.db.query("userReportPairs").withIndex("by_reporter", (q) => q.eq("reporterId", userId)).take(limit),
+    },
+    {
+      key: "userReportPairs",
+      next: (limit) => ctx.db.query("userReportPairs").withIndex("by_reported_reporter", (q) => q.eq("reportedId", userId)).take(limit),
+    },
     {
       key: "friendRequestEvents",
       next: (limit) => ctx.db.query("friendRequestEvents").withIndex("by_requester_created", (q) => q.eq("requesterId", userId)).take(limit),
@@ -1003,6 +1076,7 @@ export const seedReviewFriend = internalMutation({
       createdAt: now,
       acceptedAt: now,
     });
+    await bumpDailyStats(ctx, friendshipId, now, { accepted: 1 });
     const target = async () => ({ user: team, row: (await ctx.db.get(friendshipId))! });
     await deliver(
       ctx,

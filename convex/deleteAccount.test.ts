@@ -330,6 +330,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       directMessages: 0,
       userBlocks: 0,
       userReports: 0,
+      userReportPairs: 0,
       friendRequestEvents: 0,
       friendRates: 0,
       users: 1,
@@ -488,6 +489,16 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     await caro.mutation(api.friends.accept, { friendshipId: betoCaro.friendshipId! });
     await caro.mutation(api.friends.sendText, { friendshipId: betoCaro.friendshipId!, text: "Bendiciones" });
 
+    // Las filas por par que cuenta la suspensión automática, en los dos sentidos.
+    await t.run(async (ctx) => {
+      const byClerk = async (clerkId: string) =>
+        (await ctx.db.query("users").withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId)).unique())!._id;
+      const [anaId, betoId, caroId] = [await byClerk("user_ana_amigos"), await byClerk("user_beto_amigos"), await byClerk("user_caro_amigos")];
+      await ctx.db.insert("userReportPairs", { reportedId: betoId, reporterId: anaId, qualifiedAt: 1 });
+      await ctx.db.insert("userReportPairs", { reportedId: anaId, reporterId: caroId, qualifiedAt: 1 });
+      await ctx.db.insert("userReportPairs", { reportedId: betoId, reporterId: caroId, qualifiedAt: 1 });
+    });
+
     stubClerkDelete();
     const result = await ana.action(api.users.deleteAccount, {});
 
@@ -496,6 +507,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       directMessages: 2,
       userBlocks: 1,
       userReports: 2,
+      userReportPairs: 2,
       // Lo que pidió Ana, lo que le pidió Caro y su límite de ritmo.
       friendRequestEvents: 3,
       friendRates: 1,
@@ -506,6 +518,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       directMessages: await ctx.db.query("directMessages").collect(),
       userBlocks: await ctx.db.query("userBlocks").collect(),
       userReports: await ctx.db.query("userReports").collect(),
+      userReportPairs: await ctx.db.query("userReportPairs").collect(),
       friendRequestEvents: await ctx.db.query("friendRequestEvents").collect(),
       friendRates: await ctx.db.query("friendRates").collect(),
     }));
@@ -513,6 +526,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     expect(left.directMessages.map((row) => row.text)).toEqual(["Bendiciones"]);
     expect(left.userBlocks).toHaveLength(0);
     expect(left.userReports).toHaveLength(0);
+    // Solo queda lo de Caro sobre Beto.
+    expect(left.userReportPairs).toHaveLength(1);
     expect(left.friendRequestEvents).toHaveLength(1);
     expect(left.friendRates).toHaveLength(2);
     // Para Beto, Ana ya no está.
@@ -701,6 +716,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       directMessages: 0,
       userBlocks: 0,
       userReports: 0,
+      userReportPairs: 0,
       friendRequestEvents: 0,
       friendRates: 0,
       users: 0,

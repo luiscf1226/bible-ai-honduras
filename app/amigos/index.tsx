@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { friendInviteMessage, parseFriendCode } from "../../convex/friendsCore";
+import { friendInviteMessage, parseFriendCode, suspensionNotice } from "../../convex/friendsCore";
 import { AppButton } from "../../src/components/AppButton";
 import { AppScreen } from "../../src/components/AppScreen";
 import { ListCard, ListRow, ListSectionLabel } from "../../src/components/ListRow";
@@ -109,7 +109,7 @@ export default function AmigosScreen() {
       {overview.suspended ? (
         <ListCard tone="sunk" testID="amigos-suspendido">
           <Text style={[styles.note, { color: color.danger }]}>
-            Tu cuenta ya no puede escribir ni agregar amigos porque no respetó las normas de Amigos.
+            {suspensionNotice(overview.suspendedUntil)}
           </Text>
         </ListCard>
       ) : null}

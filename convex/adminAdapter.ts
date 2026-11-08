@@ -31,11 +31,6 @@ import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 const HONDURAS_UTC_OFFSET_MS = 6 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_BACKFILL_DAYS = 90;
-// Topes de lo que lee el rollup de Amigos. Arriba del tope la métrica se queda
-// en el tope (se ve como "10000"): es la señal de pasar a un contador.
-export const FRIENDSHIPS_COUNT_CAP = 10_000;
-export const REPORTS_COUNT_CAP = 1_000;
-export const BLOCKS_COUNT_CAP = 5_000;
 
 const APP_METRICS: Record<string, MetricDescriptor> = {
   "users.total": { label: "Usuarios", format: "number", chart: "kpi" },
@@ -167,9 +162,9 @@ export function streakBucket(streak: number): string {
  * `readingGroups` se leen completas (son una fila por persona o grupo): alcanza
  * para el volumen de hoy. Lo "nuevo" usa índices por fecha.
  *
- * Amigos no carga mensajes: los del día salen de `friendDailyStats` (contador
- * que suma cada envío, aunque después se borre la conversación), y amistades,
- * reportes y bloqueos se cuentan por índice con los topes de arriba.
+ * Amigos no carga amistades, mensajes, reportes ni bloqueos: todo sale de
+ * los contadores de `friendDailyStats`, que suman cada mutación y no se
+ * pierden cuando después se borra una conversación o una cuenta.
  */
 async function appRows(ctx: MutationCtx, day: string, window: { startMs: number; endMs: number }): Promise<Row[]> {
   const { startMs, endMs } = window;
@@ -214,22 +209,20 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   });
   const groups = (await ctx.db.query("readingGroups").collect()).filter((row) => row.createdAt < endMs);
 
-  const friendships = await ctx.db
-    .query("friendships")
-    .withIndex("by_status_accepted", (q) => q.eq("status", "accepted").lt("acceptedAt", endMs))
-    .take(FRIENDSHIPS_COUNT_CAP);
-  const messageShards = await ctx.db
+  // Amigos: solo los contadores chicos de `friendDailyStats`. Las amistades
+  // a la fecha son las que empezaron menos las que terminaron hasta ese día
+  // (8 filas por día: ~3.000 por año).
+  const friendStats = await ctx.db
     .query("friendDailyStats")
-    .withIndex("by_day_shard", (q) => q.eq("day", day))
+    .withIndex("by_day_shard", (q) => q.lte("day", day))
     .collect();
-  const reports = await ctx.db
-    .query("userReports")
-    .withIndex("by_created", (q) => q.gte("createdAt", startMs).lt("createdAt", endMs))
-    .take(REPORTS_COUNT_CAP);
-  const blocks = await ctx.db
-    .query("userBlocks")
-    .withIndex("by_creation_time", (q) => q.gte("_creationTime", startMs).lt("_creationTime", endMs))
-    .take(BLOCKS_COUNT_CAP);
+  const friendsToday = friendStats.filter((row) => row.day === day);
+  const sum = (rows: typeof friendStats, pick: (row: (typeof friendStats)[number]) => number | undefined) =>
+    rows.reduce((total, row) => total + (pick(row) ?? 0), 0);
+  const reportsByReason = new Map<string, number>();
+  for (const row of friendsToday) {
+    for (const [reason, count] of Object.entries(row.reports ?? {})) reportsByReason.set(reason, (reportsByReason.get(reason) ?? 0) + count);
+  }
 
   return [
     { key: "users.total", value: users.length },
@@ -248,10 +241,10 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     ...withTotal("plans.active_7d", tally(activePlans.map((row) => row.planId))),
     ...withTotal("plans.streaks", tally(activePlans.map((row) => streakBucket(row.currentStreak)))),
     { key: "groups.total", value: groups.length },
-    { key: "friends.total", value: friendships.length },
-    { key: "friends.messages_new", value: messageShards.reduce((sum, row) => sum + row.messages, 0) },
-    ...withTotal("friends.reports_new", tally(reports.map((row) => row.reason))),
-    { key: "friends.blocks_new", value: blocks.length },
+    { key: "friends.total", value: sum(friendStats, (row) => row.accepted) - sum(friendStats, (row) => row.ended) },
+    { key: "friends.messages_new", value: sum(friendsToday, (row) => row.messages) },
+    ...withTotal("friends.reports_new", reportsByReason),
+    { key: "friends.blocks_new", value: sum(friendsToday, (row) => row.blocks) },
   ];
 }
 

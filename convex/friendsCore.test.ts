@@ -7,6 +7,7 @@ import {
   friendInitial,
   DAILY_STATS_SHARDS,
   hondurasDay,
+  isFriendsSuspended,
   MAX_VERSE_SPAN,
   MESSAGES_PER_MINUTE,
   messagePreview,
@@ -16,17 +17,22 @@ import {
   previewSnippet,
   RATE_WINDOW_MS,
   readField,
+  readSeqField,
   REPORT_REASONS,
   reportCountsForSuspension,
   requestStatusCopy,
   sendStatusCopy,
   statsShard,
+  suspendedUntil,
+  suspensionNotice,
   takeRateToken,
   unreadField,
   unreadLabel,
   verseLabel,
   verseRangeEnd,
 } from "./friendsCore";
+
+const DAY = 24 * 60 * 60 * 1000;
 
 describe("friendsCore", () => {
   it("el par queda ordenado sin importar quién pide", () => {
@@ -115,10 +121,29 @@ describe("friendsCore", () => {
     expect(unreadField({ userA: "a", userB: "b" }, "a")).toBe("unreadA");
   });
 
-  it("un reporte cuenta para la suspensión solo con amistad aceptada y algún mensaje de la persona", () => {
-    expect(reportCountsForSuspension({ friendshipAccepted: true, evidenceCount: 1 })).toBe(true);
-    expect(reportCountsForSuspension({ friendshipAccepted: true, evidenceCount: 0 })).toBe(false);
-    expect(reportCountsForSuspension({ friendshipAccepted: false, evidenceCount: 3 })).toBe(false);
+  it("un reporte cuenta para la suspensión solo con amistad aceptada de 24 horas, cuenta de 3 días y algún mensaje de la persona", () => {
+    const now = Date.parse("2026-11-08T18:00:00Z");
+    const ok = { friendshipAccepted: true, evidenceCount: 1, reporterSince: now - 3 * DAY, friendsSince: now - DAY, now };
+    expect(reportCountsForSuspension(ok)).toBe(true);
+    expect(reportCountsForSuspension({ ...ok, evidenceCount: 0 })).toBe(false);
+    expect(reportCountsForSuspension({ ...ok, friendshipAccepted: false, evidenceCount: 3 })).toBe(false);
+    expect(reportCountsForSuspension({ ...ok, reporterSince: now - 3 * DAY + 1 })).toBe(false);
+    expect(reportCountsForSuspension({ ...ok, friendsSince: now - DAY + 1 })).toBe(false);
+  });
+
+  it("suspensión: la del fundador no vence; la automática dura hasta su fecha", () => {
+    const now = Date.parse("2026-11-08T18:00:00Z");
+    expect(isFriendsSuspended({}, now)).toBe(false);
+    expect(isFriendsSuspended({ friendsSuspendedAt: 1 }, now)).toBe(true);
+    expect(suspendedUntil({ friendsSuspendedAt: 1, friendsSuspendedUntil: now + DAY }, now)).toBeNull();
+    expect(isFriendsSuspended({ friendsSuspendedUntil: now + 1 }, now)).toBe(true);
+    expect(suspendedUntil({ friendsSuspendedUntil: now + 1 }, now)).toBe(now + 1);
+    expect(isFriendsSuspended({ friendsSuspendedUntil: now }, now)).toBe(false);
+    expect(suspendedUntil({ friendsSuspendedUntil: now }, now)).toBeNull();
+    expect(suspensionNotice(null)).toMatch(/ya no puede escribir/);
+    // 15 de noviembre a las 3 de la mañana UTC sigue siendo 14 en Honduras.
+    expect(suspensionNotice(Date.parse("2026-11-15T03:00:00Z"))).toMatch(/hasta el 14 de noviembre\. Mientras tanto revisamos/);
+    expect(readSeqField({ userA: "a", userB: "b" }, "b")).toBe("readSeqB");
   });
 
   it("límite de ritmo: balde lleno al empezar, se vacía y se rellena con el tiempo", () => {

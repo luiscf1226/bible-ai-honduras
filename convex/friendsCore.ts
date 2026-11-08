@@ -40,11 +40,16 @@ export const REPORTS_PER_DAY = 10;
 /**
  * Personas distintas que tienen que reportar a alguien para que Amigos lo suspenda solo, sin
  * esperar a que el fundador lea la cola (Apple 1.2 pide actuar sobre los reportes). Solo
- * cuenta un reporte de una amistad aceptada por los dos y con al menos un mensaje de la
- * persona reportada (`reportCountsForSuspension`): tres cuentas nuevas no pueden sacar a
- * alguien que nunca les escribió.
+ * cuentan los reportes que pasan `reportCountsForSuspension`: tres cuentas recién creadas
+ * no pueden sacar a alguien que apenas les dijo "hola".
  */
 export const AUTO_SUSPEND_REPORTERS = 3;
+/** La suspensión automática dura esto. La permanente la pone el fundador a mano. */
+export const AUTO_SUSPEND_DAYS = 7;
+/** Una cuenta que reporta tiene que tener al menos estos días para que su reporte cuente. */
+export const REPORTER_MIN_AGE_DAYS = 3;
+/** Y la amistad con la persona reportada, al menos estas horas. */
+export const REPORT_MIN_FRIENDSHIP_HOURS = 24;
 /** Cuántos mensajes de la otra persona se copian como evidencia de un reporte. */
 export const REPORT_EVIDENCE = 5;
 
@@ -77,12 +82,20 @@ export function readField(row: FriendshipSide, me: string): "readAtA" | "readAtB
   return row.userA === me ? "readAtA" : "readAtB";
 }
 
+/** Qué número de "leído hasta" es el mío. */
+export function readSeqField(row: FriendshipSide, me: string): "readSeqA" | "readSeqB" {
+  return row.userA === me ? "readSeqA" : "readSeqB";
+}
+
 /** Qué contador de no leídos es el mío. */
 export function unreadField(row: FriendshipSide, me: string): "unreadA" | "unreadB" {
   return row.userA === me ? "unreadA" : "unreadB";
 }
 
-/** Filas en que se reparten los mensajes de un día en `friendDailyStats`. */
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+
+/** Filas en que se reparten los contadores de un día en `friendDailyStats`. */
 export const DAILY_STATS_SHARDS = 8;
 
 /** El día de Honduras (UTC−6, sin horario de verano) de un instante: "2026-11-08". */
@@ -202,11 +215,47 @@ export function messagePreview(message: PreviewMessage | null): string {
 
 /**
  * Si un reporte cuenta para la suspensión automática: la amistad la aceptaron
- * los dos y la persona reportada le escribió al menos un mensaje a quien
- * reporta. Los demás quedan en la cola para revisión a mano.
+ * los dos hace al menos `REPORT_MIN_FRIENDSHIP_HOURS`, la cuenta que reporta
+ * tiene al menos `REPORTER_MIN_AGE_DAYS` días y la persona reportada le
+ * escribió al menos un mensaje. Los demás quedan en la cola para revisión a
+ * mano.
  */
-export function reportCountsForSuspension(report: { friendshipAccepted: boolean; evidenceCount: number }): boolean {
-  return report.friendshipAccepted && report.evidenceCount > 0;
+export function reportCountsForSuspension(report: {
+  friendshipAccepted: boolean;
+  evidenceCount: number;
+  reporterSince: number;
+  friendsSince: number;
+  now: number;
+}): boolean {
+  return (
+    report.friendshipAccepted &&
+    report.evidenceCount > 0 &&
+    report.now - report.reporterSince >= REPORTER_MIN_AGE_DAYS * DAY_MS &&
+    report.now - report.friendsSince >= REPORT_MIN_FRIENDSHIP_HOURS * HOUR_MS
+  );
+}
+
+type SuspensionFields = { friendsSuspendedAt?: number; friendsSuspendedUntil?: number };
+
+/** Si la cuenta no puede escribir ni agregar amigos ahora: suspensión a mano o automática vigente. */
+export function isFriendsSuspended(user: SuspensionFields, now: number): boolean {
+  return user.friendsSuspendedAt !== undefined || (user.friendsSuspendedUntil ?? 0) > now;
+}
+
+/** Hasta cuándo dura la suspensión, o null si es permanente o no hay. */
+export function suspendedUntil(user: SuspensionFields, now: number): number | null {
+  if (user.friendsSuspendedAt !== undefined) return null;
+  const until = user.friendsSuspendedUntil ?? 0;
+  return until > now ? until : null;
+}
+
+const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+/** El aviso de la pantalla de Amigos para una cuenta suspendida. */
+export function suspensionNotice(until: number | null): string {
+  if (until === null) return "Tu cuenta ya no puede escribir ni agregar amigos porque no respetó las normas de Amigos.";
+  const [, month, day] = hondurasDay(until).split("-").map(Number);
+  return `Por reportes de otras personas, tu cuenta no puede escribir ni agregar amigos hasta el ${day} de ${MONTHS[month! - 1]}. Mientras tanto revisamos lo que pasó.`;
 }
 
 /**
@@ -303,7 +352,7 @@ export function requestStatusCopy(status: RequestStatus): string {
   }
 }
 
-const SUSPENDED_COPY = "Tu cuenta ya no puede escribir ni agregar amigos porque no respetó las normas de Amigos.";
+const SUSPENDED_COPY = "Tu cuenta no puede escribir ni agregar amigos porque recibió reportes por no respetar las normas de Amigos.";
 
 // ── Reportes ─────────────────────────────────────────────
 

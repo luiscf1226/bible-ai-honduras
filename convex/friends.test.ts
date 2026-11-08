@@ -6,11 +6,13 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ThreadMessage } from "./friends";
 import {
+  AUTO_SUSPEND_DAYS,
   AUTO_SUSPEND_REPORTERS,
   DECLINED_COOLDOWN_DAYS,
   MAX_CONNECTIONS,
   MESSAGE_MAX_LENGTH,
   MESSAGES_PER_MINUTE,
+  REPORTER_MIN_AGE_DAYS,
   REPORTS_PER_DAY,
   REQUESTS_PER_DAY,
   REQUESTS_PER_TARGET_PER_WEEK,
@@ -61,6 +63,23 @@ async function friendsPair(t: T) {
   const friendshipId = sent.friendshipId!;
   expect(await beto.mutation(api.friends.accept, { friendshipId })).toEqual({ status: "ok" });
   return { ana, beto, friendshipId };
+}
+
+/**
+ * Carla con `count` amigos que la van a reportar; ella le escribió a cada uno.
+ * Todo pasa ahora: para que los reportes cuenten hay que adelantar el reloj.
+ */
+async function reportedByMany(t: T, count: number, prefix = "r") {
+  const carla = await signUp(t, `user_carla_${prefix}`, "Carla Ríos");
+  const reporters = [];
+  for (let index = 0; index < count; index += 1) {
+    const reporter = await signUp(t, `user_${prefix}${index}`, `Persona ${index}`);
+    const sent = await reporter.mutation(api.friends.request, { code: await codeOf(carla) });
+    await carla.mutation(api.friends.accept, { friendshipId: sent.friendshipId! });
+    await carla.mutation(api.friends.sendText, { friendshipId: sent.friendshipId!, text: "mandame plata" });
+    reporters.push({ reporter, friendshipId: sent.friendshipId! });
+  }
+  return { carla, reporters };
 }
 
 /** Toda la conversación, de la más vieja a la más nueva, recorriendo las páginas. */
@@ -434,6 +453,56 @@ describe("friends — mensajes", () => {
     expect((await beto.query(api.friends.summary, {})).unread).toBe(0);
   });
 
+  it("dos mensajes del mismo milisegundo: marcar leído no se traba", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-01T15:00:00Z") });
+    const t = convexTest(schema, modules);
+    const { ana, beto, friendshipId } = await friendsPair(t);
+    const unread = async () => (await beto.query(api.friends.summary, {})).unread;
+    // El reloj no avanza: los dos mensajes tienen la misma fecha.
+    await ana.mutation(api.friends.sendText, { friendshipId, text: "a" });
+    const [first] = await messagesOf(beto, friendshipId);
+    await beto.mutation(api.friends.markRead, { friendshipId, upTo: first!.id });
+    expect(await unread()).toBe(0);
+    await ana.mutation(api.friends.sendText, { friendshipId, text: "b" });
+    await ana.mutation(api.friends.sendText, { friendshipId, text: "c" });
+    expect(await unread()).toBe(2);
+    const [, second, third] = await messagesOf(beto, friendshipId);
+    // Leer "b" deja "c" sin leer, aunque tengan la misma fecha.
+    await beto.mutation(api.friends.markRead, { friendshipId, upTo: second!.id });
+    expect(await unread()).toBe(1);
+    await beto.mutation(api.friends.markRead, { friendshipId, upTo: third!.id });
+    expect(await unread()).toBe(0);
+    // Sin `upTo` también avanza con la misma fecha.
+    await ana.mutation(api.friends.sendText, { friendshipId, text: "d" });
+    expect(await unread()).toBe(1);
+    await beto.mutation(api.friends.markRead, { friendshipId });
+    expect(await unread()).toBe(0);
+    expect((await friendshipRow(t, friendshipId))).toMatchObject({ messageSeq: 4 });
+  });
+
+  it("mensajes de antes sin número se marcan leídos por fecha", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-01T15:00:00Z") });
+    const t = convexTest(schema, modules);
+    const { ana, beto, friendshipId } = await friendsPair(t);
+    const ids = await t.run(async (ctx) => {
+      const row = (await ctx.db.get(friendshipId))!;
+      const anaId = row.requestedBy;
+      const first = await ctx.db.insert("directMessages", { friendshipId, senderId: anaId, kind: "text", text: "viejo 1", createdAt: 1_000 });
+      const second = await ctx.db.insert("directMessages", { friendshipId, senderId: anaId, kind: "text", text: "viejo 2", createdAt: 2_000 });
+      const unreadKey = row.userA === anaId ? "unreadB" : "unreadA";
+      await ctx.db.patch(friendshipId, { lastMessageAt: 2_000, [unreadKey]: 2 });
+      return { first, second };
+    });
+    await beto.mutation(api.friends.markRead, { friendshipId, upTo: ids.first });
+    expect((await beto.query(api.friends.summary, {})).unread).toBe(1);
+    // Uno nuevo (con número) después de los viejos.
+    await ana.mutation(api.friends.sendText, { friendshipId, text: "nuevo" });
+    await beto.mutation(api.friends.markRead, { friendshipId, upTo: ids.second });
+    expect((await beto.query(api.friends.summary, {})).unread).toBe(1);
+    await beto.mutation(api.friends.markRead, { friendshipId });
+    expect((await beto.query(api.friends.summary, {})).unread).toBe(0);
+  });
+
   it("una amistad vieja sin contadores ni vista previa cuenta como cero", async () => {
     const t = convexTest(schema, modules);
     const ana = await signUp(t, "user_ana", "Ana");
@@ -627,17 +696,11 @@ describe("friends — bloquear y reportar", () => {
     expect(await ana.query(api.friends.blocked, {})).toHaveLength(1);
   });
 
-  it("cuando varias personas distintas reportan con evidencia a alguien, Amigos lo suspende solo", async () => {
+  it("cuando varias personas distintas reportan con evidencia a alguien, Amigos lo suspende 7 días", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-01T15:00:00Z") });
     const t = convexTest(schema, modules);
-    const carla = await signUp(t, "user_carla", "Carla Ríos");
-    const reporters = [];
-    for (let index = 0; index < AUTO_SUSPEND_REPORTERS; index += 1) {
-      const reporter = await signUp(t, `user_r${index}`, `Persona ${index}`);
-      const sent = await reporter.mutation(api.friends.request, { code: await codeOf(carla) });
-      await carla.mutation(api.friends.accept, { friendshipId: sent.friendshipId! });
-      await carla.mutation(api.friends.sendText, { friendshipId: sent.friendshipId!, text: "mandame plata" });
-      reporters.push({ reporter, friendshipId: sent.friendshipId! });
-    }
+    const { carla, reporters } = await reportedByMany(t, AUTO_SUSPEND_REPORTERS);
+    vi.setSystemTime(Date.now() + REPORTER_MIN_AGE_DAYS * DAY_MS + 60_000);
     const suspended = async () => (await carla.query(api.friends.overview, {}))?.suspended;
 
     const [first, ...rest] = reporters;
@@ -651,8 +714,84 @@ describe("friends — bloquear y reportar", () => {
 
     const last = rest.at(-1)!;
     await last.reporter.mutation(api.friends.report, { friendshipId: last.friendshipId, reason: "sexual" });
-    expect(await suspended()).toBe(true);
+    const overview = await carla.query(api.friends.overview, {});
+    expect(overview).toMatchObject({ suspended: true, suspendedUntil: Date.now() + AUTO_SUSPEND_DAYS * DAY_MS });
     expect((await carla.mutation(api.friends.sendText, { friendshipId: first!.friendshipId, text: "hola" })).status).toBe("suspended");
+    // No es la permanente: esa la pone el fundador.
+    expect((await carla.query(api.users.current, {}))?.friendsSuspendedAt).toBeUndefined();
+
+    // A los 7 días vuelve a escribir.
+    vi.setSystemTime(Date.now() + AUTO_SUSPEND_DAYS * DAY_MS);
+    expect(await carla.query(api.friends.overview, {})).toMatchObject({ suspended: false, suspendedUntil: null });
+    expect((await carla.mutation(api.friends.sendText, { friendshipId: first!.friendshipId, text: "hola" })).status).toBe("ok");
+    // Los reportes de antes ya no cuentan: uno más de los mismos no la vuelve a suspender.
+    await first!.reporter.mutation(api.friends.report, { friendshipId: first!.friendshipId, reason: "ofensivo" });
+    expect(await suspended()).toBe(false);
+    for (const { reporter, friendshipId } of rest) await reporter.mutation(api.friends.report, { friendshipId, reason: "ofensivo" });
+    expect(await suspended()).toBe(true);
+  });
+
+  it("la suspensión del fundador no vence", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-01T15:00:00Z") });
+    const t = convexTest(schema, modules);
+    const { ana, friendshipId } = await friendsPair(t);
+    await t.run(async (ctx) => {
+      const row = await ctx.db.query("users").withIndex("by_clerk_id", (q) => q.eq("clerkId", "user_ana")).unique();
+      await ctx.db.patch(row!._id, { friendsSuspendedAt: Date.now(), friendsSuspendedUntil: Date.now() + DAY_MS });
+    });
+    vi.setSystemTime(Date.now() + 30 * DAY_MS);
+    expect(await ana.query(api.friends.overview, {})).toMatchObject({ suspended: true, suspendedUntil: null });
+    expect((await ana.mutation(api.friends.sendText, { friendshipId, text: "hola" })).status).toBe("suspended");
+  });
+
+  it("reportes de cuentas recién creadas o de amistades de menos de 24 horas no suspenden", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-01T15:00:00Z") });
+    const t = convexTest(schema, modules);
+    // Cuentas de menos de 3 días, aunque la amistad tenga más de 24 horas.
+    const fresh = await reportedByMany(t, AUTO_SUSPEND_REPORTERS, "nueva");
+    vi.setSystemTime(Date.now() + 2 * DAY_MS);
+    for (const { reporter, friendshipId } of fresh.reporters) await reporter.mutation(api.friends.report, { friendshipId, reason: "sexual" });
+    expect((await fresh.carla.query(api.friends.overview, {}))?.suspended).toBe(false);
+
+    // Cuentas viejas, pero la amistad es de hace una hora.
+    const veterans = [];
+    for (let index = 0; index < AUTO_SUSPEND_REPORTERS; index += 1) veterans.push(await signUp(t, `user_vieja${index}`, `Vieja ${index}`));
+    vi.setSystemTime(Date.now() + REPORTER_MIN_AGE_DAYS * DAY_MS + 60_000);
+    const dani = await signUp(t, "user_dani", "Dani");
+    const recent = [];
+    for (const veteran of veterans) {
+      const sent = await veteran.mutation(api.friends.request, { code: await codeOf(dani) });
+      await dani.mutation(api.friends.accept, { friendshipId: sent.friendshipId! });
+      await dani.mutation(api.friends.sendText, { friendshipId: sent.friendshipId!, text: "hola" });
+      recent.push({ veteran, friendshipId: sent.friendshipId! });
+    }
+    vi.setSystemTime(Date.now() + 60 * 60 * 1000);
+    for (const { veteran, friendshipId } of recent) await veteran.mutation(api.friends.report, { friendshipId, reason: "sexual" });
+    expect((await dani.query(api.friends.overview, {}))?.suspended).toBe(false);
+    const queue = await t.query(internal.friends.recentReports, {});
+    expect(queue).toHaveLength(2 * AUTO_SUSPEND_REPORTERS);
+    expect(queue.every((row) => row.countsForSuspension === false && row.evidence.length > 0)).toBe(true);
+  });
+
+  it("reportar muchas veces deja una sola fila chica por par, y la suspensión cuenta esas filas y no los reportes", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-01T15:00:00Z") });
+    const t = convexTest(schema, modules);
+    const { carla, reporters } = await reportedByMany(t, AUTO_SUSPEND_REPORTERS);
+    vi.setSystemTime(Date.now() + REPORTER_MIN_AGE_DAYS * DAY_MS + 60_000);
+    const [first, ...rest] = reporters;
+    for (let index = 0; index < 4; index += 1) {
+      await first!.reporter.mutation(api.friends.report, { friendshipId: first!.friendshipId, reason: "ofensivo" });
+    }
+    for (const { reporter, friendshipId } of rest.slice(0, -1)) await reporter.mutation(api.friends.report, { friendshipId, reason: "ofensivo" });
+    expect(await t.run((ctx) => ctx.db.query("userReportPairs").collect())).toHaveLength(AUTO_SUSPEND_REPORTERS - 1);
+    // La evidencia sigue en la cola, pero contar no la lee: aunque se vacíe, el par sigue contando.
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("userReports").collect()) await ctx.db.delete(row._id);
+    });
+    const last = rest.at(-1)!;
+    await last.reporter.mutation(api.friends.report, { friendshipId: last.friendshipId, reason: "ofensivo", alsoBlock: true });
+    expect((await carla.query(api.friends.overview, {}))?.suspended).toBe(true);
+    expect(await last.reporter.query(api.friends.blocked, {})).toHaveLength(1);
   });
 
   it("tres cuentas que le mandan solicitud a alguien no pueden reportarla desde su propia solicitud", async () => {
@@ -666,7 +805,6 @@ describe("friends — bloquear y reportar", () => {
       });
     }
     expect((await victima.query(api.friends.overview, {}))?.suspended).toBe(false);
-    expect(await t.query(internal.friends.recentReports, {})).toEqual([]);
   });
 
   it("reportes de amistades donde la persona no escribió nada quedan en la cola sin suspender", async () => {

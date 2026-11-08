@@ -48,8 +48,13 @@ export default defineSchema({
     // ofensivo o abuso". Sin esto no puede agregar amigos ni escribir.
     communityRulesAcceptedAt: v.optional(v.number()),
     // Lo pone el fundador a mano (panel de Convex) después de revisar un
-    // reporte: la cuenta sigue leyendo, pero no escribe ni agrega amigos.
+    // reporte: la cuenta sigue leyendo, pero no escribe ni agrega amigos. No
+    // vence.
     friendsSuspendedAt: v.optional(v.number()),
+    // Suspensión automática por reportes de varias personas: lo mismo, pero
+    // hasta esta fecha (7 días). Para hacerla permanente, el fundador pone
+    // `friendsSuspendedAt`.
+    friendsSuspendedUntil: v.optional(v.number()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])
@@ -514,7 +519,13 @@ export default defineSchema({
     createdAt: v.number(),
     acceptedAt: v.optional(v.number()),
     lastMessageAt: v.optional(v.number()),
-    // Hasta dónde leyó cada lado: lo de después cuenta como no leído.
+    // Número del último mensaje (cada mensaje lleva el suyo en `seq`) y hasta
+    // cuál leyó cada lado: dos mensajes del mismo milisegundo no se confunden.
+    // Opcionales: las filas y mensajes de antes se comparan por fecha.
+    messageSeq: v.optional(v.number()),
+    readSeqA: v.optional(v.number()),
+    readSeqB: v.optional(v.number()),
+    // Hasta dónde leyó cada lado, en fecha ("Visto").
     readAtA: v.optional(v.number()),
     readAtB: v.optional(v.number()),
     // Mensajes sin leer de cada lado y la vista previa del último, al día con
@@ -533,9 +544,7 @@ export default defineSchema({
   })
     .index("by_userA", ["userA"])
     .index("by_userB", ["userB"])
-    .index("by_pair", ["userA", "userB"])
-    // Dashboard: cuántas amistades aceptadas hay a una fecha.
-    .index("by_status_accepted", ["status", "acceptedAt"]),
+    .index("by_pair", ["userA", "userB"]),
 
   // Mensajes entre amigos. El texto de un versículo lo pone el servidor desde
   // la Biblia cargada (regla dura #4), nunca el teléfono.
@@ -555,6 +564,8 @@ export default defineSchema({
       }),
     ),
     createdAt: v.number(),
+    // Orden dentro de la amistad (`friendships.messageSeq`). Falta en los de antes.
+    seq: v.optional(v.number()),
   })
     .index("by_friendship", ["friendshipId", "createdAt"])
     .index("by_sender", ["senderId", "createdAt"]),
@@ -582,13 +593,19 @@ export default defineSchema({
     .index("by_requester_created", ["requesterId", "createdAt"])
     .index("by_target", ["targetId"]),
 
-  // Mensajes entre amigos por día (Honduras), repartidos en unas pocas filas
-  // para que dos envíos a la vez no choquen. El dashboard suma las filas del
-  // día sin leer mensajes.
+  // Contadores de Amigos por día (Honduras), repartidos en unas pocas filas
+  // para que dos envíos a la vez no choquen: mensajes, amistades que empezaron
+  // y que terminaron, reportes por motivo y bloqueos. El dashboard suma estas
+  // filas chicas y no lee amistades, mensajes ni reportes. Los opcionales
+  // faltan en las filas de antes.
   friendDailyStats: defineTable({
     day: v.string(),
     shard: v.number(),
     messages: v.number(),
+    accepted: v.optional(v.number()),
+    ended: v.optional(v.number()),
+    blocks: v.optional(v.number()),
+    reports: v.optional(v.record(v.string(), v.number())),
   }).index("by_day_shard", ["day", "shard"]),
 
   // Bloquear borra la amistad y oculta todo en los dos sentidos; quien quedó
@@ -616,16 +633,26 @@ export default defineSchema({
     ),
     messageId: v.optional(v.id("directMessages")),
     evidence: v.array(v.object({ text: v.string(), createdAt: v.number() })),
-    // Si cuenta para la suspensión automática (`reportCountsForSuspension`):
-    // amistad aceptada por los dos y al menos un mensaje de la persona
-    // reportada. Los demás esperan revisión a mano.
+    // Si cuenta para la suspensión automática (`reportCountsForSuspension`).
+    // Los demás esperan revisión a mano.
     countsForSuspension: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_reporter", ["reporterId", "createdAt"])
     .index("by_reported", ["reportedId"])
-    .index("by_reported_counts", ["reportedId", "countsForSuspension"])
     .index("by_created", ["createdAt"]),
+
+  // Una fila chica por par (reportado, quien reporta), al día con cada
+  // reporte: la suspensión automática cuenta estas filas y no lee la evidencia
+  // de `userReports`. `qualifiedAt` es el último reporte del par que contó.
+  userReportPairs: defineTable({
+    reportedId: v.id("users"),
+    reporterId: v.id("users"),
+    qualifiedAt: v.optional(v.number()),
+  })
+    .index("by_reported_reporter", ["reportedId", "reporterId"])
+    .index("by_reported_qualified", ["reportedId", "qualifiedAt"])
+    .index("by_reporter", ["reporterId"]),
 
   stories: defineTable({
     userId: v.id("users"),

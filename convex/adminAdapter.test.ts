@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { MANIFEST, hondurasDayWindow, streakBucket } from "./adminAdapter";
 import adminKitSchema from "./adminKit/schema";
 import schema from "./schema";
@@ -10,6 +10,7 @@ const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./adminAdapter.ts": () => import("./adminAdapter"),
   "./users.ts": () => import("./users"),
+  "./friends.ts": () => import("./friends"),
   "./entitlements.ts": () => import("./entitlements"),
   "./http.ts": () => import("./http"),
 };
@@ -80,15 +81,12 @@ async function seed(t: ReturnType<typeof setup>) {
       longestStreak: 8,
       lastActivityAt: NOON,
     });
-    // Amigos: una amistad aceptada hoy. Los mensajes
-    // del día salen del contador, no de `directMessages` (que ya se borraron).
-    const [userA, userB] = ana < beto ? [ana, beto] : [beto, ana];
-    await ctx.db.insert("friendships", { userA, userB, requestedBy: ana, status: "accepted", createdAt: NOON, acceptedAt: NOON });
-    await ctx.db.insert("friendDailyStats", { day: DAY, shard: 0, messages: 2 });
+    // Amigos: todo sale de los contadores del día, no de las tablas (que ya
+    // se pudieron borrar). Una fila vieja sin los campos nuevos cuenta cero.
+    await ctx.db.insert("friendDailyStats", { day: DAY, shard: 0, messages: 2, accepted: 1, ended: 1, reports: { estafa: 1 }, blocks: 1 });
     await ctx.db.insert("friendDailyStats", { day: DAY, shard: 5, messages: 3 });
-    await ctx.db.insert("friendDailyStats", { day: "2026-09-30", shard: 0, messages: 40 });
-    await ctx.db.insert("userReports", { reporterId: ana, reportedId: beto, reason: "estafa", evidence: [], createdAt: NOON });
-    await ctx.db.insert("userBlocks", { blockerId: ana, blockedId: beto, createdAt: NOON });
+    await ctx.db.insert("friendDailyStats", { day: "2026-09-30", shard: 0, messages: 40, accepted: 2 });
+    await ctx.db.insert("friendDailyStats", { day: "2026-10-02", shard: 0, messages: 7, accepted: 5 });
   });
   await kit(t, async (ctx) => {
     await ctx.db.insert("events", { installId: "tel-aaaa", name: "app_opened", platform: "ios", at: NOON });
@@ -161,13 +159,49 @@ describe("adminAdapter (#235)", () => {
     expect(value("std.active_7d")).toBe(2);
     expect(value("std.ai_cost_usd", "qa")).toBeCloseTo(0.004);
     expect(value("std.ai_outcomes", "voices.refused")).toBe(2);
-    expect(value("friends.total")).toBe(1);
+    expect(value("friends.total")).toBe(2);
     expect(value("friends.messages_new")).toBe(5);
     expect(value("friends.reports_new", "estafa")).toBe(1);
     expect(value("friends.blocks_new")).toBe(1);
 
     // Toda métrica que produce el rollup está en el manifiesto.
     expect([...new Set(rows.map((row) => row.key))].filter((key) => !(key in MANIFEST.metrics))).toEqual([]);
+  });
+
+  it("Amigos en el dashboard: las amistades de un día no cambian cuando después terminan, y reportes y bloqueos quedan", async () => {
+    vi.useFakeTimers();
+    const t = setup();
+    const person = async (clerkId: string, name: string) => {
+      const client = t.withIdentity({ subject: clerkId, issuer: "https://example-dev.clerk.accounts.dev", name });
+      await client.mutation(api.users.upsert, {});
+      await client.mutation(api.friends.acceptRules, {});
+      return client;
+    };
+    // Ayer: Ana y Beto se hacen amigos y se escriben.
+    vi.setSystemTime(NOON - 24 * HOUR);
+    const ana = await person("ana", "Ana");
+    const beto = await person("beto", "Beto");
+    const sent = await ana.mutation(api.friends.request, { code: (await beto.query(api.users.current, {}))!.referralCode });
+    await beto.mutation(api.friends.accept, { friendshipId: sent.friendshipId! });
+    await beto.mutation(api.friends.sendText, { friendshipId: sent.friendshipId!, text: "hola" });
+    // Hoy: Ana lo reporta y lo bloquea (la amistad y el chat se borran).
+    vi.setSystemTime(NOON);
+    await ana.mutation(api.friends.report, { friendshipId: sent.friendshipId!, reason: "ofensivo", alsoBlock: true });
+
+    const rows = async (day: string) => {
+      await t.mutation(internal.adminAdapter.rollupDay, { day });
+      const response = await get(`/admin/metrics?from=${day}&to=${day}`, t);
+      const body = (await response.json()) as { rows: Array<{ key: string; dim?: string; value: number }> };
+      return (key: string, dim?: string) => body.rows.find((row) => row.key === key && row.dim === dim)?.value;
+    };
+    const yesterday = await rows("2026-09-30");
+    expect(yesterday("friends.total")).toBe(1);
+    expect(yesterday("friends.messages_new")).toBe(1);
+    const today = await rows(DAY);
+    expect(today("friends.total")).toBe(0);
+    expect(today("friends.reports_new", "ofensivo")).toBe(1);
+    expect(today("friends.blocks_new")).toBe(1);
+    expect(today("friends.messages_new")).toBe(0);
   });
 
   it("/admin/manifest pide token y devuelve el de Bible AI", async () => {
