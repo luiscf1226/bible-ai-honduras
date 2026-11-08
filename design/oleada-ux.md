@@ -41,7 +41,7 @@
 | `size.actionTile` | 64 | | Celda de la barra de herramientas del versículo (U4) |
 | `size.ring` | 1.5 | | Anillo `accent` del personaje del mes (#200) |
 | `grid.actionColumns` | 4 | | Columnas de esa barra (U4); desde #232, las acciones que despliega "Más" |
-| `grid.primaryActionColumns` | 5 | | Fila de arriba de la hoja del versículo: 4 acciones + "Más" (#232) |
+| `grid.primaryActionColumns` | 6 | | Fila de arriba de la hoja del versículo: 4 acciones + "Más" (#232); 5 + "Más" desde la 1.0.3 (Imagen) |
 | `size.noteEditorMin` | 180 | | Alto mínimo del campo "Mis notas" del editor de prédica (#232) |
 | `storyImage.*` | 1080×1920, padding 96/150, verso 84→54, ref 36, marca 30, temporada 30 | | Imagen 9:16 (U2 / #161), en píxeles de salida |
 | `season.{reforma,gratitud,adviento,anio-nuevo}` | ver `tokens.json` | | Capa de temporada (#199) |
@@ -419,7 +419,7 @@ tarjetas de antes). Guardados, subrayados y separador viven en Mi espacio.
 ### Hoja del versículo
 
 Fila de arriba (`grid.primaryActionColumns`): Guardar, Nota, Compartir,
-Preguntar y **Más** (`more`). "Más" se vuelve "Menos" en `accent` y despliega
+**Imagen** (desde la 1.0.3, §Crear imagen), Preguntar y **Más** (`more`). "Más" se vuelve "Menos" en `accent` y despliega
 el resto abajo, separado por una línea `border`, en `grid.actionColumns`.
 
 ### Mi espacio
@@ -637,3 +637,87 @@ versículos.
   comunidad), Compartir (la parte que se ve, por `shareContent`), **Conversar**
   (ícono `voice`, solo si hay personaje: abre su chat en Voces) y Leer (el
   capítulo de la parte que se ve). Doble toque = ♥, igual que el versículo.
+
+## Crear imagen (`/imagen`)
+
+Pedido directo del fundador (8 de noviembre de 2026, versión 1.0.3): "sería
+bonito que te dé la opción de hacer una imagen así bonita por el versículo que
+decidas". Se diseñó fuera de Claude Design, con permiso explícito, como el
+resto de esta oleada. "Dedicar" (#202) sigue igual: es la variante con "Para …".
+
+**Entradas** (`openVerseImage({ book, chapter, verse, verseEnd? })`):
+
+- Hoja del versículo: acción **Imagen** (ícono `image`) en la fila de arriba,
+  al lado de Compartir. La fila pasa a 5 acciones + "Más":
+  `grid.primaryActionColumns` 6.
+- `/hoy`: fila "Crear imagen con otro estilo" (`image`) arriba de "Dedicar
+  este versículo".
+- Feed de versículos: el botón `onImage` del riel llama a `openVerseImage` con
+  la cita (y el rango) que se ve.
+
+**Pantalla** (`app/imagen.tsx`), de arriba abajo, con el `ScreenHeader`
+"Crear imagen":
+
+- **Vista previa grande**: la `VerseStoryCard` a `size.verseImagePreview`
+  (token nuevo: 252 de ancho en 9:16, 320 en cuadrada), con `radius.lg` y
+  borde `border`, centrada.
+- **FONDO** (`overline` `accent`): carrusel horizontal que llega a los bordes
+  de la pantalla, separado `space.md`. Cada miniatura es 3:4,
+  `size.styleThumb` (token nuevo, 60 × 80), `radius.md`, borde de
+  `size.ring` en `border` (o `accent` si está elegida), con el color o la foto
+  con `imageScrim` de noche y un "Aa" en serif `subtitle` en la tinta de ese
+  fondo. Debajo, el nombre en `caption` (`ink` si está elegida, si no
+  `inkMuted`). En orden:
+  1. **Con IA**: si la cita ya tiene fondo de IA (el del feed, o el de una
+     cita del feed que la contiene: "Filipenses 4:6" usa el de "4:6-7"), es
+     una miniatura más. Si no, es una miniatura `surface` con borde punteado
+     `borderStrong` y el ícono `image` en `accent`: tocarla pinta el fondo
+     (`ActivityIndicator` `accent` y "Pintando…" mientras tanto) y, al
+     llegar, queda elegido.
+  2. Las fotos de los devocionales ("Foto 1"…), empezando por la que el feed
+     le da a esa cita.
+  3. Los colores lisos de "Dedicar" (`storyPalettes`): Papel (`paper`),
+     Noche, el de la temporada activa (con su nombre arriba de la imagen) y
+     Arena (`surfaceSunk` con `sage`).
+  Si el fondo con IA no sale, una línea `caption` `sansLight` `inkSoft` debajo
+  del carrusel lo explica (cuota del día, sin saldo en OpenAI, falla) y
+  ofrece las fotos y los colores. **Nunca bloquea compartir.**
+- **COMPOSICIÓN** (`FilterPills`): Clásica · Póster · Minimal.
+  - Clásica: la de siempre (#161), centrada, entre comillas, hasta
+    `storyImage.verseMax`.
+  - Póster: el versículo grande abajo a la izquierda, hasta
+    `storyImage.posterVerseMax` (token nuevo, 100 px de salida), con un
+    filete `accent` arriba (`dedicationRule` × `dedicationRuleWidth`), la
+    cita debajo alineada a la izquierda y la marca también.
+  - Minimal: sin comillas, hasta `storyImage.minimalVerseMax` (token nuevo,
+    64), con una línea fina `accent` (`minimalRule` 2 × `minimalRuleWidth` 96,
+    tokens nuevos) y la cita en mayúsculas con el espaciado de `overline`.
+- **FORMATO** (`FilterPills`): "Estado · 9:16" y "Cuadrado". El texto va
+  siempre entero (como en Dedicar puede bajar hasta `dedicationVerseMin`): si
+  no entra en la cuadrada, solo se ofrece 9:16 con una línea que lo explica; si
+  ni en 9:16 entra (un rango muy largo), se pide elegir menos versículos.
+- Botones en fila: **Compartir imagen** (`AppButton` principal, ícono
+  `share`; pasa por `shareImage`, origen `verse_image`) y **Dedicar**
+  (secundario, `gift`; abre `/dedicar` con el mismo versículo; no aparece con
+  un rango, porque Dedicar es de un versículo).
+
+El último fondo, composición y formato elegidos se recuerdan en el teléfono
+(AsyncStorage). Si el fondo recordado no existe para otra cita (por ejemplo,
+"Con IA"), abre con el de IA si hay, si no con la primera foto.
+
+**Qué se muestra** (`convex/verseImage.ts`): el texto es el del corpus en la
+versión de la persona, sin editar (regla dura #4); un rango llega hasta 6
+versículos. El fondo con IA es el mismo del feed (`verseFeedMedia`, mismo
+prompt y misma llave): pintarlo acá también ilustra el feed, y nunca muestra a
+Jesús, Dios ni el Espíritu Santo como figura. Cada fondo nuevo consume la cuota
+`verseImage` (3 por día) de `convex/quotas.ts`; si OpenAI falla, la cuota se
+devuelve. Lo que ya tiene fondo no cobra nada.
+
+| Token | Valor | Uso |
+|---|---|---|
+| `size.verseImagePreview` | 9:16 252 · cuadrada 320 | Vista previa de Crear imagen |
+| `size.styleThumb` | 60 × 80 | Miniatura de cada fondo del carrusel |
+| `storyImage.posterVerseMax` | 100 | Tope del versículo en Póster (px de salida) |
+| `storyImage.minimalVerseMax` | 64 | Tope del versículo en Minimal |
+| `storyImage.minimalRule` / `minimalRuleWidth` | 2 / 96 | Línea fina de Minimal |
+| `grid.primaryActionColumns` | 6 | Fila de arriba de la hoja con Imagen |
