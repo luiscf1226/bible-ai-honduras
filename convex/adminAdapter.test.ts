@@ -80,6 +80,15 @@ async function seed(t: ReturnType<typeof setup>) {
       longestStreak: 8,
       lastActivityAt: NOON,
     });
+    // Amigos: una amistad aceptada hoy. Los mensajes
+    // del día salen del contador, no de `directMessages` (que ya se borraron).
+    const [userA, userB] = ana < beto ? [ana, beto] : [beto, ana];
+    await ctx.db.insert("friendships", { userA, userB, requestedBy: ana, status: "accepted", createdAt: NOON, acceptedAt: NOON });
+    await ctx.db.insert("friendDailyStats", { day: DAY, shard: 0, messages: 2 });
+    await ctx.db.insert("friendDailyStats", { day: DAY, shard: 5, messages: 3 });
+    await ctx.db.insert("friendDailyStats", { day: "2026-09-30", shard: 0, messages: 40 });
+    await ctx.db.insert("userReports", { reporterId: ana, reportedId: beto, reason: "estafa", evidence: [], createdAt: NOON });
+    await ctx.db.insert("userBlocks", { blockerId: ana, blockedId: beto, createdAt: NOON });
   });
   await kit(t, async (ctx) => {
     await ctx.db.insert("events", { installId: "tel-aaaa", name: "app_opened", platform: "ios", at: NOON });
@@ -152,6 +161,10 @@ describe("adminAdapter (#235)", () => {
     expect(value("std.active_7d")).toBe(2);
     expect(value("std.ai_cost_usd", "qa")).toBeCloseTo(0.004);
     expect(value("std.ai_outcomes", "voices.refused")).toBe(2);
+    expect(value("friends.total")).toBe(1);
+    expect(value("friends.messages_new")).toBe(5);
+    expect(value("friends.reports_new", "estafa")).toBe(1);
+    expect(value("friends.blocks_new")).toBe(1);
 
     // Toda métrica que produce el rollup está en el manifiesto.
     expect([...new Set(rows.map((row) => row.key))].filter((key) => !(key in MANIFEST.metrics))).toEqual([]);

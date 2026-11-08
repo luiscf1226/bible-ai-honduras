@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "convex/react";
-import { router, useLocalSearchParams } from "expo-router";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { router, useIsFocused, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +7,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ThreadMessage } from "../../convex/friends";
-import { MESSAGE_MAX_LENGTH, REPORT_REASONS, sendStatusCopy, verseLabel, type ReportReason } from "../../convex/friendsCore";
+import {
+  MESSAGE_MAX_LENGTH,
+  REPORT_REASONS,
+  sendStatusCopy,
+  THREAD_PAGE_SIZE,
+  verseLabel,
+  type ReportReason,
+} from "../../convex/friendsCore";
 import { AppButton } from "../../src/components/AppButton";
 import { Icon } from "../../src/components/Icon";
 import { HeaderIconButton, ScreenHeader, goBackOrHome } from "../../src/components/ScreenHeader";
@@ -36,7 +43,8 @@ type Sheet =
 /**
  * Chat 1 a 1 con un amigo (1.0.3, design/oleada-ux.md §Amigos y chat).
  * Burbujas como las de Voces, tarjeta propia para los versículos, menú con
- * Reportar y Bloquear, y toque largo sobre un mensaje para reportarlo.
+ * Reportar y Bloquear, y toque largo sobre un mensaje para reportarlo. Los
+ * mensajes llegan de a páginas; "Ver mensajes anteriores" trae más arriba.
  */
 export default function FriendChatScreen() {
   const { color } = useTheme();
@@ -46,6 +54,11 @@ export default function FriendChatScreen() {
   const params = useLocalSearchParams<{ friendshipId: string }>();
   const friendshipId = params.friendshipId as Id<"friendships">;
   const thread = useQuery(api.friends.thread, friendshipId ? { friendshipId } : "skip");
+  // Del más nuevo al más viejo; se dan vuelta para dibujar.
+  const history = usePaginatedQuery(api.friends.messages, friendshipId ? { friendshipId } : "skip", {
+    initialNumItems: THREAD_PAGE_SIZE,
+  });
+  const focused = useIsFocused();
   const sendText = useMutation(api.friends.sendText);
   const markRead = useMutation(api.friends.markRead);
   const accept = useMutation(api.friends.accept);
@@ -59,12 +72,19 @@ export default function FriendChatScreen() {
   const setNotice = (text: string | null, tone: "info" | "error" = "error") => setNoticeState(text ? { text, tone } : null);
   const [sheet, setSheet] = useState<Sheet>(null);
 
-  const messageCount = thread?.messages.length ?? 0;
-  useEffect(() => {
-    if (thread?.status === "accepted") void markRead({ friendshipId }).catch(() => undefined);
-  }, [friendshipId, markRead, messageCount, thread?.status]);
+  const messages = useMemo(() => [...history.results].reverse(), [history.results]);
+  const lastMessageId = history.results[0]?.id;
+  // Al traer mensajes anteriores no se baja al final; un mensaje nuevo sí baja.
+  const keepPosition = useRef(false);
 
-  const items = useMemo(() => buildChatItems(thread?.messages ?? [], thread?.friendReadAt ?? null), [thread]);
+  // Con el chat en pantalla, leído hasta el último mensaje que se ve.
+  useEffect(() => {
+    keepPosition.current = false;
+    if (!focused || thread?.status !== "accepted" || !lastMessageId) return;
+    void markRead({ friendshipId, upTo: lastMessageId }).catch(() => undefined);
+  }, [focused, friendshipId, lastMessageId, markRead, thread?.status]);
+
+  const items = useMemo(() => buildChatItems(messages, thread?.friendReadAt ?? null), [messages, thread?.friendReadAt]);
 
   if (thread === undefined) {
     return (
@@ -129,14 +149,20 @@ export default function FriendChatScreen() {
     }
   };
 
+  // Se reporta desde una amistad o una solicitud que te mandaron, no desde la que mandaste.
+  const canReport = thread.status === "accepted" || !thread.requestedByMe;
   const menuOptions: SheetOption[] = [
-    {
-      label: `Reportar a ${name}`,
-      hint: "Nos llega una copia de sus últimos mensajes para revisarla.",
-      icon: "flag",
-      onPress: () => setSheet({ kind: "reasons" }),
-      testID: "amigos-chat-menu-reportar",
-    },
+    ...(canReport
+      ? [
+          {
+            label: `Reportar a ${name}`,
+            hint: "Nos llega una copia de sus últimos mensajes para revisarla.",
+            icon: "flag" as const,
+            onPress: () => setSheet({ kind: "reasons" }),
+            testID: "amigos-chat-menu-reportar",
+          },
+        ]
+      : []),
     {
       label: `Bloquear a ${name}`,
       hint: "No te va a poder escribir ni volver a agregarte.",
@@ -273,10 +299,26 @@ export default function FriendChatScreen() {
             contentContainerStyle={styles.thread}
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => threadRef.current?.scrollToEnd({ animated: false })}
+            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+            onContentSizeChange={() => {
+              if (!keepPosition.current) threadRef.current?.scrollToEnd({ animated: false });
+            }}
             ref={threadRef}
             testID="amigos-chat-hilo"
           >
+            {history.status === "CanLoadMore" || history.status === "LoadingMore" ? (
+              <AppButton
+                disabled={history.status === "LoadingMore"}
+                onPress={() => {
+                  keepPosition.current = true;
+                  history.loadMore(THREAD_PAGE_SIZE);
+                }}
+                testID="amigos-chat-anteriores"
+                variant="quiet"
+              >
+                {history.status === "LoadingMore" ? "Cargando…" : "Ver mensajes anteriores"}
+              </AppButton>
+            ) : null}
             {thread.status === "pending" ? (
               <View style={[styles.pending, { backgroundColor: color.surfaceSunk, borderColor: color.border }]}>
                 <Text style={[styles.bodySm, { color: color.inkMuted }]}>
@@ -290,7 +332,7 @@ export default function FriendChatScreen() {
                   </AppButton>
                 )}
               </View>
-            ) : items.length === 0 ? (
+            ) : items.length === 0 && history.status !== "LoadingFirstPage" ? (
               <Text style={[styles.empty, { color: color.inkSoft }]}>
                 Escribile a {name} o mandale un versículo desde la Biblia: tocá un versículo y elegí «Enviar a un amigo».
               </Text>

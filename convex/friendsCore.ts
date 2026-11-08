@@ -16,8 +16,21 @@ export const MESSAGES_PER_MINUTE = 20;
 export const RATE_WINDOW_MS = 60_000;
 /** Amistades + solicitudes por cuenta. Frena el spam de solicitudes. */
 export const MAX_CONNECTIONS = 250;
-/** Cuántos mensajes trae el chat (los más nuevos). */
-export const THREAD_LIMIT = 200;
+/**
+ * Solicitudes que una cuenta puede mandar por día. Cuentan también las que
+ * después canceló: pedir y cancelar en bucle no sale gratis.
+ */
+export const REQUESTS_PER_DAY = 20;
+/** Solicitudes a la misma persona por semana. */
+export const REQUESTS_PER_TARGET_PER_WEEK = 3;
+/** Después de que te rechazan, tantos días sin poder pedirle de nuevo. */
+export const DECLINED_COOLDOWN_DAYS = 7;
+/** Mensajes por página del chat; "Ver mensajes anteriores" trae otra igual. */
+export const THREAD_PAGE_SIZE = 50;
+/** Mensajes de la otra persona que se revisan para armar la evidencia de un reporte. */
+export const REPORT_SCAN = 200;
+/** Largo de la vista previa del último mensaje que se guarda en la amistad. */
+export const PREVIEW_MAX_LENGTH = 120;
 /** Arriba de esto el contador dice "99+". */
 export const UNREAD_CAP = 99;
 /** Un versículo enviado lleva hasta tantos versículos seguidos. */
@@ -26,7 +39,10 @@ export const MAX_VERSE_SPAN = 10;
 export const REPORTS_PER_DAY = 10;
 /**
  * Personas distintas que tienen que reportar a alguien para que Amigos lo suspenda solo, sin
- * esperar a que el fundador lea la cola (Apple 1.2 pide actuar sobre los reportes).
+ * esperar a que el fundador lea la cola (Apple 1.2 pide actuar sobre los reportes). Solo
+ * cuenta un reporte de una amistad aceptada por los dos y con al menos un mensaje de la
+ * persona reportada (`reportCountsForSuspension`): tres cuentas nuevas no pueden sacar a
+ * alguien que nunca les escribió.
  */
 export const AUTO_SUSPEND_REPORTERS = 3;
 /** Cuántos mensajes de la otra persona se copian como evidencia de un reporte. */
@@ -59,6 +75,26 @@ export function otherSide<T extends string>(row: { userA: T; userB: T }, me: T):
 /** Qué campo de "leído hasta" es el mío. */
 export function readField(row: FriendshipSide, me: string): "readAtA" | "readAtB" {
   return row.userA === me ? "readAtA" : "readAtB";
+}
+
+/** Qué contador de no leídos es el mío. */
+export function unreadField(row: FriendshipSide, me: string): "unreadA" | "unreadB" {
+  return row.userA === me ? "unreadA" : "unreadB";
+}
+
+/** Filas en que se reparten los mensajes de un día en `friendDailyStats`. */
+export const DAILY_STATS_SHARDS = 8;
+
+/** El día de Honduras (UTC−6, sin horario de verano) de un instante: "2026-11-08". */
+export function hondurasDay(ms: number): string {
+  return new Date(ms - 6 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** En qué fila del día cuenta un mensaje: fija por amistad, repartida entre amistades. */
+export function statsShard(friendshipId: string): number {
+  let hash = 0;
+  for (let index = 0; index < friendshipId.length; index += 1) hash = (hash * 31 + friendshipId.charCodeAt(index)) >>> 0;
+  return hash % DAILY_STATS_SHARDS;
 }
 
 // ── Lo que se ve de cada persona ─────────────────────────
@@ -141,12 +177,51 @@ export function verseRangeEnd(ref: VerseRef): number | null {
 
 type PreviewMessage = { kind: "text" | "verse"; text?: string; verse?: VerseRef; fromMe: boolean };
 
-/** Lo que se ve debajo del nombre en la lista de amigos. */
+/**
+ * Lo que se guarda en la amistad como vista previa del último mensaje: el
+ * texto en una línea y recortado, o la cita del versículo. Así la lista de
+ * amigos no lee mensajes.
+ */
+export function previewSnippet(message: { kind: "text" | "verse"; text?: string; verse?: VerseRef }): string {
+  if (message.kind === "verse" && message.verse) return verseLabel(message.verse);
+  const oneLine = (message.text ?? "").replace(/\s+/g, " ").trim();
+  return oneLine.length > PREVIEW_MAX_LENGTH ? `${oneLine.slice(0, PREVIEW_MAX_LENGTH - 1).trimEnd()}…` : oneLine;
+}
+
+/**
+ * Lo que se ve debajo del nombre en la lista de amigos. Un versículo trae la
+ * cita en `verse` o, ya guardada, en `text`.
+ */
 export function messagePreview(message: PreviewMessage | null): string {
   if (!message) return "Todavía no se han escrito";
-  const body = message.kind === "verse" && message.verse ? `Versículo · ${verseLabel(message.verse)}` : (message.text ?? "");
+  const body =
+    message.kind === "verse" ? `Versículo · ${message.verse ? verseLabel(message.verse) : (message.text ?? "")}` : (message.text ?? "");
   const oneLine = body.replace(/\s+/g, " ").trim();
   return message.fromMe ? `Vos: ${oneLine}` : oneLine;
+}
+
+/**
+ * Si un reporte cuenta para la suspensión automática: la amistad la aceptaron
+ * los dos y la persona reportada le escribió al menos un mensaje a quien
+ * reporta. Los demás quedan en la cola para revisión a mano.
+ */
+export function reportCountsForSuspension(report: { friendshipAccepted: boolean; evidenceCount: number }): boolean {
+  return report.friendshipAccepted && report.evidenceCount > 0;
+}
+
+/**
+ * Límite de ritmo de mensajes como balde de fichas: cabe `MESSAGES_PER_MINUTE`
+ * y se rellena a ese ritmo por minuto. Vive aparte de los mensajes, así que
+ * borrar la conversación no lo reinicia.
+ */
+export function takeRateToken(
+  bucket: { tokens: number; updatedAt: number } | null,
+  now: number,
+): { allowed: boolean; tokens: number; updatedAt: number } {
+  const elapsed = bucket ? Math.max(0, now - bucket.updatedAt) : 0;
+  const refilled = bucket ? Math.min(MESSAGES_PER_MINUTE, bucket.tokens + (elapsed * MESSAGES_PER_MINUTE) / RATE_WINDOW_MS) : MESSAGES_PER_MINUTE;
+  if (refilled < 1) return { allowed: false, tokens: refilled, updatedAt: now };
+  return { allowed: true, tokens: refilled - 1, updatedAt: now };
 }
 
 export function unreadLabel(count: number): string {
@@ -196,6 +271,8 @@ export type RequestStatus =
   | "not_found"
   | "self"
   | "too_many"
+  | "daily_limit"
+  | "try_later"
   | "rules_required"
   | "suspended";
 
@@ -215,6 +292,10 @@ export function requestStatusCopy(status: RequestStatus): string {
       return "Ese es tu propio código.";
     case "too_many":
       return `Llegaste al máximo de ${MAX_CONNECTIONS} amigos y solicitudes.`;
+    case "daily_limit":
+      return "Mandaste muchas solicitudes hoy. Probá de nuevo mañana.";
+    case "try_later":
+      return "Ya le mandaste solicitudes a esta persona hace poco. Probá de nuevo en unos días.";
     case "rules_required":
       return "Primero aceptá las normas de Amigos.";
     case "suspended":

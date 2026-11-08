@@ -31,6 +31,11 @@ import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 const HONDURAS_UTC_OFFSET_MS = 6 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_BACKFILL_DAYS = 90;
+// Topes de lo que lee el rollup de Amigos. Arriba del tope la métrica se queda
+// en el tope (se ve como "10000"): es la señal de pasar a un contador.
+export const FRIENDSHIPS_COUNT_CAP = 10_000;
+export const REPORTS_COUNT_CAP = 1_000;
+export const BLOCKS_COUNT_CAP = 5_000;
 
 const APP_METRICS: Record<string, MetricDescriptor> = {
   "users.total": { label: "Usuarios", format: "number", chart: "kpi" },
@@ -161,6 +166,10 @@ export function streakBucket(streak: number): string {
  * Métricas propias de un día. `users`, `entitlements`, `userPlanProgress` y
  * `readingGroups` se leen completas (son una fila por persona o grupo): alcanza
  * para el volumen de hoy. Lo "nuevo" usa índices por fecha.
+ *
+ * Amigos no carga mensajes: los del día salen de `friendDailyStats` (contador
+ * que suma cada envío, aunque después se borre la conversación), y amistades,
+ * reportes y bloqueos se cuentan por índice con los topes de arriba.
  */
 async function appRows(ctx: MutationCtx, day: string, window: { startMs: number; endMs: number }): Promise<Row[]> {
   const { startMs, endMs } = window;
@@ -205,21 +214,22 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   });
   const groups = (await ctx.db.query("readingGroups").collect()).filter((row) => row.createdAt < endMs);
 
-  const friendships = (await ctx.db.query("friendships").collect()).filter(
-    (row) => row.status === "accepted" && (row.acceptedAt ?? row.createdAt) < endMs,
-  );
-  const directMessages = await ctx.db
-    .query("directMessages")
-    .withIndex("by_creation_time", (q) => q.gte("_creationTime", startMs).lt("_creationTime", endMs))
+  const friendships = await ctx.db
+    .query("friendships")
+    .withIndex("by_status_accepted", (q) => q.eq("status", "accepted").lt("acceptedAt", endMs))
+    .take(FRIENDSHIPS_COUNT_CAP);
+  const messageShards = await ctx.db
+    .query("friendDailyStats")
+    .withIndex("by_day_shard", (q) => q.eq("day", day))
     .collect();
   const reports = await ctx.db
     .query("userReports")
     .withIndex("by_created", (q) => q.gte("createdAt", startMs).lt("createdAt", endMs))
-    .collect();
+    .take(REPORTS_COUNT_CAP);
   const blocks = await ctx.db
     .query("userBlocks")
     .withIndex("by_creation_time", (q) => q.gte("_creationTime", startMs).lt("_creationTime", endMs))
-    .collect();
+    .take(BLOCKS_COUNT_CAP);
 
   return [
     { key: "users.total", value: users.length },
@@ -239,7 +249,7 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     ...withTotal("plans.streaks", tally(activePlans.map((row) => streakBucket(row.currentStreak)))),
     { key: "groups.total", value: groups.length },
     { key: "friends.total", value: friendships.length },
-    { key: "friends.messages_new", value: directMessages.length },
+    { key: "friends.messages_new", value: messageShards.reduce((sum, row) => sum + row.messages, 0) },
     ...withTotal("friends.reports_new", tally(reports.map((row) => row.reason))),
     { key: "friends.blocks_new", value: blocks.length },
   ];

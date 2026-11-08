@@ -34,6 +34,80 @@ describe("checkMessageContent", () => {
     }
   });
 
+  it("no se esquiva con caracteres invisibles ni letras de adorno", () => {
+    for (const text of [
+      "pu\u200bta", // zero-width space
+      "pu\u200cta", // zero-width non-joiner
+      "pu\u200dta", // zero-width joiner
+      "pu\u2060ta", // word joiner
+      "pu\u00adta", // guion blando
+      "pu\ufeffta", // BOM
+      "pu\ufe0fta", // selector de variante
+      "p\u034futa", // combining grapheme joiner
+      "pu\u3164ta", // relleno hangul
+      "ｐｕｔａ", // ancho completo
+      "ＭＩＥＲＤＡ",
+      "𝐩𝐮𝐭𝐚", // negrita matemática
+      "p\u0336u\u0336t\u0336a\u0336", // tachado con marcas combinadas
+      "\u0440uta", // p cirílica
+      "m\u0456erda", // i cirílica
+    ]) {
+      expect(blocked(text), JSON.stringify(text)).toBe(true);
+    }
+  });
+
+  it("no se esquiva partiendo la palabra con separadores", () => {
+    for (const text of [
+      "pu.ta",
+      "pu-ta",
+      "pu_ta",
+      "pu*ta",
+      "pu ta",
+      "qué pu ta",
+      "p.uta",
+      "mier.da",
+      "pen-dejo",
+      "hijue.puta",
+      "p u u t a a",
+      "puuu.taaa",
+      "h d p",
+      "put a", // el mensaje entero aplastado
+      "mier da",
+    ]) {
+      expect(blocked(text), text).toBe(true);
+    }
+  });
+
+  it("no bloquea palabras normales que tienen una grosería adentro ni dos palabras que juntas la forman", () => {
+    for (const text of [
+      "Se me arruinó la computadora",
+      "La computación es mi carrera",
+      "Ganaron la disputa en la final",
+      "Disputaron el partido",
+      "Cuidá tu reputación",
+      "El imputado salió libre",
+      "Me compré una pijama",
+      "Fui a ver gas para la estufa",
+      "El cabro necesito que venga",
+      "Qué estupendo sermón",
+      "Estoy aprendiendo otro idioma",
+      "Leí la bitácora del viaje",
+      "La culebra del Génesis",
+      "No me siento culpable",
+      "Calculo que llego a las 7",
+      "Tengo un pendiente con el pastor",
+      "Me gusta el color fucsia",
+      "No se lo de la mi",
+      "Ezequiel 37:1-14",
+      "Juan 3:16",
+      "Mi número: 3345-1709",
+      "Bendiciones 🙏🏽",
+      "Amén ❤️",
+    ]) {
+      expect(blocked(text), text).toBe(false);
+    }
+  });
+
   it("no se esquiva con tildes, números, letras repetidas ni letras separadas", () => {
     for (const text of ["PÚTA", "qué put4", "m13rda", "puuuuuta", "perrrrra", "p.u.t.a", "p u t a", "imbécil", "@sshole"]) {
       expect(blocked(text), text).toBe(true);

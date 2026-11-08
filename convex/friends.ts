@@ -1,3 +1,4 @@
+import { paginationOptsValidator, type PaginationResult } from "convex/server";
 import { ConvexError, v } from "convex/values";
 
 import { internal } from "./_generated/api";
@@ -7,25 +8,32 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import { DEFAULT_BIBLE_VERSION } from "./bibleVersions";
 import { checkMessageContent } from "./chatFilter";
 import {
+  AUTO_SUSPEND_REPORTERS,
   cleanMessageText,
+  DECLINED_COOLDOWN_DAYS,
   friendDisplayName,
   friendInitial,
+  hondurasDay,
   MAX_CONNECTIONS,
   MESSAGE_MAX_LENGTH,
-  MESSAGES_PER_MINUTE,
   messagePreview,
   orderedPair,
   otherSide,
   parseFriendCode,
-  RATE_WINDOW_MS,
+  previewSnippet,
   readField,
-  AUTO_SUSPEND_REPORTERS,
   REPORT_EVIDENCE,
+  REPORT_SCAN,
+  reportCountsForSuspension,
   REPORTS_PER_DAY,
+  REQUESTS_PER_DAY,
+  REQUESTS_PER_TARGET_PER_WEEK,
   type RequestStatus,
   type SendStatus,
-  THREAD_LIMIT,
+  statsShard,
+  takeRateToken,
   UNREAD_CAP,
+  unreadField,
   verseLabel,
   verseRangeEnd,
 } from "./friendsCore";
@@ -38,9 +46,12 @@ import {
  * Seguridad (Apple 1.2, docs/spikes/moderacion-contenido-usuarios.md):
  * - Solo escriben amigos aceptados; sin normas aceptadas no se escribe.
  * - Filtro de groserías en el servidor (`chatFilter.ts`), largo máximo y
- *   límite de ritmo.
+ *   límite de ritmo (`friendRates`, aparte de los mensajes).
+ * - Topes de solicitudes por día y por persona, y espera después de un
+ *   rechazo (`friendRequestEvents`, no se borra al cancelar).
  * - Reportar (con copia de lo reportado) y bloquear. Bloquear borra la
- *   amistad y su conversación, y la otra persona ya no te encuentra.
+ *   amistad y su conversación, y la otra persona ya no te encuentra. Tres
+ *   reportes con evidencia de personas distintas suspenden solos.
  * - Ningún id de usuario sale al teléfono: todo se pide por `friendshipId`
  *   o por código, y cada función verifica que seas parte del par.
  */
@@ -54,6 +65,9 @@ const reasonValidator = v.union(
 );
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+// Filas viejas de `friendRequestEvents` que se borran cada vez que se pide amistad.
+const REQUEST_EVENTS_CLEANUP = 8;
 // Filas por pasada al borrar la conversación de una amistad que terminó.
 const PURGE_PAGE = 256;
 
@@ -127,14 +141,9 @@ async function myFriendship(ctx: QueryCtx, friendshipId: Id<"friendships">, me: 
   return otherId ? { row, otherId } : null;
 }
 
-async function unreadCount(ctx: QueryCtx, row: Doc<"friendships">, me: Id<"users">): Promise<number> {
-  const readAt = row[readField(row, me)] ?? 0;
-  if (row.lastMessageAt === undefined || row.lastMessageAt <= readAt) return 0;
-  const unread = await ctx.db
-    .query("directMessages")
-    .withIndex("by_friendship", (q) => q.eq("friendshipId", row._id).gt("createdAt", readAt))
-    .take(UNREAD_CAP + 1);
-  return unread.filter((message) => message.senderId !== me).length;
+/** No leídos de mi lado, del contador de la fila (sin leer mensajes). */
+function unreadOf(row: Doc<"friendships">, me: Id<"users">): number {
+  return row[unreadField(row, me)] ?? 0;
 }
 
 async function personCard(ctx: QueryCtx, userId: Id<"users">) {
@@ -147,7 +156,7 @@ async function personCard(ctx: QueryCtx, userId: Id<"users">) {
 
 export type FriendsSummary = { friends: number; requests: number; unread: number };
 
-/** Contadores para Inicio y Mi espacio. Ceros sin sesión. */
+/** Contadores para Inicio y Mi espacio. Ceros sin sesión. No lee mensajes. */
 export const summary = query({
   args: {},
   handler: async (ctx): Promise<FriendsSummary> => {
@@ -162,7 +171,7 @@ export const summary = query({
         continue;
       }
       friends += 1;
-      unread += await unreadCount(ctx, row, user._id);
+      unread += unreadOf(row, user._id);
     }
     return { friends, requests, unread };
   },
@@ -188,7 +197,11 @@ export type FriendsOverview = {
   friends: FriendRow[];
 };
 
-/** La pantalla de Amigos: solicitudes, amigos con su último mensaje y tu código. null sin sesión. */
+/**
+ * La pantalla de Amigos: solicitudes, amigos con su último mensaje y tu
+ * código. null sin sesión. La vista previa y los no leídos salen de la fila
+ * de la amistad, no de los mensajes.
+ */
 export const overview = query({
   args: {},
   handler: async (ctx): Promise<FriendsOverview | null> => {
@@ -205,20 +218,14 @@ export const overview = query({
         (row.requestedBy === user._id ? sent : requests).push({ friendshipId: row._id, ...card, createdAt: row.createdAt });
         continue;
       }
-      const last = await ctx.db
-        .query("directMessages")
-        .withIndex("by_friendship", (q) => q.eq("friendshipId", row._id))
-        .order("desc")
-        .first();
+      const last = row.lastMessage;
       friends.push({
         friendshipId: row._id,
         ...card,
-        preview: messagePreview(
-          last ? { kind: last.kind, text: last.text, verse: last.verse, fromMe: last.senderId === user._id } : null,
-        ),
-        lastMessageAt: last?.createdAt ?? null,
-        unread: await unreadCount(ctx, row, user._id),
-        sortAt: last?.createdAt ?? row.acceptedAt ?? row.createdAt,
+        preview: messagePreview(last ? { kind: last.kind, text: last.snippet, fromMe: last.senderId === user._id } : null),
+        lastMessageAt: row.lastMessageAt ?? null,
+        unread: unreadOf(row, user._id),
+        sortAt: row.lastMessageAt ?? row.acceptedAt ?? row.createdAt,
       });
     }
 
@@ -298,10 +305,9 @@ export type Thread = {
   friendReadAt: number | null;
   canWrite: boolean;
   gate: "suspended" | "rules_required" | null;
-  messages: ThreadMessage[];
 };
 
-/** Un chat, con los últimos `THREAD_LIMIT` mensajes en orden. null si no sos parte. */
+/** La cabecera de un chat: con quién, en qué estado y si se puede escribir. null si no sos parte. */
 export const thread = query({
   args: { friendshipId: v.id("friendships") },
   handler: async (ctx, args): Promise<Thread | null> => {
@@ -310,11 +316,6 @@ export const thread = query({
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine) return null;
     const { row, otherId } = mine;
-    const recent = await ctx.db
-      .query("directMessages")
-      .withIndex("by_friendship", (q) => q.eq("friendshipId", row._id))
-      .order("desc")
-      .take(THREAD_LIMIT);
     const gate = socialGate(user);
     return {
       friendshipId: row._id,
@@ -324,7 +325,31 @@ export const thread = query({
       friendReadAt: row[readField(row, otherId)] ?? null,
       canWrite: row.status === "accepted" && gate === null,
       gate,
-      messages: recent.reverse().map((message) => ({
+    };
+  },
+});
+
+const EMPTY_PAGE: PaginationResult<ThreadMessage> = { page: [], isDone: true, continueCursor: "" };
+
+/**
+ * Los mensajes de un chat, del más nuevo al más viejo, de a páginas
+ * (`usePaginatedQuery`). Vacío si no sos parte.
+ */
+export const messages = query({
+  args: { friendshipId: v.id("friendships"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args): Promise<PaginationResult<ThreadMessage>> => {
+    const user = await currentUser(ctx);
+    if (!user) return EMPTY_PAGE;
+    const mine = await myFriendship(ctx, args.friendshipId, user._id);
+    if (!mine) return EMPTY_PAGE;
+    const result = await ctx.db
+      .query("directMessages")
+      .withIndex("by_friendship", (q) => q.eq("friendshipId", mine.row._id))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    return {
+      ...result,
+      page: result.page.map((message) => ({
         id: message._id,
         fromMe: message.senderId === user._id,
         kind: message.kind,
@@ -367,9 +392,58 @@ export const acceptRules = mutation({
 });
 
 /**
+ * Por qué no se puede mandar otra solicitud a esta persona todavía, o null.
+ * Cuenta lo que quedó en `friendRequestEvents`, que no se borra al cancelar.
+ */
+async function requestLimit(
+  ctx: QueryCtx,
+  requesterId: Id<"users">,
+  targetId: Id<"users">,
+  now: number,
+): Promise<"daily_limit" | "try_later" | null> {
+  const today = await ctx.db
+    .query("friendRequestEvents")
+    .withIndex("by_requester", (q) => q.eq("requesterId", requesterId).eq("kind", "sent").gt("createdAt", now - DAY_MS))
+    .take(REQUESTS_PER_DAY);
+  if (today.length >= REQUESTS_PER_DAY) return "daily_limit";
+  const toTarget = await ctx.db
+    .query("friendRequestEvents")
+    .withIndex("by_requester_target", (q) =>
+      q.eq("requesterId", requesterId).eq("targetId", targetId).eq("kind", "sent").gt("createdAt", now - WEEK_MS),
+    )
+    .take(REQUESTS_PER_TARGET_PER_WEEK);
+  if (toTarget.length >= REQUESTS_PER_TARGET_PER_WEEK) return "try_later";
+  const declined = await ctx.db
+    .query("friendRequestEvents")
+    .withIndex("by_requester_target", (q) =>
+      q
+        .eq("requesterId", requesterId)
+        .eq("targetId", targetId)
+        .eq("kind", "declined")
+        .gt("createdAt", now - DECLINED_COOLDOWN_DAYS * DAY_MS),
+    )
+    .first();
+  return declined ? "try_later" : null;
+}
+
+/** Anota una solicitud enviada y, de paso, borra unas pocas de hace más de una semana. */
+async function logRequest(ctx: MutationCtx, requesterId: Id<"users">, targetId: Id<"users">, now: number) {
+  await ctx.db.insert("friendRequestEvents", { requesterId, targetId, kind: "sent", createdAt: now });
+  const oldest = Math.max(WEEK_MS, DECLINED_COOLDOWN_DAYS * DAY_MS);
+  const stale = await ctx.db
+    .query("friendRequestEvents")
+    .withIndex("by_requester_created", (q) => q.eq("requesterId", requesterId).lt("createdAt", now - oldest))
+    .take(REQUEST_EVENTS_CLEANUP);
+  for (const row of stale) await ctx.db.delete(row._id);
+}
+
+/**
  * Pedir amistad con un código. Si la otra persona ya te la había pedido, se
  * aceptan las dos de una vez. A quien te bloqueó (o bloqueaste) se le responde
  * igual que a un código que no existe: no se le avisa que hay un bloqueo.
+ * Topes: `REQUESTS_PER_DAY` por día, `REQUESTS_PER_TARGET_PER_WEEK` a la misma
+ * persona por semana, y nada a quien te rechazó en los últimos
+ * `DECLINED_COOLDOWN_DAYS` días (sin decirte que te rechazó).
  */
 export const request = mutation({
   args: { code: v.string() },
@@ -396,12 +470,16 @@ export const request = mutation({
     ) {
       return { status: "too_many" };
     }
+    const now = Date.now();
+    const limit = await requestLimit(ctx, user._id, other._id, now);
+    if (limit) return { status: limit };
     const friendshipId = await ctx.db.insert("friendships", {
       ...orderedPair(user._id, other._id),
       requestedBy: user._id,
       status: "pending",
-      createdAt: Date.now(),
+      createdAt: now,
     });
+    await logRequest(ctx, user._id, other._id, now);
     return { status: "sent", friendshipId };
   },
 });
@@ -430,7 +508,8 @@ async function endFriendship(ctx: MutationCtx, row: Doc<"friendships">): Promise
 
 /**
  * Rechazar una solicitud, cancelar la que mandaste o dejar de ser amigos. La
- * conversación se borra para los dos.
+ * conversación se borra para los dos. Un rechazo queda anotado: quien pidió no
+ * puede volver a pedir por `DECLINED_COOLDOWN_DAYS` días.
  */
 export const remove = mutation({
   args: { friendshipId: v.id("friendships") },
@@ -438,6 +517,14 @@ export const remove = mutation({
     const user = await requireUser(ctx);
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine) return { removed: false };
+    if (mine.row.status === "pending" && mine.row.requestedBy !== user._id) {
+      await ctx.db.insert("friendRequestEvents", {
+        requesterId: mine.otherId,
+        targetId: user._id,
+        kind: "declined",
+        createdAt: Date.now(),
+      });
+    }
     await endFriendship(ctx, mine.row);
     return { removed: true };
   },
@@ -469,12 +556,34 @@ async function sendTarget(ctx: MutationCtx, friendshipId: Id<"friendships">, now
   if (gate) return { status: gate };
   const mine = await myFriendship(ctx, friendshipId, user._id);
   if (!mine || mine.row.status !== "accepted") return { status: "not_friends" };
-  const lastMinute = await ctx.db
-    .query("directMessages")
-    .withIndex("by_sender", (q) => q.eq("senderId", user._id).gt("createdAt", now - RATE_WINDOW_MS))
-    .take(MESSAGES_PER_MINUTE);
-  if (lastMinute.length >= MESSAGES_PER_MINUTE) return { status: "rate_limited" };
   return { status: "ready", user, row: mine.row };
+}
+
+/**
+ * Gasta una ficha del límite de ritmo. Va justo antes de guardar, después del
+ * filtro: un mensaje rechazado no gasta. La fila vive aparte de los mensajes.
+ */
+async function spendRateToken(ctx: MutationCtx, userId: Id<"users">, now: number): Promise<boolean> {
+  const bucket = await ctx.db
+    .query("friendRates")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .unique();
+  const next = takeRateToken(bucket, now);
+  if (!next.allowed) return false;
+  if (bucket) await ctx.db.patch(bucket._id, { tokens: next.tokens, updatedAt: next.updatedAt });
+  else await ctx.db.insert("friendRates", { userId, tokens: next.tokens, updatedAt: next.updatedAt });
+  return true;
+}
+
+async function bumpDailyStats(ctx: MutationCtx, friendshipId: Id<"friendships">, now: number) {
+  const day = hondurasDay(now);
+  const shard = statsShard(friendshipId);
+  const row = await ctx.db
+    .query("friendDailyStats")
+    .withIndex("by_day_shard", (q) => q.eq("day", day).eq("shard", shard))
+    .unique();
+  if (row) await ctx.db.patch(row._id, { messages: row.messages + 1 });
+  else await ctx.db.insert("friendDailyStats", { day, shard, messages: 1 });
 }
 
 async function deliver(
@@ -489,8 +598,18 @@ async function deliver(
     ...message,
     createdAt: now,
   });
-  // Lo que uno manda ya lo leyó: así el contador cuenta solo lo de la otra persona.
-  await ctx.db.patch(target.row._id, { lastMessageAt: now, [readField(target.row, target.user._id)]: now });
+  const { row, user } = target;
+  const otherId = otherSide(row, user._id)!;
+  // Lo que uno manda ya lo leyó (y contestar es leer): mi contador queda en
+  // cero y el de la otra persona suma uno.
+  await ctx.db.patch(row._id, {
+    lastMessageAt: now,
+    lastMessage: { senderId: user._id, kind: message.kind, snippet: previewSnippet(message) },
+    [readField(row, user._id)]: now,
+    [unreadField(row, user._id)]: 0,
+    [unreadField(row, otherId)]: unreadOf(row, otherId) + 1,
+  });
+  await bumpDailyStats(ctx, row._id, now);
   return id;
 }
 
@@ -528,6 +647,7 @@ export const sendText = mutation({
     const target = await sendTarget(ctx, args.friendshipId, now);
     if (target.status !== "ready") return { status: target.status };
     if (!checkMessageContent(text).ok) return { status: "offensive" };
+    if (!(await spendRateToken(ctx, target.user._id, now))) return { status: "rate_limited" };
     await deliver(ctx, target, { kind: "text", text }, now);
     return { status: "ok" };
   },
@@ -551,6 +671,7 @@ export const sendVerse = mutation({
     const now = Date.now();
     const target = await sendTarget(ctx, args.friendshipId, now);
     if (target.status !== "ready") return { status: target.status };
+    if (!(await spendRateToken(ctx, target.user._id, now))) return { status: "rate_limited" };
     await deliver(ctx, target, { kind: "verse", verse }, now);
     return { status: "ok" };
   },
@@ -562,20 +683,39 @@ export const versePreview = query({
   handler: async (ctx, args) => await loadVerse(ctx, args),
 });
 
-/** Al abrir el chat: todo lo que hay quedó leído. */
+/**
+ * Con el chat en pantalla: leído hasta `upTo` (el último mensaje que se ve).
+ * Si llegó otro después, ese sigue sin leer. Sin `upTo`, todo lo que hay.
+ */
 export const markRead = mutation({
-  args: { friendshipId: v.id("friendships") },
+  args: { friendshipId: v.id("friendships"), upTo: v.optional(v.id("directMessages")) },
   handler: async (ctx, args): Promise<null> => {
     const user = await currentUser(ctx);
     if (!user) return null;
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine) return null;
-    const field = readField(mine.row, user._id);
-    const readAt = mine.row[field] ?? 0;
-    // Sin mensajes nuevos no se escribe: abrir el chat no despierta las consultas del otro lado.
-    if (mine.row.lastMessageAt !== undefined && mine.row.lastMessageAt > readAt) {
-      await ctx.db.patch(mine.row._id, { [field]: Date.now() });
+    const { row, otherId } = mine;
+    const lastMessageAt = row.lastMessageAt;
+    let upToAt = lastMessageAt;
+    if (args.upTo) {
+      const seen = await ctx.db.get(args.upTo);
+      if (!seen || seen.friendshipId !== row._id) return null;
+      upToAt = seen.createdAt;
     }
+    const field = readField(row, user._id);
+    const readAt = row[field] ?? 0;
+    // Sin mensajes nuevos no se escribe: abrir el chat no despierta las consultas del otro lado.
+    if (lastMessageAt === undefined || upToAt === undefined || upToAt <= readAt) return null;
+    let unread = 0;
+    if (lastMessageAt > upToAt) {
+      // Llegó algo después de lo que se ve: se cuenta solo eso (pocos, recién llegados).
+      const after = await ctx.db
+        .query("directMessages")
+        .withIndex("by_friendship", (q) => q.eq("friendshipId", row._id).gt("createdAt", upToAt))
+        .take(UNREAD_CAP + 1);
+      unread = after.filter((message) => message.senderId === otherId).length;
+    }
+    await ctx.db.patch(row._id, { [field]: upToAt, [unreadField(row, user._id)]: unread });
     return null;
   },
 });
@@ -622,10 +762,11 @@ function evidenceText(message: Doc<"directMessages">): string {
 }
 
 /**
- * Reportar a la otra persona, o un mensaje suyo (toque largo). Se guarda una
- * copia de lo reportado para que el fundador lo pueda revisar aunque después
- * se bloquee y la conversación se borre. Con `alsoBlock`, bloquea en el mismo
- * paso.
+ * Reportar a la otra persona, o un mensaje suyo (toque largo), desde una
+ * amistad o desde una solicitud que te mandaron (no desde una que mandaste
+ * vos). Se guarda una copia de lo reportado para que el fundador lo pueda
+ * revisar aunque después se bloquee y la conversación se borre. Con
+ * `alsoBlock`, bloquea en el mismo paso.
  */
 export const report = mutation({
   args: {
@@ -638,6 +779,7 @@ export const report = mutation({
     const user = await requireUser(ctx);
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine) return { status: "not_found" };
+    if (mine.row.status === "pending" && mine.row.requestedBy === user._id) return { status: "not_found" };
     const now = Date.now();
     const today = await ctx.db
       .query("userReports")
@@ -657,29 +799,41 @@ export const report = mutation({
         .query("directMessages")
         .withIndex("by_friendship", (q) => q.eq("friendshipId", mine.row._id))
         .order("desc")
-        .take(THREAD_LIMIT);
+        .take(REPORT_SCAN);
       evidence = recent.filter((message) => message.senderId === mine.otherId).slice(0, REPORT_EVIDENCE);
     }
 
+    const countsForSuspension = reportCountsForSuspension({
+      friendshipAccepted: mine.row.status === "accepted",
+      evidenceCount: evidence.length,
+    });
     await ctx.db.insert("userReports", {
       reporterId: user._id,
       reportedId: mine.otherId,
       reason: args.reason,
       ...(args.messageId ? { messageId: args.messageId } : {}),
       evidence: evidence.map((message) => ({ text: evidenceText(message), createdAt: message.createdAt })),
+      countsForSuspension,
       createdAt: now,
     });
-    await suspendIfWidelyReported(ctx, mine.otherId, now);
+    if (countsForSuspension) await suspendIfWidelyReported(ctx, mine.otherId, now);
     if (args.alsoBlock) await blockPerson(ctx, user._id, mine.otherId, mine.row);
     return { status: "ok" };
   },
 });
 
+/**
+ * Suspende a quien juntó reportes con evidencia de `AUTO_SUSPEND_REPORTERS`
+ * personas distintas. Los reportes sin evidencia no cuentan: quedan en la cola.
+ */
 async function suspendIfWidelyReported(ctx: MutationCtx, reportedId: Id<"users">, now: number) {
   const reported = await ctx.db.get(reportedId);
   if (!reported || reported.friendsSuspendedAt !== undefined) return;
   const reporters = new Set<string>();
-  for await (const row of ctx.db.query("userReports").withIndex("by_reported", (q) => q.eq("reportedId", reportedId))) {
+  const counted = ctx.db
+    .query("userReports")
+    .withIndex("by_reported_counts", (q) => q.eq("reportedId", reportedId).eq("countsForSuspension", true));
+  for await (const row of counted) {
     reporters.add(row.reporterId);
     if (reporters.size >= AUTO_SUSPEND_REPORTERS) {
       await ctx.db.patch(reportedId, { friendsSuspendedAt: now });
@@ -710,6 +864,7 @@ export const recentReports = internalQuery({
           reportedUserId: row.reportedId,
           reportedEmail: reported?.email ?? null,
           reportedSuspended: reported?.friendsSuspendedAt !== undefined,
+          countsForSuspension: row.countsForSuspension ?? false,
           evidence: row.evidence,
         };
       }),
@@ -719,13 +874,21 @@ export const recentReports = internalQuery({
 
 // ── Borrado de cuenta ────────────────────────────────────
 
-export type FriendPurgeCounts = { friendships: number; directMessages: number; userBlocks: number; userReports: number };
+export type FriendPurgeCounts = {
+  friendships: number;
+  directMessages: number;
+  userBlocks: number;
+  userReports: number;
+  friendRequestEvents: number;
+  friendRates: number;
+};
 
 /**
  * Cascada de borrado de cuenta: las amistades y solicitudes con sus
  * conversaciones enteras (también lo que escribió la otra persona en ese
  * chat), los bloqueos en los dos sentidos y los reportes que hizo o que le
- * hicieron (la evidencia es copia de lo que escribió). Gasta a lo sumo
+ * hicieron (la evidencia es copia de lo que escribió), el historial de
+ * solicitudes en los dos sentidos y su límite de ritmo. Gasta a lo sumo
  * `budget` borrados; `done: false` pide otra pasada.
  */
 export async function deleteFriendDataForUser(
@@ -733,7 +896,14 @@ export async function deleteFriendDataForUser(
   userId: Id<"users">,
   budget: number,
 ): Promise<{ deleted: FriendPurgeCounts; done: boolean }> {
-  const deleted: FriendPurgeCounts = { friendships: 0, directMessages: 0, userBlocks: 0, userReports: 0 };
+  const deleted: FriendPurgeCounts = {
+    friendships: 0,
+    directMessages: 0,
+    userBlocks: 0,
+    userReports: 0,
+    friendRequestEvents: 0,
+    friendRates: 0,
+  };
   let spent = 0;
 
   const nextFriendship = async () =>
@@ -764,11 +934,19 @@ export async function deleteFriendDataForUser(
     spent += messages.length;
   }
 
-  const pages: Array<{ key: "userBlocks" | "userReports"; next: (limit: number) => Promise<{ _id: Id<"userBlocks"> | Id<"userReports"> }[]> }> = [
+  type PurgeKey = "userBlocks" | "userReports" | "friendRequestEvents" | "friendRates";
+  type PurgeId = Id<"userBlocks"> | Id<"userReports"> | Id<"friendRequestEvents"> | Id<"friendRates">;
+  const pages: Array<{ key: PurgeKey; next: (limit: number) => Promise<{ _id: PurgeId }[]> }> = [
     { key: "userBlocks", next: (limit) => ctx.db.query("userBlocks").withIndex("by_blocker", (q) => q.eq("blockerId", userId)).take(limit) },
     { key: "userBlocks", next: (limit) => ctx.db.query("userBlocks").withIndex("by_blocked", (q) => q.eq("blockedId", userId)).take(limit) },
     { key: "userReports", next: (limit) => ctx.db.query("userReports").withIndex("by_reporter", (q) => q.eq("reporterId", userId)).take(limit) },
     { key: "userReports", next: (limit) => ctx.db.query("userReports").withIndex("by_reported", (q) => q.eq("reportedId", userId)).take(limit) },
+    {
+      key: "friendRequestEvents",
+      next: (limit) => ctx.db.query("friendRequestEvents").withIndex("by_requester_created", (q) => q.eq("requesterId", userId)).take(limit),
+    },
+    { key: "friendRequestEvents", next: (limit) => ctx.db.query("friendRequestEvents").withIndex("by_target", (q) => q.eq("targetId", userId)).take(limit) },
+    { key: "friendRates", next: (limit) => ctx.db.query("friendRates").withIndex("by_user", (q) => q.eq("userId", userId)).take(limit) },
   ];
   for (const page of pages) {
     while (spent < budget) {

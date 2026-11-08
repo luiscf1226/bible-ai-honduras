@@ -387,6 +387,8 @@ export const setPersonalDates = mutation({
 //   friendships / directMessages / userBlocks / userReports → Amigos (1.0.3):
 //                    amistades con su conversación entera, bloqueos y reportes
 //                    en los dos sentidos
+//   friendRequestEvents / friendRates → historial de solicitudes en los dos
+//                    sentidos y el límite de ritmo de mensajes
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 
@@ -416,6 +418,8 @@ export type PurgeCounts = {
   directMessages: number;
   userBlocks: number;
   userReports: number;
+  friendRequestEvents: number;
+  friendRates: number;
   users: number;
 };
 
@@ -457,6 +461,8 @@ function emptyPurgeCounts(): PurgeCounts {
     directMessages: 0,
     userBlocks: 0,
     userReports: 0,
+    friendRequestEvents: 0,
+    friendRates: 0,
     users: 0,
   };
 }
@@ -717,6 +723,8 @@ export const deleteAccount = action({
       deleted.directMessages += result.deleted.directMessages;
       deleted.userBlocks += result.deleted.userBlocks;
       deleted.userReports += result.deleted.userReports;
+      deleted.friendRequestEvents += result.deleted.friendRequestEvents;
+      deleted.friendRates += result.deleted.friendRates;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

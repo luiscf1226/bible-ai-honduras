@@ -330,6 +330,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       directMessages: 0,
       userBlocks: 0,
       userReports: 0,
+      friendRequestEvents: 0,
+      friendRates: 0,
       users: 1,
     });
 
@@ -489,17 +491,30 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
     stubClerkDelete();
     const result = await ana.action(api.users.deleteAccount, {});
 
-    expect(result.deleted).toMatchObject({ friendships: 2, directMessages: 2, userBlocks: 1, userReports: 2, users: 1 });
+    expect(result.deleted).toMatchObject({
+      friendships: 2,
+      directMessages: 2,
+      userBlocks: 1,
+      userReports: 2,
+      // Lo que pidió Ana, lo que le pidió Caro y su límite de ritmo.
+      friendRequestEvents: 3,
+      friendRates: 1,
+      users: 1,
+    });
     const left = await t.run(async (ctx) => ({
       friendships: await ctx.db.query("friendships").collect(),
       directMessages: await ctx.db.query("directMessages").collect(),
       userBlocks: await ctx.db.query("userBlocks").collect(),
       userReports: await ctx.db.query("userReports").collect(),
+      friendRequestEvents: await ctx.db.query("friendRequestEvents").collect(),
+      friendRates: await ctx.db.query("friendRates").collect(),
     }));
     expect(left.friendships.map((row) => row._id)).toEqual([betoCaro.friendshipId]);
     expect(left.directMessages.map((row) => row.text)).toEqual(["Bendiciones"]);
     expect(left.userBlocks).toHaveLength(0);
     expect(left.userReports).toHaveLength(0);
+    expect(left.friendRequestEvents).toHaveLength(1);
+    expect(left.friendRates).toHaveLength(2);
     // Para Beto, Ana ya no está.
     expect((await beto.query(api.friends.overview, {}))?.friends.map((row) => row.friendshipId)).toEqual([
       betoCaro.friendshipId,
@@ -686,6 +701,8 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       directMessages: 0,
       userBlocks: 0,
       userReports: 0,
+      friendRequestEvents: 0,
+      friendRates: 0,
       users: 0,
     });
     const after = await tableDump(t);

@@ -517,10 +517,25 @@ export default defineSchema({
     // Hasta dónde leyó cada lado: lo de después cuenta como no leído.
     readAtA: v.optional(v.number()),
     readAtB: v.optional(v.number()),
+    // Mensajes sin leer de cada lado y la vista previa del último, al día con
+    // cada envío y cada "leído": la lista de amigos y los contadores no leen
+    // mensajes. Opcionales: una fila sin ellos cuenta como cero / sin mensajes.
+    unreadA: v.optional(v.number()),
+    unreadB: v.optional(v.number()),
+    lastMessage: v.optional(
+      v.object({
+        senderId: v.id("users"),
+        kind: v.union(v.literal("text"), v.literal("verse")),
+        // Texto en una línea y recortado, o la cita del versículo.
+        snippet: v.string(),
+      }),
+    ),
   })
     .index("by_userA", ["userA"])
     .index("by_userB", ["userB"])
-    .index("by_pair", ["userA", "userB"]),
+    .index("by_pair", ["userA", "userB"])
+    // Dashboard: cuántas amistades aceptadas hay a una fecha.
+    .index("by_status_accepted", ["status", "acceptedAt"]),
 
   // Mensajes entre amigos. El texto de un versículo lo pone el servidor desde
   // la Biblia cargada (regla dura #4), nunca el teléfono.
@@ -542,8 +557,39 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_friendship", ["friendshipId", "createdAt"])
-    // Límite de ritmo: cuántos mandó en el último minuto.
     .index("by_sender", ["senderId", "createdAt"]),
+
+  // Límite de ritmo de mensajes (balde de fichas, `takeRateToken`). Aparte de
+  // `directMessages` para que borrar la conversación no lo reinicie.
+  friendRates: defineTable({
+    userId: v.id("users"),
+    tokens: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Historial de solicitudes de amistad: "sent" por cada una que se mandó
+  // (aunque después se cancele) y "declined" cuando la otra persona la rechazó.
+  // Sostiene los topes por día, por destinatario y la espera después de un
+  // rechazo. Lo de más de una semana se va borrando al pedir otra.
+  friendRequestEvents: defineTable({
+    requesterId: v.id("users"),
+    targetId: v.id("users"),
+    kind: v.union(v.literal("sent"), v.literal("declined")),
+    createdAt: v.number(),
+  })
+    .index("by_requester", ["requesterId", "kind", "createdAt"])
+    .index("by_requester_target", ["requesterId", "targetId", "kind", "createdAt"])
+    .index("by_requester_created", ["requesterId", "createdAt"])
+    .index("by_target", ["targetId"]),
+
+  // Mensajes entre amigos por día (Honduras), repartidos en unas pocas filas
+  // para que dos envíos a la vez no choquen. El dashboard suma las filas del
+  // día sin leer mensajes.
+  friendDailyStats: defineTable({
+    day: v.string(),
+    shard: v.number(),
+    messages: v.number(),
+  }).index("by_day_shard", ["day", "shard"]),
 
   // Bloquear borra la amistad y oculta todo en los dos sentidos; quien quedó
   // bloqueado no puede volver a pedir amistad. No se le avisa.
@@ -570,10 +616,15 @@ export default defineSchema({
     ),
     messageId: v.optional(v.id("directMessages")),
     evidence: v.array(v.object({ text: v.string(), createdAt: v.number() })),
+    // Si cuenta para la suspensión automática (`reportCountsForSuspension`):
+    // amistad aceptada por los dos y al menos un mensaje de la persona
+    // reportada. Los demás esperan revisión a mano.
+    countsForSuspension: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_reporter", ["reporterId", "createdAt"])
     .index("by_reported", ["reportedId"])
+    .index("by_reported_counts", ["reportedId", "countsForSuspension"])
     .index("by_created", ["createdAt"]),
 
   stories: defineTable({
