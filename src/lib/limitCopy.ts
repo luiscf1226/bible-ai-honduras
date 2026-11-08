@@ -1,4 +1,4 @@
-import { QUOTA_LIMITS, type QuotaModule } from "../../convex/quotas";
+import { QUOTA_LIMITS, type QuotaModule } from "../../convex/quotaLimits";
 
 const DAILY_TAIL =
   "Vuelven a medianoche de Honduras, y el devocional del día sigue abierto para vos.";

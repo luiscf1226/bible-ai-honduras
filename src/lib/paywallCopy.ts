@@ -1,4 +1,4 @@
-import { QUOTA_LIMITS } from "../../convex/quotas";
+import { QUOTA_LIMITS } from "../../convex/quotaLimits";
 import type { MonthlyOfferResult, PurchaseResult } from "./revenuecat";
 
 // El número de devocionales sale de la cuota real (el prototipo decía "dos").

@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { hondurasDateKey } from "./devotional";
 import { entitlementIsActive } from "./entitlements";
+import { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
 
 const moduleValidator = v.union(
   v.literal("qa"),
@@ -13,14 +14,7 @@ const moduleValidator = v.union(
   v.literal("stories"),
 );
 
-export type QuotaModule = "qa" | "voices" | "feelings" | "stories";
-
-export const QUOTA_LIMITS: Record<QuotaModule, number> = {
-  qa: 5,
-  voices: 5,
-  feelings: 3,
-  stories: 1,
-};
+export { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
 
 export const LIMITS = QUOTA_LIMITS;
 

@@ -1,4 +1,4 @@
-import { parseBuildNumber } from "../../convex/appVersion";
+import { parseBuildNumber } from "../../convex/buildNumber";
 
 // App Store Connect id (eas.json → submit.testflight.ios.ascAppId).
 const ASC_APP_ID = "6807627270";

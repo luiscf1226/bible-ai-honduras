@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { query } from "./_generated/server";
+import { parseBuildNumber } from "./buildNumber";
 
 /**
  * Último build publicado por plataforma. Sirve para avisarle al tester que
@@ -25,13 +26,6 @@ import { query } from "./_generated/server";
  * Solo lo respetan los builds que ya traen el bloqueo; los anteriores siguen
  * viendo, como mucho, el aviso suave.
  */
-export function parseBuildNumber(raw: string | null | undefined): number | null {
-  if (raw == null || !/^\d+$/.test(raw.trim())) {
-    return null;
-  }
-  return Number(raw.trim());
-}
-
 export const latest = query({
   args: { platform: v.union(v.literal("ios"), v.literal("android")) },
   handler: async (_ctx, { platform }) => {
