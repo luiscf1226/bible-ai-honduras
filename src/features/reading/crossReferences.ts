@@ -1,4 +1,3 @@
-import crossReferencesJson from "../../../docs/content/referencias-cruzadas.json";
 import { BIBLE_BOOKS, indexOfBook } from "../../lib/bibleBooks";
 
 /**
@@ -26,7 +25,17 @@ export type VerseRef = { book: string; chapter: number; verse: number };
 
 export const CROSS_REFERENCE_ATTRIBUTION = "Referencias cruzadas: OpenBible.info (CC-BY), basadas en el Treasury of Scripture Knowledge.";
 
-const DEFAULT_DATA: CrossReferenceData = crossReferencesJson;
+let defaultData: CrossReferenceData | undefined;
+
+/**
+ * El índice pesa 616 KB. Con un import estático se evaluaba al abrir el lector;
+ * así se evalúa la primera vez que se selecciona un versículo. Metro lo sigue
+ * incluyendo en el bundle: lo que se ahorra es trabajo al arrancar.
+ */
+function loadDefaultData(): CrossReferenceData {
+  defaultData ??= require("../../../docs/content/referencias-cruzadas.json") as CrossReferenceData;
+  return defaultData;
+}
 
 const CODE = /^(\d+)\.(\d+)\.(\d+)(?:-(?:(\d+)\.)?(\d+))?$/;
 
@@ -47,10 +56,10 @@ export function decodeCrossReference(code: string): CrossReference | null {
 }
 
 /** Pasajes relacionados con un versículo, en orden de relevancia. */
-export function crossReferencesFor(ref: VerseRef, data: CrossReferenceData = DEFAULT_DATA): CrossReference[] {
+export function crossReferencesFor(ref: VerseRef, data?: CrossReferenceData): CrossReference[] {
   const index = indexOfBook(ref.book);
   if (index < 0) return [];
-  const raw = data.books[index]?.[ref.chapter - 1]?.[ref.verse - 1];
+  const raw = (data ?? loadDefaultData()).books[index]?.[ref.chapter - 1]?.[ref.verse - 1];
   if (!raw) return [];
   return raw
     .split(" ")
@@ -58,7 +67,7 @@ export function crossReferencesFor(ref: VerseRef, data: CrossReferenceData = DEF
     .filter((item): item is CrossReference => item !== null);
 }
 
-export function hasCrossReferences(ref: VerseRef, data: CrossReferenceData = DEFAULT_DATA): boolean {
+export function hasCrossReferences(ref: VerseRef, data?: CrossReferenceData): boolean {
   return crossReferencesFor(ref, data).length > 0;
 }
 

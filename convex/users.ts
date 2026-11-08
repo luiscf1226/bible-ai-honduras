@@ -19,8 +19,7 @@ import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingGroupDataForUser } from "./readingGroups";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
 import { deleteVerseFeedLikesForUser } from "./verseFeed";
-
-export const AI_CONSENT_VERSION = "2026-08-25";
+import { AI_CONSENT_VERSION } from "./aiConsent";
 
 // `identity.subject` (el user id de Clerk) es la llave de todo lo que es del
 // usuario. Ninguna función de acá abajo confía en un userId que venga en los

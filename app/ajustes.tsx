@@ -14,7 +14,7 @@ import { ScreenHeader } from "../src/components/ScreenHeader";
 import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
 // Los números salen de las cuotas reales: el prototipo decía "3 preguntas y 2
 // devocionales", pero el límite es otro y la tarjeta mentía.
-import { QUOTA_LIMITS } from "../convex/quotas";
+import { QUOTA_LIMITS } from "../convex/quotaLimits";
 import { bibleDownloadState } from "../src/features/offline/bibleDownload";
 import { removeOfflineBible, startBibleDownload, useOfflineBible } from "../src/features/offline/offlineBible";
 import { bibleRowCopy, REMOVE_BIBLE_BODY, REMOVE_BIBLE_TITLE } from "../src/features/offline/offlineCopy";
