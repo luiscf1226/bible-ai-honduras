@@ -52,6 +52,7 @@
     "expo-sharing": "~57.0.22",
     "expo-speech": "~57.0.3",
     "expo-splash-screen": "~57.0.9",
+    "expo-updates": "~57.0.27",
     "expo-web-browser": "^57.0.2",
     "expo-widgets": "~57.0.22",
     "react": "19.2.3",

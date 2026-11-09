@@ -574,6 +574,19 @@ export default defineSchema({
     .index("by_friendship", ["friendshipId", "createdAt"])
     .index("by_sender", ["senderId", "createdAt"]),
 
+  // Teléfonos que reciben avisos push de esta cuenta (`convex/push.ts`). Un
+  // token es de un solo teléfono: si otra cuenta entra en ese teléfono, la
+  // fila pasa a ella. Se borra al cerrar sesión o cuando Expo dice que el
+  // teléfono ya no existe.
+  pushTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId", "updatedAt"])
+    .index("by_token", ["token"]),
+
   // Límite de ritmo de mensajes (balde de fichas, `takeRateToken`). Aparte de
   // `directMessages` para que borrar la conversación no lo reinicie.
   friendRates: defineTable({

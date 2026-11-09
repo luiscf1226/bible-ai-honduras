@@ -9,9 +9,11 @@
  */
 
 import type * as adminAdapter from "../adminAdapter.js";
+import type * as aiConsent from "../aiConsent.js";
 import type * as aiUsage from "../aiUsage.js";
 import type * as appVersion from "../appVersion.js";
 import type * as bibleVersions from "../bibleVersions.js";
+import type * as buildNumber from "../buildNumber.js";
 import type * as chatFilter from "../chatFilter.js";
 import type * as crisis from "../crisis.js";
 import type * as crons from "../crons.js";
@@ -32,6 +34,7 @@ import type * as devotionals_12_diciembre from "../devotionals/12_diciembre.js";
 import type * as devotionals_index from "../devotionals/index.js";
 import type * as devotionals_types from "../devotionals/types.js";
 import type * as entitlements from "../entitlements.js";
+import type * as feedReelsCore from "../feedReelsCore.js";
 import type * as feelings from "../feelings.js";
 import type * as friends from "../friends.js";
 import type * as friendsCore from "../friendsCore.js";
@@ -44,7 +47,10 @@ import type * as offlineBible from "../offlineBible.js";
 import type * as offlineBiblePackage from "../offlineBiblePackage.js";
 import type * as personalDates from "../personalDates.js";
 import type * as prayers from "../prayers.js";
+import type * as push from "../push.js";
+import type * as pushCore from "../pushCore.js";
 import type * as qa from "../qa.js";
+import type * as quotaLimits from "../quotaLimits.js";
 import type * as quotas from "../quotas.js";
 import type * as rag_answer from "../rag/answer.js";
 import type * as rag_commentary from "../rag/commentary.js";
@@ -71,6 +77,7 @@ import type * as sermonNotes from "../sermonNotes.js";
 import type * as sermonNotesCore from "../sermonNotesCore.js";
 import type * as speech from "../speech.js";
 import type * as stories from "../stories.js";
+import type * as storyCatalog from "../storyCatalog.js";
 import type * as telemetry from "../telemetry.js";
 import type * as textStories from "../textStories.js";
 import type * as textStoriesCatalog from "../textStoriesCatalog.js";
@@ -97,9 +104,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   adminAdapter: typeof adminAdapter;
+  aiConsent: typeof aiConsent;
   aiUsage: typeof aiUsage;
   appVersion: typeof appVersion;
   bibleVersions: typeof bibleVersions;
+  buildNumber: typeof buildNumber;
   chatFilter: typeof chatFilter;
   crisis: typeof crisis;
   crons: typeof crons;
@@ -120,6 +129,7 @@ declare const fullApi: ApiFromModules<{
   "devotionals/index": typeof devotionals_index;
   "devotionals/types": typeof devotionals_types;
   entitlements: typeof entitlements;
+  feedReelsCore: typeof feedReelsCore;
   feelings: typeof feelings;
   friends: typeof friends;
   friendsCore: typeof friendsCore;
@@ -132,7 +142,10 @@ declare const fullApi: ApiFromModules<{
   offlineBiblePackage: typeof offlineBiblePackage;
   personalDates: typeof personalDates;
   prayers: typeof prayers;
+  push: typeof push;
+  pushCore: typeof pushCore;
   qa: typeof qa;
+  quotaLimits: typeof quotaLimits;
   quotas: typeof quotas;
   "rag/answer": typeof rag_answer;
   "rag/commentary": typeof rag_commentary;
@@ -159,6 +172,7 @@ declare const fullApi: ApiFromModules<{
   sermonNotesCore: typeof sermonNotesCore;
   speech: typeof speech;
   stories: typeof stories;
+  storyCatalog: typeof storyCatalog;
   telemetry: typeof telemetry;
   textStories: typeof textStories;
   textStoriesCatalog: typeof textStoriesCatalog;

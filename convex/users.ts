@@ -14,6 +14,7 @@ import { deleteFriendDataForUser } from "./friends";
 import { deleteConversationsForUser } from "./history";
 import { deleteMemoryVersesForUser } from "./memorize";
 import { deletePrayersForUser } from "./prayers";
+import { deletePushTokensForUser } from "./push";
 import { deleteSermonNotesForUser } from "./sermonNotes";
 import { parseBirthday, parseCalendarDate } from "./personalDates";
 import { deleteReadingDataForUser } from "./reading";
@@ -389,6 +390,7 @@ export const setPersonalDates = mutation({
 //                    bloqueos y reportes en los dos sentidos
 //   friendRequestEvents / friendRates → historial de solicitudes en los dos
 //                    sentidos y el límite de ritmo de mensajes
+//   pushTokens     → teléfonos que reciben avisos push (1.0.4)
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 
@@ -421,6 +423,7 @@ export type PurgeCounts = {
   userReportPairs: number;
   friendRequestEvents: number;
   friendRates: number;
+  pushTokens: number;
   users: number;
 };
 
@@ -465,6 +468,7 @@ function emptyPurgeCounts(): PurgeCounts {
     userReportPairs: 0,
     friendRequestEvents: 0,
     friendRates: 0,
+    pushTokens: 0,
     users: 0,
   };
 }
@@ -609,6 +613,9 @@ export const purgeAccountData = internalMutation({
     const friends = await deleteFriendDataForUser(ctx, user._id, PURGE_BUDGET);
     Object.assign(deleted, friends.deleted);
 
+    const pushTokens = await deletePushTokensForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.pushTokens = pushTokens.deleted;
+
     const childrenDone =
       conversations.done &&
       stories.done &&
@@ -619,7 +626,8 @@ export const purgeAccountData = internalMutation({
       sermonNotes.done &&
       memory.done &&
       feedLikes.done &&
-      friends.done;
+      friends.done &&
+      pushTokens.done;
     if (!childrenDone) {
       return { done: false, deleted };
     }
@@ -728,6 +736,7 @@ export const deleteAccount = action({
       deleted.userReportPairs += result.deleted.userReportPairs;
       deleted.friendRequestEvents += result.deleted.friendRequestEvents;
       deleted.friendRates += result.deleted.friendRates;
+      deleted.pushTokens += result.deleted.pushTokens;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

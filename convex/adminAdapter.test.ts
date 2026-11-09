@@ -11,6 +11,7 @@ const modules = {
   "./adminAdapter.ts": () => import("./adminAdapter"),
   "./users.ts": () => import("./users"),
   "./friends.ts": () => import("./friends"),
+  "./push.ts": () => import("./push"),
   "./entitlements.ts": () => import("./entitlements"),
   "./http.ts": () => import("./http"),
 };
