@@ -136,6 +136,7 @@
     },
     "android": {
       "package": "com.bibleaihonduras.app",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
