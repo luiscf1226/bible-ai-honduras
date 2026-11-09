@@ -9,18 +9,21 @@
 // etiqueta `reportes-chat` asignado al dueño del repo, o comenta en el que ya
 // esté abierto: issue abierto = reportes sin revisar. Se cierra a mano.
 //
-// El repo es público: el issue lleva motivo y hora, nunca correo, ids ni
-// evidencia. Esos se leen con `friends:recentReports` en Convex.
+// El repo es público: el issue lleva solo cuántos hay por motivo y el plazo.
+// Ni correo, ids ni evidencia, y tampoco la hora de cada uno: con la hora, el
+// reportado puede adivinar quién lo reportó. Todo eso se lee con
+// `friends:recentReports` en Convex.
 //
 // Variables: CONVEX_DEPLOY_KEY (o CONVEX_DEPLOYMENT en local), GH_TOKEN,
-// GITHUB_REPOSITORY, GITHUB_REPOSITORY_OWNER. Opcional SINCE_HOURS para fijar
-// la ventana. Con DRY_RUN=1 solo imprime el aviso.
+// GITHUB_REPOSITORY, GITHUB_REPOSITORY_OWNER. Opcional SINCE_HOURS para mirar
+// más atrás (nunca menos que desde la última corrida, para no saltarse nada). Con DRY_RUN=1 solo imprime el aviso.
 
 import { execFileSync } from "node:child_process";
 
 const LABEL = "reportes-chat";
 const WORKFLOW = "reportes-chat.yml";
 const REVIEW_WINDOW_MS = 24 * 60 * 60 * 1000;
+const LIMIT = 200;
 const REASONS = {
   ofensivo: "Insultos, odio o acoso",
   sexual: "Contenido sexual",
@@ -41,13 +44,23 @@ function gh(...args) {
   return run("gh", args);
 }
 
+function lastRunMs() {
+  try {
+    const runs = JSON.parse(
+      gh("api", `repos/${repo}/actions/workflows/${WORKFLOW}/runs?status=success&per_page=1`),
+    ).workflow_runs;
+    if (runs?.length) return Date.parse(runs[0].run_started_at);
+  } catch {
+    // El workflow todavía no está en master (o corre en local): mirar 24 h repite, no pierde.
+    console.warn("Sin corridas previas legibles: miro las últimas 24 h");
+  }
+  return Date.now() - REVIEW_WINDOW_MS;
+}
+
 function sinceMs() {
+  const lastRun = lastRunMs();
   const hours = Number(process.env.SINCE_HOURS);
-  if (hours > 0) return Date.now() - hours * 60 * 60 * 1000;
-  const runs = JSON.parse(
-    gh("api", `repos/${repo}/actions/workflows/${WORKFLOW}/runs?status=success&per_page=1`),
-  ).workflow_runs;
-  return runs?.length ? Date.parse(runs[0].run_started_at) : Date.now() - REVIEW_WINDOW_MS;
+  return hours > 0 ? Math.min(lastRun, Date.now() - hours * 60 * 60 * 1000) : lastRun;
 }
 
 const hondurasTime = new Intl.DateTimeFormat("es-HN", {
@@ -60,28 +73,24 @@ const hondurasTime = new Intl.DateTimeFormat("es-HN", {
   hour12: false,
 });
 
-function message(reports) {
+function message(reports, truncated) {
   const deadline = Math.min(...reports.map((r) => r.createdAt)) + REVIEW_WINDOW_MS;
-  const rows = reports
-    .sort((a, b) => a.createdAt - b.createdAt)
-    .map(
-      (r) =>
-        `| ${hondurasTime.format(r.createdAt)} | ${REASONS[r.reason] ?? r.reason} | ${
-          r.countsForSuspension ? "Sí" : "No"
-        } | ${r.reportedSuspended ? "Sí" : "No"} |`,
-    );
-  const urgent = reports.some((r) => r.reason === "peligro")
+  const byReason = new Map();
+  for (const r of reports) byReason.set(r.reason, (byReason.get(r.reason) ?? 0) + 1);
+  const rows = [...byReason].map(([reason, count]) => `| ${REASONS[reason] ?? reason} | ${count} |`);
+  const urgent = byReason.has("peligro")
     ? "\n> **Hay un reporte de «Alguien está en peligro»: miralo primero.**\n"
     : "";
+  const more = truncated ? `\n> Llegaron al tope de ${LIMIT}: puede haber más. Revisá la tabla \`userReports\` en el dashboard de Convex.\n` : "";
   return `## ${reports.length === 1 ? "1 reporte nuevo" : `${reports.length} reportes nuevos`} en el chat de amigos
 
 Revisalos antes del **${hondurasTime.format(deadline)} (hora de Honduras)**: a Apple le prometimos menos de 24 h.
-${urgent}
-| Recibido | Motivo | Cuenta para la suspensión automática | Reportado ya suspendido |
-|---|---|---|---|
+${urgent}${more}
+| Motivo | Reportes |
+|---|---|
 ${rows.join("\n")}
 
-Correo, evidencia e ids no van acá porque el repo es público. Para verlos:
+Hora, correo, evidencia e ids no van acá porque el repo es público. Para verlos:
 
 \`\`\`
 CONVEX_DEPLOYMENT=dev:neighborly-kudu-508 npx convex run friends:recentReports
@@ -97,13 +106,19 @@ function untilMs() {
 
 const since = sinceMs();
 const until = untilMs();
-const reports = JSON.parse(run("npx", ["convex", "run", "friends:recentReports", '{"limit": 200}'])).filter(
-  (r) => r.createdAt > since && r.createdAt <= until,
-);
+let all;
+try {
+  all = JSON.parse(run("npx", ["convex", "run", "friends:recentReports", JSON.stringify({ limit: LIMIT })]));
+} catch {
+  // Sin el mensaje original: el error de JSON.parse cita la entrada y el log es público.
+  throw new Error("No se pudo leer friends:recentReports");
+}
+const reports = all.filter((r) => r.createdAt > since && r.createdAt <= until);
+const truncated = all.length === LIMIT && all.every((r) => r.createdAt > since);
 console.log(`${reports.length} reporte(s) desde ${new Date(since).toISOString()}`);
 if (reports.length === 0) process.exit(0);
 
-const body = message(reports);
+const body = message(reports, truncated);
 if (dryRun) {
   console.log(body);
   process.exit(0);
