@@ -22,8 +22,8 @@ let registeredToken: string | null = null;
 // se haya reiniciado) y el que quedó sin soltar (sin red al cerrar sesión).
 const TOKEN_KEY = "push.token";
 const PENDING_KEY = "push.pendingUnregister";
-// Sin red, Convex encola la mutación en vez de fallar: cerrar sesión no espera más que esto.
-const UNREGISTER_TIMEOUT_MS = 4000;
+// Sin red, Convex encola la mutación en vez de fallar: nada espera al servidor más que esto.
+const SERVER_TIMEOUT_MS = 4000;
 
 // Registrar y soltar van de a uno y en orden: soltar el token de quien cerró
 // sesión nunca se cruza con el registro de quien entra.
@@ -43,18 +43,23 @@ async function storage<T>(action: () => Promise<T>): Promise<T | null> {
   }
 }
 
-async function confirmed(unregister: Unregister, token: string): Promise<boolean> {
+/** Lo que devuelve `call`, o null si falla o tarda más que `SERVER_TIMEOUT_MS`. */
+async function within<T>(call: () => Promise<T>): Promise<T | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<false>((resolve) => {
-    timer = setTimeout(() => resolve(false), UNREGISTER_TIMEOUT_MS);
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), SERVER_TIMEOUT_MS);
   });
   try {
-    return await Promise.race([unregister({ token }).then(() => true), timeout]);
+    return await Promise.race([call(), timeout]);
   } catch {
-    return false;
+    return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function confirmed(call: () => Promise<unknown>): Promise<boolean> {
+  return (await within(() => call().then(() => true))) === true;
 }
 
 async function ensureChannels() {
@@ -90,12 +95,16 @@ async function registerNow(register: Register, ask: boolean): Promise<boolean> {
     if (!(await hasPermission(ask))) return false;
     await ensureChannels();
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-    const { data: token } = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+    const expoToken = await within(() => Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined));
+    if (!expoToken) return false;
+    const token = expoToken.data;
     // Ya registrado en esta sesión: volver a primer plano no escribe de nuevo.
     if (token === registeredToken) return true;
-    await register({ token, platform: Platform.OS });
-    registeredToken = token;
+    // Anotado antes de llamar: aunque el registro llegue tarde, cerrar sesión sabe qué soltar.
     await storage(() => AsyncStorage.setItem(TOKEN_KEY, token));
+    const platform = Platform.OS;
+    if (!(await confirmed(() => register({ token, platform })))) return false;
+    registeredToken = token;
     // El token ya es de esta cuenta: lo que quedó sin soltar ya no hace falta.
     if ((await storage(() => AsyncStorage.getItem(PENDING_KEY))) === token) {
       await storage(() => AsyncStorage.removeItem(PENDING_KEY));
@@ -119,7 +128,7 @@ export function unregisterPush(unregister: Unregister): Promise<void> {
     // Primero queda anotado como pendiente: si la app se cierra a mitad, se reintenta.
     await storage(() => AsyncStorage.setItem(PENDING_KEY, token));
     await storage(() => AsyncStorage.removeItem(TOKEN_KEY));
-    if (await confirmed(unregister, token)) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
+    if (await confirmed(() => unregister({ token }))) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
   });
 }
 
@@ -127,6 +136,6 @@ export function unregisterPush(unregister: Unregister): Promise<void> {
 export function retryPendingUnregister(unregister: Unregister): Promise<void> {
   return inOrder(async () => {
     const token = await storage(() => AsyncStorage.getItem(PENDING_KEY));
-    if (token && (await confirmed(unregister, token))) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
+    if (token && (await confirmed(() => unregister({ token })))) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
   });
 }
