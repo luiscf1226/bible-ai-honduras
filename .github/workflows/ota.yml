@@ -11,7 +11,9 @@ name: Actualizar app (OTA)
 # ("Publicar app"): un build viejo nunca recibe JS que no puede correr.
 #
 # Antes despliega Convex (con typecheck y tests): el JS nuevo nunca llega
-# antes que el backend que necesita.
+# antes que el backend que necesita. El deploy va acá mismo y no llamando a
+# deploy-convex.yml: su grupo de concurrencia cancela las corridas en espera,
+# y "Publicar app" o el push de convex/ cancelaban esta.
 #
 # Secrets: EXPO_TOKEN (repo) y CONVEX_DEPLOY_KEY (environment convex-test).
 # Las EXPO_PUBLIC_* salen de las variables de EAS del environment production.
@@ -42,8 +44,22 @@ concurrency:
 
 jobs:
   backend:
-    uses: ./.github/workflows/deploy-convex.yml
-    secrets: inherit
+    name: Convex (neighborly-kudu-508)
+    runs-on: ubuntu-latest
+    environment: convex-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Desplegar funciones
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex dev --once
 
   update:
     name: EAS Update → production
