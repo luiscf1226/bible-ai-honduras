@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
@@ -13,8 +14,38 @@ import { FRIENDS_CHANNEL } from "../../convex/pushCore";
 type Register = (args: { token: string; platform: "ios" | "android" }) => Promise<unknown>;
 type Unregister = (args: { token: string }) => Promise<unknown>;
 
-// El último token que se registró, para soltarlo al cerrar sesión.
+// El último token que se registró en esta sesión: volver a primer plano no
+// lo registra de nuevo.
 let registeredToken: string | null = null;
+
+// En disco: el token registrado (para soltarlo al cerrar sesión aunque la app
+// se haya reiniciado) y el que quedó sin soltar (sin red al cerrar sesión).
+const TOKEN_KEY = "push.token";
+const PENDING_KEY = "push.pendingUnregister";
+// Sin red, Convex encola la mutación en vez de fallar: cerrar sesión no espera más que esto.
+const UNREGISTER_TIMEOUT_MS = 4000;
+
+async function storage<T>(action: () => Promise<T>): Promise<T | null> {
+  try {
+    return await action();
+  } catch {
+    return null;
+  }
+}
+
+async function confirmed(unregister: Unregister, token: string): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), UNREGISTER_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([unregister({ token }).then(() => true), timeout]);
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function ensureChannels() {
   if (Platform.OS !== "android") return;
@@ -50,20 +81,32 @@ export async function registerForPush(register: Register, { ask }: { ask: boolea
     if (token === registeredToken) return true;
     await register({ token, platform: Platform.OS });
     registeredToken = token;
+    await storage(() => AsyncStorage.setItem(TOKEN_KEY, token));
+    // El token ya es de esta cuenta: lo que quedó sin soltar ya no hace falta.
+    if ((await storage(() => AsyncStorage.getItem(PENDING_KEY))) === token) {
+      await storage(() => AsyncStorage.removeItem(PENDING_KEY));
+    }
     return true;
   } catch {
     return false;
   }
 }
 
-/** Al cerrar sesión: este teléfono deja de recibir los avisos de la cuenta. */
+/**
+ * Al cerrar sesión: este teléfono deja de recibir los avisos de la cuenta.
+ * Nunca bloquea el cierre: sin red, el token queda anotado y se suelta con
+ * `retryPendingUnregister` la próxima vez que la app abra sin sesión.
+ */
 export async function unregisterPush(unregister: Unregister): Promise<void> {
-  const token = registeredToken;
-  if (!token) return;
+  const token = registeredToken ?? (await storage(() => AsyncStorage.getItem(TOKEN_KEY)));
   registeredToken = null;
-  try {
-    await unregister({ token });
-  } catch {
-    // Sin red: el token queda hasta que otra cuenta entre en este teléfono.
-  }
+  await storage(() => AsyncStorage.removeItem(TOKEN_KEY));
+  if (!token) return;
+  if (!(await confirmed(unregister, token))) await storage(() => AsyncStorage.setItem(PENDING_KEY, token));
+}
+
+/** Sin sesión: suelta el token que quedó pendiente al cerrar sesión sin red. */
+export async function retryPendingUnregister(unregister: Unregister): Promise<void> {
+  const token = await storage(() => AsyncStorage.getItem(PENDING_KEY));
+  if (token && (await confirmed(unregister, token))) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
 }

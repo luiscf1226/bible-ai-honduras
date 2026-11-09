@@ -172,16 +172,15 @@ describe("push", () => {
 
   it("al cambiar de cuenta en el mismo teléfono, el token pasa a la nueva; al cerrar sesión se borra", async () => {
     const t = convexTest(schema, modules);
-    const ana = await signUp(t, "user_ana", "Ana López", ANA_PHONE);
+    await signUp(t, "user_ana", "Ana López", ANA_PHONE);
     const carla = await signUp(t, "user_carla", "Carla Ríos", ANA_PHONE);
     let rows = await t.run((ctx) => ctx.db.query("pushTokens").collect());
     expect(rows).toHaveLength(1);
     const carlaId = (await carla.query(api.users.current, {}))!._id;
     expect(rows[0]!.userId).toBe(carlaId);
 
-    await ana.mutation(api.push.unregister, { token: ANA_PHONE });
-    expect(await t.run((ctx) => ctx.db.query("pushTokens").collect())).toHaveLength(1);
-    await carla.mutation(api.push.unregister, { token: ANA_PHONE });
+    // Ya sin sesión (cerró sesión sin red y el teléfono reintenta): se suelta igual.
+    await t.mutation(api.push.unregister, { token: ANA_PHONE });
     rows = await t.run((ctx) => ctx.db.query("pushTokens").collect());
     expect(rows).toHaveLength(0);
   });

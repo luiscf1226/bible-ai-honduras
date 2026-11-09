@@ -38,7 +38,7 @@ export function useSignOut() {
     } catch {
       // Sin permiso de notificaciones no hay nada agendado que cancelar.
     }
-    // Antes de cerrar Clerk: el servidor tiene que saber de quién es el token.
+    // Antes de cerrar Clerk. Nunca bloquea: sin red queda pendiente y se reintenta.
     await unregisterPush(unregister);
     try {
       await purchasesLogOut();

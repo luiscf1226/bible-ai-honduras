@@ -73,17 +73,19 @@ export const register = mutation({
   },
 });
 
-/** Al cerrar sesión: este teléfono deja de recibir avisos de la cuenta. */
+/**
+ * Al cerrar sesión: este teléfono deja de recibir avisos. No pide sesión:
+ * tener el token es tener el teléfono, y así se puede soltar después de
+ * cerrar sesión sin red (el teléfono reintenta ya sin sesión).
+ */
 export const unregister = mutation({
   args: { token: v.string() },
   handler: async (ctx, args): Promise<null> => {
-    const userId = await currentUserId(ctx);
-    if (!userId) return null;
-    const row = await ctx.db
+    const rows = await ctx.db
       .query("pushTokens")
       .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
-    if (row && row.userId === userId) await ctx.db.delete(row._id);
+      .take(5);
+    for (const row of rows) await ctx.db.delete(row._id);
     return null;
   },
 });
