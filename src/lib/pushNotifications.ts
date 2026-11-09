@@ -25,6 +25,16 @@ const PENDING_KEY = "push.pendingUnregister";
 // Sin red, Convex encola la mutación en vez de fallar: cerrar sesión no espera más que esto.
 const UNREGISTER_TIMEOUT_MS = 4000;
 
+// Registrar y soltar van de a uno y en orden: soltar el token de quien cerró
+// sesión nunca se cruza con el registro de quien entra.
+let queue: Promise<unknown> = Promise.resolve();
+
+function inOrder<T>(task: () => Promise<T>): Promise<T> {
+  const run = queue.then(task, task);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
 async function storage<T>(action: () => Promise<T>): Promise<T | null> {
   try {
     return await action();
@@ -70,7 +80,11 @@ async function hasPermission(ask: boolean): Promise<boolean> {
  * se puede; sin `ask`, solo registra si ya estaba dado. Nunca lanza: sin
  * permiso, en un simulador o sin red, simplemente no hay avisos.
  */
-export async function registerForPush(register: Register, { ask }: { ask: boolean }): Promise<boolean> {
+export function registerForPush(register: Register, { ask }: { ask: boolean }): Promise<boolean> {
+  return inOrder(() => registerNow(register, ask));
+}
+
+async function registerNow(register: Register, ask: boolean): Promise<boolean> {
   if (Platform.OS !== "ios" && Platform.OS !== "android") return false;
   try {
     if (!(await hasPermission(ask))) return false;
@@ -97,16 +111,22 @@ export async function registerForPush(register: Register, { ask }: { ask: boolea
  * Nunca bloquea el cierre: sin red, el token queda anotado y se suelta con
  * `retryPendingUnregister` la próxima vez que la app abra sin sesión.
  */
-export async function unregisterPush(unregister: Unregister): Promise<void> {
-  const token = registeredToken ?? (await storage(() => AsyncStorage.getItem(TOKEN_KEY)));
-  registeredToken = null;
-  await storage(() => AsyncStorage.removeItem(TOKEN_KEY));
-  if (!token) return;
-  if (!(await confirmed(unregister, token))) await storage(() => AsyncStorage.setItem(PENDING_KEY, token));
+export function unregisterPush(unregister: Unregister): Promise<void> {
+  return inOrder(async () => {
+    const token = registeredToken ?? (await storage(() => AsyncStorage.getItem(TOKEN_KEY)));
+    registeredToken = null;
+    if (!token) return;
+    // Primero queda anotado como pendiente: si la app se cierra a mitad, se reintenta.
+    await storage(() => AsyncStorage.setItem(PENDING_KEY, token));
+    await storage(() => AsyncStorage.removeItem(TOKEN_KEY));
+    if (await confirmed(unregister, token)) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
+  });
 }
 
 /** Sin sesión: suelta el token que quedó pendiente al cerrar sesión sin red. */
-export async function retryPendingUnregister(unregister: Unregister): Promise<void> {
-  const token = await storage(() => AsyncStorage.getItem(PENDING_KEY));
-  if (token && (await confirmed(unregister, token))) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
+export function retryPendingUnregister(unregister: Unregister): Promise<void> {
+  return inOrder(async () => {
+    const token = await storage(() => AsyncStorage.getItem(PENDING_KEY));
+    if (token && (await confirmed(unregister, token))) await storage(() => AsyncStorage.removeItem(PENDING_KEY));
+  });
 }
