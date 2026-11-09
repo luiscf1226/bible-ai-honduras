@@ -2,11 +2,18 @@
   "expo": {
     "name": "Bible AI Honduras",
     "slug": "bible-ai-honduras",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "bibleai",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/28bbe778-9ec7-4940-92a3-c1ff62b0a419",
+      "fallbackToCacheTimeout": 0
+    },
     "plugins": [
       "expo-router",
       "./plugins/withWorkRuntimeKtx",

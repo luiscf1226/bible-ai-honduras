@@ -1,0 +1,71 @@
+name: Actualizar app (OTA)
+
+# Cada merge a master que toca la app la publica por EAS Update en el canal
+# production: llega a los teléfonos sin pasar por la tienda (se baja sola y
+# entra en el próximo arranque).
+#
+# Solo llega a builds con la misma huella nativa (`runtimeVersion:
+# fingerprint`, ver fingerprint.config.js). Si el cambio toca lo nativo (un
+# paquete nuevo con código nativo, un plugin, app.json), la huella cambia y la
+# actualización no le llega a nadie hasta el próximo build de tienda
+# ("Publicar app"): un build viejo nunca recibe JS que no puede correr.
+#
+# Antes despliega Convex (con typecheck y tests): el JS nuevo nunca llega
+# antes que el backend que necesita.
+#
+# Secrets: EXPO_TOKEN (repo) y CONVEX_DEPLOY_KEY (environment convex-test).
+# Las EXPO_PUBLIC_* salen de las variables de EAS del environment production.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - app/**
+      - src/**
+      - assets/**
+      - convex/**
+      - index.ts
+      - metro.config.js
+      - metro-stubs/**
+      - plugins/**
+      - package.json
+      - package-lock.json
+      - app.json
+      - eas.json
+      - fingerprint.config.js
+      - .github/workflows/ota.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ota
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    uses: ./.github/workflows/deploy-convex.yml
+    secrets: inherit
+
+  update:
+    name: EAS Update → production
+    needs: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publicar
+        env:
+          MESSAGE: ${{ github.event.head_commit.message || 'Publicación manual' }}
+        run: |
+          eas update --channel production --environment production --platform all \
+            --message "$(printf '%s' "$MESSAGE" | head -n 1 | cut -c1-200)" --non-interactive
