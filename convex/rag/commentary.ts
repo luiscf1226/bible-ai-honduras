@@ -4,7 +4,7 @@ import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction, internalMutation, query } from "../_generated/server";
-import type { AiMeter } from "../adminKit/meter";
+import { AiCallError, type AiMeter } from "../adminKit/meter";
 import { aiMeter } from "../aiUsage";
 import { embedDocuments, embedQuery } from "./embed";
 import commentarySample from "./fixtures/commentary.sample.json";
@@ -119,7 +119,14 @@ export async function retrieveCommentary(
   args: { query: string; book?: string; limit?: number; meter?: AiMeter },
 ): Promise<RetrievedCommentary[]> {
   const limit = args.limit ?? DEFAULT_LIMIT;
-  const embedding = await embedQuery(args.query, args.meter);
+  let embedding: number[];
+  try {
+    embedding = await embedQuery(args.query, args.meter);
+  } catch (error) {
+    // Sin embeddings no hay comentario, y la respuesta sigue solo con el versículo.
+    if (error instanceof AiCallError) return [];
+    throw error;
+  }
   const book = args.book;
 
   const matches = await ctx.vectorSearch("commentaries", "by_embedding", {
