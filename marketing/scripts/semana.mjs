@@ -14,6 +14,7 @@
 //   node scripts/semana.mjs --forzar # aunque nada haya cambiado
 //   node scripts/semana.mjs 5 6 --ver # qué sale esas semanas, sin grabar
 //   node scripts/semana.mjs 1 --reenviar # vuelve a mandar los correos de la semana 1
+//   node scripts/semana.mjs --dry-run  # todo igual, pero sin mandar correo (dice qué mandaría)
 //
 // Si una semana ya se hizo y ni el plan ni sus respuestas cambiaron, no se rehace.
 import { execFileSync } from "node:child_process";
@@ -29,7 +30,7 @@ import tokens from "../../design/tokens.json" with { type: "json" };
 import { REEL_POOL } from "../../convex/feedReelsCore.ts";
 import { voiceCharacters } from "../../convex/voicesCatalog.ts";
 import { canMail, mailWeek } from "./correo.mjs";
-import { askApp, askCharacter } from "./respuestas.mjs";
+import { askApp, askCharacter, boxVerse } from "./respuestas.mjs";
 import { ANSWER, characterVoice, fitVoice, hasVoice, NARRATOR, PRESENTER, speak, VERSE } from "./voz.mjs";
 
 const MARKETING = resolve(import.meta.dirname, "..");
@@ -223,6 +224,12 @@ function fillAnswers(semana, text) {
   for (const video of semana.videos.filter(needsAnswer)) {
     const fields = (filled[video.id] ??= {});
     const question = fields.Pregunta || video.pregunta;
+    // Una respuesta sin cita en el recuadro (o que la perdió al borrarla): la
+    // primera que cita la respuesta, como en askApp.
+    if (video.tipo === "pregunta" && fields.Respuesta && !fields.Cita) {
+      Object.assign(fields, boxVerse(REPO, fields.Respuesta));
+      asked = true;
+    }
     if (fields.Respuesta || !question) continue;
     log(`Preguntándole a la app: ${video.id}`);
     try {
@@ -639,7 +646,8 @@ async function renderWeeks(jobs) {
  * no se mandan, salvo que las pidas por número.
  */
 async function mailWeeks(numeros) {
-  if (!canMail()) {
+  const dryRun = args.includes("--dry-run");
+  if (!canMail() && !dryRun) {
     log("Sin correo: falta ~/.config/3c-videos/correo.env (ver scripts/correo.mjs).");
     return;
   }
@@ -656,8 +664,14 @@ async function mailWeeks(numeros) {
       .videos.map((video) => ({ video, name: `${video.dia}-${video.id}.mp4` }))
       .filter(({ name }) => existsSync(join(weekDir, name)));
     const pending = videos.filter(({ name }) => !state.videos.includes(name));
-    if (pending.length === 0) continue;
     const day = (video) => `${DIAS[video.dia]} ${dates[video.dia]}`;
+    if (dryRun) {
+      log(
+        `[dry-run] Semana ${numero}: no mando correo. Mandaría ${pending.length} videos ${state.hilo ? "en el hilo que ya existe" : "en un hilo nuevo"}: ${pending.map(({ name }) => name).join(", ")}.`,
+      );
+      continue;
+    }
+    if (pending.length === 0) continue;
     try {
       await mailWeek(
         {

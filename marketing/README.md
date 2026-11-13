@@ -67,6 +67,10 @@ salieron; para elegir otra cosa, agregá la semana al plan.
 4. Si cambiás una pregunta en el archivo de respuestas y borrás su respuesta,
    `3c-videos.path` la vuelve a preguntar y rehace la semana.
 
+El recuadro del versículo en Preguntar es el primero que cita la respuesta,
+no la cita principal del RAG: esa es la más cercana por búsqueda vectorial y
+a veces queda fuera de tema (`boxVerse` en `scripts/respuestas.mjs`).
+
 Preguntar usa `rag/answer:ask` (lo mismo que `qa.ask`, sin guardar la
 conversación) y Voces usa `voices:sendMessage` como la cuenta de prueba de App
 Review, con tu sesión del CLI de Convex.
@@ -85,6 +89,7 @@ npm run semana -- 2             # una semana concreta
 npm run semana -- 2 --forzar    # aunque nada haya cambiado
 npm run semana -- 2 --reenviar  # vuelve a mandar los correos de esa semana
 npm run semana -- 5 --ver       # qué sale esa semana, sin grabar
+npm run semana -- --dry-run     # todo igual, pero sin mandar correo
 npm run instalar-automatico     # instala el timer del domingo y el vigilante de respuestas
 npm run studio                  # ver y ajustar las plantillas en el navegador
 ```
