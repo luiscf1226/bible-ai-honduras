@@ -1,0 +1,10 @@
+[Unit]
+Description=Videos de 3C, todos los domingos
+
+[Timer]
+OnCalendar=Sun *-*-* 07:00:00
+# Si la compu estaba apagada el domingo, corre al prenderla.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

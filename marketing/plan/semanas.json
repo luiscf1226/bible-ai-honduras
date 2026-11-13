@@ -1,0 +1,311 @@
+{
+  "_fuente": "Plan de lanzamiento de 3C en TikTok e Instagram (Claude Docs), sección «Primeras 4 semanas», ampliado a 7 videos por semana (martes, jueves, sábado y domingo: historias, monólogos y versículos del feed). La semana 1 empieza el lunes de `inicio`. Después de la última semana de acá, scripts/semana.mjs arma semanas automáticas.",
+  "inicio": "2026-11-16",
+  "hashtags": "#biblia #cristianoshonduras #devocional #honduras",
+  "semanas": [
+    {
+      "numero": 1,
+      "videos": [
+        {
+          "dia": "lun",
+          "id": "presentacion",
+          "tipo": "presentacion",
+          "gancho": "Hice una app de la Biblia pensada para Honduras",
+          "sobretitulo": "Hecho en Honduras",
+          "cierre": "Hecha en Honduras, para tu devocional de cada día.",
+          "versiculo": "Josué 1:9",
+          "texto": "Tu devocional de cada día, la Biblia RV1909 y respuestas con su cita. Gratis, hecha en Honduras.",
+          "pantallas": [
+            {
+              "pantalla": "inicio",
+              "titulo": "Tu devocional de cada día",
+              "voz": "Cada mañana, tu devocional."
+            },
+            {
+              "pantalla": "feed",
+              "titulo": "Versículos con su imagen",
+              "voz": "Versículos con su imagen, para mandar por WhatsApp."
+            },
+            {
+              "pantalla": "pregunta",
+              "titulo": "Preguntale a la Biblia",
+              "voz": "Preguntale a la Biblia lo que quieras, y te responde con la cita."
+            },
+            {
+              "pantalla": "personaje",
+              "titulo": "Hablá con Moisés, Ester, David…",
+              "voz": "Y hablá con personajes como Moisés o Ester."
+            }
+          ]
+        },
+        {
+          "dia": "mar",
+          "id": "jesus-calma-la-tormenta",
+          "tipo": "historia",
+          "reel": "historia:jesus-calma-la-tormenta",
+          "gancho": "La tormenta que se calmó con una palabra",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "¿Qué tormenta estás pasando? La historia completa está en 3C."
+        },
+        {
+          "dia": "mie",
+          "id": "ansiedad",
+          "tipo": "pregunta",
+          "gancho": "¿Qué dice la Biblia cuando no podés dejar de preocuparte?",
+          "pregunta": "¿Qué dice la Biblia cuando no puedo dejar de preocuparme?",
+          "cierre": "Preguntale lo que quieras.",
+          "texto": "¿Y vos, qué le preguntarías? Dejalo en los comentarios y la respondo en otro video.",
+          "cita": "Filipenses 4:6"
+        },
+        {
+          "dia": "jue",
+          "id": "elias-cansado",
+          "tipo": "monologo",
+          "reel": "personaje:elias:2",
+          "gancho": "Elías también quiso rendirse",
+          "cierre": "Hablá con Elías en 3C.",
+          "texto": "Si hoy estás cansado, no sos el único. ¿Qué le preguntarías vos a Elías?"
+        },
+        {
+          "dia": "vie",
+          "id": "moises",
+          "tipo": "personaje",
+          "personaje": "moises",
+          "gancho": "Le pregunté a Moisés cómo aguantó 40 años esperando",
+          "pregunta": "¿Cómo aguantaste 40 años esperando?",
+          "cierre": "Hablá con Moisés, David, Ester y más.",
+          "texto": "¿Qué le preguntarías vos a Moisés?"
+        },
+        {
+          "dia": "sab",
+          "id": "el-mar-rojo",
+          "tipo": "historia",
+          "reel": "historia:el-mar-rojo-se-abre",
+          "gancho": "Cuando no había salida, Dios abrió el mar",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C."
+        },
+        {
+          "dia": "dom",
+          "id": "isaias-41-10",
+          "tipo": "versiculo",
+          "versiculo": "Isaías 41:10",
+          "gancho": "Un versículo para tu domingo",
+          "cierre": "Un versículo con su imagen, cada día.",
+          "texto": "¿A quién se lo mandarías?"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "videos": [
+        {
+          "dia": "lun",
+          "id": "josue-1-9",
+          "tipo": "versiculo",
+          "versiculo": "Josué 1:9",
+          "gancho": "Guardá este versículo para el lunes difícil",
+          "cierre": "Un versículo con su imagen, cada día.",
+          "texto": "Mandáselo a alguien que empieza la semana cansado."
+        },
+        {
+          "dia": "mar",
+          "id": "david-arrepentido",
+          "tipo": "monologo",
+          "reel": "personaje:david:2",
+          "gancho": "David escondió lo que hizo. Hasta que…",
+          "cierre": "Hablá con David en 3C.",
+          "texto": "¿Qué le preguntarías vos a David?"
+        },
+        {
+          "dia": "mie",
+          "id": "enojo",
+          "tipo": "pregunta",
+          "gancho": "¿Está mal enojarse? La Biblia dice algo que no esperás",
+          "pregunta": "¿Está mal enojarse?",
+          "cierre": "Preguntale lo que quieras.",
+          "texto": "¿Y vos, qué le preguntarías? Dejalo en los comentarios.",
+          "cita": "Efesios 4:26"
+        },
+        {
+          "dia": "jue",
+          "id": "proverbios-15-1",
+          "tipo": "versiculo",
+          "versiculo": "Proverbios 15:1",
+          "gancho": "Antes de responder enojado, leé esto",
+          "cierre": "Un versículo con su imagen, cada día.",
+          "texto": "Mandáselo a alguien que lo necesita (sin indirectas 😅)."
+        },
+        {
+          "dia": "vie",
+          "id": "david-y-goliat",
+          "tipo": "historia",
+          "gancho": "David y Goliat como nunca lo viste",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C.",
+          "reel": "historia:david-y-goliat"
+        },
+        {
+          "dia": "sab",
+          "id": "pablo-en-la-carcel",
+          "tipo": "monologo",
+          "reel": "personaje:pablo:2",
+          "gancho": "Pablo escribió esto desde la cárcel",
+          "cierre": "Hablá con Pablo en 3C.",
+          "texto": "¿Qué le preguntarías vos a Pablo?"
+        },
+        {
+          "dia": "dom",
+          "id": "el-hijo-prodigo",
+          "tipo": "historia",
+          "reel": "historia:el-hijo-prodigo",
+          "gancho": "El hijo que volvió a casa",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "videos": [
+        {
+          "dia": "lun",
+          "id": "instalar-android",
+          "tipo": "instalar",
+          "gancho": "¿Tenés Android? Así se instala 3C",
+          "cierre": "Tu devocional te espera cada mañana.",
+          "texto": "Escaneá el QR del final del video y descargala gratis.",
+          "voz": "Escaneá el código del final. Tocá «Descargar APK para Android», abrí el archivo 3C punto APK y tocá Instalar. Si Android lo pide, permití instalar apps de tu navegador."
+        },
+        {
+          "dia": "mar",
+          "id": "jose-en-egipto",
+          "tipo": "historia",
+          "reel": "historia:jose-en-egipto",
+          "gancho": "Lo vendieron sus hermanos. Mirá cómo terminó.",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C."
+        },
+        {
+          "dia": "mie",
+          "id": "perdonar",
+          "tipo": "pregunta",
+          "gancho": "¿Tengo que perdonar aunque no me pida perdón?",
+          "pregunta": "¿Tengo que perdonar a alguien aunque no me pida perdón?",
+          "cierre": "Preguntale lo que quieras.",
+          "texto": "¿Y vos, qué le preguntarías? Dejalo en los comentarios.",
+          "cita": "Mateo 6:14"
+        },
+        {
+          "dia": "jue",
+          "id": "ester-para-esta-hora",
+          "tipo": "monologo",
+          "reel": "personaje:ester:1",
+          "gancho": "«¿Y quién sabe si para esta hora has llegado?»",
+          "cierre": "Hablá con Ester en 3C.",
+          "texto": "¿Qué le preguntarías vos a Ester?"
+        },
+        {
+          "dia": "vie",
+          "id": "ester",
+          "tipo": "personaje",
+          "personaje": "ester",
+          "gancho": "Le pregunté a Ester qué se siente tener miedo y entrar igual",
+          "pregunta": "¿Qué se siente tener miedo y entrar igual?",
+          "cierre": "Hablá con Ester, Moisés, David y más.",
+          "texto": "¿Qué le preguntarías vos a Ester?"
+        },
+        {
+          "dia": "sab",
+          "id": "colosenses-3-13",
+          "tipo": "versiculo",
+          "versiculo": "Colosenses 3:13",
+          "gancho": "Esto dice la Biblia sobre perdonar",
+          "cierre": "Un versículo con su imagen, cada día.",
+          "texto": "Etiquetá a alguien con quien tenés que hablar."
+        },
+        {
+          "dia": "dom",
+          "id": "el-buen-samaritano",
+          "tipo": "historia",
+          "reel": "historia:el-buen-samaritano",
+          "gancho": "El que menos esperabas se detuvo a ayudar",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "videos": [
+        {
+          "dia": "lun",
+          "id": "salmo-23-1",
+          "tipo": "versiculo",
+          "versiculo": "Salmos 23:1",
+          "gancho": "Mandale esto a alguien que lo necesita hoy",
+          "cierre": "Un versículo con su imagen, cada día.",
+          "texto": "Etiquetá a quien necesita leerlo hoy."
+        },
+        {
+          "dia": "mar",
+          "id": "david-pastor",
+          "tipo": "monologo",
+          "reel": "personaje:david:3",
+          "gancho": "David fue pastor antes que rey",
+          "cierre": "Hablá con David en 3C.",
+          "texto": "¿Qué le preguntarías vos a David?"
+        },
+        {
+          "dia": "mie",
+          "id": "comentario",
+          "tipo": "pregunta",
+          "gancho": "Me preguntaron esto en los comentarios",
+          "pregunta": "",
+          "comentario": true,
+          "cierre": "Preguntale lo que quieras.",
+          "texto": "Gracias por la pregunta. ¿Cuál sigue?"
+        },
+        {
+          "dia": "jue",
+          "id": "daniel-en-el-foso",
+          "tipo": "historia",
+          "reel": "historia:daniel-en-el-foso-de-los-leones",
+          "gancho": "Oró aunque le costara la vida",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C."
+        },
+        {
+          "dia": "vie",
+          "id": "rut-y-noemi",
+          "tipo": "historia",
+          "gancho": "La suegra y la nuera que cambiaron la historia",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C.",
+          "reel": "historia:rut-y-booz"
+        },
+        {
+          "dia": "sab",
+          "id": "elias-en-el-carmelo",
+          "tipo": "monologo",
+          "reel": "personaje:elias:1",
+          "gancho": "Fuego del cielo en el monte Carmelo",
+          "cierre": "Hablá con Elías en 3C.",
+          "texto": "¿Qué le preguntarías vos a Elías?"
+        },
+        {
+          "dia": "dom",
+          "id": "nacimiento-de-jesus",
+          "tipo": "historia",
+          "reel": "historia:nacimiento-de-jesus",
+          "gancho": "La primera Navidad, como la cuenta Lucas",
+          "cierre": "Historias de la Biblia, en el feed de 3C.",
+          "texto": "La historia completa está en 3C."
+        }
+      ]
+    }
+  ],
+  "cierreVoz": "3C es gratis, en iPhone y Android. Escaneá el código para descargarla.",
+  "descarga": "https://luiscf1226.github.io/bible-ai-honduras/",
+  "_tipos": "presentacion · pregunta y personaje (la respuesta se la pide a la app) · versiculo (feed) · historia y monologo (`reel` de convex/feedReelsCore.ts) · instalar (la página de descarga, `voz` es lo que se dice)."
+}
