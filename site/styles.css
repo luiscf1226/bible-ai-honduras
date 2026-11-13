@@ -126,14 +126,6 @@ h2 {
 
 .button:hover { background: var(--clay); color: white; }
 .button.secondary { background: transparent; border: 1px solid var(--rule); color: var(--ink); }
-.button.is-disabled,
-.button.is-disabled:hover {
-  background: var(--paper-deep);
-  border: 1px dashed var(--rule);
-  color: var(--muted);
-  cursor: not-allowed;
-  user-select: none;
-}
 
 a.eyebrow { text-decoration: none; }
 
