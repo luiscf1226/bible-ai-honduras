@@ -8,7 +8,7 @@ export function limitBodyFor(module: QuotaModule): string {
     return `Usaste tus ${QUOTA_LIMITS.qa} preguntas gratis de hoy. ${DAILY_TAIL}`;
   }
   if (module === "voices") {
-    return `Usaste tus ${QUOTA_LIMITS.voices} conversaciones gratis de hoy. ${DAILY_TAIL}`;
+    return `Usaste tus ${QUOTA_LIMITS.voices} mensajes gratis de hoy. ${DAILY_TAIL}`;
   }
   if (module === "feelings") {
     return `Usaste tus ${QUOTA_LIMITS.feelings} devocionales gratis de hoy. ${DAILY_TAIL}`;
@@ -16,9 +16,14 @@ export function limitBodyFor(module: QuotaModule): string {
   if (module === "verseImage") {
     return `Ya hiciste tus ${QUOTA_LIMITS.verseImage} fondos con IA de hoy. Mañana podés hacer más; mientras, elegí una foto o un color.`;
   }
-  return "Ya usaste tu historia de muestra: incluye una generación por cuenta y no se renueva cada día. Podés seguir leyendo las historias en texto y abrir tu historia ilustrada.";
+  const stories = QUOTA_LIMITS.stories === 1 ? "tu historia ilustrada gratis" : `tus ${QUOTA_LIMITS.stories} historias ilustradas gratis`;
+  return `Ya hiciste ${stories} de hoy. Mañana podés hacer otra; mientras, las historias en texto y las que ya hiciste siguen abiertas.`;
 }
 
-export function limitTitleFor(module: QuotaModule): string {
-  return module === "stories" ? "Ya usaste tu historia de muestra" : "Por hoy llegaste al límite";
-}
+export const LIMIT_TITLE = "Por hoy llegaste al límite";
+
+/** Lo que trae el plan gratis, para Ajustes. Sale de los mismos límites del servidor. */
+export const FREE_PLAN_SUMMARY =
+  `${QUOTA_LIMITS.qa} preguntas, ${QUOTA_LIMITS.voices} mensajes de Voces, ` +
+  `${QUOTA_LIMITS.stories === 1 ? "1 historia ilustrada" : `${QUOTA_LIMITS.stories} historias ilustradas`} y ` +
+  `${QUOTA_LIMITS.feelings} devocionales de Sentir al día.`;
