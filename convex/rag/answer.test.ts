@@ -134,6 +134,18 @@ describe("boxVerse", () => {
     expect(boxVerse({ answer, citations: [ref(juan)] }, [juan, primeraJuan])).toBe(primeraJuan);
   });
 
+  it("cuenta un versículo citado textual aunque la respuesta no lo nombre", () => {
+    const isaiasConTexto = { ...isaias, text: "No temas, que yo soy contigo; no desmayes, que yo soy tu Dios que te esfuerzo." };
+    const jeremiasConTexto = { ...jeremias, text: "No temáis de la presencia del rey de Babilonia, del cual tenéis temor." };
+    const answer = "Dios mismo dice: 'No temas, que yo soy contigo; no desmayes'. Él está con vos para salvarte y librarte.";
+    expect(boxVerse({ answer, citations: [ref(jeremias), ref(isaias)] }, [jeremiasConTexto, isaiasConTexto])).toBe(isaiasConTexto);
+  });
+
+  it("no toma una frase corta en común como cita textual", () => {
+    const answer = "No temas: Dios está con vos.";
+    expect(boxVerse({ answer, citations: [ref(jeremias)] }, [jeremias, { ...isaias, text: "No temas, que yo soy contigo." }])).toBe(jeremias);
+  });
+
   it("si la respuesta no nombra ninguno, usa la primera cita del modelo", () => {
     expect(boxVerse({ answer: "Dios está con vos.", citations: [ref(isaias)] }, [jeremias, isaias])).toBe(isaias);
   });
