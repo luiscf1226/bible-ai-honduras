@@ -1,4 +1,4 @@
-# RevenueCat sandbox — Pro $4.99/mes
+# RevenueCat sandbox — Pro $2.99/mes
 
 La app Expo ya existe. El contrato de producto se puede crear ahora en el
 **Test Store** de RevenueCat. Una compra real en Test Store **no corre en CI**:
@@ -17,10 +17,10 @@ para decidir `isPro`. La UI lee `entitlements.mine`.
 | Offering ID | `default` (marcar Current) |
 | Package | Monthly (`$rc_monthly`) |
 | Test Store product ID | `pro_monthly` |
-| Precio / duración | USD $4.99 / 1 mes, auto-renovable |
+| Precio / duración | USD $2.99 / 1 mes, auto-renovable |
 | Trial / intro offer | Ninguno en v1 |
 
-No hardcodear `$4.99` como precio de checkout en UI (#30). El paywall debe
+No hardcodear `$2.99` como precio de checkout en UI (#30). El paywall debe
 mostrar el string localizado que entrega la store.
 
 `app_user_id` de RevenueCat **debe** ser el Clerk `identity.subject` (el mismo
@@ -29,7 +29,7 @@ string que `users.clerkId`). `src/lib/revenuecat.ts` → `logIn(clerkUserId)`.
 ## Cómo retomar el Test Store (humano)
 
 1. Crear un proyecto RevenueCat para esta app (dev y prod en el mismo proyecto).
-2. **Product catalog → Test Store**: crear `pro_monthly`, USD 4.99, 1 mes.
+2. **Product catalog → Test Store**: crear `pro_monthly`, USD 2.99, 1 mes.
 3. Crear el entitlement `pro` y adjuntar `pro_monthly`.
 4. Crear el offering `default`; paquete Monthly con `pro_monthly`; marcarlo Current.
 5. Copiar la **Test Store public SDK key** a `EXPO_PUBLIC_REVENUECAT_API_KEY`
@@ -45,7 +45,7 @@ string que `users.clerkId`). `src/lib/revenuecat.ts` → `logIn(clerkUserId)`.
 8. Tras el login de Clerk, `logIn(identity.subject)`. Comprar el paquete Monthly
    del offering `default`. Restore con `restorePurchases`.
 9. Verificar: el webhook deja `entitlements.isPro = true`; `quotas.checkAndConsume`
-   deja de contar. Test Store renueva un sub de 1 mes cada 5 minutos y expira
+   deja de limitar (el uso de Pro se sigue contando para las métricas, sin tope). Test Store renueva un sub de 1 mes cada 5 minutos y expira
    después de cinco renovaciones.
 
 iOS bundle ID y Android application ID finales se confirman antes de productos
@@ -69,7 +69,7 @@ reales de App Store / Play. Hoy `app.json` tiene `android.package`
 ## Coste (orden de magnitud)
 
 Plan público de RevenueCat: gratis hasta ~$2,500 MTR, después 1% del tracked
-revenue. Test Store no genera venta. A $4.99/mes, ~501 suscriptores activos
+revenue. Test Store no genera venta. A $2.99/mes, ~836 suscriptores activos
 antes del umbral. Re-chequear al crear la cuenta.
 
 ## Fuentes (19–24 agosto 2026)

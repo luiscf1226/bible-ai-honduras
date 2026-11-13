@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import { charge, QUOTA_LIMITS, refund } from "./quotas";
@@ -64,7 +64,7 @@ describe("quotas.checkAndConsume", () => {
     expect(sixth).toEqual({ allowed: false, reason: "limit_reached", module: "qa" });
   });
 
-  it("un usuario Pro no incrementa ni se le acaba la cuota de qa", async () => {
+  it("un usuario Pro no tiene límite, pero su uso se cuenta para las métricas", async () => {
     const t = convexTest(schema, modules);
     const { authed } = await seedUser(t, "user_pro_qa");
     await t.mutation(internal.entitlements.upsertFromWebhook, {
@@ -79,47 +79,33 @@ describe("quotas.checkAndConsume", () => {
     }
 
     const usage = await t.run((ctx) => ctx.db.query("usage").collect());
-    expect(usage).toHaveLength(0);
+    expect(usage).toHaveLength(1);
+    expect(usage[0]).toMatchObject({ module: "qa", count: QUOTA_LIMITS.qa + 3 });
+    expect(usage[0]?.denied).toBeUndefined();
   });
 
-  it("stories usa la clave lifetime y no se resetea con otro day key", async () => {
+  it("historias: una gratis por día; la vieja fila lifetime ya no cuenta", async () => {
     const t = convexTest(schema, modules);
     const { authed, userId } = await seedUser(t, "user_stories");
+    await t.run((ctx) => ctx.db.insert("usage", { userId, module: "stories", day: "lifetime", count: 1 }));
 
-    expect(await authed.mutation(api.quotas.checkAndConsume, { module: "stories" })).toEqual({
-      allowed: true,
-    });
-    expect(await authed.mutation(api.quotas.checkAndConsume, { module: "stories" })).toEqual({
-      allowed: false,
-      reason: "limit_reached",
-      module: "stories",
-    });
-
-    const lifetime = await t.run((ctx) =>
-      ctx.db
-        .query("usage")
-        .withIndex("by_user_module_day", (q) =>
-          q.eq("userId", userId).eq("module", "stories").eq("day", "lifetime"),
-        )
-        .unique(),
-    );
-    expect(lifetime?.count).toBe(1);
-
-    await t.run(async (ctx) => {
-      await ctx.db.insert("usage", {
-        userId,
-        module: "stories",
-        day: "2026-01-01",
-        count: 0,
-      });
-    });
-
+    expect(await authed.mutation(api.quotas.checkAndConsume, { module: "stories" })).toEqual({ allowed: true });
     expect(await authed.mutation(api.quotas.checkAndConsume, { module: "stories" })).toEqual({
       allowed: false,
       reason: "limit_reached",
       module: "stories",
     });
-    expect(lifetime).toMatchObject({ day: "lifetime", count: 1 });
+  });
+
+  it("anota cada rechazo en `denied` sin sumar uso", async () => {
+    const t = convexTest(schema, modules);
+    const { authed } = await seedUser(t, "user_denied");
+    for (let i = 0; i < QUOTA_LIMITS.qa + 2; i += 1) {
+      await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
+    }
+    const rows = await t.run((ctx) => ctx.db.query("usage").collect());
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ count: QUOTA_LIMITS.qa, denied: 2 });
   });
 
   it("feelings se agota a las 3", async () => {
@@ -214,7 +200,7 @@ describe("quotas.checkAndConsumeForUser", () => {
     ).toEqual({ allowed: true });
 
     const remaining = await asUser(t, "user_rag").query(api.quotas.remaining, { module: "voices" });
-    expect(remaining).toMatchObject({ used: 1, remaining: 4, isPro: false });
+    expect(remaining).toMatchObject({ used: 1, remaining: QUOTA_LIMITS.voices - 1, isPro: false });
   });
 });
 
@@ -230,5 +216,87 @@ describe("quotas.refund", () => {
     await t.run((ctx) => refund(ctx, userId, "verseImage", day));
     const rows = await t.run((ctx) => ctx.db.query("usage").collect());
     expect(Object.fromEntries(rows.map((row) => [row.day, row.count]))).toEqual({ [day]: 0, "2099-01-01": 1 });
+  });
+});
+
+describe("límite diario y medianoche de Honduras", () => {
+  afterEach(() => vi.useRealTimers());
+
+  // Honduras es UTC-6 todo el año: la medianoche local son las 06:00 UTC.
+  const at = (iso: string) => vi.setSystemTime(Date.parse(iso));
+
+  async function useUp(authed: ReturnType<typeof asUser>, module: "qa" | "voices" | "stories") {
+    for (let i = 0; i < QUOTA_LIMITS[module]; i += 1) {
+      expect(await authed.mutation(api.quotas.checkAndConsume, { module })).toEqual({ allowed: true });
+    }
+    expect(await authed.mutation(api.quotas.checkAndConsume, { module })).toEqual({
+      allowed: false,
+      reason: "limit_reached",
+      module,
+    });
+  }
+
+  for (const module of ["qa", "voices", "stories"] as const) {
+    it(`${module}: se agota en el día y vuelve a las 00:00 de Tegucigalpa, no antes`, async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      const t = convexTest(schema, modules);
+      at("2026-11-13T15:00:00Z"); // 09:00 del 13 en Honduras
+      const { authed } = await seedUser(t, `user_midnight_${module}`);
+      await useUp(authed, module);
+
+      // Medianoche UTC son las 18:00 del mismo día en Honduras: sigue agotado.
+      at("2026-11-14T00:00:00Z");
+      expect(await authed.mutation(api.quotas.checkAndConsume, { module })).toMatchObject({ allowed: false });
+      at("2026-11-14T05:59:59Z"); // 23:59:59 del 13
+      expect(await authed.query(api.quotas.remaining, { module })).toMatchObject({ remaining: 0 });
+      expect(await authed.mutation(api.quotas.checkAndConsume, { module })).toMatchObject({ allowed: false });
+
+      at("2026-11-14T06:00:00Z"); // 00:00 del 14
+      expect(await authed.query(api.quotas.remaining, { module })).toMatchObject({
+        used: 0,
+        remaining: QUOTA_LIMITS[module],
+      });
+      await useUp(authed, module);
+    });
+  }
+
+  it("el uso queda en el día en que se hizo: el 13 y el 14 son filas distintas", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const t = convexTest(schema, modules);
+    at("2026-11-14T05:30:00Z");
+    const { authed } = await seedUser(t, "user_two_days");
+    await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
+    at("2026-11-14T06:30:00Z");
+    await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
+    const rows = await t.run((ctx) => ctx.db.query("usage").collect());
+    expect(Object.fromEntries(rows.map((row) => [row.day, row.count]))).toEqual({ "2026-11-13": 1, "2026-11-14": 1 });
+  });
+
+  it("si Pro vence, el límite vuelve ese mismo día", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const t = convexTest(schema, modules);
+    at("2026-11-13T15:00:00Z");
+    const { authed } = await seedUser(t, "user_pro_expires");
+    await t.mutation(internal.entitlements.upsertFromWebhook, {
+      clerkId: "user_pro_expires",
+      isPro: true,
+      expiresAt: Date.parse("2026-11-13T16:00:00Z"),
+    });
+    for (let i = 0; i < QUOTA_LIMITS.qa + 1; i += 1) {
+      expect(await authed.mutation(api.quotas.checkAndConsume, { module: "qa" })).toEqual({ allowed: true });
+    }
+    at("2026-11-13T17:00:00Z");
+    expect(await authed.mutation(api.quotas.checkAndConsume, { module: "qa" })).toMatchObject({ allowed: false });
+  });
+
+  it("usar la IA marca la cuenta como activa ese día (hora de Honduras)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const t = convexTest(schema, modules);
+    at("2026-11-13T15:00:00Z");
+    const { authed, userId } = await seedUser(t, "user_active");
+    at("2026-11-15T03:00:00Z"); // 21:00 del 14 en Honduras
+    await authed.mutation(api.quotas.checkAndConsume, { module: "voices" });
+    const user = await t.run((ctx) => ctx.db.get(userId));
+    expect(user?.activeDays).toEqual(["2026-11-13", "2026-11-14"]);
   });
 });

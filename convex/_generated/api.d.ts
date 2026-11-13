@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as activeDays from "../activeDays.js";
 import type * as adminAdapter from "../adminAdapter.js";
 import type * as aiConsent from "../aiConsent.js";
 import type * as aiUsage from "../aiUsage.js";
@@ -43,6 +44,7 @@ import type * as http from "../http.js";
 import type * as images from "../images.js";
 import type * as memorize from "../memorize.js";
 import type * as memorizeSchedule from "../memorizeSchedule.js";
+import type * as monetization from "../monetization.js";
 import type * as offlineBible from "../offlineBible.js";
 import type * as offlineBiblePackage from "../offlineBiblePackage.js";
 import type * as personalDates from "../personalDates.js";
@@ -103,6 +105,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activeDays: typeof activeDays;
   adminAdapter: typeof adminAdapter;
   aiConsent: typeof aiConsent;
   aiUsage: typeof aiUsage;
@@ -138,6 +141,7 @@ declare const fullApi: ApiFromModules<{
   images: typeof images;
   memorize: typeof memorize;
   memorizeSchedule: typeof memorizeSchedule;
+  monetization: typeof monetization;
   offlineBible: typeof offlineBible;
   offlineBiblePackage: typeof offlineBiblePackage;
   personalDates: typeof personalDates;

@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { markActive } from "./activeDays";
 import { hondurasDateKey } from "./devotional";
 import { entitlementIsActive } from "./entitlements";
 import { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
@@ -16,14 +17,6 @@ const moduleValidator = v.union(
 );
 
 export { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
-
-export const LIMITS = QUOTA_LIMITS;
-
-const STORIES_DAY_KEY = "lifetime";
-
-function dayKey(module: QuotaModule, now = Date.now()): string {
-  return module === "stories" ? STORIES_DAY_KEY : hondurasDateKey(now);
-}
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -47,12 +40,12 @@ async function usageRow(ctx: QueryCtx | MutationCtx, userId: Id<"users">, module
     .unique();
 }
 
-async function isUserPro(ctx: QueryCtx | MutationCtx, userId: Id<"users">): Promise<boolean> {
+async function isUserPro(ctx: QueryCtx | MutationCtx, userId: Id<"users">, now = Date.now()): Promise<boolean> {
   const row = await ctx.db
     .query("entitlements")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
-  return entitlementIsActive(row);
+  return entitlementIsActive(row, now);
 }
 
 /**
@@ -65,24 +58,29 @@ export async function consume(ctx: MutationCtx, userId: Id<"users">, module: Quo
   return result.allowed ? { allowed: true as const } : result;
 }
 
-/** `consume` que además dice a qué día se cobró (`null` si no se cobró, en Pro), para `refund`. */
+/**
+ * Cobra un uso del día de Honduras: el contador se reinicia solo a medianoche
+ * de Tegucigalpa porque cada día es otra fila. Pro no tiene límite, pero su uso
+ * también se cuenta (métricas por función). Un rechazo queda anotado en
+ * `denied`. Devuelve el día cobrado para `refund`.
+ */
 export async function charge(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
-  if (await isUserPro(ctx, userId)) {
-    return { allowed: true as const, day: null };
-  }
+  const now = Date.now();
+  const user = await ctx.db.get(userId);
+  if (user) await markActive(ctx, user, now);
 
-  const limit = LIMITS[module];
-  const day = dayKey(module);
+  const day = hondurasDateKey(now);
   const row = await usageRow(ctx, userId, module, day);
-  if ((row?.count ?? 0) >= limit) {
+  const used = row?.count ?? 0;
+  if (used >= QUOTA_LIMITS[module] && !(await isUserPro(ctx, userId, now))) {
+    const denied = (row?.denied ?? 0) + 1;
+    if (row) await ctx.db.patch(row._id, { denied });
+    else await ctx.db.insert("usage", { userId, module, day, count: 0, denied });
     return { allowed: false as const, reason: "limit_reached" as const, module };
   }
 
-  if (row) {
-    await ctx.db.patch(row._id, { count: row.count + 1 });
-  } else {
-    await ctx.db.insert("usage", { userId, module, day, count: 1 });
-  }
+  if (row) await ctx.db.patch(row._id, { count: used + 1 });
+  else await ctx.db.insert("usage", { userId, module, day, count: 1 });
   return { allowed: true as const, day };
 }
 
@@ -100,7 +98,7 @@ export async function refund(ctx: MutationCtx, userId: Id<"users">, module: Quot
 async function remainingFor(ctx: QueryCtx, userId: Id<"users">, module: QuotaModule) {
   const isPro = await isUserPro(ctx, userId);
   const limit = QUOTA_LIMITS[module];
-  const row = await usageRow(ctx, userId, module, dayKey(module));
+  const row = await usageRow(ctx, userId, module, hondurasDateKey());
   const used = row?.count ?? 0;
   if (isPro) {
     return { used, limit, remaining: limit, isPro: true };

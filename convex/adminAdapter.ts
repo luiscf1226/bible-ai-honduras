@@ -12,6 +12,8 @@ import {
   type UsersPage,
 } from "./adminKit/contract";
 import { handleAdminRequest } from "./adminKit/httpHandler";
+import type { Id } from "./_generated/dataModel";
+import { activeAccounts } from "./activeDays";
 import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 
 /**
@@ -39,9 +41,15 @@ const APP_METRICS: Record<string, MetricDescriptor> = {
   "users.ai_consent": { label: "Aceptaron usar IA", format: "number", chart: "kpi" },
   "users.by_version": { label: "Versión de la Biblia", format: "number", chart: "bars", dimLabel: "Versión", aggregate: "last" },
   "users.referred_new": { label: "Nuevos por invitación", format: "number", chart: "series", dimLabel: "Vía" },
+  "users.active_1d": { label: "Cuentas activas (día)", format: "number", chart: "series", aggregate: "last" },
+  "users.active_7d": { label: "Cuentas activas (7 días)", format: "number", chart: "kpi" },
+  "users.active_30d": { label: "Cuentas activas (30 días)", format: "number", chart: "kpi" },
   "pro.active": { label: "Pro activos", format: "number", chart: "kpi" },
+  "pro.new": { label: "Pro nuevos", format: "number", chart: "series" },
   "pro.conversion": { label: "Conversión a Pro", format: "percent", chart: "kpi", aggregate: "last" },
+  "pro.conversion_after_limit": { label: "Pro entre quienes llegaron al límite (30 días)", format: "percent", chart: "kpi", aggregate: "last" },
   "quota.usage": { label: "Usos de IA por módulo", format: "number", chart: "series", dimLabel: "Módulo" },
+  "quota.limit_hit": { label: "Cuentas que llegaron al límite", format: "number", chart: "series", dimLabel: "Módulo" },
   "bible.chapters_opened": { label: "Capítulos abiertos", format: "number", chart: "topN", dimLabel: "Libro" },
   "bible.highlights_new": { label: "Subrayados nuevos", format: "number", chart: "series" },
   "bible.bookmarks_new": { label: "Marcadores nuevos", format: "number", chart: "series" },
@@ -62,9 +70,9 @@ export const MANIFEST: Manifest = {
     {
       title: "Usuarios",
       tab: "users",
-      metrics: ["users.total", "users.new", "std.active_1d", "std.active_7d", "std.active_30d", "users.onboarded", "users.ai_consent", "users.referred_new", "users.by_version"],
+      metrics: ["users.total", "users.new", "users.active_1d", "users.active_7d", "users.active_30d", "std.active_1d", "std.active_7d", "std.active_30d", "users.onboarded", "users.ai_consent", "users.referred_new", "users.by_version"],
     },
-    { title: "Pro", tab: "users", metrics: ["pro.active", "pro.conversion"] },
+    { title: "Pro", tab: "users", metrics: ["pro.active", "pro.new", "pro.conversion", "pro.conversion_after_limit", "quota.limit_hit"] },
     {
       title: "Costo y uso",
       tab: "ai",
@@ -84,7 +92,7 @@ export const MANIFEST: Manifest = {
     { title: "Embudo", metrics: ["std.funnel"] },
     { title: "Salud", metrics: ["std.errors", "std.errors_fatal"] },
   ],
-  highlights: ["users.total", "users.new", "std.active_7d", "pro.active", "std.ai_cost_usd", "std.ai_calls", "bible.chapters_opened", "std.errors"],
+  highlights: ["users.total", "users.new", "users.active_7d", "pro.active", "pro.new", "std.ai_cost_usd", "std.ai_calls", "bible.chapters_opened", "std.errors"],
   capabilities: ["users"],
   labels: {
     qa: "Preguntar",
@@ -150,6 +158,18 @@ function tally(values: Iterable<string>): Map<string, number> {
   return map;
 }
 
+/**
+ * Cuentas que chocaron con el límite un día, por módulo. El total cuenta
+ * cuentas distintas: quien chocó en Preguntar y en Voces es una sola.
+ */
+export function limitHits(rows: ReadonlyArray<{ userId: string; module: string; denied?: number }>): {
+  accounts: number;
+  byModule: Map<string, number>;
+} {
+  const hit = rows.filter((row) => (row.denied ?? 0) > 0);
+  return { accounts: new Set(hit.map((row) => row.userId)).size, byModule: tally(hit.map((row) => row.module)) };
+}
+
 export function streakBucket(streak: number): string {
   if (streak <= 0) return "0";
   if (streak < 7) return "1-6";
@@ -173,9 +193,15 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   const users = (await ctx.db.query("users").collect()).filter((user) => user._creationTime < endMs);
   const newUsers = users.filter((user) => inWindow(user._creationTime));
   const entitlements = await ctx.db.query("entitlements").collect();
-  const proActive = entitlements.filter(
-    (row) => row._creationTime < endMs && row.isPro && (row.expiresAt === undefined || row.expiresAt > endMs),
-  ).length;
+
+  const proUsers = new Set(
+    entitlements
+      .filter((row) => row._creationTime < endMs && row.isPro && (row.expiresAt === undefined || row.expiresAt > endMs))
+      .map((row) => row.userId),
+  );
+  const proActive = proUsers.size;
+  const proNew = entitlements.filter((row) => row.firstProAt !== undefined && inWindow(row.firstProAt)).length;
+  const active = activeAccounts(users, day);
 
   const usage = await ctx.db
     .query("usage")
@@ -183,6 +209,15 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     .collect();
   const usageByModule = new Map<string, number>();
   for (const row of usage) usageByModule.set(row.module, (usageByModule.get(row.module) ?? 0) + row.count);
+  const limited = limitHits(usage);
+  // Conversión del freemium: de quienes chocaron con el límite en los últimos
+  // 30 días, cuántos son Pro hoy.
+  const limitedMonth = new Set<Id<"users">>();
+  for (let offset = 0; offset < 30; offset++) {
+    const rows = offset === 0 ? usage : await ctx.db.query("usage").withIndex("by_day", (q) => q.eq("day", addDays(day, -offset))).collect();
+    for (const row of rows) if ((row.denied ?? 0) > 0) limitedMonth.add(row.userId);
+  }
+  const limitedMonthPro = [...limitedMonth].filter((userId) => proUsers.has(userId)).length;
 
   const recents = await ctx.db
     .query("readingRecents")
@@ -231,9 +266,16 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     { key: "users.ai_consent", value: users.filter((user) => user.aiConsentAt !== undefined).length },
     ...withTotal("users.by_version", tally(users.map((user) => user.bibleVersion))),
     ...withTotal("users.referred_new", tally(newUsers.flatMap((user) => (user.referredBy ? [user.referredVia ?? "link"] : [])))),
+    { key: "users.active_1d", value: active.day },
+    { key: "users.active_7d", value: active.week },
+    { key: "users.active_30d", value: active.month },
     { key: "pro.active", value: proActive },
+    { key: "pro.new", value: proNew },
     { key: "pro.conversion", value: users.length === 0 ? 0 : (proActive / users.length) * 100 },
+    { key: "pro.conversion_after_limit", value: limitedMonth.size === 0 ? 0 : (limitedMonthPro / limitedMonth.size) * 100 },
     ...withTotal("quota.usage", usageByModule),
+    { key: "quota.limit_hit", value: limited.accounts },
+    ...[...limited.byModule].map(([dim, value]) => ({ key: "quota.limit_hit", dim, value })),
     ...withTotal("bible.chapters_opened", tally(recents.map((row) => row.book))),
     { key: "bible.highlights_new", value: highlights.length },
     { key: "bible.bookmarks_new", value: bookmarks.length },

@@ -4,10 +4,13 @@ import type { MonthlyOfferResult, PurchaseResult } from "./revenuecat";
 // El número de devocionales sale de la cuota real (el prototipo decía "dos").
 export const PAYWALL_FEATURES = [
   { subtitle: "Q&A guiado y pregunta libre, todo el día", title: "Preguntas sin contar" },
-  { subtitle: "Sin cortes a media conversación", title: "Conversaciones largas con los personajes" },
+  { subtitle: `Sin cortes a media conversación, no ${QUOTA_LIMITS.voices} mensajes al día`, title: "Conversaciones largas con los personajes" },
   { subtitle: `Cada vez que lo necesites, no ${QUOTA_LIMITS.feelings} al día`, title: "Devocionales para lo que estés viviendo" },
-  { subtitle: "Cualquier pasaje, en imágenes", title: "Historias ilustradas ilimitadas" },
+  { subtitle: `Todas las que quieras, no ${QUOTA_LIMITS.stories} al día`, title: "Historias ilustradas ilimitadas" },
 ] as const;
+
+/** Modo de prueba (`EXPO_PUBLIC_PAYMENTS_MODE=test`): la compra es simulada. */
+export const PAYWALL_TEST_MODE_NOTICE = "Modo de prueba: no se cobra nada. Pro se activa por 30 días en esta cuenta.";
 
 // Nombre de la suscripción cuando la tienda no manda el suyo.
 export const PAYWALL_PRODUCT_NAME = "Bible AI Honduras Pro";

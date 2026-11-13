@@ -21,7 +21,9 @@ import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingGroupDataForUser } from "./readingGroups";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
 import { deleteVerseFeedLikesForUser } from "./verseFeed";
+import { markActive } from "./activeDays";
 import { AI_CONSENT_VERSION } from "./aiConsent";
+import { hondurasDateKey } from "./devotional";
 
 // `identity.subject` (el user id de Clerk) es la llave de todo lo que es del
 // usuario. Ninguna función de acá abajo confía en un userId que venga en los
@@ -109,6 +111,8 @@ export const upsert = mutation({
       if (Object.keys(patch).length > 0) {
         await ctx.db.patch(existing._id, patch);
       }
+      // La app llama a upsert en cada arranque con sesión: es el "abrió la app".
+      await markActive(ctx, existing);
       return existing._id;
     }
 
@@ -118,6 +122,7 @@ export const upsert = mutation({
       name: identity.name,
       bibleVersion: DEFAULT_BIBLE_VERSION,
       referralCode: makeReferralCode(identity.subject),
+      activeDays: [hondurasDateKey()],
     });
   },
 });

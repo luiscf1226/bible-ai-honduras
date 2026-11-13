@@ -2,7 +2,7 @@ import { PAYMENTS_ENABLED } from "../src/lib/releaseConfig";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
@@ -14,7 +14,8 @@ import { ScreenHeader } from "../src/components/ScreenHeader";
 import { DEFAULT_BIBLE_VERSION, bibleVersionIsAvailable } from "../convex/bibleVersions";
 // Los números salen de las cuotas reales: el prototipo decía "3 preguntas y 2
 // devocionales", pero el límite es otro y la tarjeta mentía.
-import { QUOTA_LIMITS } from "../convex/quotaLimits";
+import { donationUrl } from "../src/lib/donations";
+import { FREE_PLAN_SUMMARY } from "../src/lib/limitCopy";
 import { bibleDownloadState } from "../src/features/offline/bibleDownload";
 import { removeOfflineBible, startBibleDownload, useOfflineBible } from "../src/features/offline/offlineBible";
 import { bibleRowCopy, REMOVE_BIBLE_BODY, REMOVE_BIBLE_TITLE } from "../src/features/offline/offlineCopy";
@@ -214,8 +215,8 @@ export default function AjustesScreen() {
             </Text>
             <Text style={[styles.planSub, { color: isPro ? color.inkSoft : color.inkFaint }]}>
               {isPro
-                ? "Sin límites de preguntas ni conversaciones"
-                : `${QUOTA_LIMITS.qa} preguntas y ${QUOTA_LIMITS.feelings} devocionales al día`}
+                ? "Sin límites de preguntas, conversaciones ni historias"
+                : FREE_PLAN_SUMMARY}
             </Text>
           </View>
           <Icon color={color.accent} name="chevronRight" size="sm" />
@@ -225,7 +226,7 @@ export default function AjustesScreen() {
           <View style={styles.planText}>
             <Text style={[styles.planTitle, { color: color.ink }]}>Gratis, sin pagos</Text>
             <Text style={[styles.planSub, { color: color.inkSoft }]}>
-              {isPro ? "Acceso de cortesía sin límite de IA" : `${QUOTA_LIMITS.qa} preguntas, ${QUOTA_LIMITS.voices} mensajes de Voces y ${QUOTA_LIMITS.feelings} devocionales de Sentir al día. Una historia ilustrada por cuenta.`}
+              {isPro ? "Acceso de cortesía sin límite de IA" : FREE_PLAN_SUMMARY}
             </Text>
           </View>
         </View>
@@ -563,6 +564,14 @@ export default function AjustesScreen() {
             title={appUpdate.updateAvailable ? "Hay una versión nueva" : "Buscar actualizaciones"}
             tone={appUpdate.updateAvailable ? "accent" : "ink"}
             trailing={<Text style={[styles.glyph, { color: color.inkFaint }]}>↗</Text>}
+          />
+        ) : null}
+        {donationUrl(Platform.OS) ? (
+          <ListRow
+            hint="Ayudá a pagar la IA para que la app siga siendo gratis"
+            onPress={() => router.push("/donar")}
+            testID="ajustes-donar"
+            title="Donar"
           />
         ) : null}
       </ListCard>
