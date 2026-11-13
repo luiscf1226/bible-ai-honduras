@@ -210,9 +210,11 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   for (const row of usage) usageByModule.set(row.module, (usageByModule.get(row.module) ?? 0) + row.count);
   const limited = limitHits(usage);
   // Conversión del freemium: de quienes llegaron al límite en los últimos 30
-  // días, cuántos son Pro hoy.
+  // días, cuántos son Pro. Solo se guarda el último día de cada cuenta, así
+  // que al recalcular un día pasado también entra quien llegó después: sin
+  // tope superior, para no perder justo a quien volvió a llegar hoy.
   const monthStart = addDays(day, -29);
-  const limitedMonth = users.filter((user) => user.lastLimitHitDay !== undefined && user.lastLimitHitDay >= monthStart && user.lastLimitHitDay <= day);
+  const limitedMonth = users.filter((user) => user.lastLimitHitDay !== undefined && user.lastLimitHitDay >= monthStart);
   const limitedMonthPro = limitedMonth.filter((user) => proUsers.has(user._id)).length;
 
   const recents = await ctx.db

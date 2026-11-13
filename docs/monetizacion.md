@@ -37,11 +37,16 @@ flujo: `entitlements.cancelTestPro`.
 **El modo es del binario, no de una OTA.** `ota.yml` publica con las
 variables del environment `production` de EAS al canal `production`, que
 usan App Store, Play y el APK. Si `EXPO_PUBLIC_PAYMENTS_MODE` (o las variables
-de donación) se ponen en ese environment, la próxima OTA las lleva a todos:
-un paywall de prueba en la tienda rompe la guía 3.1.1, y encender cobros en
-un binario revisado como gratis rompe la 2.5.2. Ponerlas solo en el `env` del
-perfil de EAS del build que va a revisión, y dejar el environment
-`production` de EAS igual hasta que ese build esté aprobado.
+de donación) se ponen en ese environment, la próxima OTA las lleva a todos los
+binarios con la misma huella (`runtimeVersion` usa la política fingerprint, y
+`react-native-purchases` ya está en master, así que encender pagos no cambia
+la huella). Un paywall de prueba en la tienda rompe la guía 3.1.1, y encender
+cobros en un binario revisado como gratis rompe la 2.5.2.
+
+Por eso: ponerlas solo en el `env` del perfil de EAS del build que va a
+revisión. Pasarlas al environment `production` recién cuando ningún binario
+revisado como gratis siga en uso con esa huella (por ejemplo, después de
+subir la versión mínima en `appVersion`).
 
 ### Probar el límite y el paywall sin backend
 
@@ -105,10 +110,10 @@ npx convex run monetization:report '{"days": 7}'
 | --- | --- |
 | `users.active_1d` / `_7d` / `_30d` | Cuentas que abrieron la app o usaron la IA |
 | `quota.usage` (por módulo) | Usos de IA del día, Pro incluido |
-| `quota.limit_hit` (por módulo) | Cuentas gratis que gastaron su último uso del día o intentaron pasarse |
+| `quota.limit_hit` (por módulo) | Cuentas gratis que gastaron su último uso del día o intentaron pasarse. Con 1 historia al día, hacer una ya cuenta |
 | `pro.active` / `pro.new` | Pro vigentes y conversiones nuevas del día |
 | `pro.conversion` | Pro sobre el total de cuentas |
-| `pro.conversion_after_limit` | De quienes llegaron al límite en 30 días, cuántos son Pro hoy |
+| `pro.conversion_after_limit` | De quienes llegaron al límite en 30 días, cuántos son Pro. Al recalcular días pasados incluye a quien llegó después |
 
 La foto la arma `adminAdapter.rollupDay` cada hora y también se ve en el
 dashboard de admin (sección Pro). Para llenar días pasados:

@@ -98,7 +98,10 @@ export async function charge(ctx: MutationCtx, userId: Id<"users">, module: Quot
  */
 export async function refund(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule, day: string) {
   const row = await usageRow(ctx, userId, module, day);
-  if (row && row.count > 0) await ctx.db.patch(row._id, { count: row.count - 1 });
+  if (!row || row.count === 0) return;
+  const count = row.count - 1;
+  // Si el uso devuelto era el último, la cuenta todavía no llegó al límite.
+  await ctx.db.patch(row._id, count < QUOTA_LIMITS[module] ? { count, limitHit: undefined } : { count });
 }
 
 async function remainingFor(ctx: QueryCtx, userId: Id<"users">, module: QuotaModule) {

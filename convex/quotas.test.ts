@@ -214,6 +214,20 @@ describe("quotas.checkAndConsumeForUser", () => {
 });
 
 describe("quotas.refund", () => {
+  it("devolver el último uso quita la marca de límite del módulo", async () => {
+    const t = convexTest(schema, modules);
+    const { userId } = await seedUser(t, "user_refund_hit");
+    let day = "";
+    for (let i = 0; i < QUOTA_LIMITS.verseImage; i += 1) {
+      day = ((await t.run((ctx) => charge(ctx, userId, "verseImage"))) as { day: string }).day;
+    }
+    expect((await t.run((ctx) => ctx.db.query("usage").unique()))?.limitHit).toBe(true);
+    await t.run((ctx) => refund(ctx, userId, "verseImage", day));
+    const row = await t.run((ctx) => ctx.db.query("usage").unique());
+    expect(row).toMatchObject({ count: QUOTA_LIMITS.verseImage - 1 });
+    expect(row?.limitHit).toBeUndefined();
+  });
+
   it("devuelve al día en que se cobró aunque la falla llegue pasada la medianoche", async () => {
     const t = convexTest(schema, modules);
     const { userId } = await seedUser(t, "user_refund");
