@@ -6,7 +6,9 @@
 //   2. graba la app real (QA harness) mostrando esas respuestas,
 //   3. arma cada video con Remotion en ~/Work/personal/3c-videos/semana-NN/,
 //   4. escribe ahí un LEEME.md con la caption de cada publicación, copia todo a
-//      ~/Downloads/3c-videos-semana-NN/, manda cada video por correo y avisa.
+//      ~/Downloads/3c-videos-semana-NN/, manda cada video por correo y avisa,
+//   5. sube los videos a la carpeta de Drive de la publicación diaria
+//      (scripts/drive.mjs), si están sus variables de entorno.
 //
 //   node scripts/semana.mjs          # la semana que viene (el domingo, la que empieza mañana)
 //                                    # y las semanas cuyas respuestas cambiaron
@@ -30,6 +32,7 @@ import tokens from "../../design/tokens.json" with { type: "json" };
 import { REEL_POOL } from "../../convex/feedReelsCore.ts";
 import { voiceCharacters } from "../../convex/voicesCatalog.ts";
 import { canMail, mailWeek } from "./correo.mjs";
+import { canDrive, driveName, uploadWeek } from "./drive.mjs";
 import { askApp, askCharacter, boxVerse } from "./respuestas.mjs";
 import { ANSWER, characterVoice, fitVoice, hasVoice, NARRATOR, PRESENTER, speak, VERSE } from "./voz.mjs";
 
@@ -319,7 +322,8 @@ async function buildWeek(semana, answers, browser) {
   const qr = `capturas/${folder}/qr-descarga.svg`;
   writeFileSync(join(MARKETING, "public", qr), await QRCode.toString(plan.descarga, { type: "svg", margin: 0, color: { dark: tokens.color.ink, light: tokens.color.surface } }));
   const url = plan.descarga.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const closing = async (lead) => voiced({ kind: "closing", lead, qr, url }, CLOSING, await voz(`${lead} ${plan.cierreVoz}`, PRESENTER));
+  // El llamado a la acción es el mismo de la publicación diaria: sin tiendas ni precio.
+  const closing = async (lead) => voiced({ kind: "closing", lead, cta: plan.cta, qr, url }, CLOSING, await voz(`${lead} ${plan.cta}.`, PRESENTER));
 
   for (const video of semana.videos) {
     const pasted = answers[video.id] ?? {};
@@ -616,6 +620,7 @@ for (const numero of numeros) {
 }
 if (jobs.length) await renderWeeks(jobs);
 await mailWeeks(numeros);
+await driveWeeks(numeros);
 
 async function renderWeeks(jobs) {
   const stopHarness = await startHarness(log);
@@ -702,6 +707,49 @@ async function mailWeeks(numeros) {
     } catch (error) {
       log(`No pude mandar el correo: ${error.message}`);
       notify(`Semana ${numero}: no pude mandar los videos por correo. Mirá el log.`);
+    }
+  }
+}
+
+/**
+ * Deja los videos de cada semana en la carpeta de Drive de la publicación
+ * diaria, una sola vez cada uno. Igual que el correo: las semanas que ya
+ * pasaron solo se suben si las pedís por número.
+ */
+async function driveWeeks(numeros) {
+  const dryRun = args.includes("--dry-run");
+  if (!canDrive() && !dryRun) {
+    log("Sin Drive: faltan GOOGLE_OAUTH_* o DRIVE_CARPETA_APPS (ver scripts/drive.mjs).");
+    return;
+  }
+  for (const numero of numeros) {
+    if (!requested.includes(numero) && numero < upcomingWeek()) continue;
+    const weekDir = join(OUT, `semana-${pad(numero)}`);
+    const stateFile = join(weekDir, ".subidos-drive.json");
+    const uploaded = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : [];
+    const videos = weekPlan(numero)
+      .videos.map((video) => ({ name: `${video.dia}-${video.id}.mp4` }))
+      .map((video) => ({ ...video, file: join(weekDir, video.name) }))
+      .filter(({ file }) => existsSync(file));
+    const pending = videos.filter(({ name }) => !uploaded.includes(name));
+    if (dryRun) {
+      log(`[dry-run] Semana ${numero}: no subo a Drive. Subiría ${pending.length}: ${pending.map(({ name }) => driveName(numero, name)).join(", ")}.`);
+      continue;
+    }
+    try {
+      await uploadWeek({
+        numero,
+        videos,
+        uploaded,
+        log,
+        sent: (name) => {
+          uploaded.push(name);
+          writeFileSync(stateFile, JSON.stringify(uploaded));
+        },
+      });
+    } catch (error) {
+      log(`No pude subir a Drive: ${error.message}`);
+      notify(`Semana ${numero}: no pude subir los videos a Drive. Mirá el log.`);
     }
   }
 }
