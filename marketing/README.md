@@ -79,6 +79,16 @@ En el navegador, react-native-web dice que siempre hay lector de pantalla, y
 con lector los reels no avanzan solos. Mientras se graba un video, el harness
 le dice a la app que no hay lector, así los reels avanzan como en el teléfono.
 
+## En la nube
+
+`.github/workflows/videos-semanales.yml` corre el mismo lote en GitHub Actions
+los domingos a las 7:00 (hora de Honduras), con los secretos del environment
+`videos`. A mano (Actions → Videos semanales → Run workflow) corre en dry-run
+por defecto. El timer local sigue activo hasta que el primer domingo en la
+nube salga bien; después se apaga con
+`systemctl --user disable --now 3c-videos.timer 3c-videos.path`. Plan y costos:
+`docs/plan-nube.md`.
+
 ## Comandos
 
 ```bash

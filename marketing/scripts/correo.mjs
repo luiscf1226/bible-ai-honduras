@@ -9,6 +9,9 @@
 //   CORREO_USUARIO=tu-cuenta@gmail.com
 //   CORREO_CLAVE=<contraseña de aplicación, https://myaccount.google.com/apppasswords>
 //   CORREO_PARA=a-quien-le-llega@gmail.com   (si falta, a CORREO_USUARIO)
+//
+// En GitHub Actions llegan como variables de entorno con esos mismos nombres
+// (secretos del environment "videos"), y mandan sobre el archivo.
 import { execFileSync } from "node:child_process";
 import { resolve4 } from "node:dns/promises";
 import { existsSync, readFileSync, rmSync, statSync } from "node:fs";
@@ -19,14 +22,16 @@ import nodemailer from "nodemailer";
 const CONFIG = join(homedir(), ".config/3c-videos/correo.env");
 
 function config() {
-  if (!existsSync(CONFIG)) return null;
-  const values = Object.fromEntries(
-    readFileSync(CONFIG, "utf8")
-      .split("\n")
-      .map((line) => line.match(/^(CORREO_[A-Z]+)=(.*)$/))
-      .filter(Boolean)
-      .map(([, key, value]) => [key, value.trim()]),
-  );
+  const file = existsSync(CONFIG)
+    ? Object.fromEntries(
+        readFileSync(CONFIG, "utf8")
+          .split("\n")
+          .map((line) => line.match(/^(CORREO_[A-Z]+)=(.*)$/))
+          .filter(Boolean)
+          .map(([, key, value]) => [key, value.trim()]),
+      )
+    : {};
+  const values = Object.fromEntries(["CORREO_USUARIO", "CORREO_CLAVE", "CORREO_PARA"].map((key) => [key, process.env[key]?.trim() || file[key]]));
   if (!values.CORREO_USUARIO || !values.CORREO_CLAVE) return null;
   return { user: values.CORREO_USUARIO, pass: values.CORREO_CLAVE.replace(/\s/g, ""), to: values.CORREO_PARA || values.CORREO_USUARIO };
 }

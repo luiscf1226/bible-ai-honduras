@@ -571,11 +571,12 @@ function pending(numero, force) {
 const args = process.argv.slice(2);
 const force = args.includes("--forzar");
 const requested = args.filter((arg) => /^\d+$/.test(arg)).map(Number);
-// Sin número: la semana que viene, y cualquier semana cuyas respuestas cambiaron.
+// Sin número: la semana que viene, y las que todavía no pasaron cuyas
+// respuestas cambiaron. Una semana vieja solo se rehace si la pedís.
 const answered = existsSync(join(OUT, "respuestas"))
   ? readdirSync(join(OUT, "respuestas"))
       .map((file) => Number(file.match(/^semana-(\d+)\.md$/)?.[1]))
-      .filter(Boolean)
+      .filter((numero) => numero >= upcomingWeek())
   : [];
 const numeros = requested.length ? requested : [...new Set([upcomingWeek(), ...answered])].sort((a, b) => a - b);
 
