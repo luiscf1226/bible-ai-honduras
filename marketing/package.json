@@ -6,6 +6,7 @@
     "studio": "remotion studio",
     "semana": "tsx scripts/semana.mjs",
     "typecheck": "tsc --noEmit",
+    "test": "node --test scripts/*.test.mjs",
     "instalar-automatico": "bash scripts/instalar-automatico.sh"
   },
   "dependencies": {

@@ -64,7 +64,13 @@ salieron; para elegir otra cosa, agregá la semana al plan.
    todas las captions y cada video como respuesta en ese hilo, porque Gmail no
    acepta más de 25 MB por mensaje (ver `scripts/correo.mjs`; la cuenta va en
    `~/.config/3c-videos/correo.env`).
-4. Si cambiás una pregunta en el archivo de respuestas y borrás su respuesta,
+4. Si están los secretos `GOOGLE_OAUTH_*`, sube cada video a la carpeta de
+   Drive «Bible AI · videos para publicar» como
+   `bible-ai-<fecha>-<dia>-<id>.mp4`. De ahí los toma la publicación diaria
+   (`luiscf1226/short-video-studio`), que es la que los programa en redes. Los
+   de tipo `instalar` no se suben (muestran tienda y precio), y lo que sale hoy
+   o mañana no se reemplaza (ver `scripts/drive.mjs`).
+5. Si cambiás una pregunta en el archivo de respuestas y borrás su respuesta,
    `3c-videos.path` la vuelve a preguntar y rehace la semana.
 
 El recuadro del versículo en Preguntar es el primero que cita la respuesta,
@@ -99,7 +105,8 @@ npm run semana -- 2             # una semana concreta
 npm run semana -- 2 --forzar    # aunque nada haya cambiado
 npm run semana -- 2 --reenviar  # vuelve a mandar los correos de esa semana
 npm run semana -- 5 --ver       # qué sale esa semana, sin grabar
-npm run semana -- --dry-run     # todo igual, pero sin mandar correo
+npm run semana -- --dry-run     # todo igual, pero sin mandar correo ni subir a Drive
+npm test                        # pruebas de la subida a Drive, sin red
 npm run instalar-automatico     # instala el timer del domingo y el vigilante de respuestas
 npm run studio                  # ver y ajustar las plantillas en el navegador
 ```
@@ -117,6 +124,7 @@ corriendo en el puerto 8081, lo usa.
 | Armar una semana de punta a punta | `scripts/semana.mjs` |
 | Plantilla del video (gancho, grabación, versículo, cierre) | `src/Video.tsx`, `src/components/` |
 | Contenido inyectado en el harness | `window.__QA_VIDEO__` → `qa-harness/mocks/scenario.js` |
+| Subida a Drive y sus pruebas | `scripts/drive.mjs`, `scripts/drive.test.mjs` |
 | Timer y vigilante de systemd | `systemd/`, `scripts/instalar-automatico.sh` |
 
 ## Reglas
