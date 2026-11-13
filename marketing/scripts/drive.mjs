@@ -2,36 +2,46 @@
 // los toma la publicación diaria (luiscf1226/short-video-studio), que los
 // programa los días de app en TikTok, Instagram y YouTube Shorts.
 //
-// Cada video se sube como `bible-ai-sNN-<dia>-<id>.mp4`; ese nombre sin
-// `.mp4` es el que usa Marca en textos/semana-NN.json de aquel repo.
+// Cada video se sube como `bible-ai-<fecha>-<dia>-<id>.mp4`, con la fecha para
+// la que se hizo: la publicación diaria lo saca ese día. Ese nombre sin `.mp4`
+// es el que usa Marca en textos/semana-NN.json de aquel repo.
 //
-// Sube con el OAuth de Luis (las cuentas de servicio no tienen cuota en un
-// Drive personal). Todo llega por variables de entorno, sin archivos:
+// Sube con el OAuth de Luis, pero con el permiso mínimo (`drive.file`): solo
+// ve y toca lo que este script creó. Por eso la carpeta la crea el script la
+// primera vez («Bible AI · videos para publicar», en la raíz del Drive); Luis
+// la comparte como Lector con la cuenta de servicio de la publicación diaria.
+// Todo llega por variables de entorno:
 //
 //   GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN
-//   DRIVE_CARPETA_APPS   id de la carpeta "Videos de apps/Bible AI"
+//   DRIVE_CARPETA_APPS   opcional: otro nombre de carpeta
 //
-// Sin esas variables no sube nada y lo dice; el correo sigue igual.
+// Sin las tres primeras no sube nada y lo dice; el correo sigue igual.
+import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 
 const TOKEN = "https://oauth2.googleapis.com/token";
 const FILES = "https://www.googleapis.com/drive/v3/files";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
+const FOLDER = "application/vnd.google-apps.folder";
+export const DEFAULT_FOLDER = "Bible AI · videos para publicar";
 
 export function driveConfig(env = process.env) {
   const values = {
     clientId: env.GOOGLE_OAUTH_CLIENT_ID?.trim(),
     clientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET?.trim(),
     refreshToken: env.GOOGLE_OAUTH_REFRESH_TOKEN?.trim(),
-    folder: env.DRIVE_CARPETA_APPS?.trim(),
   };
-  return Object.values(values).every(Boolean) ? values : null;
+  if (!Object.values(values).every(Boolean)) return null;
+  return { ...values, folderName: env.DRIVE_CARPETA_APPS?.trim() || DEFAULT_FOLDER };
 }
 
 export const canDrive = () => Boolean(driveConfig());
 
-/** Nombre en Drive: `bible-ai-s07-mar-versiculo-isaias-41-10.mp4`. */
-export const driveName = (numero, file) => `bible-ai-s${String(numero).padStart(2, "0")}-${file}`;
+/** Nombre en Drive: `bible-ai-2026-11-17-mar-versiculo-isaias-41-10.mp4`. */
+export const driveName = (fecha, file) => `bible-ai-${fecha}-${file}`;
+
+/** Huella del contenido: si una semana se rehace, el video cambia y se reemplaza. */
+export const fingerprint = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
 
 async function check(response, what) {
   if (response.ok) return response;
@@ -57,38 +67,51 @@ async function accessToken(config, fetchImpl) {
   return (await response.json()).access_token;
 }
 
-/** Nombres de los videos que ya están en la carpeta. */
-async function existing(token, folder, fetchImpl) {
-  const names = new Set();
+const quote = (text) => text.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+async function list(token, q, fetchImpl) {
+  const files = [];
   let pageToken;
   do {
-    const params = new URLSearchParams({
-      q: `'${folder}' in parents and trashed = false`,
-      fields: "nextPageToken, files(name)",
-      pageSize: "1000",
-      supportsAllDrives: "true",
-      includeItemsFromAllDrives: "true",
-    });
+    const params = new URLSearchParams({ q, fields: "nextPageToken, files(id, name)", pageSize: "1000" });
     if (pageToken) params.set("pageToken", pageToken);
-    const response = await check(await fetchImpl(`${FILES}?${params}`, { headers: { Authorization: `Bearer ${token}` } }), "listar la carpeta de Drive");
+    const response = await check(await fetchImpl(`${FILES}?${params}`, { headers: { Authorization: `Bearer ${token}` } }), "listar Drive");
     const data = await response.json();
-    for (const file of data.files ?? []) names.add(file.name);
+    files.push(...(data.files ?? []));
     pageToken = data.nextPageToken;
   } while (pageToken);
-  return names;
+  return files;
 }
 
-async function upload(token, folder, name, file, fetchImpl) {
-  const start = await check(
-    await fetchImpl(`${UPLOAD}?uploadType=resumable&supportsAllDrives=true`, {
+/** La carpeta del script (con `drive.file` solo se ven las que creó él); la crea si falta. */
+async function folderId(token, name, fetchImpl) {
+  const found = await list(token, `name = '${quote(name)}' and mimeType = '${FOLDER}' and trashed = false`, fetchImpl);
+  if (found.length) return found[0].id;
+  const response = await check(
+    await fetchImpl(FILES, {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json; charset=UTF-8" },
+      body: JSON.stringify({ name, mimeType: FOLDER }),
+    }),
+    `crear la carpeta ${name}`,
+  );
+  return (await response.json()).id;
+}
+
+async function upload(token, folder, name, file, fetchImpl, existingId) {
+  // Nuevo: crea el archivo en la carpeta. Existente: reemplaza su contenido y
+  // conserva el id, así la URL que ya tiene la publicación diaria sigue sirviendo.
+  const url = existingId ? `${UPLOAD}/${existingId}?uploadType=resumable` : `${UPLOAD}?uploadType=resumable`;
+  const start = await check(
+    await fetchImpl(url, {
+      method: existingId ? "PATCH" : "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json; charset=UTF-8",
         "X-Upload-Content-Type": "video/mp4",
         "X-Upload-Content-Length": String(statSync(file).size),
       },
-      body: JSON.stringify({ name, parents: [folder] }),
+      body: JSON.stringify(existingId ? {} : { name, parents: [folder] }),
     }),
     `iniciar la subida de ${name}`,
   );
@@ -99,24 +122,27 @@ async function upload(token, folder, name, file, fetchImpl) {
 }
 
 /**
- * Sube los `videos` ({name, file}) que falten. `uploaded` son los nombres que
- * ya subió una corrida anterior; `sent(name)` se llama después de cada subida.
- * Si el video ya está en la carpeta (la caché se perdió), no se sube de nuevo.
+ * Sube los `videos` ({name, file, fecha}) nuevos o que cambiaron. `uploaded`
+ * es {name: huella} de corridas anteriores; `sent(name, huella)` se llama
+ * después de cada subida. Si el archivo ya está en la carpeta (la caché se
+ * perdió) y no hay registro, no se sube de nuevo.
  */
-export async function uploadWeek({ numero, videos, uploaded = [], sent = () => {}, log = console.log, config = driveConfig(), fetchImpl = fetch }) {
-  const pending = videos.filter(({ name }) => !uploaded.includes(name));
+export async function uploadWeek({ videos, uploaded = {}, sent = () => {}, log = console.log, config = driveConfig(), fetchImpl = fetch }) {
+  const pending = videos.map((video) => ({ ...video, hash: fingerprint(video.file) })).filter(({ name, hash }) => uploaded[name] !== hash);
   if (pending.length === 0) return [];
   const token = await accessToken(config, fetchImpl);
-  const there = await existing(token, config.folder, fetchImpl);
+  const folder = await folderId(token, config.folderName, fetchImpl);
+  const there = new Map((await list(token, `'${folder}' in parents and trashed = false`, fetchImpl)).map((f) => [f.name, f.id]));
   const done = [];
-  for (const { name, file } of pending) {
-    const target = driveName(numero, name);
-    if (there.has(target)) log(`Drive: ${target} ya estaba`);
+  for (const { name, file, fecha, hash } of pending) {
+    const target = driveName(fecha, name);
+    const existingId = there.get(target);
+    if (existingId && !(name in uploaded)) log(`Drive: ${target} ya estaba`);
     else {
-      await upload(token, config.folder, target, file, fetchImpl);
-      log(`Drive: subido ${target}`);
+      await upload(token, folder, target, file, fetchImpl, existingId);
+      log(`Drive: ${existingId ? "reemplazado" : "subido"} ${target}`);
     }
-    sent(name);
+    sent(name, hash);
     done.push(target);
   }
   return done;

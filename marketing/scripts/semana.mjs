@@ -8,7 +8,8 @@
 //   4. escribe ahí un LEEME.md con la caption de cada publicación, copia todo a
 //      ~/Downloads/3c-videos-semana-NN/, manda cada video por correo y avisa,
 //   5. sube los videos a la carpeta de Drive de la publicación diaria
-//      (scripts/drive.mjs), si están sus variables de entorno.
+//      (scripts/drive.mjs), si están sus variables de entorno. Los de tipo
+//      `instalar` no, porque muestran la tienda y el precio.
 //
 //   node scripts/semana.mjs          # la semana que viene (el domingo, la que empieza mañana)
 //                                    # y las semanas cuyas respuestas cambiaron
@@ -713,37 +714,48 @@ async function mailWeeks(numeros) {
 
 /**
  * Deja los videos de cada semana en la carpeta de Drive de la publicación
- * diaria, una sola vez cada uno. Igual que el correo: las semanas que ya
- * pasaron solo se suben si las pedís por número.
+ * diaria. Igual que el correo: las semanas que ya pasaron solo se suben si las
+ * pedís por número. Si una semana se rehace, el video nuevo reemplaza al viejo.
+ *
+ * Los de tipo `instalar` no van: graban la página de descarga, que muestra la
+ * tienda y el precio, y los videos de app que se publican solos no nombran
+ * tiendas ni precio. Esos se siguen mandando por correo.
  */
 async function driveWeeks(numeros) {
   const dryRun = args.includes("--dry-run");
   if (!canDrive() && !dryRun) {
-    log("Sin Drive: faltan GOOGLE_OAUTH_* o DRIVE_CARPETA_APPS (ver scripts/drive.mjs).");
+    log("Sin Drive: faltan GOOGLE_OAUTH_* (ver scripts/drive.mjs).");
     return;
   }
   for (const numero of numeros) {
     if (!requested.includes(numero) && numero < upcomingWeek()) continue;
     const weekDir = join(OUT, `semana-${pad(numero)}`);
     const stateFile = join(weekDir, ".subidos-drive.json");
-    const uploaded = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : [];
-    const videos = weekPlan(numero)
-      .videos.map((video) => ({ name: `${video.dia}-${video.id}.mp4` }))
-      .map((video) => ({ ...video, file: join(weekDir, video.name) }))
+    const uploaded = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : {};
+    const plan = weekPlan(numero).videos;
+    const skipped = plan.filter((video) => video.tipo === "instalar").map((video) => `${video.dia}-${video.id}.mp4`);
+    const videos = plan
+      .filter((video) => video.tipo !== "instalar")
+      .map((video) => ({
+        name: `${video.dia}-${video.id}.mp4`,
+        file: join(weekDir, `${video.dia}-${video.id}.mp4`),
+        // El día para el que se hizo, en Honduras: la publicación diaria lo saca ese día.
+        fecha: postDate(numero, video.dia).toLocaleDateString("en-CA", { timeZone: "America/Tegucigalpa" }),
+      }))
       .filter(({ file }) => existsSync(file));
-    const pending = videos.filter(({ name }) => !uploaded.includes(name));
+    if (skipped.length) log(`Semana ${numero}: no van a Drive (muestran tienda y precio): ${skipped.join(", ")}.`);
     if (dryRun) {
-      log(`[dry-run] Semana ${numero}: no subo a Drive. Subiría ${pending.length}: ${pending.map(({ name }) => driveName(numero, name)).join(", ")}.`);
+      const pending = videos.filter(({ name }) => !(name in uploaded));
+      log(`[dry-run] Semana ${numero}: no subo a Drive. Subiría ${pending.length}: ${pending.map(({ name, fecha }) => driveName(fecha, name)).join(", ")}.`);
       continue;
     }
     try {
       await uploadWeek({
-        numero,
         videos,
         uploaded,
         log,
-        sent: (name) => {
-          uploaded.push(name);
+        sent: (name, hash) => {
+          uploaded[name] = hash;
           writeFileSync(stateFile, JSON.stringify(uploaded));
         },
       });

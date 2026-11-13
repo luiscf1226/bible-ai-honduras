@@ -89,11 +89,12 @@ jobs:
           CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
           CORREO_CLAVE: ${{ secrets.CORREO_CLAVE }}
           CORREO_PARA: ${{ secrets.CORREO_PARA }}
-          # Opcionales: sin ellos no se sube a Drive (scripts/drive.mjs).
+          # Opcionales: sin ellos no se sube a Drive (scripts/drive.mjs). El
+          # refresh token es solo de `drive.file`: toca únicamente la carpeta
+          # y los videos que este script crea, nada más del Drive de Luis.
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
-          DRIVE_CARPETA_APPS: ${{ vars.DRIVE_CARPETA_APPS }}
           SEMANA: ${{ inputs.semana }}
           # Solo a mano puede ser dry-run; el cron siempre manda.
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
