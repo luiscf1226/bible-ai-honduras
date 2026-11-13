@@ -731,7 +731,9 @@ async function driveWeeks(numeros) {
     if (!requested.includes(numero) && numero < upcomingWeek()) continue;
     const weekDir = join(OUT, `semana-${pad(numero)}`);
     const stateFile = join(weekDir, ".subidos-drive.json");
-    const uploaded = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : {};
+    const saved = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : {};
+    // {nombre: huella}; una lista vieja (sin huellas) se descarta.
+    const uploaded = Array.isArray(saved) ? {} : saved;
     const plan = weekPlan(numero).videos;
     const skipped = plan.filter((video) => video.tipo === "instalar").map((video) => `${video.dia}-${video.id}.mp4`);
     const videos = plan
@@ -753,6 +755,8 @@ async function driveWeeks(numeros) {
       await uploadWeek({
         videos,
         uploaded,
+        // Lo de hoy y mañana ya puede estar programado: no se le cambia el video.
+        lockedThrough: new Date(Date.now() + 864e5).toLocaleDateString("en-CA", { timeZone: "America/Tegucigalpa" }),
         log,
         sent: (name, hash) => {
           uploaded[name] = hash;

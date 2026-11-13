@@ -125,9 +125,11 @@ async function upload(token, folder, name, file, fetchImpl, existingId) {
  * Sube los `videos` ({name, file, fecha}) nuevos o que cambiaron. `uploaded`
  * es {name: huella} de corridas anteriores; `sent(name, huella)` se llama
  * después de cada subida. Si el archivo ya está en la carpeta (la caché se
- * perdió) y no hay registro, no se sube de nuevo.
+ * perdió) y no hay registro, no se sube de nuevo. Un video con fecha hasta
+ * `lockedThrough` (AAAA-MM-DD) que ya está en Drive no se reemplaza: puede
+ * estar programado y a punto de salir.
  */
-export async function uploadWeek({ videos, uploaded = {}, sent = () => {}, log = console.log, config = driveConfig(), fetchImpl = fetch }) {
+export async function uploadWeek({ videos, uploaded = {}, lockedThrough = "", sent = () => {}, log = console.log, config = driveConfig(), fetchImpl = fetch }) {
   const pending = videos.map((video) => ({ ...video, hash: fingerprint(video.file) })).filter(({ name, hash }) => uploaded[name] !== hash);
   if (pending.length === 0) return [];
   const token = await accessToken(config, fetchImpl);
@@ -138,7 +140,10 @@ export async function uploadWeek({ videos, uploaded = {}, sent = () => {}, log =
     const target = driveName(fecha, name);
     const existingId = there.get(target);
     if (existingId && !(name in uploaded)) log(`Drive: ${target} ya estaba`);
-    else {
+    else if (existingId && fecha <= lockedThrough) {
+      log(`Drive: ${target} cambió, pero sale ${fecha} y ya puede estar programado; se deja el que estaba`);
+      continue;
+    } else {
       await upload(token, folder, target, file, fetchImpl, existingId);
       log(`Drive: ${existingId ? "reemplazado" : "subido"} ${target}`);
     }
