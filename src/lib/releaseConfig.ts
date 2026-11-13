@@ -1,12 +1,15 @@
 /**
  * Cómo se vende Pro en este build. Lo decide `EXPO_PUBLIC_PAYMENTS_MODE` al
- * compilar (o al publicar una actualización OTA):
+ * compilar. Una OTA también lo hornea, así que cambiarlo en el environment de
+ * EAS que usa `ota.yml` cambia la app de todos sin pasar por revisión: no se
+ * hace (docs/monetizacion.md).
  *
  * - `off` (sin valor): edición gratuita. Los límites del servidor siguen, pero
  *   no hay paywall ni precio. Una key de RevenueCat olvidada en EAS no activa
  *   nada.
  * - `test`: paywall con compra simulada (`entitlements.grantTestPro`). Solo
- *   funciona contra un Convex con `PAYMENTS_TEST_MODE=1`. Sin tienda ni llaves.
+ *   funciona para las cuentas de `PAYMENTS_TEST_USERS` en Convex. Sin tienda ni
+ *   llaves.
  * - `revenuecat`: compra real por RevenueCat con
  *   `EXPO_PUBLIC_REVENUECAT_API_KEY` (la del Test Store de RevenueCat sirve
  *   para probar en un development build).

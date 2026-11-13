@@ -21,18 +21,27 @@ cambia el servidor, los textos del límite, el paywall y Ajustes.
 
 ## Pagos: tres modos
 
-`EXPO_PUBLIC_PAYMENTS_MODE` decide cada build (o actualización OTA):
+`EXPO_PUBLIC_PAYMENTS_MODE` decide cada binario:
 
 | Modo | Qué pasa | Qué necesita |
 | --- | --- | --- |
 | `off` (sin valor) | Edición gratuita: límite sin paywall | Nada |
-| `test` | Paywall a US$2.99 con compra simulada | `npx convex env set PAYMENTS_TEST_MODE 1` en un Convex de prueba |
+| `test` | Paywall a US$2.99 con compra simulada | `npx convex env set PAYMENTS_TEST_USERS <clerk ids>` |
 | `revenuecat` | Compra real por App Store / Google Play | Todo lo de abajo |
 
-El modo de prueba nunca toca una tienda. Fuera de un Convex con
-`PAYMENTS_TEST_MODE=1`, `entitlements.grantTestPro` falla, así que en
-producción nadie se regala Pro. Para repetir el flujo:
-`entitlements.cancelTestPro`.
+El modo de prueba nunca toca una tienda. `entitlements.grantTestPro` solo
+funciona para los Clerk ids de `PAYMENTS_TEST_USERS`: como hay un solo Convex
+para las tiendas, nadie fuera de la lista se regala Pro. Para repetir el
+flujo: `entitlements.cancelTestPro`.
+
+**El modo es del binario, no de una OTA.** `ota.yml` publica con las
+variables del environment `production` de EAS al canal `production`, que
+usan App Store, Play y el APK. Si `EXPO_PUBLIC_PAYMENTS_MODE` (o las variables
+de donación) se ponen en ese environment, la próxima OTA las lleva a todos:
+un paywall de prueba en la tienda rompe la guía 3.1.1, y encender cobros en
+un binario revisado como gratis rompe la 2.5.2. Ponerlas solo en el `env` del
+perfil de EAS del build que va a revisión, y dejar el environment
+`production` de EAS igual hasta que ese build esté aprobado.
 
 ### Probar el límite y el paywall sin backend
 
@@ -80,8 +89,9 @@ mano por las reglas de las tiendas:
 - **Google Play**: una donación sin Google Play Billing solo se acepta para una
   organización exenta de impuestos. Si la cuenta que recibe no lo es, dejar
   `android` fuera del build de Play.
-- **APK del sitio**: no pasa por ninguna tienda; `android` se puede encender
-  en el perfil `apk` de EAS.
+- **APK del sitio**: no pasa por ninguna tienda, pero comparte el canal de OTA
+  con Play. Hoy no se puede encender solo para el APK: la primera OTA lo
+  apaga o lo prende en los dos.
 
 ## Métricas
 
@@ -95,15 +105,16 @@ npx convex run monetization:report '{"days": 7}'
 | --- | --- |
 | `users.active_1d` / `_7d` / `_30d` | Cuentas que abrieron la app o usaron la IA |
 | `quota.usage` (por módulo) | Usos de IA del día, Pro incluido |
-| `quota.limit_hit` (por módulo) | Cuentas que chocaron con el límite |
+| `quota.limit_hit` (por módulo) | Cuentas gratis que gastaron su último uso del día o intentaron pasarse |
 | `pro.active` / `pro.new` | Pro vigentes y conversiones nuevas del día |
 | `pro.conversion` | Pro sobre el total de cuentas |
-| `pro.conversion_after_limit` | De quienes chocaron con el límite en 30 días, cuántos son Pro |
+| `pro.conversion_after_limit` | De quienes llegaron al límite en 30 días, cuántos son Pro hoy |
 
 La foto la arma `adminAdapter.rollupDay` cada hora y también se ve en el
 dashboard de admin (sección Pro). Para llenar días pasados:
 `npx convex run adminAdapter:backfill '{"days":30}'`.
 
 Privacidad: la cuenta guarda solo los días (YYYY-MM-DD) en que estuvo activa,
-los últimos 30, en su propia fila (`users.activeDays`). Nunca qué hizo. Se
-borra con la cuenta.
+los últimos 31 (`users.activeDays`), y el último día en que llegó al límite
+(`users.lastLimitHitDay`), en su propia fila. Nunca qué hizo. Se borra con la
+cuenta. Por eso un `backfill` de más de 31 días atrás da activos en cero.

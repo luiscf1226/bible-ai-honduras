@@ -12,7 +12,6 @@ import {
   type UsersPage,
 } from "./adminKit/contract";
 import { handleAdminRequest } from "./adminKit/httpHandler";
-import type { Id } from "./_generated/dataModel";
 import { activeAccounts } from "./activeDays";
 import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 
@@ -159,14 +158,14 @@ function tally(values: Iterable<string>): Map<string, number> {
 }
 
 /**
- * Cuentas que chocaron con el límite un día, por módulo. El total cuenta
- * cuentas distintas: quien chocó en Preguntar y en Voces es una sola.
+ * Cuentas que llegaron al límite un día, por módulo. El total cuenta cuentas
+ * distintas: quien llegó en Preguntar y en Voces es una sola.
  */
-export function limitHits(rows: ReadonlyArray<{ userId: string; module: string; denied?: number }>): {
+export function limitHits(rows: ReadonlyArray<{ userId: string; module: string; limitHit?: boolean }>): {
   accounts: number;
   byModule: Map<string, number>;
 } {
-  const hit = rows.filter((row) => (row.denied ?? 0) > 0);
+  const hit = rows.filter((row) => row.limitHit === true);
   return { accounts: new Set(hit.map((row) => row.userId)).size, byModule: tally(hit.map((row) => row.module)) };
 }
 
@@ -210,14 +209,11 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   const usageByModule = new Map<string, number>();
   for (const row of usage) usageByModule.set(row.module, (usageByModule.get(row.module) ?? 0) + row.count);
   const limited = limitHits(usage);
-  // Conversión del freemium: de quienes chocaron con el límite en los últimos
-  // 30 días, cuántos son Pro hoy.
-  const limitedMonth = new Set<Id<"users">>();
-  for (let offset = 0; offset < 30; offset++) {
-    const rows = offset === 0 ? usage : await ctx.db.query("usage").withIndex("by_day", (q) => q.eq("day", addDays(day, -offset))).collect();
-    for (const row of rows) if ((row.denied ?? 0) > 0) limitedMonth.add(row.userId);
-  }
-  const limitedMonthPro = [...limitedMonth].filter((userId) => proUsers.has(userId)).length;
+  // Conversión del freemium: de quienes llegaron al límite en los últimos 30
+  // días, cuántos son Pro hoy.
+  const monthStart = addDays(day, -29);
+  const limitedMonth = users.filter((user) => user.lastLimitHitDay !== undefined && user.lastLimitHitDay >= monthStart && user.lastLimitHitDay <= day);
+  const limitedMonthPro = limitedMonth.filter((user) => proUsers.has(user._id)).length;
 
   const recents = await ctx.db
     .query("readingRecents")
@@ -272,7 +268,7 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     { key: "pro.active", value: proActive },
     { key: "pro.new", value: proNew },
     { key: "pro.conversion", value: users.length === 0 ? 0 : (proActive / users.length) * 100 },
-    { key: "pro.conversion_after_limit", value: limitedMonth.size === 0 ? 0 : (limitedMonthPro / limitedMonth.size) * 100 },
+    { key: "pro.conversion_after_limit", value: limitedMonth.length === 0 ? 0 : (limitedMonthPro / limitedMonth.length) * 100 },
     ...withTotal("quota.usage", usageByModule),
     { key: "quota.limit_hit", value: limited.accounts },
     ...[...limited.byModule].map(([dim, value]) => ({ key: "quota.limit_hit", dim, value })),

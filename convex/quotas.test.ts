@@ -81,7 +81,7 @@ describe("quotas.checkAndConsume", () => {
     const usage = await t.run((ctx) => ctx.db.query("usage").collect());
     expect(usage).toHaveLength(1);
     expect(usage[0]).toMatchObject({ module: "qa", count: QUOTA_LIMITS.qa + 3 });
-    expect(usage[0]?.denied).toBeUndefined();
+    expect(usage[0]?.limitHit).toBeUndefined();
   });
 
   it("historias: una gratis por día; la vieja fila lifetime ya no cuenta", async () => {
@@ -97,15 +97,24 @@ describe("quotas.checkAndConsume", () => {
     });
   });
 
-  it("anota cada rechazo en `denied` sin sumar uso", async () => {
+  it("marca que llegó al límite al gastar el último uso, aunque la app no vuelva a llamar", async () => {
     const t = convexTest(schema, modules);
-    const { authed } = await seedUser(t, "user_denied");
-    for (let i = 0; i < QUOTA_LIMITS.qa + 2; i += 1) {
+    const { authed, userId } = await seedUser(t, "user_hit");
+    for (let i = 0; i < QUOTA_LIMITS.qa - 1; i += 1) {
       await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
     }
-    const rows = await t.run((ctx) => ctx.db.query("usage").collect());
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ count: QUOTA_LIMITS.qa, denied: 2 });
+    let row = await t.run((ctx) => ctx.db.query("usage").unique());
+    expect(row?.limitHit).toBeUndefined();
+
+    await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
+    row = await t.run((ctx) => ctx.db.query("usage").unique());
+    expect(row).toMatchObject({ count: QUOTA_LIMITS.qa, limitHit: true });
+    const user = await t.run((ctx) => ctx.db.get(userId));
+    expect(user?.lastLimitHitDay).toBe(row?.day);
+
+    await authed.mutation(api.quotas.checkAndConsume, { module: "qa" });
+    row = await t.run((ctx) => ctx.db.query("usage").unique());
+    expect(row?.count).toBe(QUOTA_LIMITS.qa);
   });
 
   it("feelings se agota a las 3", async () => {

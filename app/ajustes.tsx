@@ -568,7 +568,7 @@ export default function AjustesScreen() {
         ) : null}
         {donationUrl(Platform.OS) ? (
           <ListRow
-            hint="Ayudá a pagar la IA para que la app siga siendo gratis"
+            hint="Ayudá a pagar la IA de la app"
             onPress={() => router.push("/donar")}
             testID="ajustes-donar"
             title="Donar"

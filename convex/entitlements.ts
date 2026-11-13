@@ -17,12 +17,13 @@ const TEST_PRO_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Modo de prueba de pagos: solo con `PAYMENTS_TEST_MODE=1` en las variables de
- * entorno de Convex (`npx convex env set PAYMENTS_TEST_MODE 1`), nunca en
- * producción. Lo lee el servidor: la app no puede encenderlo.
+ * Modo de prueba de pagos: solo las cuentas de `PAYMENTS_TEST_USERS` (Clerk
+ * ids separados por coma, en las variables de entorno de Convex) pueden
+ * simular la compra. Lo lee el servidor: la app no puede encenderlo, y como
+ * hay un solo Convex para las tiendas, nadie fuera de la lista se regala Pro.
  */
-export function paymentsTestModeEnabled(): boolean {
-  return process.env.PAYMENTS_TEST_MODE === "1";
+export function isPaymentsTestUser(clerkId: string, allowed = process.env.PAYMENTS_TEST_USERS): boolean {
+  return clerkId !== "" && (allowed ?? "").split(",").some((entry) => entry.trim() === clerkId);
 }
 
 const GRANT_EVENT_TYPES = new Set([
@@ -206,7 +207,10 @@ async function upsertEntitlement(
   const existing = await findEntitlementByUser(ctx, args.userId);
   const updatedAt = Date.now();
   const source = args.source ?? ENTITLEMENT_SOURCE;
-  const firstProAt = existing?.firstProAt ?? (args.isPro ? updatedAt : undefined);
+  // Una fila que ya era Pro antes de existir este campo no es una conversión
+  // nueva: toma la fecha de la fila.
+  const firstProAt =
+    existing?.firstProAt ?? (existing?.isPro ? existing._creationTime : args.isPro ? updatedAt : undefined);
   if (existing) {
     await ctx.db.patch(existing._id, {
       isPro: args.isPro,
@@ -288,11 +292,11 @@ export const grantProForBeta = internalMutation({
 });
 
 async function requireTestModeUser(ctx: MutationCtx) {
-  if (!paymentsTestModeEnabled()) {
-    throw new ConvexError("El modo de prueba de pagos está apagado");
-  }
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new ConvexError("No autenticado");
+  if (!isPaymentsTestUser(identity.subject)) {
+    throw new ConvexError("El modo de prueba de pagos está apagado para esta cuenta");
+  }
   const user = await findByClerkId(ctx, identity.subject);
   if (!user) throw new ConvexError("Usuario no encontrado — llamá a users.upsert primero");
   return user;
@@ -300,8 +304,7 @@ async function requireTestModeUser(ctx: MutationCtx) {
 
 /**
  * Compra simulada del paywall en modo de prueba: Pro por 30 días, sin tienda
- * ni RevenueCat. Fuera del modo de prueba falla siempre, así que en producción
- * nadie se regala Pro.
+ * ni RevenueCat. Solo para las cuentas de `PAYMENTS_TEST_USERS`.
  */
 export const grantTestPro = mutation({
   args: {},

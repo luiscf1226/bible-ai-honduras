@@ -35,10 +35,10 @@ function DonarContent({ url }: { url: string }) {
   return (
     <AppScreen scroll contentStyle={styles.content} style={{ backgroundColor: color.surface }}>
       <ScreenHeader accessibilityLabel="Volver" style={styles.header} title="Donar" />
-      <Text style={[styles.title, { color: color.ink }]}>Ayudanos a que siga siendo gratis</Text>
+      <Text style={[styles.title, { color: color.ink }]}>Ayudanos a sostener la app</Text>
       <Text style={[styles.body, { color: color.inkMuted }]}>
         Cada pregunta, conversación e historia usa inteligencia artificial, y eso cuesta. Tu donación ayuda a pagarla
-        para que más hermanos en Honduras puedan usar la app sin pagar.
+        para que más hermanos en Honduras tengan la Palabra a mano.
       </Text>
       <AppButton icon="heart" onPress={() => void open()} style={styles.button} testID="donar-abrir">
         Donar

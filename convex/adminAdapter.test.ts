@@ -174,17 +174,19 @@ describe("adminAdapter (#235)", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     const t = setup();
     vi.setSystemTime(NOON - 40 * 24 * HOUR);
-    const user = (clerkId: string, activeDays: string[]) =>
-      t.run((ctx) => ctx.db.insert("users", { clerkId, bibleVersion: "RV1909", referralCode: clerkId, activeDays }));
-    const hoy = await user("hoy", ["2026-09-20", DAY]);
-    const semana = await user("semana", ["2026-09-26"]);
+    const user = (clerkId: string, activeDays: string[], lastLimitHitDay?: string) =>
+      t.run((ctx) =>
+        ctx.db.insert("users", { clerkId, bibleVersion: "RV1909", referralCode: clerkId, activeDays, ...(lastLimitHitDay ? { lastLimitHitDay } : {}) }),
+      );
+    // `hoy` llegó al límite en Preguntar y en Voces; `semana` hace 5 días y después compró Pro hoy.
+    const hoy = await user("hoy", ["2026-09-20", DAY], DAY);
+    const semana = await user("semana", ["2026-09-26"], "2026-09-26");
     const mes = await user("mes", ["2026-09-02"]);
-    await user("viejo", ["2026-08-15"]);
+    await user("viejo", ["2026-08-15"], "2026-08-15");
     await t.run(async (ctx) => {
-      // `hoy` chocó con el límite en Preguntar y en Voces; `semana` hace 5 días y después compró Pro hoy.
-      await ctx.db.insert("usage", { userId: hoy, module: "qa", day: DAY, count: 5, denied: 2 });
-      await ctx.db.insert("usage", { userId: hoy, module: "voices", day: DAY, count: 10, denied: 1 });
-      await ctx.db.insert("usage", { userId: semana, module: "stories", day: "2026-09-26", count: 1, denied: 1 });
+      await ctx.db.insert("usage", { userId: hoy, module: "qa", day: DAY, count: 5, limitHit: true });
+      await ctx.db.insert("usage", { userId: hoy, module: "voices", day: DAY, count: 10, limitHit: true });
+      await ctx.db.insert("usage", { userId: semana, module: "stories", day: "2026-09-26", count: 1, limitHit: true });
       await ctx.db.insert("usage", { userId: mes, module: "qa", day: DAY, count: 2 });
       await ctx.db.insert("entitlements", { userId: semana, isPro: true, source: "test_mode", updatedAt: NOON, firstProAt: NOON });
     });
@@ -217,9 +219,9 @@ describe("adminAdapter (#235)", () => {
 
   it("limitHits cuenta cuentas distintas en el total", () => {
     const result = limitHits([
-      { userId: "a", module: "qa", denied: 1 },
-      { userId: "a", module: "voices", denied: 3 },
-      { userId: "b", module: "qa", denied: 0 },
+      { userId: "a", module: "qa", limitHit: true },
+      { userId: "a", module: "voices", limitHit: true },
+      { userId: "b", module: "qa", limitHit: false },
       { userId: "c", module: "stories" },
     ]);
     expect(result.accounts).toBe(1);

@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { markActive } from "./activeDays";
+import { markActive, markLimitHit } from "./activeDays";
 import { hondurasDateKey } from "./devotional";
 import { entitlementIsActive } from "./entitlements";
 import { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
@@ -61,8 +61,10 @@ export async function consume(ctx: MutationCtx, userId: Id<"users">, module: Quo
 /**
  * Cobra un uso del día de Honduras: el contador se reinicia solo a medianoche
  * de Tegucigalpa porque cada día es otra fila. Pro no tiene límite, pero su uso
- * también se cuenta (métricas por función). Un rechazo queda anotado en
- * `denied`. Devuelve el día cobrado para `refund`.
+ * también se cuenta (métricas por función). Cuando una cuenta gratis gasta su
+ * último uso del día, o intenta pasarse, queda marcada como "llegó al límite"
+ * (la app deja de llamar en cuanto ve 0, así que el rechazo casi nunca llega).
+ * Devuelve el día cobrado para `refund`.
  */
 export async function charge(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
   const now = Date.now();
@@ -70,17 +72,21 @@ export async function charge(ctx: MutationCtx, userId: Id<"users">, module: Quot
   if (user) await markActive(ctx, user, now);
 
   const day = hondurasDateKey(now);
+  const limit = QUOTA_LIMITS[module];
   const row = await usageRow(ctx, userId, module, day);
   const used = row?.count ?? 0;
-  if (used >= QUOTA_LIMITS[module] && !(await isUserPro(ctx, userId, now))) {
-    const denied = (row?.denied ?? 0) + 1;
-    if (row) await ctx.db.patch(row._id, { denied });
-    else await ctx.db.insert("usage", { userId, module, day, count: 0, denied });
+  const free = !(await isUserPro(ctx, userId, now));
+  if (free && used >= limit) {
+    if (!row) await ctx.db.insert("usage", { userId, module, day, count: 0, limitHit: true });
+    else if (!row.limitHit) await ctx.db.patch(row._id, { limitHit: true });
+    if (user) await markLimitHit(ctx, user, day);
     return { allowed: false as const, reason: "limit_reached" as const, module };
   }
 
-  if (row) await ctx.db.patch(row._id, { count: used + 1 });
-  else await ctx.db.insert("usage", { userId, module, day, count: 1 });
+  const limitHit = free && used + 1 >= limit ? { limitHit: true } : {};
+  if (row) await ctx.db.patch(row._id, { count: used + 1, ...limitHit });
+  else await ctx.db.insert("usage", { userId, module, day, count: 1, ...limitHit });
+  if (limitHit.limitHit && user) await markLimitHit(ctx, user, day);
   return { allowed: true as const, day };
 }
 

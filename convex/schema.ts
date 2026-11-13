@@ -60,9 +60,11 @@ export default defineSchema({
     // vuelvan a preguntar y muestren de nuevo el campo para escribir.
     friendsSuspensionExpiredAt: v.optional(v.number()),
     // Días de Honduras (YYYY-MM-DD) en que la cuenta abrió la app o usó la IA,
-    // solo los últimos 30 (convex/activeDays.ts). Sirve para contar activos por
+    // solo los últimos 31 (convex/activeDays.ts). Sirve para contar activos por
     // día, semana y mes; nunca dice qué hizo.
     activeDays: v.optional(v.array(v.string())),
+    // Último día en que llegó al límite gratis (conversión del freemium).
+    lastLimitHitDay: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])
@@ -458,8 +460,8 @@ export default defineSchema({
     // Usos del día. También cuenta los de Pro, que no tienen límite: así el
     // uso por función incluye a todos.
     count: v.number(),
-    // Intentos rechazados por el límite ese día (quién chocó con el límite).
-    denied: v.optional(v.number()),
+    // La cuenta gratis llegó al límite de este módulo ese día.
+    limitHit: v.optional(v.boolean()),
   })
     .index("by_user_module_day", ["userId", "module", "day"])
     // Uso por módulo y día para el dashboard de admin (#235).

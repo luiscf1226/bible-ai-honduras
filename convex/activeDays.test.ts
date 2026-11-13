@@ -13,11 +13,11 @@ const modules = {
 afterEach(() => vi.useRealTimers());
 
 describe("withActiveDay", () => {
-  it("agrega el día una sola vez y guarda solo los últimos 30", () => {
+  it("agrega el día una sola vez y guarda solo los últimos 31", () => {
     expect(withActiveDay(undefined, "2026-11-13")).toEqual(["2026-11-13"]);
     expect(withActiveDay(["2026-11-13"], "2026-11-13")).toBeNull();
-    expect(withActiveDay(["2026-10-14", "2026-10-15", "2026-11-12"], "2026-11-13")).toEqual([
-      "2026-10-15",
+    expect(withActiveDay(["2026-10-13", "2026-10-14", "2026-11-12"], "2026-11-13")).toEqual([
+      "2026-10-14",
       "2026-11-12",
       "2026-11-13",
     ]);
