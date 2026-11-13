@@ -82,9 +82,44 @@ export const ask = internalAction({
       return { answer: buildFallbackAnswer(primary), citation: toCitation(primary) };
     }
 
-    return { answer: structured.answer, citation: toCitation(primary) };
+    // Con un pasaje elegido, la caja es ese pasaje; con una pregunta libre, el
+    // versículo con el que la respuesta responde.
+    const shown = args.passage ? primary : boxVerse(structured, citations);
+    return { answer: structured.answer, citation: toCitation(shown) };
   },
 });
+
+/**
+ * El versículo de la caja de la cita: el primero que nombra la respuesta.
+ *
+ * La búsqueda devuelve primero el versículo más cercano a la pregunta por
+ * embeddings, y a veces ese es uno fuera de tema que la respuesta solo nombra
+ * de pasada: ante «no puedo dejar de preocuparme» salía Jeremías 42:11 («el
+ * rey de Babilonia») aunque la respuesta abre con Isaías 41:10. Solo se
+ * elige entre lo recuperado (regla dura #4). Si la respuesta no nombra
+ * ninguno, el primero de `citations` del modelo; y si tampoco, el más
+ * cercano de la búsqueda.
+ */
+export function boxVerse(structured: QaResponse, retrieved: RetrievedVerse[]): RetrievedVerse {
+  const named = retrieved
+    .map((verse) => ({ verse, at: firstMention(structured.answer, verse) }))
+    .filter((item) => item.at >= 0)
+    .sort((a, b) => a.at - b.at);
+  if (named.length > 0) return named[0].verse;
+  const byKey = new Map(retrieved.map((verse) => [referenceKey(verse), verse]));
+  for (const citation of structured.citations) {
+    const verse = byKey.get(referenceKey(citation));
+    if (verse) return verse;
+  }
+  return retrieved[0];
+}
+
+/** Dónde nombra `answer` a «Libro cap:vers», o -1. «Juan 3:16» no cuenta dentro de «1 Juan 3:16». */
+function firstMention(answer: string, verse: { book: string; chapter: number; verse: number }): number {
+  const book = verse.book.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?<!\\d\\s)(?<![\\p{L}\\d])${book}\\s+${verse.chapter}:${verse.verse}(?!\\d)`, "u");
+  return answer.search(pattern);
+}
 
 function toCitation(verse: RetrievedVerse): Citation {
   return {

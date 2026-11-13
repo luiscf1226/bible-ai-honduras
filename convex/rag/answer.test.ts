@@ -5,7 +5,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 import { EMBEDDING_DIMENSIONS, OPENAI_EMBEDDINGS_URL, zeroEmbedding } from "./embed";
-import { isGrounded } from "./answer";
+import { boxVerse, isGrounded } from "./answer";
 import { ANTHROPIC_MODEL } from "./llm";
 
 const FAKE_VERSE_ID = "verse_fake" as Id<"verses">;
@@ -108,6 +108,41 @@ describe("isGrounded", () => {
   });
 });
 
+describe("boxVerse", () => {
+  const verse = (book: string, chapter: number, number: number, score: number) => ({
+    _id: FAKE_VERSE_ID,
+    book,
+    chapter,
+    verse: number,
+    version: "RV1909",
+    text: "...",
+    score,
+  });
+  const jeremias = verse("Jeremías", 42, 11, 0.8);
+  const isaias = verse("Isaías", 41, 10, 0.6);
+  const ref = (v: { book: string; chapter: number; verse: number }) => ({ book: v.book, chapter: v.chapter, verse: v.verse, version: "RV1909" });
+
+  it("elige el primer versículo que nombra la respuesta, aunque la búsqueda lo traiga segundo", () => {
+    const answer = "Dios dice 'no temas' (Isaías 41:10) y te libra de toda mano (Jeremías 42:11).";
+    expect(boxVerse({ answer, citations: [ref(jeremias), ref(isaias)] }, [jeremias, isaias])).toBe(isaias);
+  });
+
+  it("no confunde «Juan 3:16» con «1 Juan 3:16»", () => {
+    const juan = verse("Juan", 3, 16, 0.9);
+    const primeraJuan = verse("1 Juan", 3, 16, 0.5);
+    const answer = "Como dice 1 Juan 3:16, y también Juan 3:16.";
+    expect(boxVerse({ answer, citations: [ref(juan)] }, [juan, primeraJuan])).toBe(primeraJuan);
+  });
+
+  it("si la respuesta no nombra ninguno, usa la primera cita del modelo", () => {
+    expect(boxVerse({ answer: "Dios está con vos.", citations: [ref(isaias)] }, [jeremias, isaias])).toBe(isaias);
+  });
+
+  it("sin nombres ni citas que coincidan, queda el más cercano de la búsqueda", () => {
+    expect(boxVerse({ answer: "Dios está con vos.", citations: [] }, [jeremias, isaias])).toBe(jeremias);
+  });
+});
+
 describe("rag.answer.ask", () => {
   it("con pasaje explícito, responde citando el versículo correcto", async () => {
     stubEnv();
@@ -168,6 +203,43 @@ describe("rag.answer.ask", () => {
     expect(result.citation).toBeNull();
     const calledAnthropic = fetchMock.mock.calls.some((call: unknown[]) => call[0] === ANTHROPIC_MESSAGES_URL);
     expect(calledAnthropic).toBe(false);
+  });
+
+  it("con pregunta libre, la caja muestra el versículo con el que abre la respuesta, no el más cercano de la búsqueda", async () => {
+    stubEnv();
+    const t = convexTest(schema, modules);
+    // Jeremías 42:11 queda más cerca de la pregunta (0.8) que Isaías 41:10 (0.6).
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      book: "Jeremías",
+      chapter: 42,
+      verse: 11,
+      version: "RV1909",
+      text: "No temáis de la presencia del rey de Babilonia, del cual tenéis temor.",
+      embedding: unitVector(0),
+    });
+    await t.mutation(internal.rag.verses.upsertVerse, {
+      book: "Isaías",
+      chapter: 41,
+      verse: 10,
+      version: "RV1909",
+      text: "No temas, que yo soy contigo; no desmayes, que yo soy tu Dios que te esfuerzo.",
+      embedding: unitVector(1),
+    });
+    const query = unitVector(0).map((value, i) => (i === 0 ? 0.8 : i === 1 ? 0.6 : value));
+    stubExternalApis({
+      queryEmbedding: query,
+      structured: {
+        answer: "Dios te dice 'no temas, que yo soy contigo' (Isaías 41:10), y está con vos para librarte (Jeremías 42:11).",
+        citations: [
+          { book: "Jeremías", chapter: 42, verse: 11, version: "RV1909" },
+          { book: "Isaías", chapter: 41, verse: 10, version: "RV1909" },
+        ],
+      },
+    });
+
+    const result = await t.action(internal.rag.answer.ask, { question: "¿Qué dice la Biblia cuando no puedo dejar de preocuparme?" });
+
+    expect(result.citation).toMatchObject({ book: "Isaías", chapter: 41, verse: 10 });
   });
 
   it("si el modelo cita algo fuera del contexto, nunca se lo muestra al usuario — usa el fallback verificado", async () => {
