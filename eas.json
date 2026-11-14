@@ -5,6 +5,7 @@
   },
   "build": {
     "apk": {
+      "channel": "production",
       "distribution": "internal",
       "autoIncrement": true,
       "android": {
@@ -16,6 +17,7 @@
       }
     },
     "play": {
+      "channel": "production",
       "distribution": "store",
       "autoIncrement": true,
       "android": {
@@ -27,6 +29,7 @@
       }
     },
     "testflight": {
+      "channel": "production",
       "distribution": "store",
       "autoIncrement": true,
       "env": {
@@ -35,6 +38,7 @@
       }
     },
     "production": {
+      "channel": "production",
       "distribution": "store",
       "autoIncrement": true,
       "android": {

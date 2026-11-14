@@ -13,8 +13,11 @@ import {
   type RevenueCatNative,
 } from "./revenuecat";
 
-// Mantener cubierta la integración futura; el build gratuito se prueba aparte.
-vi.mock("./releaseConfig", () => ({ PAYMENTS_ENABLED: true }));
+// Compra real (modo `revenuecat`); la edición gratuita y el modo de prueba se
+// prueban en freeRelease.test.ts.
+beforeEach(() => {
+  vi.stubEnv("EXPO_PUBLIC_PAYMENTS_MODE", "revenuecat");
+});
 
 function mockNative(overrides: Partial<RevenueCatNative> = {}): RevenueCatNative {
   return {

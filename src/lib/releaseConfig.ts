@@ -1,5 +1,34 @@
-/** Edición 1.0 gratuita (#234). Una key remota no puede activar pagos. */
-export const PAYMENTS_ENABLED = false;
+/**
+ * Cómo se vende Pro en este build. Lo decide `EXPO_PUBLIC_PAYMENTS_MODE` al
+ * compilar. Una OTA también lo hornea, así que cambiarlo en el environment de
+ * EAS que usa `ota.yml` cambia la app de todos sin pasar por revisión: no se
+ * hace (docs/monetizacion.md).
+ *
+ * - `off` (sin valor): edición gratuita. Los límites del servidor siguen, pero
+ *   no hay paywall ni precio. Una key de RevenueCat olvidada en EAS no activa
+ *   nada.
+ * - `test`: paywall con compra simulada (`entitlements.grantTestPro`). Solo
+ *   funciona para las cuentas de `PAYMENTS_TEST_USERS` en Convex. Sin tienda ni
+ *   llaves.
+ * - `revenuecat`: compra real por RevenueCat con
+ *   `EXPO_PUBLIC_REVENUECAT_API_KEY` (la del Test Store de RevenueCat sirve
+ *   para probar en un development build).
+ */
+export type PaymentsMode = "off" | "test" | "revenuecat";
+
+export function paymentsMode(): PaymentsMode {
+  const mode = process.env.EXPO_PUBLIC_PAYMENTS_MODE;
+  return mode === "test" || mode === "revenuecat" ? mode : "off";
+}
+
+export const PAYMENTS_ENABLED = paymentsMode() !== "off";
+
+/**
+ * Precio de Pro que se configura en App Store Connect y Google Play. La app no
+ * lo muestra en una compra real: ahí el precio llega de la tienda ya
+ * localizado (#144). Solo lo usa la compra simulada del modo de prueba.
+ */
+export const PRO_MONTHLY_PRICE_USD = 2.99;
 
 /** Hasta tener metadata de builds públicos separada de TestFlight en el backend. */
 export const IOS_UPDATE_CHECKS_ENABLED = false;

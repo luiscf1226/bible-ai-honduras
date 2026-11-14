@@ -22,6 +22,7 @@ import schema from "./schema";
 const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./friends.ts": () => import("./friends"),
+  "./push.ts": () => import("./push"),
   "./users.ts": () => import("./users"),
   "./history.ts": () => import("./history"),
   "./memorize.ts": () => import("./memorize"),

@@ -22,6 +22,7 @@ import { friendHandlers, friendsRulesAcceptedAt } from "./friends";
 import {
   aiImageScenario,
   atLimit,
+  grantTestPro,
   hasPlan,
   isDark,
   isEmpty,
@@ -438,7 +439,7 @@ function planProgress() {
 }
 
 function quota(module) {
-  const limits = { qa: 5, voices: 5, feelings: 3, stories: 1, verseImage: 3 };
+  const limits = { qa: 5, voices: 10, feelings: 3, stories: 1, verseImage: 3 };
   const limit = limits[module] ?? 5;
   if (isPro()) return { used: 0, limit, remaining: limit, isPro: true };
   if (atLimit()) return { used: limit, limit, remaining: 0, isPro: false };
@@ -960,6 +961,11 @@ const handlers = {
     return { status: "ok", conversationId };
   },
   "quotas:remaining": (args) => quota(args.module),
+  "entitlements:grantTestPro": () => {
+    grantTestPro();
+    notify();
+    return { isPro: true };
+  },
   "entitlements:mine": () => ({ isPro: isPro(), expiresAt: isPro() ? Date.now() + 30 * 24 * 3600e3 : null }),
   "history:list": () => db.history,
   "history:getById": () => ({

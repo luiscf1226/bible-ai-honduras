@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
-import { PAYMENTS_ENABLED } from "../src/lib/releaseConfig";
+import { PAYMENTS_ENABLED, paymentsMode } from "../src/lib/releaseConfig";
 import { useAuth } from "@clerk/expo";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -15,6 +15,7 @@ import {
   offerNotice,
   offerRetryable,
   PAYWALL_FEATURES,
+  PAYWALL_TEST_MODE_NOTICE,
   paywallPriceHint,
   paywallRenewalTerms,
   purchaseNotice,
@@ -25,6 +26,7 @@ import {
   purchaseMonthly,
   restorePurchases,
   type MonthlyOfferResult,
+  type PurchaseResult,
 } from "../src/lib/revenuecat";
 import { track } from "../src/lib/telemetry";
 import { tokens } from "../src/theme/tokens";
@@ -36,6 +38,8 @@ export default function PaywallScreen() {
 function PaidPaywallScreen() {
   const { userId } = useAuth();
   const entitlement = useQuery(api.entitlements.mine);
+  const grantTestPro = useMutation(api.entitlements.grantTestPro);
+  const testMode = paymentsMode() === "test";
   const isPro = entitlement?.isPro === true;
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,6 +76,15 @@ function PaidPaywallScreen() {
     goBackOrHome();
   }, [awaitingUnlock, isPro]);
 
+  const simulatePurchase = async (): Promise<PurchaseResult> => {
+    try {
+      await grantTestPro({});
+      return { ok: true };
+    } catch {
+      return { ok: false, reason: "purchase_failed" };
+    }
+  };
+
   const onSubscribe = async () => {
     if (isPro) {
       goBackOrHome();
@@ -81,7 +94,7 @@ function PaidPaywallScreen() {
     setBusy(true);
     setNotice(null);
     try {
-      const result = await purchaseMonthly(userId ?? undefined);
+      const result = testMode ? await simulatePurchase() : await purchaseMonthly(userId ?? undefined);
       if (result.ok) {
         track("purchase_completed");
         // Pro llega cuando el webhook escribe `entitlements.mine`; mientras, se espera.
@@ -157,6 +170,12 @@ function PaidPaywallScreen() {
               <Text style={styles.price}>{priceString}</Text>
               <Text style={styles.priceHint}>{paywallPriceHint()}</Text>
             </View>
+          ) : null}
+
+          {testMode && !isPro ? (
+            <Text style={styles.notice} testID="paywall-test-mode">
+              {PAYWALL_TEST_MODE_NOTICE}
+            </Text>
           ) : null}
 
           {canPurchase || isPro ? (

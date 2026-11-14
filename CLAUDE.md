@@ -1,7 +1,7 @@
 # Bible AI Honduras
 
 App móvil Expo React Native (iOS + Android) — devocional diario, Q&A bíblico con RAG,
-chat con personajes bíblicos, y generador de historias ilustradas. Freemium, $4.99/mes
+chat con personajes bíblicos, y generador de historias ilustradas. Freemium, $2.99/mes
 vía RevenueCat. Mercado: Honduras, público evangélico/protestante. **Idioma del producto
 y de los issues: español.**
 
