@@ -1,7 +1,8 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 
-import { DAILY_REMINDER_KIND, DAILY_REMINDER_PATHNAME, reminderRouteFor } from "./reminderRoute";
+import { notificationRouteFor } from "./notificationRoute";
+import { DAILY_REMINDER_KIND, DAILY_REMINDER_PATHNAME } from "./reminderRoute";
 
 const DAILY_REMINDER_CHANNEL = "daily-devotional";
 
@@ -51,29 +52,37 @@ function devotionalTrigger(date: string, hour: number): Notifications.Schedulabl
   };
 }
 
+// La pantalla que se ve ahora (la pone `AppNavigator`): un aviso que lleva
+// justo ahí (el chat abierto con ese amigo) no suena ni se muestra.
+let visiblePathname: string | null = null;
+
+export function setVisiblePathname(pathname: string | null) {
+  visiblePathname = pathname;
+}
+
 export function configureDailyReminderNotifications() {
   if (Platform.OS === "web") return;
 
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async (notification) => {
+      const route = notificationRouteFor(notification.request.content.data);
+      const show = visiblePathname === null || route !== visiblePathname;
+      return { shouldPlaySound: show, shouldSetBadge: false, shouldShowBanner: show, shouldShowList: show };
+    },
   });
 }
 
 /**
- * Tocar el aviso diario abre `/hoy` (#194). Cubre las dos formas de llegar:
- * con la app cerrada (la respuesta queda guardada y se lee al montar) y con la
+ * Tocar un aviso abre su pantalla: el diario va a `/hoy` (#194) y los push a
+ * la ruta que mandó el servidor (1.0.4). Cubre las dos formas de llegar: con
+ * la app cerrada (la respuesta queda guardada y se lee al montar) y con la
  * app abierta (listener). Cada respuesta se atiende una sola vez.
  */
-export function subscribeToDailyReminderTaps(open: (pathname: string) => void): () => void {
+export function subscribeToNotificationTaps(open: (pathname: string) => void): () => void {
   if (Platform.OS === "web") return () => undefined;
 
   const handle = (response: Notifications.NotificationResponse | null) => {
-    const pathname = reminderRouteFor(response?.notification.request.content.data);
+    const pathname = notificationRouteFor(response?.notification.request.content.data);
     if (!pathname) return;
     Notifications.clearLastNotificationResponse();
     open(pathname);

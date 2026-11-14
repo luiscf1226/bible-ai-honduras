@@ -1,12 +1,13 @@
 import { convexTest } from "convex-test";
 import type { GenericActionCtx } from "convex/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import {
   BETA_ENTITLEMENT_SOURCE,
   authorizationHeaderIsValid,
+  isPaymentsTestUser,
   handleRevenueCatWebhook,
   parseRevenueCatEvent,
   proStatusFromEvent,
@@ -333,5 +334,76 @@ describe("entitlements.grantProForBeta (#93)", () => {
     const rows = await t.run((ctx) => ctx.db.query("entitlements").collect());
     expect(rows).toHaveLength(1);
     expect(rows[0].isPro).toBe(true);
+  });
+});
+
+describe("modo de prueba de pagos", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("isPaymentsTestUser solo acepta ids exactos de la lista", () => {
+    expect(isPaymentsTestUser("user_a", "user_a, user_b")).toBe(true);
+    expect(isPaymentsTestUser("user_b", "user_a, user_b")).toBe(true);
+    expect(isPaymentsTestUser("user_c", "user_a, user_b")).toBe(false);
+    expect(isPaymentsTestUser("user_a", undefined)).toBe(false);
+    expect(isPaymentsTestUser("", "")).toBe(false);
+  });
+
+  it("sin la cuenta en PAYMENTS_TEST_USERS nadie se regala Pro", async () => {
+    vi.stubEnv("PAYMENTS_TEST_USERS", "user_tester");
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_cualquiera");
+    await authed.mutation(api.users.upsert, {});
+    await expect(authed.mutation(api.entitlements.grantTestPro, {})).rejects.toThrow("modo de prueba");
+    expect(await authed.query(api.entitlements.mine, {})).toBeNull();
+  });
+
+  it("una cuenta de prueba simula la compra: Pro por 30 días, y la puede cancelar", async () => {
+    vi.stubEnv("PAYMENTS_TEST_USERS", "user_otro,user_tester");
+    const t = convexTest(schema, modules);
+    const authed = asUser(t, "user_tester");
+    await authed.mutation(api.users.upsert, {});
+    await expect(t.mutation(api.entitlements.grantTestPro, {})).rejects.toThrow("No autenticado");
+
+    const before = Date.now();
+    await authed.mutation(api.entitlements.grantTestPro, {});
+    const mine = await authed.query(api.entitlements.mine, {});
+    expect(mine?.isPro).toBe(true);
+    expect(mine?.expiresAt).toBeGreaterThanOrEqual(before + 30 * 24 * 60 * 60 * 1000);
+
+    await authed.mutation(api.entitlements.cancelTestPro, {});
+    expect((await authed.query(api.entitlements.mine, {}))?.isPro).toBe(false);
+  });
+});
+
+describe("firstProAt (conversiones nuevas)", () => {
+  it("se fija la primera vez que la cuenta pasa a Pro y no cambia al renovar", async () => {
+    const t = convexTest(schema, modules);
+    await asUser(t, "user_first").mutation(api.users.upsert, {});
+    await t.mutation(internal.entitlements.upsertFromWebhook, { clerkId: "user_first", isPro: false });
+    let row = await t.run((ctx) => ctx.db.query("entitlements").unique());
+    expect(row?.firstProAt).toBeUndefined();
+
+    await t.mutation(internal.entitlements.upsertFromWebhook, { clerkId: "user_first", isPro: true });
+    row = await t.run((ctx) => ctx.db.query("entitlements").unique());
+    const first = row?.firstProAt;
+    expect(first).toBeTypeOf("number");
+
+    await t.mutation(internal.entitlements.upsertFromWebhook, { clerkId: "user_first", isPro: false });
+    await t.mutation(internal.entitlements.upsertFromWebhook, { clerkId: "user_first", isPro: true });
+    row = await t.run((ctx) => ctx.db.query("entitlements").unique());
+    expect(row?.firstProAt).toBe(first);
+  });
+});
+
+describe("firstProAt de filas Pro anteriores al campo", () => {
+  it("una renovación de alguien que ya era Pro no cuenta como conversión de hoy", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await asUser(t, "user_viejo").mutation(api.users.upsert, {});
+    const rowId = await t.run((ctx) =>
+      ctx.db.insert("entitlements", { userId, isPro: true, source: "revenuecat_webhook", updatedAt: 1 }),
+    );
+    const created = (await t.run((ctx) => ctx.db.get(rowId)))!._creationTime;
+    await t.mutation(internal.entitlements.upsertFromWebhook, { clerkId: "user_viejo", isPro: true });
+    expect((await t.run((ctx) => ctx.db.get(rowId)))?.firstProAt).toBe(created);
   });
 });

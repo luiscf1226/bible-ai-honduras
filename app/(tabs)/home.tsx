@@ -9,7 +9,7 @@ import { homeRows, visibleHomeCards } from "../../src/features/home/cards";
 import { openFromHome } from "../../src/features/home/cards/HomeCard";
 import { greetingFor, HOME_ROUTES, hondurasDate, hondurasHour } from "../../src/features/home/homeCards";
 import { hondurasToday } from "../../src/features/widget/verseWidget";
-import { subscribeToDailyReminderTaps } from "../../src/lib/dailyReminder";
+import { subscribeToNotificationTaps } from "../../src/lib/dailyReminder";
 import { withPressed } from "../../src/theme/pressed";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
@@ -36,9 +36,10 @@ export default function HomeScreen() {
     router.push("/hoy" as Href);
   }, [openFromWidget]);
 
-  // Tocar el aviso diario abre `/hoy` (#194). El inicio es la primera pantalla
-  // con sesión, así que acá se atiende también el arranque desde el aviso.
-  useEffect(() => subscribeToDailyReminderTaps((pathname) => router.push(pathname as Href)), []);
+  // Tocar un aviso abre su pantalla: el diario `/hoy` (#194), un amigo su chat.
+  // El inicio es la primera pantalla con sesión, así que acá se atiende
+  // también el arranque desde el aviso.
+  useEffect(() => subscribeToNotificationTaps((pathname) => router.push(pathname as Href)), []);
 
   const rows = homeRows(visibleHomeCards({ dateKey: hondurasToday(), season }));
 
