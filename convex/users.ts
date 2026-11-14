@@ -14,13 +14,16 @@ import { deleteFriendDataForUser } from "./friends";
 import { deleteConversationsForUser } from "./history";
 import { deleteMemoryVersesForUser } from "./memorize";
 import { deletePrayersForUser } from "./prayers";
+import { deletePushTokensForUser } from "./push";
 import { deleteSermonNotesForUser } from "./sermonNotes";
 import { parseBirthday, parseCalendarDate } from "./personalDates";
 import { deleteReadingDataForUser } from "./reading";
 import { deleteReadingGroupDataForUser } from "./readingGroups";
 import { deleteReadingPlanDataForUser } from "./readingPlans";
 import { deleteVerseFeedLikesForUser } from "./verseFeed";
+import { markActive } from "./activeDays";
 import { AI_CONSENT_VERSION } from "./aiConsent";
+import { hondurasDateKey } from "./devotional";
 
 // `identity.subject` (el user id de Clerk) es la llave de todo lo que es del
 // usuario. Ninguna función de acá abajo confía en un userId que venga en los
@@ -108,6 +111,8 @@ export const upsert = mutation({
       if (Object.keys(patch).length > 0) {
         await ctx.db.patch(existing._id, patch);
       }
+      // La app llama a upsert en cada arranque con sesión: es el "abrió la app".
+      await markActive(ctx, existing);
       return existing._id;
     }
 
@@ -117,6 +122,7 @@ export const upsert = mutation({
       name: identity.name,
       bibleVersion: DEFAULT_BIBLE_VERSION,
       referralCode: makeReferralCode(identity.subject),
+      activeDays: [hondurasDateKey()],
     });
   },
 });
@@ -389,6 +395,7 @@ export const setPersonalDates = mutation({
 //                    bloqueos y reportes en los dos sentidos
 //   friendRequestEvents / friendRates → historial de solicitudes en los dos
 //                    sentidos y el límite de ritmo de mensajes
+//   pushTokens     → teléfonos que reciben avisos push (1.0.4)
 // `verses`, `commentaries`, `dailyDevotionals` y `readingPlans` son contenido
 // editorial global: no tienen userId y no se tocan.
 
@@ -421,6 +428,7 @@ export type PurgeCounts = {
   userReportPairs: number;
   friendRequestEvents: number;
   friendRates: number;
+  pushTokens: number;
   users: number;
 };
 
@@ -465,6 +473,7 @@ function emptyPurgeCounts(): PurgeCounts {
     userReportPairs: 0,
     friendRequestEvents: 0,
     friendRates: 0,
+    pushTokens: 0,
     users: 0,
   };
 }
@@ -609,6 +618,9 @@ export const purgeAccountData = internalMutation({
     const friends = await deleteFriendDataForUser(ctx, user._id, PURGE_BUDGET);
     Object.assign(deleted, friends.deleted);
 
+    const pushTokens = await deletePushTokensForUser(ctx, user._id, PURGE_BUDGET);
+    deleted.pushTokens = pushTokens.deleted;
+
     const childrenDone =
       conversations.done &&
       stories.done &&
@@ -619,7 +631,8 @@ export const purgeAccountData = internalMutation({
       sermonNotes.done &&
       memory.done &&
       feedLikes.done &&
-      friends.done;
+      friends.done &&
+      pushTokens.done;
     if (!childrenDone) {
       return { done: false, deleted };
     }
@@ -728,6 +741,7 @@ export const deleteAccount = action({
       deleted.userReportPairs += result.deleted.userReportPairs;
       deleted.friendRequestEvents += result.deleted.friendRequestEvents;
       deleted.friendRates += result.deleted.friendRates;
+      deleted.pushTokens += result.deleted.pushTokens;
       deleted.users += result.deleted.users;
       dataDone = result.done;
     }

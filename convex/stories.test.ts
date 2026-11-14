@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import schema from "./schema";
 import { STORY_CATALOG, type StoryCatalogItem } from "./stories";
@@ -120,4 +120,19 @@ describe("stories.create", () => {
     expect(stories).toHaveLength(1);
     expect(stories[0]?.status).toBe("generating");
   });
+
+  it("al día siguiente en Honduras se puede hacer otra historia", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-11-14T05:00:00Z")); // 23:00 del 13 en Honduras
+    const t = convexTest(schema, modules);
+    const authed = t.withIdentity({ subject: "story_daily_user", issuer: "https://example-dev.clerk.accounts.dev" });
+    await authed.mutation(makeFunctionReference<"mutation", Record<string, never>, string>("users:upsert"), {});
+
+    expect(await authed.mutation(createStory, { storyId: "arca-de-noe" })).toMatchObject({ allowed: true });
+    expect(await authed.mutation(createStory, { storyId: "daniel-en-el-foso-de-los-leones" })).toMatchObject({ allowed: false });
+    vi.setSystemTime(Date.parse("2026-11-14T06:00:00Z")); // 00:00 del 14
+    expect(await authed.mutation(createStory, { storyId: "daniel-en-el-foso-de-los-leones" })).toMatchObject({ allowed: true });
+  });
 });
+
+afterEach(() => vi.useRealTimers());

@@ -21,6 +21,7 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { tokens } from "../../src/theme/tokens";
 import { RequiresConnection } from "../../src/features/offline/RequiresConnection";
 import { limitBodyFor } from "../../src/lib/limitCopy";
+import { track } from "../../src/lib/telemetry";
 import { PAYMENTS_ENABLED } from "../../src/lib/releaseConfig";
 
 const listTextStories = makeFunctionReference<"query", Record<string, never>, readonly TextStoryListItem[]>(
@@ -215,6 +216,7 @@ function IllustratedStoryList({
               try {
                 const result = await create({ storyId: story.id });
                 if (!result.allowed) {
+                  track("limit_reached", "stories");
                   // Edición gratuita: sin paywall, se explica el límite acá mismo.
                   if (PAYMENTS_ENABLED) router.push("/paywall");
                   else setError(limitBodyFor("stories"));
