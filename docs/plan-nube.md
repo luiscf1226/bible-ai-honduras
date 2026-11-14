@@ -52,6 +52,7 @@ defecto. GitHub puede atrasar unos minutos los cron que caen en punto.
     token es solo de `drive.file`: toca únicamente lo que crea este script. Los
     guarda `scripts/sacar_refresh_token.py` de aquel repo, con
     `--solo-drive-file --repo luiscf1226/bible-ai-honduras --env videos`.
+    Paso a paso, sin programar: `docs/guia-llaves.md` de aquel repo (paso 4c).
 
     La primera corrida crea en el Drive de Luis la carpeta «Bible AI · videos
     para publicar». Luis la comparte como Lector con la cuenta de servicio de
