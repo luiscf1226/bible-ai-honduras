@@ -16,9 +16,9 @@ el plan en [elevenlabs.io/pricing](https://elevenlabs.io/pricing).
 
 ## Opción A: GitHub Actions con cron (recomendada)
 
-Un workflow `.github/workflows/videos-semanales.yml` con `schedule: cron "7 13 * * 0"`.
-Eso es domingo 13:07 UTC, o sea 7:07 en Honduras. El minuto 7 es a propósito:
-GitHub atrasa los cron que caen en punto.
+**Hecho:** `.github/workflows/videos-semanales.yml` con `schedule: cron "0 13 * * 0"`,
+o sea domingo 7:00 en Honduras. A mano (Run workflow) corre en dry-run por
+defecto. GitHub puede atrasar unos minutos los cron que caen en punto.
 
 - **Costo: $0/mes.** El repo es público, y en un repo público los runners
   estándar de GitHub son gratis

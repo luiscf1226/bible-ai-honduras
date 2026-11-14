@@ -1,0 +1,110 @@
+name: Videos semanales
+
+# El lote de los domingos de marketing/ (docs/plan-nube.md): le pide a la app
+# las respuestas de Preguntar y Voces, graba la app real, arma los 7 videos de
+# la semana que viene y los manda por Gmail en un solo hilo. No publica nada
+# en redes.
+#
+# Todo sale de los secretos del environment "videos": nada vive en el repo.
+# El repo es público, así que los videos nunca se suben como artifact (los
+# podría bajar cualquiera) y el log no imprime respuestas ni keys.
+#
+# A mano (Run workflow) corre en dry-run por defecto: hace todo menos mandar
+# el correo.
+
+on:
+  schedule:
+    # Domingo 7:00 en Honduras (UTC-6, sin horario de verano).
+    - cron: "0 13 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Hacer todo menos mandar el correo"
+        type: boolean
+        default: true
+      semana:
+        description: "Número de semana del plan (vacío: la que viene)"
+        type: string
+        default: ""
+
+# Una corrida a la vez: dos a la vez mandarían el correo dos veces.
+concurrency:
+  group: videos-semanales
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  semana:
+    name: Videos de la semana
+    runs-on: ubuntu-latest
+    environment: videos
+    timeout-minutes: 120
+    env:
+      TZ: America/Tegucigalpa
+      VIDEOS_DIR: /home/runner/3c-videos
+      DOWNLOADS_DIR: /home/runner/descargas
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            marketing/package-lock.json
+
+      - name: Instalar ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Dependencias de la app (el QA harness)
+        run: npm ci
+
+      - name: Dependencias de marketing/
+        working-directory: marketing
+        run: npm ci
+
+      # Las voces ya pagadas, las respuestas de la app y qué videos ya salieron
+      # por correo. Sin `.estado`: el runner no guarda los MP4, así que cada
+      # corrida tiene que renderizar.
+      - name: Recuperar voces y respuestas de corridas anteriores
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/runner/3c-videos/.voces
+            /home/runner/3c-videos/respuestas
+            /home/runner/3c-videos/semana-*/.enviados.json
+          key: videos-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: videos-
+
+      - name: Hacer la semana
+        working-directory: marketing
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
+          CORREO_CLAVE: ${{ secrets.CORREO_CLAVE }}
+          CORREO_PARA: ${{ secrets.CORREO_PARA }}
+          SEMANA: ${{ inputs.semana }}
+          # Solo a mano puede ser dry-run; el cron siempre manda.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          for name in ELEVENLABS_API_KEY CONVEX_DEPLOY_KEY CORREO_USUARIO CORREO_CLAVE; do
+            if [ -z "${!name}" ]; then echo "::error::Falta el secreto $name en el environment videos"; exit 1; fi
+          done
+          args=()
+          if [ -n "$SEMANA" ]; then args+=("$SEMANA"); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          npm run --silent semana -- "${args[@]}"
+
+      - name: Guardar voces y respuestas
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /home/runner/3c-videos/.voces
+            /home/runner/3c-videos/respuestas
+            /home/runner/3c-videos/semana-*/.enviados.json
+          key: videos-${{ github.run_id }}-${{ github.run_attempt }}
