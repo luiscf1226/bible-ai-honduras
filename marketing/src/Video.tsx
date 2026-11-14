@@ -19,8 +19,8 @@ export type Scene = (
   /** Presentación: qué función es, arriba, y su grabación en una tarjeta. */
   | { kind: "feature"; seconds: number; step: number; text: string; src: string; startFrom?: number }
   | { kind: "verse"; seconds: number; text: string; reference: string }
-  /** `qr`: imagen del QR a la página de descarga; `url`: esa dirección, para leerla. */
-  | { kind: "closing"; seconds: number; lead: string; qr?: string; url?: string }
+  /** `cta`: el llamado a la acción (sin tiendas ni precio); `qr`: imagen del QR a la página de descarga; `url`: esa dirección, para leerla. */
+  | { kind: "closing"; seconds: number; lead: string; cta?: string; qr?: string; url?: string }
 ) & { voices?: Voice[] };
 
 export type VideoProps = {
@@ -90,7 +90,7 @@ function SceneView({ scene }: { scene: Scene }) {
     case "verse":
       return <VerseCard text={scene.text} reference={scene.reference} />;
     case "closing":
-      return <Closing lead={scene.lead} qr={scene.qr} url={scene.url} />;
+      return <Closing lead={scene.lead} cta={scene.cta} qr={scene.qr} url={scene.url} />;
   }
 }
 

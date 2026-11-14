@@ -86,9 +86,10 @@ export function VerseCard({ text, reference }: { text: string; reference: string
 
 /**
  * Cierre, igual en todos los videos: ícono, la frase del video y cómo
- * descargar 3C: un QR a la página de descarga y su dirección escrita.
+ * descargar 3C: un QR a la página de descarga, su dirección escrita y el
+ * llamado a la acción (`cta`), sin tiendas ni precio.
  */
-export function Closing({ lead, qr, url }: { lead: string; qr?: string; url?: string }) {
+export function Closing({ lead, cta = "Descarga la app", qr, url }: { lead: string; cta?: string; qr?: string; url?: string }) {
   const frame = useCurrentFrame();
   const icon = tokens.size.logoMedium * appScale;
   const qrSize = tokens.size.verseCardImage * appScale * 0.75;
@@ -149,7 +150,7 @@ export function Closing({ lead, qr, url }: { lead: string; qr?: string; url?: st
           fontSize: story.reference,
         }}
       >
-        3C, gratis en iPhone y Android
+        {cta}
       </div>
     </AbsoluteFill>
   );

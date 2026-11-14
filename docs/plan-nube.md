@@ -45,6 +45,24 @@ defecto. GitHub puede atrasar unos minutos los cron que caen en punto.
     - `CONVEX_DEPLOY_KEY`: la misma que ya usa `deploy-convex.yml` en el
       environment `convex-test`, o una nueva desde el dashboard de Convex.
   - Restringir ese environment a la rama `master`.
+  - Para que la publicación diaria (`luiscf1226/short-video-studio`) programe
+    estos videos los días de app, en el mismo environment van los secretos
+    `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` y
+    `GOOGLE_OAUTH_REFRESH_TOKEN`. Es el mismo cliente OAuth de Luis, pero el
+    token es solo de `drive.file`: toca únicamente lo que crea este script. Los
+    guarda `scripts/sacar_refresh_token.py` de aquel repo, con
+    `--solo-drive-file --repo luiscf1226/bible-ai-honduras --env videos`.
+    Paso a paso, sin programar: `docs/guia-llaves.md` de aquel repo (paso 4c).
+
+    La primera corrida crea en el Drive de Luis la carpeta «Bible AI · videos
+    para publicar». Luis la comparte como Lector con la cuenta de servicio de
+    la publicación diaria y pone su id en `apps[bible-ai].carpeta_drive`.
+
+    Sin esos secretos, el lote solo manda el correo, como antes. Cada video se
+    sube como `bible-ai-<fecha>-<dia>-<id>.mp4`, con la fecha para la que se
+    hizo. Una corrida que se repite no lo vuelve a subir, y una semana rehecha
+    lo reemplaza. Los de tipo `instalar` no se suben: graban la página de
+    descarga, que muestra la tienda y el precio.
 - **Ojo:**
   - Repo público, así que los logs y los artifacts los puede ver cualquiera.
     Los videos van solo por correo, nunca como artifact, y el log no imprime

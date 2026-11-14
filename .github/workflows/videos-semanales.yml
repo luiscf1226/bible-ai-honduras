@@ -2,15 +2,16 @@ name: Videos semanales
 
 # El lote de los domingos de marketing/ (docs/plan-nube.md): le pide a la app
 # las respuestas de Preguntar y Voces, graba la app real, arma los 7 videos de
-# la semana que viene y los manda por Gmail en un solo hilo. No publica nada
-# en redes.
+# la semana que viene, los manda por Gmail en un solo hilo y los deja en la
+# carpeta de Drive de la publicación diaria (luiscf1226/short-video-studio),
+# que es la que los programa. Este workflow no publica nada en redes.
 #
 # Todo sale de los secretos del environment "videos": nada vive en el repo.
 # El repo es público, así que los videos nunca se suben como artifact (los
 # podría bajar cualquiera) y el log no imprime respuestas ni keys.
 #
 # A mano (Run workflow) corre en dry-run por defecto: hace todo menos mandar
-# el correo.
+# el correo y subir a Drive.
 
 on:
   schedule:
@@ -19,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Hacer todo menos mandar el correo"
+        description: "Hacer todo menos mandar el correo y subir a Drive"
         type: boolean
         default: true
       semana:
@@ -76,6 +77,7 @@ jobs:
             /home/runner/3c-videos/.voces
             /home/runner/3c-videos/respuestas
             /home/runner/3c-videos/semana-*/.enviados.json
+            /home/runner/3c-videos/semana-*/.subidos-drive.json
           key: videos-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: videos-
 
@@ -87,6 +89,12 @@ jobs:
           CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
           CORREO_CLAVE: ${{ secrets.CORREO_CLAVE }}
           CORREO_PARA: ${{ secrets.CORREO_PARA }}
+          # Opcionales: sin ellos no se sube a Drive (scripts/drive.mjs). El
+          # refresh token es solo de `drive.file`: toca únicamente la carpeta
+          # y los videos que este script crea, nada más del Drive de Luis.
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           SEMANA: ${{ inputs.semana }}
           # Solo a mano puede ser dry-run; el cron siempre manda.
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -107,4 +115,5 @@ jobs:
             /home/runner/3c-videos/.voces
             /home/runner/3c-videos/respuestas
             /home/runner/3c-videos/semana-*/.enviados.json
+            /home/runner/3c-videos/semana-*/.subidos-drive.json
           key: videos-${{ github.run_id }}-${{ github.run_attempt }}

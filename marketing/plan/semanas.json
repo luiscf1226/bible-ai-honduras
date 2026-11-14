@@ -14,7 +14,7 @@
           "sobretitulo": "Hecho en Honduras",
           "cierre": "Hecha en Honduras, para tu devocional de cada día.",
           "versiculo": "Josué 1:9",
-          "texto": "Tu devocional de cada día, la Biblia RV1909 y respuestas con su cita. Gratis, hecha en Honduras.",
+          "texto": "Tu devocional de cada día, la Biblia RV1909 y respuestas con su cita. Hecha en Honduras.",
           "pantallas": [
             {
               "pantalla": "inicio",
@@ -174,7 +174,7 @@
           "tipo": "instalar",
           "gancho": "¿Tenés Android? Así se instala 3C",
           "cierre": "Tu devocional te espera cada mañana.",
-          "texto": "Escaneá el QR del final del video y descargala gratis.",
+          "texto": "Escaneá el QR del final del video y descargala.",
           "voz": "Escaneá el código del final. Tocá «Descargar APK para Android», abrí el archivo 3C punto APK y tocá Instalar. Si Android lo pide, permití instalar apps de tu navegador."
         },
         {
@@ -305,7 +305,7 @@
       ]
     }
   ],
-  "cierreVoz": "3C es gratis, en iPhone y Android. Escaneá el código para descargarla.",
+  "cta": "Descarga la app",
   "descarga": "https://luiscf1226.github.io/bible-ai-honduras/",
   "_tipos": "presentacion · pregunta y personaje (la respuesta se la pide a la app) · versiculo (feed) · historia y monologo (`reel` de convex/feedReelsCore.ts) · instalar (la página de descarga, `voz` es lo que se dice)."
 }
