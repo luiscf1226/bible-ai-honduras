@@ -1,0 +1,28 @@
+{
+  "name": "3c-marketing",
+  "private": true,
+  "description": "Videos de TikTok e Instagram de 3C, hechos con Remotion. Ver README.md.",
+  "scripts": {
+    "studio": "remotion studio",
+    "semana": "tsx scripts/semana.mjs",
+    "typecheck": "tsc --noEmit",
+    "instalar-automatico": "bash scripts/instalar-automatico.sh"
+  },
+  "dependencies": {
+    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/eb-garamond": "^0.4.3",
+    "@remotion/cli": "4.0.542",
+    "@remotion/fonts": "4.0.542",
+    "nodemailer": "^6.9.16",
+    "qrcode": "1.5.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.542"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "playwright-core": "1.65.0",
+    "tsx": "4.23.15",
+    "typescript": "~5.9.2"
+  }
+}

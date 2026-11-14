@@ -1,0 +1,9 @@
+[Unit]
+Description=Videos de 3C: graba la app y arma los videos de la semana
+
+[Service]
+Type=oneshot
+Environment=PATH=@NODE_BIN@:/usr/local/bin:/usr/bin:/bin
+ExecStart=@REPO@/marketing/scripts/automatico.sh
+Nice=10
+TimeoutStartSec=2h

@@ -1,6 +1,7 @@
 // Mock de `convex/react` para el harness de QA.
 // Devuelve datos deterministas por nombre de función Convex, sin backend.
 import { useEffect, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 import { getFunctionName } from "convex/server";
 
 import { voiceCharacters } from "../../convex/voicesCatalog";
@@ -18,7 +19,25 @@ import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
 import { photosFor } from "../../convex/verseImageCore";
 import { friendHandlers, friendsRulesAcceptedAt } from "./friends";
-import { aiImageScenario, atLimit, grantTestPro, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
+import {
+  aiImageScenario,
+  atLimit,
+  grantTestPro,
+  hasPlan,
+  isDark,
+  isEmpty,
+  isError,
+  isLoading,
+  isOffline,
+  isPro,
+  seasonScenario,
+  videoContent,
+} from "./scenario";
+
+// react-native-web dice siempre que hay lector de pantalla, y con lector los
+// reels no avanzan solos (WCAG 2.2.2). Al grabar un video de marketing/, la
+// app se porta como en un teléfono sin lector.
+if (videoContent()) AccessibilityInfo.isScreenReaderEnabled = () => Promise.resolve(false);
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
@@ -474,6 +493,9 @@ function feedReelItem(reel) {
 // Modos del feed (§Feed en modo TikTok): "historias" y "personajes" son páginas de 4 reels de ese tipo,
 // "versiculos" solo versículos y "para-ti" la mezcla (como `withReels`).
 function feedPage({ seen = [], seed = 1, withReels = false, mode }) {
+  // Un video de marketing/ abre el feed en un reel concreto ("historia:david-y-goliat").
+  const videoReel = REEL_POOL.find((reel) => reel.ref === videoContent()?.feed?.reel);
+  if (videoReel && seen.length === 0) return { items: [feedReelItem(videoReel), ...feedVersePage(seen, 5)], newRound: false, skipped: [] };
   if (mode === "historias" || mode === "personajes") {
     const kind = mode === "historias" ? "story" : "character";
     const pool = REEL_POOL.filter((reel) => reel.kind === kind);
@@ -491,7 +513,10 @@ function feedPage({ seen = [], seed = 1, withReels = false, mode }) {
 }
 function feedVersePage(seen, count) {
   const shownVerses = seen.filter((ref) => /\d+:\d+$/.test(ref)).length;
-  const start = shownVerses % FEED_CATALOG.length;
+  // Un video de marketing/ abre el feed en su versículo.
+  const videoRef = videoContent()?.feed?.ref;
+  const videoIndex = videoRef ? FEED_CATALOG.findIndex((e) => `${e.book} ${e.chapter}:${e.verse}` === videoRef) : -1;
+  const start = (shownVerses + Math.max(videoIndex, 0)) % FEED_CATALOG.length;
   return Array.from({ length: count }, (_, offset) => {
     const index = (start + offset) % FEED_CATALOG.length;
     const entry = FEED_CATALOG[index];
@@ -885,7 +910,9 @@ const handlers = {
       {
         _id: `${args.slug}-${thread.length + 1}`,
         role: "assistant",
-        text: "Yo también dudé de mí. Cuando me mandaron, lo primero que dije fue que no sabía hablar. No cambió mi lengua: cambió con quién iba.",
+        text:
+          videoContent()?.voices?.reply ??
+          "Yo también dudé de mí. Cuando me mandaron, lo primero que dije fue que no sabía hablar. No cambió mi lengua: cambió con quién iba.",
       },
     ];
     notify();
@@ -923,8 +950,10 @@ const handlers = {
         {
           _id: `${conversationId}-${thread.length + 1}`,
           role: "assistant",
-          text: "El texto no promete ausencia de tormenta, promete presencia. Mirá el versículo:",
-          citations: [{ book: "Salmos", chapter: 46, verse: 1, version: db.bibleVersion, text: VERSES[0].text }],
+          text: videoContent()?.qa?.answer ?? "El texto no promete ausencia de tormenta, promete presencia. Mirá el versículo:",
+          citations: [
+            videoContent()?.qa?.citation ?? { book: "Salmos", chapter: 46, verse: 1, version: db.bibleVersion, text: VERSES[0].text },
+          ],
         },
       ],
     };
@@ -1062,5 +1091,5 @@ export function useMutation(ref) {
 }
 
 export function useAction(ref) {
-  return (args) => new Promise((resolve) => setTimeout(() => resolve(run(ref, args)), 400));
+  return (args) => new Promise((resolve) => setTimeout(() => resolve(run(ref, args)), videoContent()?.delayMs ?? 400));
 }

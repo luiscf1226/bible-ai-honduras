@@ -1,0 +1,8 @@
+[Unit]
+Description=Rehace los videos de 3C al guardar respuestas
+
+[Path]
+PathChanged=@VIDEOS_DIR@/respuestas
+
+[Install]
+WantedBy=paths.target

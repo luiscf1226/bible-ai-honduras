@@ -62,3 +62,11 @@ export function aiImageScenario() {
   if (typeof window === "undefined") return null;
   return new URLSearchParams(window.location.search).get("ia");
 }
+
+// Videos de marketing/: `marketing/capture` inyecta en
+// `window.__QA_VIDEO__` la respuesta real que se pegó para ese video (de
+// Preguntar o de Voces) y cuánto tarda en llegar. Sin eso, nada cambia.
+export function videoContent() {
+  if (typeof window === "undefined") return null;
+  return window.__QA_VIDEO__ ?? null;
+}
