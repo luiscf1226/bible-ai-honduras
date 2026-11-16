@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit && tsc -p convex --noEmit",
     "export": "expo export --platform all",
+    "export:web": "bash scripts/export-web.sh",
     "test": "vitest run",
     "convex:dev": "convex dev",
     "convex:once": "convex dev --once",
