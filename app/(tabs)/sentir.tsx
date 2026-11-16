@@ -3,6 +3,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextI
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useAction, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { makeFunctionReference } from "convex/server";
 
 import { api } from "../../convex/_generated/api";
@@ -150,7 +151,11 @@ function SentirScreenContent() {
       setNote(input.note);
       dispatch({
         type: "failed",
-        message: cause instanceof Error ? cause.message : "No pudimos preparar tu devocional. Intentá de nuevo.",
+        // Solo los avisos pensados para la persona (ConvexError); un fallo técnico no muestra su traza.
+        message:
+          cause instanceof ConvexError && typeof cause.data === "string"
+            ? cause.data
+            : "No pudimos preparar tu devocional. Intentá de nuevo.",
       });
     }
   };
