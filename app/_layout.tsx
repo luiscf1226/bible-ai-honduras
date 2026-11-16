@@ -10,7 +10,7 @@ import { ClerkProvider, useAuth } from "@clerk/expo";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useEffect, useState, type PropsWithChildren } from "react";
 import { StatusBar } from "react-native";
-import { Stack, type ErrorBoundaryProps } from "expo-router";
+import { Stack, usePathname, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 import { FullScreenNotice } from "../src/components/FullScreenNotice";
@@ -20,9 +20,11 @@ import { OfflineSyncProvider } from "../src/features/offline/OfflineSyncProvider
 import { useAppUpdate } from "../src/hooks/useAppUpdate";
 import { useFriendInvite } from "../src/hooks/useFriendInvite";
 import { useGroupInvite } from "../src/hooks/useGroupInvite";
+import { useOtaUpdates } from "../src/hooks/useOtaUpdates";
+import { usePushRegistration } from "../src/hooks/usePushRegistration";
 import { clerkTokenCache } from "../src/lib/clerkTokenCache";
 import { convexClient } from "../src/lib/convexClient";
-import { configureDailyReminderNotifications } from "../src/lib/dailyReminder";
+import { configureDailyReminderNotifications, setVisiblePathname } from "../src/lib/dailyReminder";
 import { useReferralAttribution } from "../src/hooks/useReferralAttribution";
 import { useRevenueCatLogin } from "../src/hooks/useRevenueCatLogin";
 import { useSyncConvexUser } from "../src/hooks/useSyncConvexUser";
@@ -49,6 +51,10 @@ function AppNavigator() {
   useReferralAttribution();
   useGroupInvite();
   useFriendInvite();
+  usePushRegistration();
+  useOtaUpdates();
+  const pathname = usePathname();
+  useEffect(() => setVisiblePathname(pathname), [pathname]);
   const { dark } = useTheme();
   const appUpdate = useAppUpdate();
 

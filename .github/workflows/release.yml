@@ -3,7 +3,11 @@ name: Publicar app
 # Un tag vX.Y.Z (igual a la versión de app.json) o "Run workflow" hace todo:
 # despliega Convex, compila iOS en EAS, lo sube a TestFlight y lo manda a
 # App Review. El lanzamiento queda MANUAL: una versión aprobada no se publica
-# hasta tocar "Publicar" en App Store Connect.
+# hasta tocar "Publicar" en App Store Connect (o `lanzar_al_aprobar`).
+# En paralelo compila el APK de Android y lo publica como release
+# `android-vX.Y.Z` con el asset 3C.apk (el sitio baja siempre el último).
+#
+# Los cambios solo de JS no necesitan esto: los publica "Actualizar app (OTA)".
 #
 #   git tag v1.0.1 && git push origin v1.0.1
 #
@@ -102,3 +106,45 @@ jobs:
           NOVEDADES: ${{ inputs.novedades }}
           LANZAR_AL_APROBAR: ${{ inputs.lanzar_al_aprobar && '1' || '' }}
         run: node scripts/submit-app-review.mjs
+
+  android:
+    name: Android → APK en Releases
+    needs: backend
+    if: ${{ !cancelled() && needs.backend.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Compilar APK
+        run: |
+          eas build --platform android --profile apk --non-interactive --wait --json > "$RUNNER_TEMP/android-build.json"
+          url=$(jq -er '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl' "$RUNNER_TEMP/android-build.json")
+          curl -fsSL "$url" -o "$RUNNER_TEMP/3C.apk"
+
+      # El asset se llama 3C.apk: el sitio baja releases/latest/download/3C.apk.
+      - name: Publicar en Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOVEDADES: ${{ inputs.novedades }}
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          tag="android-v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$RUNNER_TEMP/3C.apk" --clobber
+          else
+            notes="APK oficial de 3C: Biblia y Devocional AI para Android (todavía no está en Google Play). Misma versión que la $version del App Store.${NOVEDADES:+ $NOVEDADES} Descargalo desde https://luiscf1226.github.io/bible-ai-honduras/#descargar"
+            gh release create "$tag" "$RUNNER_TEMP/3C.apk" --target "$GITHUB_SHA" --latest --title "3C para Android $version" --notes "$notes"
+          fi

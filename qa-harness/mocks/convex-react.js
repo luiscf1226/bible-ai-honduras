@@ -18,7 +18,7 @@ import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
 import { photosFor } from "../../convex/verseImageCore";
 import { friendHandlers, friendsRulesAcceptedAt } from "./friends";
-import { aiImageScenario, atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
+import { aiImageScenario, atLimit, grantTestPro, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
@@ -420,7 +420,7 @@ function planProgress() {
 }
 
 function quota(module) {
-  const limits = { qa: 5, voices: 5, feelings: 3, stories: 1, verseImage: 3 };
+  const limits = { qa: 5, voices: 10, feelings: 3, stories: 1, verseImage: 3 };
   const limit = limits[module] ?? 5;
   if (isPro()) return { used: 0, limit, remaining: limit, isPro: true };
   if (atLimit()) return { used: limit, limit, remaining: 0, isPro: false };
@@ -932,6 +932,11 @@ const handlers = {
     return { status: "ok", conversationId };
   },
   "quotas:remaining": (args) => quota(args.module),
+  "entitlements:grantTestPro": () => {
+    grantTestPro();
+    notify();
+    return { isPro: true };
+  },
   "entitlements:mine": () => ({ isPro: isPro(), expiresAt: isPro() ? Date.now() + 30 * 24 * 3600e3 : null }),
   "history:list": () => db.history,
   "history:getById": () => ({

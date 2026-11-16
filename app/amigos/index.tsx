@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
@@ -14,6 +14,7 @@ import { listTimeLabel } from "../../src/features/friends/chatLogic";
 import { CommunityRules } from "../../src/features/friends/CommunityRules";
 import { FriendAvatar, UnreadBadge } from "../../src/features/friends/FriendAvatar";
 import { copyToClipboard } from "../../src/lib/clipboard";
+import { registerForPush } from "../../src/lib/pushNotifications";
 import { shareContent } from "../../src/lib/share";
 import { withPressed } from "../../src/theme/pressed";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -34,10 +35,17 @@ export default function AmigosScreen() {
   const accept = useMutation(api.friends.accept);
   const remove = useMutation(api.friends.remove);
   const unblock = useMutation(api.friends.unblock);
+  const registerPush = useMutation(api.push.register);
   const [code, setCode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showBlocked, setShowBlocked] = useState(false);
+
+  // Quien abre Amigos quiere enterarse cuando le escriben o le piden amistad:
+  // acá (y no al arrancar) se pide el permiso de avisos.
+  useEffect(() => {
+    void registerForPush(registerPush, { ask: true });
+  }, [registerPush]);
 
   const run = async (id: string, action: () => Promise<unknown>) => {
     setBusyId(id);

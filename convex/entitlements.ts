@@ -1,16 +1,30 @@
 import type { GenericActionCtx } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 export const PRO_ENTITLEMENT_ID = "pro";
 export const ENTITLEMENT_SOURCE = "revenuecat_webhook";
 // Beta sin RevenueCat (#93). Queda en `source` para distinguir un Pro de
 // cortesía de uno comprado — no borrar filas con este origen al migrar.
 export const BETA_ENTITLEMENT_SOURCE = "beta_manual";
+// Compra simulada del modo de prueba (`grantTestPro`).
+export const TEST_ENTITLEMENT_SOURCE = "test_mode";
+const TEST_PRO_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Modo de prueba de pagos: solo las cuentas de `PAYMENTS_TEST_USERS` (Clerk
+ * ids separados por coma, en las variables de entorno de Convex) pueden
+ * simular la compra. Lo lee el servidor: la app no puede encenderlo, y como
+ * hay un solo Convex para las tiendas, nadie fuera de la lista se regala Pro.
+ */
+export function isPaymentsTestUser(clerkId: string, allowed = process.env.PAYMENTS_TEST_USERS): boolean {
+  return clerkId !== "" && (allowed ?? "").split(",").some((entry) => entry.trim() === clerkId);
+}
 
 const GRANT_EVENT_TYPES = new Set([
   "INITIAL_PURCHASE",
@@ -193,12 +207,17 @@ async function upsertEntitlement(
   const existing = await findEntitlementByUser(ctx, args.userId);
   const updatedAt = Date.now();
   const source = args.source ?? ENTITLEMENT_SOURCE;
+  // Una fila que ya era Pro antes de existir este campo no es una conversión
+  // nueva: toma la fecha de la fila.
+  const firstProAt =
+    existing?.firstProAt ?? (existing?.isPro ? existing._creationTime : args.isPro ? updatedAt : undefined);
   if (existing) {
     await ctx.db.patch(existing._id, {
       isPro: args.isPro,
       expiresAt: args.expiresAt,
       source,
       updatedAt,
+      firstProAt,
     });
     return existing._id;
   }
@@ -208,6 +227,7 @@ async function upsertEntitlement(
     expiresAt: args.expiresAt,
     source,
     updatedAt,
+    firstProAt,
   });
 }
 
@@ -268,6 +288,45 @@ export const grantProForBeta = internalMutation({
       source: BETA_ENTITLEMENT_SOURCE,
     });
     return { ignored: false as const, userId: user._id, isPro };
+  },
+});
+
+async function requireTestModeUser(ctx: MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new ConvexError("No autenticado");
+  if (!isPaymentsTestUser(identity.subject)) {
+    throw new ConvexError("El modo de prueba de pagos está apagado para esta cuenta");
+  }
+  const user = await findByClerkId(ctx, identity.subject);
+  if (!user) throw new ConvexError("Usuario no encontrado — llamá a users.upsert primero");
+  return user;
+}
+
+/**
+ * Compra simulada del paywall en modo de prueba: Pro por 30 días, sin tienda
+ * ni RevenueCat. Solo para las cuentas de `PAYMENTS_TEST_USERS`.
+ */
+export const grantTestPro = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireTestModeUser(ctx);
+    await upsertEntitlement(ctx, {
+      userId: user._id,
+      isPro: true,
+      expiresAt: Date.now() + TEST_PRO_DAYS * DAY_MS,
+      source: TEST_ENTITLEMENT_SOURCE,
+    });
+    return { isPro: true };
+  },
+});
+
+/** Vuelve a la versión gratis en modo de prueba, para repetir el flujo. */
+export const cancelTestPro = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireTestModeUser(ctx);
+    await upsertEntitlement(ctx, { userId: user._id, isPro: false, source: TEST_ENTITLEMENT_SOURCE });
+    return { isPro: false };
   },
 });
 

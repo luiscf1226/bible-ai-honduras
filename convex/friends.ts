@@ -8,6 +8,8 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import { DEFAULT_BIBLE_VERSION } from "./bibleVersions";
 import { makeReferralCode } from "./users";
 import { checkMessageContent } from "./chatFilter";
+import { queuePush } from "./push";
+import { friendAcceptedNotice, friendMessageNotice, friendRequestNotice, shouldPushMessage } from "./pushCore";
 import {
   AUTO_SUSPEND_DAYS,
   AUTO_SUSPEND_REPORTERS,
@@ -472,6 +474,7 @@ export const request = mutation({
       if (existing.status === "accepted") return { status: "already_friends", friendshipId: existing._id };
       if (existing.requestedBy === user._id) return { status: "already_sent", friendshipId: existing._id };
       await acceptFriendship(ctx, existing._id, now);
+      await queuePush(ctx, other._id, friendAcceptedNotice(friendDisplayName(user.name), existing._id));
       return { status: "accepted", friendshipId: existing._id };
     }
 
@@ -490,6 +493,7 @@ export const request = mutation({
       createdAt: now,
     });
     await logRequest(ctx, user._id, other._id, now);
+    await queuePush(ctx, other._id, friendRequestNotice(friendDisplayName(user.name), friendshipId));
     return { status: "sent", friendshipId };
   },
 });
@@ -511,6 +515,7 @@ export const accept = mutation({
     const mine = await myFriendship(ctx, args.friendshipId, user._id);
     if (!mine || mine.row.status !== "pending" || mine.row.requestedBy === user._id) return { status: "not_found" };
     await acceptFriendship(ctx, mine.row._id, now);
+    await queuePush(ctx, mine.otherId, friendAcceptedNotice(friendDisplayName(user.name), mine.row._id));
     return { status: "ok" };
   },
 });
@@ -633,6 +638,7 @@ async function deliver(
     seq,
   });
   const otherId = otherSide(row, user._id)!;
+  const unreadBefore = unreadOf(row, otherId);
   // Lo que uno manda ya lo leyó (y contestar es leer): mi contador queda en
   // cero y el de la otra persona suma uno.
   await ctx.db.patch(row._id, {
@@ -645,6 +651,13 @@ async function deliver(
     [unreadField(row, otherId)]: unreadOf(row, otherId) + 1,
   });
   await bumpDailyStats(ctx, row._id, now, { messages: 1 });
+  if (shouldPushMessage({ unreadBefore, lastMessageAt: row.lastMessageAt, now })) {
+    const pushed =
+      message.kind === "verse" && message.verse
+        ? { kind: "verse" as const, label: verseLabel(message.verse) }
+        : { kind: "text" as const, text: message.text ?? "" };
+    await queuePush(ctx, otherId, friendMessageNotice(friendDisplayName(user.name), row._id, pushed));
+  }
   return id;
 }
 

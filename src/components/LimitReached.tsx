@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { QuotaModule } from "../../convex/quotas";
-import { limitBodyFor, limitTitleFor } from "../lib/limitCopy";
+import { LIMIT_TITLE, limitBodyFor } from "../lib/limitCopy";
 import { PAYMENTS_ENABLED } from "../lib/releaseConfig";
 import { Icon } from "./Icon";
 import { track } from "../lib/telemetry";
@@ -36,7 +36,7 @@ export function LimitReached({ module, variant = "screen", testID = "limit-reach
       <View style={[styles.inline, { backgroundColor: color.surfaceSunk, borderColor: color.border }]} testID={testID}>
         <View style={styles.inlineHead}>
           <Icon color={color.accent} name="clock" size="sm" />
-          <Text style={[styles.inlineTitle, { color: color.ink }]}>{limitTitleFor(module)}</Text>
+          <Text style={[styles.inlineTitle, { color: color.ink }]}>{LIMIT_TITLE}</Text>
         </View>
         <Text style={[styles.inlineBody, { color: color.inkMuted }]}>{limitBodyFor(module)}</Text>
         <Pressable
@@ -57,7 +57,7 @@ export function LimitReached({ module, variant = "screen", testID = "limit-reach
         <View style={[styles.limitIcon, { borderColor: color.borderStrong }]}>
           <Text style={[styles.limitIconMark, { color: color.accent }]}>◷</Text>
         </View>
-        <Text style={[styles.limitTitle, { color: color.ink }]}>{limitTitleFor(module)}</Text>
+        <Text style={[styles.limitTitle, { color: color.ink }]}>{LIMIT_TITLE}</Text>
         <Text style={[styles.limitBody, { color: color.inkMuted }]}>{limitBodyFor(module)}</Text>
         <Pressable
           accessibilityRole="button"

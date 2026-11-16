@@ -8,7 +8,7 @@
 
 ## 1. Resumen ejecutivo
 
-App móvil (Expo React Native, iOS + Android) que combina devocional diario, preguntas y respuestas bíblicas ancladas en texto real (RAG), chat en primera persona con personajes bíblicos humanos, y un generador de historias bíblicas ilustradas por IA. Modelo freemium: gratis con límite diario, $4.99/mes (RevenueCat/IAP) para uso ilimitado + generación de imágenes. Meta de lanzamiento: ~1,200 pagos en 8-10 semanas, construido en solitario con agentes de IA.
+App móvil (Expo React Native, iOS + Android) que combina devocional diario, preguntas y respuestas bíblicas ancladas en texto real (RAG), chat en primera persona con personajes bíblicos humanos, y un generador de historias bíblicas ilustradas por IA. Modelo freemium: gratis con límite diario, $2.99/mes (RevenueCat/IAP) para uso ilimitado + generación de imágenes. Meta de lanzamiento: ~1,200 pagos en 8-10 semanas, construido en solitario con agentes de IA.
 
 **Competencia directa nombrada:** YouVersion (gratis, ya establecida, ya incorporando IA). La app no compite en amplitud — compite en profundidad conversacional (Q&A + personajes) y en el generador visual de historias, que YouVersion no ofrece.
 
@@ -31,7 +31,7 @@ App móvil (Expo React Native, iOS + Android) que combina devocional diario, pre
 | Q&A conversacional anclado en texto | Limitado/nuevo | Núcleo del producto |
 | Chat en 1ra persona con personajes bíblicos | No | Sí (Pro, límite en free) |
 | Generador de historias ilustradas por IA | No | Sí (exclusivo Pro) |
-| Precio | Gratis | Freemium, $4.99/mes Pro |
+| Precio | Gratis | Freemium, $2.99/mes Pro |
 
 ---
 
@@ -68,7 +68,7 @@ Los 4 módulos se lanzan juntos, con recorte de complejidad dentro de cada uno p
 
 ### Free vs Pro
 
-| Feature | Gratis | Pro ($4.99/mes) |
+| Feature | Gratis | Pro ($2.99/mes) |
 |---|---|---|
 | Devocional diario (home) | Sí | Sí |
 | Q&A bíblico guiado por pasaje | 3-5 preguntas/día | Ilimitado |
@@ -148,7 +148,7 @@ Visión confirmada por el fundador, **no descartada, solo pospuesta**: grupos p�
 | Riesgo | Decisión tomada | Nota |
 |---|---|---|
 | Riesgo teológico / reputacional | Sin revisor externo, solo guías + disclaimers | Mayor exposición si el chat de personajes o el Q&A produce algo doctrinalmente ofensivo. Mitigado parcialmente por la regla dura de "solo humanos en 1ra persona". |
-| Comisión de tienda (IAP) | Aceptada a cambio de simplicidad de implementación (RevenueCat) | Reduce el ingreso neto real por debajo de $4.99 x 1,200. |
+| Comisión de tienda (IAP) | Aceptada a cambio de simplicidad de implementación (RevenueCat) | Reduce el ingreso neto real por debajo de $2.99 x 1,200. |
 | Baja penetración de tarjeta/cuenta de pago en Honduras | No resuelto — usar IAP igual en v1 | Puede limitar conversión real; monitorear tasa de fallo de pago post-lanzamiento. |
 | Alcance de 4 features completas en 8-10 semanas, un solo builder | Aceptado explícitamente por el fundador | Mayor riesgo de calendario; recortado ya a lo esencial dentro de cada feature (sin video, sin multi-denominación, sin revisor externo) para intentar caber en el plazo. |
 | Licencia de RVR1960 / NVI | Pendiente de verificar; la beta arranca con RV1909 | RV1909 es de dominio público y evita el bloqueo. Habilitar otra versión = ingerir corpus + agregarla a `convex/bibleVersions.ts`. |

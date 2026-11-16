@@ -22,6 +22,7 @@ const modules = {
   "./bibleVersions.ts": () => import("./bibleVersions"),
   "./voicesCatalog.ts": () => import("./voicesCatalog"),
   "./friends.ts": () => import("./friends"),
+  "./push.ts": () => import("./push"),
 };
 
 function asUser(t: ReturnType<typeof convexTest>, clerkId: string, email?: string) {
@@ -333,6 +334,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       userReportPairs: 0,
       friendRequestEvents: 0,
       friendRates: 0,
+      pushTokens: 0,
       users: 1,
     });
 
@@ -719,6 +721,7 @@ describe("users.deleteAccount — borrado en cascada tabla por tabla", () => {
       userReportPairs: 0,
       friendRequestEvents: 0,
       friendRates: 0,
+      pushTokens: 0,
       users: 0,
     });
     const after = await tableDump(t);

@@ -5,12 +5,19 @@ export function scenario() {
   return value || "free";
 }
 
+// Compra simulada del modo de prueba (EXPO_PUBLIC_PAYMENTS_MODE=test): vive
+// en memoria hasta recargar la página.
+let testPro = false;
+export function grantTestPro() {
+  testPro = true;
+}
+
 export function isPro() {
-  return scenario() === "pro";
+  return scenario() === "pro" || testPro;
 }
 
 export function atLimit() {
-  return scenario() === "limit";
+  return scenario() === "limit" && !testPro;
 }
 
 export function isLoading() {

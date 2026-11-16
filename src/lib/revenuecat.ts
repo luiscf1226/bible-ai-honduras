@@ -15,7 +15,7 @@
  * Expo Go y web no completan una compra real. Hace falta un development build.
  */
 
-import { PAYMENTS_ENABLED } from "./releaseConfig";
+import { paymentsMode, PRO_MONTHLY_PRICE_USD } from "./releaseConfig";
 
 export const REVENUECAT_PRODUCT = {
   entitlementId: "pro",
@@ -94,14 +94,20 @@ export function resetRevenueCatForTests(): void {
 }
 
 /**
- * Beta sin RevenueCat (#93): sin la key pública no hay compra posible.
- * La UI debe *ocultar* el CTA, no dejarlo romper — Apple rechaza builds que
+ * Compra real por RevenueCat: solo en modo `revenuecat` y con la key pública.
+ * Sin eso la UI *oculta* el CTA, no lo deja romper — Apple rechaza builds que
  * muestran precio sin IAP funcional. `isPro` lo sigue mandando Convex
  * `entitlements.mine`, así que un Pro otorgado a mano funciona igual.
  */
 export function purchasesConfigured(): boolean {
-  return PAYMENTS_ENABLED && Boolean(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY);
+  return paymentsMode() === "revenuecat" && Boolean(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY);
 }
+
+/** Oferta de la compra simulada (modo `test`): nunca llega a una tienda. */
+export const TEST_MODE_OFFER: MonthlyOffer = {
+  priceString: `US$${PRO_MONTHLY_PRICE_USD.toFixed(2)}`,
+  title: "Bible AI Honduras Pro (prueba)",
+};
 
 function publicApiKey(): string {
   const key = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
@@ -253,6 +259,9 @@ function offerFrom(monthly: RevenueCatPackage | null | undefined): MonthlyOffer 
  * escrito a mano que no coincide con el de la tienda.
  */
 export async function getMonthlyOffer(clerkUserId?: string): Promise<MonthlyOfferResult> {
+  if (paymentsMode() === "test") {
+    return { ok: true, offer: TEST_MODE_OFFER };
+  }
   if (!purchasesConfigured()) {
     return { ok: false, reason: "not_configured" };
   }
