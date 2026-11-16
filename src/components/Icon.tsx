@@ -108,6 +108,14 @@ export const ICONS = {
     { kind: "rect", x: 5, y: 3.5, width: 14, height: 17, rx: 2 },
     path("M9 3.5v17M11.5 8.5h4M11.5 12h4M11.5 15.5h2.5"),
   ],
+  // Amigos (1.0.3): dos personas, reportar (bandera) y bloquear (círculo tachado).
+  friends: [
+    { kind: "circle", cx: 9, cy: 8.5, r: 3 },
+    path("M3.5 19.5a5.5 5.5 0 0 1 11 0"),
+    path("M15 5.8a3 3 0 0 1 0 5.4M17 14.2a5.5 5.5 0 0 1 3.5 5.3"),
+  ],
+  flag: [path("M5.5 21V4.5"), path("M5.5 4.5h11.5l-2.5 4 2.5 4H5.5")],
+  block: [{ kind: "circle", cx: 12, cy: 12, r: 8.5 }, path("M6 6l12 12")],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof ICONS;

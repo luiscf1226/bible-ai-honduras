@@ -1,8 +1,8 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { internal } from "./_generated/api";
-import { MANIFEST, hondurasDayWindow, streakBucket } from "./adminAdapter";
+import { api, components, internal } from "./_generated/api";
+import { MANIFEST, hondurasDayWindow, limitHits, streakBucket } from "./adminAdapter";
 import adminKitSchema from "./adminKit/schema";
 import schema from "./schema";
 
@@ -10,8 +10,11 @@ const modules = {
   "./_generated/api.js": () => import("./_generated/api"),
   "./adminAdapter.ts": () => import("./adminAdapter"),
   "./users.ts": () => import("./users"),
+  "./friends.ts": () => import("./friends"),
+  "./push.ts": () => import("./push"),
   "./entitlements.ts": () => import("./entitlements"),
   "./http.ts": () => import("./http"),
+  "./monetization.ts": () => import("./monetization"),
 };
 const adminKitModules = import.meta.glob(["./adminKit/**/*.ts", "!./adminKit/**/*.test.ts"]);
 
@@ -80,6 +83,12 @@ async function seed(t: ReturnType<typeof setup>) {
       longestStreak: 8,
       lastActivityAt: NOON,
     });
+    // Amigos: todo sale de los contadores del día, no de las tablas (que ya
+    // se pudieron borrar). Una fila vieja sin los campos nuevos cuenta cero.
+    await ctx.db.insert("friendDailyStats", { day: DAY, shard: 0, messages: 2, accepted: 1, ended: 1, reports: { estafa: 1 }, blocks: 1 });
+    await ctx.db.insert("friendDailyStats", { day: DAY, shard: 5, messages: 3 });
+    await ctx.db.insert("friendDailyStats", { day: "2026-09-30", shard: 0, messages: 40, accepted: 2 });
+    await ctx.db.insert("friendDailyStats", { day: "2026-10-02", shard: 0, messages: 7, accepted: 5 });
   });
   await kit(t, async (ctx) => {
     await ctx.db.insert("events", { installId: "tel-aaaa", name: "app_opened", platform: "ios", at: NOON });
@@ -152,9 +161,107 @@ describe("adminAdapter (#235)", () => {
     expect(value("std.active_7d")).toBe(2);
     expect(value("std.ai_cost_usd", "qa")).toBeCloseTo(0.004);
     expect(value("std.ai_outcomes", "voices.refused")).toBe(2);
+    expect(value("friends.total")).toBe(2);
+    expect(value("friends.messages_new")).toBe(5);
+    expect(value("friends.reports_new", "estafa")).toBe(1);
+    expect(value("friends.blocks_new")).toBe(1);
 
     // Toda métrica que produce el rollup está en el manifiesto.
     expect([...new Set(rows.map((row) => row.key))].filter((key) => !(key in MANIFEST.metrics))).toEqual([]);
+  });
+
+  it("freemium: activos por cuenta, quién chocó con el límite y conversión a Pro", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const t = setup();
+    vi.setSystemTime(NOON - 40 * 24 * HOUR);
+    const user = (clerkId: string, activeDays: string[], lastLimitHitDay?: string) =>
+      t.run((ctx) =>
+        ctx.db.insert("users", { clerkId, bibleVersion: "RV1909", referralCode: clerkId, activeDays, ...(lastLimitHitDay ? { lastLimitHitDay } : {}) }),
+      );
+    // `hoy` llegó al límite en Preguntar y en Voces; `semana` hace 5 días y después compró Pro hoy.
+    const hoy = await user("hoy", ["2026-09-20", DAY], DAY);
+    const semana = await user("semana", ["2026-09-26"], "2026-09-26");
+    const mes = await user("mes", ["2026-09-02"]);
+    await user("viejo", ["2026-08-15"], "2026-08-15");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("usage", { userId: hoy, module: "qa", day: DAY, count: 5, limitHit: true });
+      await ctx.db.insert("usage", { userId: hoy, module: "voices", day: DAY, count: 10, limitHit: true });
+      await ctx.db.insert("usage", { userId: semana, module: "stories", day: "2026-09-26", count: 1, limitHit: true });
+      await ctx.db.insert("usage", { userId: mes, module: "qa", day: DAY, count: 2 });
+      await ctx.db.insert("entitlements", { userId: semana, isPro: true, source: "test_mode", updatedAt: NOON, firstProAt: NOON });
+    });
+
+    await t.mutation(internal.adminAdapter.rollupDay, { day: DAY });
+    const rows = await t.run((ctx) => ctx.runQuery(components.adminKit.metrics.read, { from: DAY, to: DAY, keys: [] }));
+    const value = (key: string, dim?: string) => rows.find((row: { key: string; dim?: string; value: number }) => row.key === key && row.dim === dim)?.value;
+
+    expect([value("users.active_1d"), value("users.active_7d"), value("users.active_30d")]).toEqual([1, 2, 3]);
+    expect(value("quota.limit_hit")).toBe(1);
+    expect(value("quota.limit_hit", "qa")).toBe(1);
+    expect(value("quota.limit_hit", "voices")).toBe(1);
+    expect(value("quota.usage", "qa")).toBe(7);
+    expect(value("pro.new")).toBe(1);
+    expect(value("pro.conversion_after_limit")).toBe(50);
+
+    const report = await t.query(internal.monetization.report, { days: 1 });
+    expect(report).toEqual([]);
+    vi.setSystemTime(NOON);
+    const [today] = await t.query(internal.monetization.report, { days: 1 });
+    expect(today).toMatchObject({
+      day: DAY,
+      "users.active_1d": 1,
+      "users.active_30d": 3,
+      "quota.limit_hit": 1,
+      "quota.limit_hit.by": { qa: 1, voices: 1 },
+      "pro.new": 1,
+    });
+  });
+
+  it("limitHits cuenta cuentas distintas en el total", () => {
+    const result = limitHits([
+      { userId: "a", module: "qa", limitHit: true },
+      { userId: "a", module: "voices", limitHit: true },
+      { userId: "b", module: "qa", limitHit: false },
+      { userId: "c", module: "stories" },
+    ]);
+    expect(result.accounts).toBe(1);
+    expect(Object.fromEntries(result.byModule)).toEqual({ qa: 1, voices: 1 });
+  });
+
+  it("Amigos en el dashboard: las amistades de un día no cambian cuando después terminan, y reportes y bloqueos quedan", async () => {
+    vi.useFakeTimers();
+    const t = setup();
+    const person = async (clerkId: string, name: string) => {
+      const client = t.withIdentity({ subject: clerkId, issuer: "https://example-dev.clerk.accounts.dev", name });
+      await client.mutation(api.users.upsert, {});
+      await client.mutation(api.friends.acceptRules, {});
+      return client;
+    };
+    // Ayer: Ana y Beto se hacen amigos y se escriben.
+    vi.setSystemTime(NOON - 24 * HOUR);
+    const ana = await person("ana", "Ana");
+    const beto = await person("beto", "Beto");
+    const sent = await ana.mutation(api.friends.request, { code: (await beto.query(api.users.current, {}))!.referralCode });
+    await beto.mutation(api.friends.accept, { friendshipId: sent.friendshipId! });
+    await beto.mutation(api.friends.sendText, { friendshipId: sent.friendshipId!, text: "hola" });
+    // Hoy: Ana lo reporta y lo bloquea (la amistad y el chat se borran).
+    vi.setSystemTime(NOON);
+    await ana.mutation(api.friends.report, { friendshipId: sent.friendshipId!, reason: "ofensivo", alsoBlock: true });
+
+    const rows = async (day: string) => {
+      await t.mutation(internal.adminAdapter.rollupDay, { day });
+      const response = await get(`/admin/metrics?from=${day}&to=${day}`, t);
+      const body = (await response.json()) as { rows: Array<{ key: string; dim?: string; value: number }> };
+      return (key: string, dim?: string) => body.rows.find((row) => row.key === key && row.dim === dim)?.value;
+    };
+    const yesterday = await rows("2026-09-30");
+    expect(yesterday("friends.total")).toBe(1);
+    expect(yesterday("friends.messages_new")).toBe(1);
+    const today = await rows(DAY);
+    expect(today("friends.total")).toBe(0);
+    expect(today("friends.reports_new", "ofensivo")).toBe(1);
+    expect(today("friends.blocks_new")).toBe(1);
+    expect(today("friends.messages_new")).toBe(0);
   });
 
   it("/admin/manifest pide token y devuelve el de Bible AI", async () => {

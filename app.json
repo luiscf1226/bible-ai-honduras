@@ -1,15 +1,23 @@
 {
   "expo": {
-    "name": "3C",
+    "name": "Bible AI Honduras",
     "slug": "bible-ai-honduras",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "bibleai",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/28bbe778-9ec7-4940-92a3-c1ff62b0a419",
+      "fallbackToCacheTimeout": 0
+    },
     "plugins": [
       "expo-router",
       "./plugins/withWorkRuntimeKtx",
+      "./plugins/withDisplayName",
       "expo-font",
       "expo-notifications",
       [
@@ -17,6 +25,10 @@
         {
           "ios": {
             "deploymentTarget": "17.0"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
@@ -110,14 +122,6 @@
         {
           "faceIDPermission": "Usamos Face ID para proteger Mi espacio y Sentir cuando vos lo encendés en Ajustes."
         }
-      ],
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "La app no graba audio. iOS pide este aviso porque la librería que reproduce la voz de los versículos también sabe grabar.",
-          "recordAudioAndroid": false,
-          "enableBackgroundPlayback": false
-        }
       ]
     ],
     "experiments": {
@@ -132,6 +136,7 @@
     },
     "android": {
       "package": "com.bibleaihonduras.app",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

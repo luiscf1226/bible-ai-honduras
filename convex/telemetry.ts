@@ -51,17 +51,20 @@ export const TELEMETRY_EVENTS = [
   // título, el predicador, los pasajes ni lo escrito.
   "sermon_note_created",
   "sermon_note_shared",
-  // Feed de versículos: solo que se abrió / que se dio ♥. Nunca la cita.
+  // Feed de versículos: solo que se abrió / que se dio ♥ (a un versículo o a un
+  // reel de historia o personaje). Nunca la cita ni cuál.
   "verse_feed_opened",
   "verse_feed_liked",
+  "verse_feed_reel_liked",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 
 /**
  * De dónde salió un `share_completed` cuando importa distinguirlo (#202:
- * "Dedicar"). Lista cerrada, como los nombres: nunca el texto compartido.
+ * "Dedicar"; "Crear imagen" del versículo). Lista cerrada, como los nombres:
+ * nunca el texto compartido.
  */
-export const SHARE_ORIGINS = ["dedicated"] as const;
+export const SHARE_ORIGINS = ["dedicated", "verse_image"] as const;
 export type ShareOrigin = (typeof SHARE_ORIGINS)[number];
 export const shareOrigin = v.union(...SHARE_ORIGINS.map((origin) => v.literal(origin)));
 
@@ -72,7 +75,13 @@ const ERROR_STACK_MAX = 2000;
 const BUILD_MAX = 16;
 
 const eventName = v.union(...TELEMETRY_EVENTS.map((name) => v.literal(name)));
-const telemetryModule = v.union(v.literal("qa"), v.literal("voices"), v.literal("feelings"), v.literal("stories"));
+const telemetryModule = v.union(
+  v.literal("qa"),
+  v.literal("voices"),
+  v.literal("feelings"),
+  v.literal("stories"),
+  v.literal("verseImage"),
+);
 const platform = v.union(v.literal("ios"), v.literal("android"), v.literal("web"));
 
 /** UUID v4 o cualquier id corto alfanumérico: lo que no calza se descarta. */

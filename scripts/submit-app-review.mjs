@@ -4,11 +4,12 @@
 //
 // Pasos: espera a que Apple termine de procesar el build, crea (o reutiliza) la
 // versión de App Store, le asigna el build, completa "Novedades" y los datos de
-// revisión si faltan, y la manda a revisión. El lanzamiento queda MANUAL: una
-// versión aprobada no se publica sola.
+// revisión si faltan, alinea la clasificación de edad con lo que la app hace,
+// y la manda a revisión. El lanzamiento queda MANUAL salvo que LANZAR_AL_APROBAR=1:
+// entonces Apple la publica sola apenas la aprueba.
 //
 // Variables: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (contenido del .p8),
-// opcionales NOVEDADES y BUILD_NUMBER. Con DRY_RUN=1 solo informa.
+// opcionales NOVEDADES, BUILD_NUMBER y LANZAR_AL_APROBAR. Con DRY_RUN=1 solo informa.
 
 import { createPrivateKey, sign } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -28,6 +29,10 @@ const POLL_MS = 60 * 1000;
 const version = JSON.parse(readFileSync(new URL("../app.json", import.meta.url), "utf8")).expo.version;
 const buildNumber = process.env.BUILD_NUMBER?.trim() || null;
 const dryRun = process.env.DRY_RUN === "1";
+const releaseType = process.env.LANZAR_AL_APROBAR === "1" ? "AFTER_APPROVAL" : "MANUAL";
+// Desde la 1.0.3 hay chat 1 a 1 entre amigos (mensajes que escriben los usuarios,
+// con reportar y bloquear). No hay perfiles públicos ni feed de publicaciones.
+const AGE_RATING = { messagingAndChat: true, userGeneratedContent: true, socialMedia: false };
 const whatsNew =
   process.env.NOVEDADES?.trim() || "Mejoras de estabilidad y correcciones para tu lectura diaria.";
 
@@ -112,7 +117,7 @@ async function findOrCreateVersion(all) {
   const { data } = await api("POST", "/v1/appStoreVersions", {
     data: {
       type: "appStoreVersions",
-      attributes: { platform: "IOS", versionString: version, releaseType: "MANUAL" },
+      attributes: { platform: "IOS", versionString: version, releaseType },
       relationships: { app: { data: { type: "apps", id: APP_ID } } },
     },
   });
@@ -151,6 +156,21 @@ async function setWhatsNew(target, all) {
       data: { type: "appStoreVersionLocalizations", id: localization.id, attributes: { whatsNew } },
     });
   }
+}
+
+async function syncAgeRating() {
+  const { data: infos } = await api("GET", `/v1/apps/${APP_ID}/appInfos`);
+  const editable = infos.find((info) => info.attributes.state !== "READY_FOR_DISTRIBUTION") ?? infos[0];
+  const { data: declaration } = await api("GET", `/v1/appInfos/${editable.id}/ageRatingDeclaration`);
+  const changes = Object.fromEntries(
+    Object.entries(AGE_RATING).filter(([field, value]) => declaration.attributes[field] !== value),
+  );
+  if (Object.keys(changes).length === 0) return;
+  console.log(`Clasificación de edad: ${JSON.stringify(changes)}`);
+  if (dryRun) return;
+  await api("PATCH", `/v1/ageRatingDeclarations/${declaration.id}`, {
+    data: { type: "ageRatingDeclarations", id: declaration.id, attributes: changes },
+  });
 }
 
 async function submit(target) {
@@ -232,6 +252,12 @@ const alreadySubmitted = all.find((item) => item.attributes.versionString === ve
 if (alreadySubmitted) {
   const { data: assignedBuild } = await api("GET", `/v1/appStoreVersions/${alreadySubmitted.id}/build`);
   if (assignedBuild?.id !== build.id) throw new Error("La versión ya está en revisión con otro build; no se modificará.");
+  if (alreadySubmitted.attributes.releaseType !== releaseType) {
+    console.log(
+      `::warning::La versión ya está en revisión con lanzamiento ${alreadySubmitted.attributes.releaseType}; ` +
+        `no se cambia a ${releaseType}. Cambialo en App Store Connect si hace falta.`,
+    );
+  }
   console.log(`Estado confirmado: ${alreadySubmitted.attributes.appStoreState}.`);
   console.log(`Versión ${version} (build ${build.attributes.version}) ya enviada a App Review.`);
   process.exit(0);
@@ -240,7 +266,7 @@ const target = await findOrCreateVersion(all);
 if (target) {
   if (!dryRun) {
     await api("PATCH", `/v1/appStoreVersions/${target.id}`, {
-      data: { type: "appStoreVersions", id: target.id, attributes: { releaseType: "MANUAL" } },
+      data: { type: "appStoreVersions", id: target.id, attributes: { releaseType } },
     });
     await api("PATCH", `/v1/appStoreVersions/${target.id}/relationships/build`, {
       data: { type: "builds", id: build.id },
@@ -248,6 +274,8 @@ if (target) {
   }
   await setWhatsNew(target, all);
   await ensureReviewDetail(target, all);
+  await syncAgeRating();
+  console.log(`Lanzamiento: ${releaseType}.`);
   await submit(target);
 }
 console.log(dryRun ? "DRY_RUN terminado." : `Versión ${version} (build ${build.attributes.version}) enviada a App Review.`);

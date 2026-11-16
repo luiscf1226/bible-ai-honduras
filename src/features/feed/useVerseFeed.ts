@@ -4,13 +4,29 @@ import { Image } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import { track } from "../../lib/telemetry";
-import { FEED_PREFETCH_AHEAD, newFeedSeed, nextSeenRefs, setLikeLocally, settleLike, type FeedItem } from "./feedLogic";
+import {
+  entryImageUrls,
+  FEED_PREFETCH_AHEAD,
+  isReel,
+  newFeedSeed,
+  nextSeenRefs,
+  setLikeLocally,
+  settleLike,
+  type FeedEntry,
+  type FeedMode,
+} from "./feedLogic";
 
 /** Si una página falla con versículos ya en pantalla, se reintenta sola después de esto. */
 const RETRY_MS = 3000;
 
+/** Todas las partes de un reel: el fundido entre partes no tiene que esperar la red. */
+function prefetchImages(entry: FeedEntry) {
+  for (const url of entryImageUrls(entry)) void Image.prefetch(url).catch(() => undefined);
+}
+
 export type VerseFeedState = {
-  items: FeedItem[];
+  /** Versículos, y entre ellos historias contadas y personajes (§Reels del feed). */
+  items: FeedEntry[];
   status: "loading" | "ready" | "error";
   /** Se llama cuando cambia la pantalla visible: pide más antes de llegar al final. */
   onVisible: (index: number) => void;
@@ -22,20 +38,28 @@ export type VerseFeedState = {
 /**
  * Feed de versículos: páginas imperativas (no una suscripción) porque cada
  * página depende de lo ya visto. La semilla es una por apertura, así cada vez
- * que se entra el orden es otro. Las fotos de la próxima página se precargan
- * para que el swipe no muestre el fondo vacío.
+ * que se entra el orden es otro. La foto de la pantalla siguiente (todas las
+ * partes, si es un reel) se precarga para que el swipe no muestre el fondo vacío.
  *
  * Lo visto en la vuelta y el largo de la lista viven en refs que se actualizan
  * apenas llega la página (no en el próximo render): si no, un `onVisible` en el
  * medio pediría la misma página otra vez.
+ *
+ * Cada modo (las pestañas de arriba) tiene su propia semilla y su propio
+ * "visto": al volver a una pestaña la lista arranca de nuevo arriba, pero con
+ * lo que no se vio todavía en ese modo.
  */
-export function useVerseFeed(): VerseFeedState {
+export function useVerseFeed(mode: FeedMode): VerseFeedState {
   const convex = useConvex();
   const saveLike = useMutation(api.verseFeed.setLike);
-  const [items, setItems] = useState<FeedItem[]>([]);
+  const [items, setItems] = useState<FeedEntry[]>([]);
   const [status, setStatus] = useState<VerseFeedState["status"]>("loading");
-  const seed = useRef(newFeedSeed());
-  const seen = useRef<string[]>([]);
+  const seeds = useRef(new Map<FeedMode, number>());
+  const seenByMode = useRef(new Map<FeedMode, string[]>());
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  // Sube con cada cambio de modo: la respuesta de un pedido del modo anterior se descarta.
+  const generation = useRef(0);
   const count = useRef(0);
   const loading = useRef(false);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,35 +84,45 @@ export function useVerseFeed(): VerseFeedState {
     loading.current = true;
     if (retryTimer.current) clearTimeout(retryTimer.current);
     retryTimer.current = null;
+    const requested = modeRef.current;
+    const ticket = generation.current;
+    const stale = () => !mounted.current || ticket !== generation.current;
+    if (!seeds.current.has(requested)) seeds.current.set(requested, newFeedSeed());
+    const seen = seenByMode.current.get(requested) ?? [];
     try {
       const {
         items: page,
         newRound,
         skipped,
       } = await convex.query(api.verseFeed.page, {
-        seen: seen.current,
-        seed: seed.current,
+        seen,
+        seed: seeds.current.get(requested)!,
+        mode: requested,
       });
-      if (!mounted.current) return;
+      if (stale()) return;
       // Lo que no tenía texto también cuenta como visto: el próximo pedido ya no lo ofrece.
-      seen.current = nextSeenRefs(seen.current, [...skipped, ...page.map((item) => item.ref)], newRound);
+      seenByMode.current.set(
+        requested,
+        nextSeenRefs(seenByMode.current.get(requested) ?? [], [...skipped, ...page.map((item) => item.ref)], newRound),
+      );
       if (page.length === 0) {
         if (count.current === 0) setStatus("error");
         else scheduleRetry();
         return;
       }
+      // Las dos primeras pantallas ya; las demás, de a una cuando la anterior queda a la vista (`onVisible`).
+      if (count.current === 0) page.slice(0, 2).forEach(prefetchImages);
       count.current += page.length;
-      for (const item of page) void Image.prefetch(item.imageUrl).catch(() => undefined);
       setItems((current) => [...current, ...page]);
       setStatus("ready");
     } catch {
-      if (!mounted.current) return;
+      if (stale()) return;
       // Sin nada que mostrar es error (con botón para reintentar); con versículos ya
       // cargados, se reintenta solo para que el final de la lista no quede trabado.
       if (count.current === 0) setStatus("error");
       else scheduleRetry();
     } finally {
-      loading.current = false;
+      if (ticket === generation.current) loading.current = false;
     }
   }, [convex]);
   const loadMoreRef = useRef(loadMore);
@@ -97,15 +131,27 @@ export function useVerseFeed(): VerseFeedState {
   useEffect(() => {
     mounted.current = true;
     track("verse_feed_opened");
-    void loadMore();
     return () => {
       mounted.current = false;
       if (retryTimer.current) clearTimeout(retryTimer.current);
     };
-  }, [loadMore]);
+  }, []);
+
+  // Otro modo: la lista arranca vacía y pide su primera página (el pedido en vuelo del anterior se descarta).
+  useEffect(() => {
+    generation.current += 1;
+    loading.current = false;
+    count.current = 0;
+    if (retryTimer.current) clearTimeout(retryTimer.current);
+    setItems([]);
+    setStatus("loading");
+    void loadMore();
+  }, [loadMore, mode]);
 
   const onVisible = useCallback(
     (index: number) => {
+      const next = itemsRef.current[index + 1];
+      if (next) prefetchImages(next);
       if (index >= count.current - FEED_PREFETCH_AHEAD) void loadMore();
     },
     [loadMore],
@@ -124,7 +170,7 @@ export function useVerseFeed(): VerseFeedState {
       const request = (likeRequests.current.get(ref) ?? 0) + 1;
       likeRequests.current.set(ref, request);
       setItems((current) => setLikeLocally(current, ref, liked));
-      if (liked) track("verse_feed_liked");
+      if (liked) track(isReel(item) ? "verse_feed_reel_liked" : "verse_feed_liked");
       const isLatest = () => likeRequests.current.get(ref) === request;
       // Cuando el último pedido termina, la lista vuelve a mandar (sin estado pedido ni confirmado colgando).
       const settle = (state: { liked: boolean; likes: number }) => {

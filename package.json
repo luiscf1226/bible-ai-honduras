@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit && tsc -p convex --noEmit",
     "export": "expo export --platform all",
+    "export:web": "bash scripts/export-web.sh",
     "test": "vitest run",
     "convex:dev": "convex dev",
     "convex:once": "convex dev --once",
@@ -17,6 +18,15 @@
     "rag:evaluate": "node scripts/evaluate-rag-retrieval.mjs",
     "spike:images": "node scripts/benchmark-image-providers.mjs",
     "build:local": "bash scripts/build-local.sh"
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "react-native-reanimated",
+        "react-native-gesture-handler",
+        "@solana-mobile/mobile-wallet-adapter-protocol"
+      ]
+    }
   },
   "dependencies": {
     "@clerk/expo": "^4.5.0",
@@ -27,7 +37,6 @@
     "convex": "^1.44.0",
     "expo": "~57.0.14",
     "expo-application": "~57.0.2",
-    "expo-audio": "~57.0.5",
     "expo-auth-session": "~57.0.7",
     "expo-build-properties": "~57.0.17",
     "expo-constants": "~57.0.12",
@@ -44,6 +53,7 @@
     "expo-sharing": "~57.0.22",
     "expo-speech": "~57.0.3",
     "expo-splash-screen": "~57.0.9",
+    "expo-updates": "~57.0.27",
     "expo-web-browser": "^57.0.2",
     "expo-widgets": "~57.0.22",
     "react": "19.2.3",

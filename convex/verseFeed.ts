@@ -4,9 +4,29 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { resolveBibleVersion } from "./bibleVersions";
-import { feedAudioUrl, feedImageUrl } from "./verseFeedMedia";
+import {
+  feedReel,
+  isReelRef,
+  rankReels,
+  REEL_POOL,
+  reelPool,
+  reelsNewRound,
+  type FeedReel,
+  type FeedReelKind,
+} from "./feedReelsCore";
+import { feedAudioUrl, feedImageUrl, REEL_AUDIO_VERSION } from "./verseFeedMedia";
 import { feedPassageText, spokenText, textHash } from "./verseFeedText";
-import { FEED_PAGE_SIZE, FEED_POOL, FEED_SEEN_MAX, FEED_TOPIC_NAMES, feedPassage, rankFeedPage } from "./verseFeedCore";
+import {
+  FEED_PAGE_SIZE,
+  FEED_POOL,
+  FEED_SEEN_MAX,
+  FEED_TOPIC_NAMES,
+  feedPagePlan,
+  feedPassage,
+  feedPreviewPassage,
+  rankFeedPage,
+} from "./verseFeedCore";
+import { FEED_MODES } from "./verseFeedLimits";
 
 /**
  * Feed de versículos (design/oleada-ux.md §Feed de versículos). El orden y el
@@ -19,6 +39,7 @@ const COMMUNITY_TOP = 60;
 const LIKES_FOR_AFFINITY = 200;
 
 export type FeedItem = {
+  kind: "verse";
   /** Id de la cita en el catálogo (lo que guarda el ♥). Para mostrar, la cita sale de book/chapter/verse/endVerse. */
   ref: string;
   book: string;
@@ -37,6 +58,33 @@ export type FeedItem = {
   likes: number;
   liked: boolean;
 };
+
+/** Una escena de un reel, lista para mostrar: su texto, su cita, su fondo y su voz. */
+export type FeedReelSceneItem = {
+  text: string;
+  reference: string;
+  book: string;
+  chapter: number;
+  verse: number | null;
+  imageUrl: string;
+  imageAlt: string;
+  /** Voz de la escena, o null si todavía no se generó (la escena avanza con el tiempo de lectura). */
+  audioUrl: string | null;
+};
+
+/** Historia contada o personaje en 1ra persona (design/oleada-ux.md §Reels del feed). */
+export type FeedReelItem = {
+  kind: FeedReelKind;
+  ref: string;
+  title: string;
+  subtitle: string;
+  voiceSlug: string | null;
+  scenes: FeedReelSceneItem[];
+  likes: number;
+  liked: boolean;
+};
+
+export type FeedEntry = FeedItem | FeedReelItem;
 
 async function currentUser(ctx: QueryCtx): Promise<Doc<"users"> | null> {
   const identity = await ctx.auth.getUserIdentity();
@@ -64,7 +112,7 @@ async function hasLiked(ctx: QueryCtx, userId: Id<"users">, ref: string): Promis
 }
 
 export type FeedPage = {
-  items: FeedItem[];
+  items: FeedEntry[];
   /**
    * Ya se había visto todo el catálogo y esta página empieza otra vuelta: el
    * cliente reinicia su lista de vistos (dejando las últimas, para no repetirlas).
@@ -78,42 +126,103 @@ export type FeedPage = {
   skipped: string[];
 };
 
+async function reelItem(ctx: QueryCtx, reel: FeedReel, likes: number, liked: boolean): Promise<FeedReelItem> {
+  const scenes: FeedReelSceneItem[] = [];
+  for (const [index, scene] of reel.scenes.entries()) {
+    const aiImage = await feedImageUrl(ctx, scene.mediaRef);
+    scenes.push({
+      text: scene.text,
+      reference: scene.reference,
+      book: scene.book,
+      chapter: scene.chapter,
+      verse: scene.verse,
+      ...(aiImage
+        ? { imageUrl: aiImage, imageAlt: `Ilustración de ${reel.title}, parte ${index + 1}` }
+        : { imageUrl: reel.fallbackImageUrl, imageAlt: reel.fallbackImageAlt }),
+      // Solo si la voz guardada leyó exactamente este texto (el catálogo puede corregirse).
+      audioUrl: await feedAudioUrl(ctx, scene.mediaRef, REEL_AUDIO_VERSION, textHash(scene.text)),
+    });
+  }
+  return {
+    kind: reel.kind,
+    ref: reel.ref,
+    title: reel.title,
+    subtitle: reel.subtitle,
+    voiceSlug: reel.voiceSlug,
+    scenes,
+    likes,
+    liked,
+  };
+}
+
 /**
  * La próxima página del feed. El cliente manda lo que ya vio en esta vuelta y
  * una semilla por sesión: así cada página es una consulta determinística y el
  * feed no se repite. Sin sesión también anda, solo que sin ♥ propios.
+ *
+ * `mode` es la pestaña de arriba (`feedPagePlan`): "para-ti" mezcla
+ * versículos con historias y personajes (dos de cada ocho lugares,
+ * `FEED_REEL_SLOTS`), "versiculos" trae solo versículos y "historias" /
+ * "personajes" solo reels de ese tipo. Sin modo manda `withReels`, como
+ * antes: las versiones de la app que ya están en la tienda no cambian.
  */
 export const page = query({
-  args: { seen: v.array(v.string()), seed: v.number() },
+  args: {
+    seen: v.array(v.string()),
+    seed: v.number(),
+    withReels: v.optional(v.boolean()),
+    mode: v.optional(v.union(...FEED_MODES.map((mode) => v.literal(mode)))),
+  },
   handler: async (ctx, args): Promise<FeedPage> => {
     const seenRefs = args.seen.slice(-FEED_SEEN_MAX);
+    const plan = feedPagePlan(args.mode, args.withReels === true);
     const user = await currentUser(ctx);
     const likedRows = user
       ? await ctx.db
           .query("verseFeedLikes")
           .withIndex("by_user", (q) => q.eq("userId", user._id))
           .order("desc")
-          .take(LIKES_FOR_AFFINITY)
+          .take(LIKES_FOR_AFFINITY + REEL_POOL.length)
       : [];
-    const likedRefs = likedRows.map((row) => row.ref);
-    const top = await ctx.db.query("verseFeedStats").withIndex("by_likes").order("desc").take(COMMUNITY_TOP);
-    const communityLikes = new Map(top.map((row) => [row.ref, row.likes]));
+    // Los ♥ de reels y de versículos se ordenan por separado: un reel muy querido no le quita
+    // lugar a los versículos de la comunidad ni achica su escala (y al revés).
+    const likedRefs = likedRows
+      .map((row) => row.ref)
+      .filter((ref) => !isReelRef(ref))
+      .slice(0, LIKES_FOR_AFFINITY);
+    const likedReelRefs = likedRows.map((row) => row.ref).filter(isReelRef);
+    const top = await ctx.db
+      .query("verseFeedStats")
+      .withIndex("by_likes")
+      .order("desc")
+      .take(COMMUNITY_TOP + REEL_POOL.length);
+    const communityLikes = new Map(
+      top
+        .filter((row) => !isReelRef(row.ref))
+        .slice(0, COMMUNITY_TOP)
+        .map((row) => [row.ref, row.likes]),
+    );
+    const reelLikes = new Map(top.filter((row) => isReelRef(row.ref)).map((row) => [row.ref, row.likes]));
 
+    const pool = reelPool(plan.reelKind);
     // Se ordenan de más por si alguna cita no está en la Biblia cargada: la página igual sale llena.
-    const { newRound, passages } = rankFeedPage({
-      communityLikes,
-      likedRefs,
-      pool: FEED_POOL,
-      seed: args.seed,
-      seenRefs,
-      size: FEED_PAGE_SIZE * 2,
-    });
+    const { newRound, passages } =
+      plan.verses > 0
+        ? rankFeedPage({
+            communityLikes,
+            likedRefs,
+            pool: FEED_POOL,
+            seed: args.seed,
+            seenRefs,
+            size: FEED_PAGE_SIZE * 2,
+          })
+        : { newRound: reelsNewRound(pool, seenRefs, plan.reelSlots.length), passages: [] };
     // #93 §4b: una preferencia sin corpus (NVI) degrada a RVR1960.
     const version = resolveBibleVersion(user?.bibleVersion);
     const items: FeedItem[] = [];
     const skipped: string[] = [];
     for (const passage of passages) {
-      if (items.length === FEED_PAGE_SIZE) break;
+      if (items.length === plan.verses) break;
       const fitted = await feedPassageText(ctx, passage, version);
       // Una cita que no está en la Biblia cargada (o no entra en la pantalla) no se muestra:
       // nunca texto inventado ni cortado (regla dura #4).
@@ -128,6 +237,7 @@ export const page = query({
           ? `${passage.book} ${passage.chapter}:${passage.verse}`
           : `${passage.book} ${passage.chapter}:${passage.verse}-${fitted.endVerse}`;
       items.push({
+        kind: "verse",
         ref: passage.ref,
         book: passage.book,
         chapter: passage.chapter,
@@ -146,7 +256,45 @@ export const page = query({
         liked: user ? await hasLiked(ctx, user._id, passage.ref) : false,
       });
     }
-    return { items, newRound, skipped };
+    // En la mezcla, sin versículos no hay página (el cliente reintenta); los reels no van solos.
+    if (plan.reelSlots.length === 0 || (plan.verses > 0 && items.length === 0)) return { items, newRound, skipped };
+
+    const reels = rankReels({
+      communityLikes: reelLikes,
+      count: plan.reelSlots.length,
+      likedRefs: likedReelRefs,
+      pool,
+      seed: args.seed + seenRefs.length,
+      seenRefs,
+    });
+    const entries: FeedEntry[] = [...items];
+    for (const [index, reel] of reels.entries()) {
+      const item = await reelItem(
+        ctx,
+        reel,
+        reelLikes.get(reel.ref) ?? (await likesFor(ctx, reel.ref)),
+        user ? await hasLiked(ctx, user._id, reel.ref) : false,
+      );
+      // Si faltaron versículos, el reel va igual, sin dejar huecos.
+      entries.splice(Math.min(plan.reelSlots[index], entries.length), 0, item);
+    }
+    return { items: entries, newRound, skipped };
+  },
+});
+
+/**
+ * Foto de la tarjeta del feed en el inicio (vista previa en movimiento): la de
+ * una cita del catálogo que cambia cada día, con su imagen de IA si ya existe.
+ * `dateKey` es el día de Honduras del teléfono ("2026-11-08").
+ */
+export const preview = query({
+  args: { dateKey: v.string() },
+  handler: async (ctx, args): Promise<{ imageUrl: string; imageAlt: string }> => {
+    const passage = feedPreviewPassage(args.dateKey);
+    const aiImage = await feedImageUrl(ctx, passage.ref);
+    return aiImage
+      ? { imageUrl: aiImage, imageAlt: `Ilustración inspirada en ${passage.ref}` }
+      : { imageUrl: passage.imageUrl, imageAlt: passage.imageAlt };
   },
 });
 
@@ -166,14 +314,15 @@ async function adjustStats(ctx: MutationCtx, ref: string, delta: number): Promis
 /**
  * Deja el ♥ como la persona lo pidió (idempotente: repetirlo no cambia nada).
  * Así un toque que llega tarde o un reintento nunca invierte lo que se quiso.
- * Solo citas del catálogo: nadie puede inflar una cita inventada.
+ * Vale para versículos y para reels (historias y personajes).
  */
 export const setLike = mutation({
   args: { ref: v.string(), liked: v.boolean() },
   handler: async (ctx, args): Promise<{ liked: boolean; likes: number }> => {
     const user = await currentUser(ctx);
     if (!user) throw new ConvexError("No autenticado");
-    if (!feedPassage(args.ref)) throw new ConvexError("Versículo desconocido");
+    // Solo citas y reels del catálogo: nadie puede inflar algo inventado.
+    if (!feedPassage(args.ref) && !feedReel(args.ref)) throw new ConvexError("Versículo desconocido");
 
     const existing = await ctx.db
       .query("verseFeedLikes")

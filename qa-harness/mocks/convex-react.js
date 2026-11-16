@@ -14,8 +14,11 @@ import TOPIC_VERSES from "./topic-verses.json";
 import { JOURNEY_READING_PLANS, SUPPORTED_READING_PLANS as ALL_PLANS } from "../../convex/readingPlanCatalog";
 import { groupDisplayName, groupKindLabel, GROUP_MAX_MEMBERS, sortMembers } from "../../convex/readingGroupCore";
 import { BIBLE_BOOKS } from "../../src/lib/bibleBooks";
+import { rankReels, REEL_POOL } from "../../convex/feedReelsCore";
 import { buildBookPackage, serializeBookPackage } from "../../convex/offlineBiblePackage";
-import { atLimit, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
+import { photosFor } from "../../convex/verseImageCore";
+import { friendHandlers, friendsRulesAcceptedAt } from "./friends";
+import { aiImageScenario, atLimit, grantTestPro, hasPlan, isDark, isEmpty, isError, isLoading, isOffline, isPro, seasonScenario } from "./scenario";
 
 const IMG = "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80";
 const PANEL = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
@@ -417,14 +420,150 @@ function planProgress() {
 }
 
 function quota(module) {
-  const limits = { qa: 5, voices: 5, feelings: 3, stories: 1 };
+  const limits = { qa: 5, voices: 10, feelings: 3, stories: 1, verseImage: 3 };
   const limit = limits[module] ?? 5;
   if (isPro()) return { used: 0, limit, remaining: limit, isPro: true };
   if (atLimit()) return { used: limit, limit, remaining: 0, isPro: false };
   return { used: 1, limit, remaining: limit - 1, isPro: false };
 }
 
+
+// Feed de versículos (#254): citas reales de Versículos por tema con fotos de
+// los devocionales. Páginas sin fin; el ♥ se guarda en memoria. Con
+// `withReels`, el tercero y el sexto lugar son reels reales del catálogo
+// (`convex/feedReelsCore.ts`): historias y personajes, con fotos de los
+// devocionales y sin voz (las partes avanzan con el tiempo de lectura).
+const FEED_IMAGES = [
+  "https://images.unsplash.com/photo-1439853949127-fa647821eba0?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=1600&q=80",
+];
+const FEED_TOPICS = ["Esperanza", "Amor", "Perdón", "Fortaleza", "Paz", null];
+const FEED_CATALOG = Object.entries(TOPIC_VERSES).flatMap(([chapterRef, verses]) => {
+  const split = chapterRef.lastIndexOf(" ");
+  const book = chapterRef.slice(0, split);
+  const chapter = Number(chapterRef.slice(split + 1));
+  return Object.entries(verses).map(([verse, text]) => ({ book, chapter, verse: Number(verse), text }));
+});
+const feedLikes = new Map();
+function feedReelItem(reel) {
+  const liked = feedLikes.get(reel.ref) ?? false;
+  return {
+    kind: reel.kind,
+    ref: reel.ref,
+    title: reel.title,
+    subtitle: reel.subtitle,
+    voiceSlug: reel.voiceSlug,
+    scenes: reel.scenes.map((scene, index) => ({
+      text: scene.text,
+      reference: scene.reference,
+      book: scene.book,
+      chapter: scene.chapter,
+      verse: scene.verse,
+      imageUrl: FEED_IMAGES[(reel.ref.length + index) % FEED_IMAGES.length],
+      imageAlt: `Ilustración de ${reel.title}`,
+      audioUrl: null,
+    })),
+    likes: 12 + (liked ? 1 : 0),
+    liked,
+  };
+}
+// Modos del feed (§Feed en modo TikTok): "historias" y "personajes" son páginas de 4 reels de ese tipo,
+// "versiculos" solo versículos y "para-ti" la mezcla (como `withReels`).
+function feedPage({ seen = [], seed = 1, withReels = false, mode }) {
+  if (mode === "historias" || mode === "personajes") {
+    const kind = mode === "historias" ? "story" : "character";
+    const pool = REEL_POOL.filter((reel) => reel.kind === kind);
+    const reels = rankReels({ communityLikes: new Map(), count: 4, likedRefs: [], pool, seed: seed + seen.length, seenRefs: seen });
+    return { items: reels.map(feedReelItem), newRound: false, skipped: [] };
+  }
+  const mixed = mode === "para-ti" || (mode === undefined && withReels);
+  const verses = feedVersePage(seen, mixed ? 6 : 8);
+  if (!mixed) return { items: verses, newRound: false, skipped: [] };
+  const reels = rankReels({ communityLikes: new Map(), count: 2, likedRefs: [], pool: REEL_POOL, seed: seed + seen.length, seenRefs: seen });
+  const items = [...verses];
+  items.splice(2, 0, feedReelItem(reels[0]));
+  items.splice(5, 0, feedReelItem(reels[1]));
+  return { items, newRound: false, skipped: [] };
+}
+function feedVersePage(seen, count) {
+  const shownVerses = seen.filter((ref) => /\d+:\d+$/.test(ref)).length;
+  const start = shownVerses % FEED_CATALOG.length;
+  return Array.from({ length: count }, (_, offset) => {
+    const index = (start + offset) % FEED_CATALOG.length;
+    const entry = FEED_CATALOG[index];
+    const ref = `${entry.book} ${entry.chapter}:${entry.verse}`;
+    const base = (index * 37) % 1400;
+    const liked = feedLikes.get(ref) ?? false;
+    return {
+      kind: "verse",
+      ref,
+      book: entry.book,
+      chapter: entry.chapter,
+      verse: entry.verse,
+      endVerse: null,
+      text: entry.text,
+      version: "RV1909",
+      topic: FEED_TOPICS[index % FEED_TOPICS.length],
+      imageUrl: FEED_IMAGES[index % FEED_IMAGES.length],
+      imageAlt: "Paisaje",
+      audioUrl: null,
+      likes: base + (liked ? 1 : 0),
+      liked,
+    };
+  });
+}
+
+// Crear imagen: texto de Versículos por tema si la cita está, si no el
+// placeholder de Salmos 46. Los fondos pintados viven en memoria.
+const paintedBackgrounds = new Set();
+const AI_BACKGROUND = "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80";
+function verseImageText({ book, chapter, verse, verseEnd }) {
+  const chapterVerses = TOPIC_VERSES[`${book} ${chapter}`];
+  const last = Math.min(verseEnd ?? verse, verse + 5);
+  const texts = [];
+  for (let current = verse; current <= last; current += 1) {
+    const text = chapterVerses?.[String(current)] ?? VERSES[current - 1]?.text;
+    if (!text) break;
+    texts.push(text);
+  }
+  return { text: texts.length ? texts.join(" ") : null, endVerse: texts.length > 1 ? verse + texts.length - 1 : null };
+}
+function verseImageKey({ book, chapter, verse, verseEnd }) {
+  return `${book} ${chapter}:${verse}${verseEnd ? `-${verseEnd}` : ""}`;
+}
+
 const handlers = {
+  "verseImage:compose": (args) => {
+    const key = verseImageKey(args);
+    const { text, endVerse } = verseImageText(args);
+    return {
+      version: db.bibleVersion,
+      text: isEmpty() ? null : text,
+      endVerse,
+      aiImageUrl: aiImageScenario() === "lista" || paintedBackgrounds.has(key) ? AI_BACKGROUND : null,
+      photos: photosFor(key),
+    };
+  },
+  "verseImage:generateBackground": (args) => {
+    if (atLimit()) return { status: "limit_reached" };
+    if (aiImageScenario() === "sin-saldo") return { status: "failed", reason: "no_credit" };
+    paintedBackgrounds.add(verseImageKey(args));
+    notify();
+    return { status: "ready" };
+  },
+  ...friendHandlers(notify),
+  "verseFeed:page": feedPage,
+  "verseFeed:preview": () => ({ imageUrl: FEED_IMAGES[3], imageAlt: "Paisaje" }),
+  "verseFeed:setLike": ({ ref, liked }) => {
+    feedLikes.set(ref, liked);
+    if (REEL_POOL.some((reel) => reel.ref === ref)) return { liked, likes: 12 + (liked ? 1 : 0) };
+    const index = FEED_CATALOG.findIndex((e) => `${e.book} ${e.chapter}:${e.verse}` === ref);
+    return { liked, likes: ((index * 37) % 1400) + (liked ? 1 : 0) };
+  },
   "users:current": () => ({
     _id: "u1",
     clerkId: "user_qa",
@@ -442,6 +581,7 @@ const handlers = {
     birthday: db.birthday,
     faithDate: db.faithDate,
     faithDateKind: db.faithDateKind,
+    communityRulesAcceptedAt: friendsRulesAcceptedAt(),
   }),
   "users:setPersonalDates": (args) => {
     for (const key of ["birthday", "faithDate", "faithDateKind"]) {
@@ -792,6 +932,11 @@ const handlers = {
     return { status: "ok", conversationId };
   },
   "quotas:remaining": (args) => quota(args.module),
+  "entitlements:grantTestPro": () => {
+    grantTestPro();
+    notify();
+    return { isPro: true };
+  },
   "entitlements:mine": () => ({ isPro: isPro(), expiresAt: isPro() ? Date.now() + 30 * 24 * 3600e3 : null }),
   "history:list": () => db.history,
   "history:getById": () => ({

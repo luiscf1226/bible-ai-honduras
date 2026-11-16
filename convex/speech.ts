@@ -27,17 +27,28 @@ function apiKey() {
   return key;
 }
 
-export function estimateSpeechTokens(text: string): { inputTokens: number; outputTokens: number } {
+export function estimateSpeechTokens(
+  text: string,
+  instructions: string = SPEECH_INSTRUCTIONS,
+): { inputTokens: number; outputTokens: number } {
   const seconds = text.length / CHARACTERS_PER_SECOND;
   // Las instrucciones de la voz también se cobran como texto de entrada.
-  const inputCharacters = text.length + SPEECH_INSTRUCTIONS.length;
+  const inputCharacters = text.length + instructions.length;
   return {
     inputTokens: Math.ceil(inputCharacters / 4),
     outputTokens: Math.ceil((seconds / 60) * AUDIO_TOKENS_PER_MINUTE),
   };
 }
 
-export async function generateSpeech(text: string, meter?: AiMeter): Promise<Blob> {
+/**
+ * Lee `text` en voz natural. Sin `voice`, la voz del feed de versículos; los
+ * reels pasan la del narrador o la del personaje (`feedReelsCore.reelVoice`).
+ */
+export async function generateSpeech(
+  text: string,
+  meter?: AiMeter,
+  voice: { voice: string; instructions: string } = { voice: SPEECH_VOICE, instructions: SPEECH_INSTRUCTIONS },
+): Promise<Blob> {
   return metered(meter, { provider: "openai", model: SPEECH_MODEL }, async (note) => {
     let response: Response;
     try {
@@ -46,9 +57,9 @@ export async function generateSpeech(text: string, meter?: AiMeter): Promise<Blo
         headers: { Authorization: `Bearer ${apiKey()}`, "content-type": "application/json" },
         body: JSON.stringify({
           model: SPEECH_MODEL,
-          voice: SPEECH_VOICE,
+          voice: voice.voice,
           input: text,
-          instructions: SPEECH_INSTRUCTIONS,
+          instructions: voice.instructions,
           response_format: "mp3",
         }),
         signal: AbortSignal.timeout(SPEECH_TIMEOUT_MS),
@@ -62,7 +73,7 @@ export async function generateSpeech(text: string, meter?: AiMeter): Promise<Blo
     if (!response.ok) throw new AiCallError(await openAiErrorKind(response), `OpenAI Speech falló: ${response.status}`);
     const audio = await response.arrayBuffer();
     if (audio.byteLength === 0) throw new AiCallError("empty", "OpenAI Speech no devolvió audio");
-    note(estimateSpeechTokens(text));
+    note(estimateSpeechTokens(text, voice.instructions));
     return new Blob([audio], { type: "audio/mpeg" });
   });
 }

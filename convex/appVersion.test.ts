@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "./_generated/api";
-import { parseBuildNumber } from "./appVersion";
+import { parseBuildNumber } from "./buildNumber";
 import schema from "./schema";
 
 const modules = {

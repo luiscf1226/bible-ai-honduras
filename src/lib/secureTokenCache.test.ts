@@ -74,13 +74,197 @@ describe("createSecureTokenCache", () => {
     expect(onError).toHaveBeenCalledOnce();
   });
 
-  it("un fallo de escritura sí propaga: Clerk tiene que enterarse", async () => {
+  it("un fallo de escritura no traba a Clerk: se avisa y el token queda en memoria", async () => {
     const { spies } = almacenamiento({
       setItemAsync: vi.fn(async () => {
         throw new Error("disco lleno");
       }),
+      getItemAsync: vi.fn(async () => {
+        throw new Error("keychain bloqueado");
+      }),
+    });
+    const onError = vi.fn();
+    const cache = createSecureTokenCache(spies, onError);
+
+    await expect(cache.saveToken("k", "v")).resolves.toBeUndefined();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(await cache.getToken("k")).toBe("v");
+  });
+
+  describe("ninguna llamada colgada traba a Clerk (rechazo 2.1(a) de la 1.0.2)", () => {
+    const nunca = () => new Promise<never>(() => {});
+
+    it("leer que nunca contesta devuelve null al vencer el tope", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({ getItemAsync: vi.fn(nunca) });
+        const onError = vi.fn();
+        const lectura = createSecureTokenCache(spies, onError, 50, 50).getToken("__clerk_client_jwt");
+
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(lectura).resolves.toBeNull();
+        expect(onError).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
-    await expect(createSecureTokenCache(spies, silencio).saveToken("k", "v")).rejects.toThrow("disco lleno");
+    it("guardar que nunca contesta se rinde sin lanzar", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({ setItemAsync: vi.fn(nunca) });
+        const onError = vi.fn();
+        const escritura = createSecureTokenCache(spies, onError, 50).saveToken("k", "v");
+
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(escritura).resolves.toBeUndefined();
+        expect(onError).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("borrar que nunca contesta se rinde sin lanzar", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({ deleteItemAsync: vi.fn(nunca) });
+        const borrado = createSecureTokenCache(spies, silencio, 50).clearToken("k");
+
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(borrado).resolves.toBeUndefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("a mitad de sesión, una lectura que vence devuelve el último token y no cierra la sesión", async () => {
+      vi.useFakeTimers();
+      try {
+        let colgar = false;
+        const { spies, store } = almacenamiento({
+          getItemAsync: vi.fn(async (key: string) => (colgar ? nunca() : (store.get(key) ?? null))),
+        });
+        const cache = createSecureTokenCache(spies, silencio, 50);
+        await cache.saveToken("__clerk_client_jwt", "tok_abc");
+
+        colgar = true;
+        const lectura = cache.getToken("__clerk_client_jwt");
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(lectura).resolves.toBe("tok_abc");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("una lectura que falla después de leer bien devuelve lo leído", async () => {
+      let fallar = false;
+      const { spies, store } = almacenamiento({
+        getItemAsync: vi.fn(async (key: string) => {
+          if (fallar) throw new Error("keychain bloqueado");
+          return store.get(key) ?? null;
+        }),
+      });
+      store.set("__clerk_client_jwt", "tok_abc");
+      const cache = createSecureTokenCache(spies, silencio);
+      expect(await cache.getToken("__clerk_client_jwt")).toBe("tok_abc");
+
+      fallar = true;
+      expect(await cache.getToken("__clerk_client_jwt")).toBe("tok_abc");
+    });
+
+    it("después de clearToken, una lectura que vence ya no devuelve el token borrado", async () => {
+      vi.useFakeTimers();
+      try {
+        let colgar = false;
+        const { spies } = almacenamiento({
+          getItemAsync: vi.fn(async () => (colgar ? nunca() : null)),
+        });
+        const cache = createSecureTokenCache(spies, silencio, 50, 50);
+        await cache.saveToken("__clerk_client_jwt", "tok_abc");
+        await cache.clearToken("__clerk_client_jwt");
+
+        colgar = true;
+        const lectura = cache.getToken("__clerk_client_jwt");
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(lectura).resolves.toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("la primera lectura espera el tope largo: un keychain lento no cierra la sesión al abrir", async () => {
+      vi.useFakeTimers();
+      try {
+        const { spies } = almacenamiento({
+          getItemAsync: vi.fn(() => new Promise<string>((resolve) => setTimeout(() => resolve("tok_abc"), 80))),
+        });
+        const lectura = createSecureTokenCache(spies, silencio, 50, 200).getToken("__clerk_client_jwt");
+
+        await vi.advanceTimersByTimeAsync(80);
+        await expect(lectura).resolves.toBe("tok_abc");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("una lectura lenta que termina después de un guardado no pisa el token nuevo", async () => {
+      vi.useFakeTimers();
+      try {
+        let primera = true;
+        const { spies, store } = almacenamiento({
+          getItemAsync: vi.fn((key: string) => {
+            if (primera) {
+              primera = false;
+              return new Promise<string | null>((resolve) => setTimeout(() => resolve("tok_viejo"), 40));
+            }
+            return nunca();
+          }),
+        });
+        const cache = createSecureTokenCache(spies, silencio, 50, 100);
+        const lenta = cache.getToken("__clerk_client_jwt");
+        await cache.saveToken("__clerk_client_jwt", "tok_nuevo");
+        await vi.advanceTimersByTimeAsync(40);
+        await expect(lenta).resolves.toBe("tok_nuevo");
+
+        const vencida = cache.getToken("__clerk_client_jwt");
+        await vi.advanceTimersByTimeAsync(50);
+        await expect(vencida).resolves.toBe("tok_nuevo");
+        expect(store.get("__clerk_client_jwt")).toBe("tok_nuevo");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("si el keychain rechaza la escritura pero deja leer, no vuelve el token viejo", async () => {
+      const { spies } = almacenamiento({
+        setItemAsync: vi.fn(async () => {
+          throw new Error("keystore rechazó la escritura");
+        }),
+      });
+      const cache = createSecureTokenCache(spies, silencio);
+
+      expect(await cache.getToken("__clerk_client_jwt")).toBeNull();
+      await cache.saveToken("__clerk_client_jwt", "tok_signed_in");
+      expect(await cache.getToken("__clerk_client_jwt")).toBe("tok_signed_in");
+    });
+
+    it("después de clearToken no se vuelve a leer el token borrado del keychain", async () => {
+      const { spies, store } = almacenamiento({
+        deleteItemAsync: vi.fn(async () => {
+          throw new Error("keychain bloqueado");
+        }),
+      });
+      store.set("__clerk_client_jwt", "tok_abc");
+      const cache = createSecureTokenCache(spies, silencio);
+
+      await cache.clearToken("__clerk_client_jwt");
+      expect(await cache.getToken("__clerk_client_jwt")).toBeNull();
+    });
+
+    it("una lectura normal no espera al tope", async () => {
+      const { spies, store } = almacenamiento();
+      store.set("k", "v");
+      expect(await createSecureTokenCache(spies, silencio, 60_000).getToken("k")).toBe("v");
+    });
   });
 });

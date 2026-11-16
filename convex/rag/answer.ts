@@ -82,9 +82,72 @@ export const ask = internalAction({
       return { answer: buildFallbackAnswer(primary), citation: toCitation(primary) };
     }
 
-    return { answer: structured.answer, citation: toCitation(primary) };
+    // Con un pasaje elegido, la caja es ese pasaje; con una pregunta libre, el
+    // versículo con el que la respuesta responde.
+    const shown = args.passage ? primary : boxVerse(structured, citations);
+    return { answer: structured.answer, citation: toCitation(shown) };
   },
 });
+
+/**
+ * El versículo de la caja de la cita: el primero que nombra o cita textual la
+ * respuesta.
+ *
+ * La búsqueda devuelve primero el versículo más cercano a la pregunta por
+ * embeddings, y a veces ese es uno fuera de tema que la respuesta solo usa de
+ * pasada: ante «no puedo dejar de preocuparme» salía Jeremías 42:11 («el rey
+ * de Babilonia») aunque la respuesta abre con Isaías 41:10, a veces
+ * nombrándolo y a veces solo citando sus palabras. Solo se elige entre lo
+ * recuperado (regla dura #4). Si la respuesta no nombra ni cita ninguno, el
+ * primero de `citations` del modelo; y si tampoco, el más cercano.
+ */
+export function boxVerse(structured: QaResponse, retrieved: RetrievedVerse[]): RetrievedVerse {
+  const answer = plainText(structured.answer);
+  const used = retrieved
+    .map((verse) => ({ verse, at: firstMention(answer, verse) }))
+    .filter((item) => item.at >= 0)
+    .sort((a, b) => a.at - b.at);
+  if (used.length > 0) return used[0].verse;
+  const byKey = new Map(retrieved.map((verse) => [referenceKey(verse), verse]));
+  for (const citation of structured.citations) {
+    const verse = byKey.get(referenceKey(citation));
+    if (verse) return verse;
+  }
+  return retrieved[0];
+}
+
+/** Sin tildes, en minúscula y sin puntuación: así se comparan la respuesta y un versículo. */
+export function plainText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+/** Cuántas palabras seguidas del versículo cuentan como cita textual. */
+const QUOTE_WORDS = 5;
+
+/**
+ * Dónde usa `answer` (ya en `plainText`) ese versículo: nombrado («Isaías
+ * 41:10», pero no «Juan 3:16» dentro de «1 Juan 3:16») o citado con al menos
+ * QUOTE_WORDS palabras seguidas. -1 si no lo usa.
+ */
+export function firstMention(answer: string, verse: { book: string; chapter: number; verse: number; text: string }): number {
+  const reference = plainText(`${verse.book} ${verse.chapter} ${verse.verse}`);
+  const named = answer.search(new RegExp(`(?<![\\p{L}\\p{N}])(?<!\\p{N} )${reference}(?!\\p{N})`, "u"));
+  const words = plainText(verse.text).split(" ");
+  const size = Math.min(QUOTE_WORDS, words.length);
+  const padded = ` ${answer} `;
+  let quoted = -1;
+  for (let i = 0; i + size <= words.length; i++) {
+    const at = padded.indexOf(` ${words.slice(i, i + size).join(" ")} `);
+    if (at >= 0 && (quoted < 0 || at < quoted)) quoted = at;
+  }
+  const found = [named, quoted].filter((at) => at >= 0);
+  return found.length > 0 ? Math.min(...found) : -1;
+}
 
 function toCitation(verse: RetrievedVerse): Citation {
   return {

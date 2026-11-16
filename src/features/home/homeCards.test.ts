@@ -10,6 +10,7 @@ import {
   feelingRoute,
   greetingFor,
   HOME_CARD_ORDER,
+  friendsHomeLine,
   HOME_CONTEXT_PRIORITY,
   HOME_ROUTES,
   HOME_TILE_IDS,
@@ -51,8 +52,17 @@ describe("tarjeta de contexto (#232)", () => {
     expect(pickHomeContext({})).toBeNull();
   });
 
-  it("el orden es actualización > nota de prédica > fecha personal > temporada > recuerdo", () => {
-    expect(HOME_CONTEXT_PRIORITY).toEqual(["update", "sermon", "dates", "season", "savedMemory"]);
+  it("el orden es actualización > amigos > nota de prédica > fecha personal > temporada > recuerdo", () => {
+    expect(HOME_CONTEXT_PRIORITY).toEqual(["update", "friends", "sermon", "dates", "season", "savedMemory"]);
+    expect(pickHomeContext({ friends: true, sermon: true, season: true })).toBe("friends");
+  });
+
+  it("Amigos (1.0.3): la línea dice lo pendiente y nada si no hay", () => {
+    expect(friendsHomeLine({ requests: 0, unread: 3 })).toBe("Tenés 3 mensajes sin leer.");
+    expect(friendsHomeLine({ requests: 1, unread: 0 })).toBe("Tenés 1 solicitud de amistad.");
+    expect(friendsHomeLine({ requests: 2, unread: 1 })).toBe("Tenés 1 mensaje sin leer y 2 solicitudes de amistad.");
+    expect(friendsHomeLine({ requests: 0, unread: 0 })).toBeNull();
+    expect(friendsHomeLine(undefined)).toBeNull();
   });
 
   it("domingo se decide con la hora de Honduras", () => {

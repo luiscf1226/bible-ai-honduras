@@ -2,8 +2,6 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import {
   Image,
-  PixelRatio,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +9,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { captureRef } from "react-native-view-shot";
 
 import { api } from "../convex/_generated/api";
 import { AppButton } from "../src/components/AppButton";
@@ -24,18 +21,13 @@ import { hondurasDate } from "../src/features/home/homeCards";
 import { buildDevotionalShareText, buildVerseImageShareText } from "../src/features/home/shareDevotional";
 import { useTodayDevotional, useTodayVerse } from "../src/features/home/useTodayDevotional";
 import { VerseStoryCard } from "../src/features/home/VerseStoryCard";
-import { storyCaptureSize } from "../src/features/home/verseStoryLayout";
+import { captureStoryImage } from "../src/features/home/captureStory";
 import { goToChat } from "../src/lib/goToChat";
-import { openDedication, openPassage } from "../src/lib/openPassage";
-import { asFileUri, shareContent, shareImage } from "../src/lib/share";
+import { openDedication, openPassage, openVerseImage } from "../src/lib/openPassage";
+import { shareContent, shareImage } from "../src/lib/share";
 import { track } from "../src/lib/telemetry";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { tokens } from "../src/theme/tokens";
-
-// Si la foto del devocional tarda, la imagen se captura igual (con el fondo
-// de noche) antes que dejar a la persona esperando.
-const STORY_IMAGE_WAIT_MS = 4000;
-const STORY_IMAGE_POLL_MS = 100;
 
 type ShareFeedback = "error" | "copied" | null;
 
@@ -76,17 +68,9 @@ export default function HoyScreen() {
     setSharing("image");
     setShareFeedback(null);
     try {
-      for (let waited = 0; !storyImageSettled.current && waited < STORY_IMAGE_WAIT_MS; waited += STORY_IMAGE_POLL_MS) {
-        await new Promise((resolve) => setTimeout(resolve, STORY_IMAGE_POLL_MS));
-      }
-      const fileUri = await captureRef(storyRef, {
-        format: "png",
-        quality: 1,
-        result: Platform.OS === "web" ? "data-uri" : "tmpfile",
-        ...storyCaptureSize(Platform.OS, PixelRatio.get()),
-      });
+      const fileUri = await captureStoryImage(storyRef, { imageReady: () => storyImageSettled.current });
       const result = await shareImage({
-        fileUri: asFileUri(fileUri),
+        fileUri,
         referralCode,
         text: buildVerseImageShareText({ verseRef: devotional.verseRef, version: verse.version }),
       });
@@ -245,6 +229,12 @@ export default function HoyScreen() {
                   onPress={() => void onToggleBookmark()}
                   selected={isSaved}
                   testID="hoy-bookmark"
+                />
+                <ActionRow
+                  icon="image"
+                  label="Crear imagen con otro estilo"
+                  onPress={() => openVerseImage(passage)}
+                  testID="hoy-image"
                 />
                 <ActionRow
                   icon="gift"

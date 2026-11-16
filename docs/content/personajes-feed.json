@@ -1,0 +1,167 @@
+{
+  "_nota": "Monólogos curados para el feed (design/oleada-ux.md §Reels del feed). Solo personajes humanos del catálogo de Voces (regla dura #2); de Dios, Jesús y el Espíritu Santo se habla en 3ra persona y lo que dijeron va en estilo indirecto. Cada uno está anclado a un pasaje de RV1909 (regla dura #4): no se generan en runtime. `scene` es la escena del fondo, en inglés, para el generador de imágenes.",
+  "monologues": [
+    {
+      "slug": "moises",
+      "reference": "Éxodo 3:1-12",
+      "book": "Éxodo",
+      "chapter": 3,
+      "verse": 1,
+      "text": "Estaba cuidando las ovejas de mi suegro cuando vi una zarza que ardía y no se consumía. Me acerqué por curiosidad y Dios me llamó por mi nombre. Me pidió volver a Egipto, y yo solo pude preguntarle: ¿quién soy yo para ir?",
+      "scene": "Moses, an elderly bearded shepherd in simple earth-tone robes, seen from behind and slightly to the side, standing barefoot before a desert bush burning with bright fire that does not consume it, flock of sheep resting in the distance on a rocky mountainside"
+    },
+    {
+      "slug": "moises",
+      "reference": "Éxodo 4:10-12",
+      "book": "Éxodo",
+      "chapter": 4,
+      "verse": 10,
+      "text": "Le dije a Dios que nunca había sido hombre de palabras, que era torpe para hablar. No me contestó con un discurso: me prometió que estaría con mi boca y que me enseñaría lo que tenía que decir. Tu debilidad no lo toma por sorpresa.",
+      "scene": "Moses, an elderly bearded man in earth-tone robes, sitting on a rock in a quiet desert valley at dusk with his shepherd's staff across his knees, head lowered in thought, warm last light on distant mountains"
+    },
+    {
+      "slug": "moises",
+      "reference": "Éxodo 14:10-14",
+      "book": "Éxodo",
+      "chapter": 14,
+      "verse": 10,
+      "text": "Teníamos el mar por delante y los carros de Faraón por detrás. El pueblo gritaba de miedo. Les dije: «No temáis; estaos quedos, y ved la salud de Jehová». Esa noche aprendí que a veces lo único que te toca es quedarte firme.",
+      "scene": "Moses seen from behind on a shore at night, staff raised over a wide dark sea, a great crowd of families gathered behind him, a distant column of cloud glowing with soft fire, wind moving the waves"
+    },
+    {
+      "slug": "david",
+      "reference": "1 Samuel 17:40-47",
+      "book": "1 Samuel",
+      "chapter": 17,
+      "verse": 40,
+      "text": "Goliat venía con espada, lanza y escudo. Yo llevaba mi cayado, una honda y cinco piedras lisas del arroyo. Le dije que yo iba a él en el nombre de Jehová de los ejércitos. La batalla no era mía, y eso me quitó el miedo.",
+      "scene": "Young shepherd David, seen from behind, kneeling at a shallow stream in a valley choosing smooth stones, a sling in his hand, a distant army camp and a giant armored warrior on the far hillside"
+    },
+    {
+      "slug": "david",
+      "reference": "2 Samuel 12:1-13",
+      "book": "2 Samuel",
+      "chapter": 12,
+      "verse": 1,
+      "text": "Hice algo terrible y lo escondí. Cuando el profeta Natán me contó la historia de la ovejita robada, me enojé con el hombre rico, hasta que me dijo: «Tú eres aquel hombre». Solo pude responder: «Pequé contra Jehová».",
+      "scene": "King David in simple royal robes seated in a dim stone palace room, head bowed, an old prophet standing before him in plain clothes, a single oil lamp casting warm light, a small lamb carved on a wooden chest"
+    },
+    {
+      "slug": "david",
+      "reference": "Salmos 23:1-4",
+      "book": "Salmos",
+      "chapter": 23,
+      "verse": 1,
+      "text": "Fui pastor antes que rey. Sé lo que es guiar ovejas por valles oscuros, y por eso escribí que aunque ande en valle de sombra de muerte, no temeré mal alguno. No porque el valle no sea oscuro, sino porque no camino solo.",
+      "scene": "A young shepherd seen from behind leading a small flock through a deep shadowed valley toward green pastures and still water lit by morning sun, a harp slung over his shoulder"
+    },
+    {
+      "slug": "ester",
+      "reference": "Ester 4:13-14",
+      "book": "Ester",
+      "chapter": 4,
+      "verse": 13,
+      "text": "Mardoqueo me mandó decir que no pensara que por vivir en el palacio iba a escapar. Y me preguntó: «¿Y quién sabe si para esta hora te han hecho llegar al reino?». Esa pregunta me quitó el sueño, y también me dio un propósito.",
+      "scene": "Queen Esther in elegant Persian robes seen in profile at a tall palace window at night, holding a small scroll, the lights of an ancient city below, soft lamplight on silk curtains"
+    },
+    {
+      "slug": "ester",
+      "reference": "Ester 4:15-16",
+      "book": "Ester",
+      "chapter": 4,
+      "verse": 15,
+      "text": "Entrar ante el rey sin ser llamada podía costarme la vida. Pedí que mi pueblo ayunara tres días conmigo. Después dije: «Entraré al rey, aunque no sea conforme a la ley; y si perezco, que perezca». El valor llegó después de orar.",
+      "scene": "Esther kneeling in prayer on a simple rug in a quiet palace chamber at dawn, head covered, hands open, her maidens praying in the background, pale morning light through a latticed window"
+    },
+    {
+      "slug": "ester",
+      "reference": "Ester 5:1-3",
+      "book": "Ester",
+      "chapter": 5,
+      "verse": 1,
+      "text": "Al tercer día me vestí con mi vestido real y me paré en el patio del palacio. El rey me vio y me extendió el cetro de oro. Me acerqué y toqué la punta del cetro. La puerta que yo creía cerrada se abrió.",
+      "scene": "Esther in royal robes seen from behind standing at the edge of a vast Persian throne hall with tall columns, the king far away on his throne extending a golden scepter, warm golden light"
+    },
+    {
+      "slug": "pablo",
+      "reference": "Hechos 9:1-9",
+      "book": "Hechos",
+      "chapter": 9,
+      "verse": 1,
+      "text": "Iba camino a Damasco con cartas para llevar presos a los que seguían el Camino. De repente me rodeó una luz del cielo y caí a tierra. Oí una voz que me preguntaba por qué lo perseguía: era Jesús. Me levanté sin poder ver nada.",
+      "scene": "Saul, a traveler in first-century robes, fallen to his knees on a dusty road toward a distant walled city, shielding his eyes from an overwhelming bright light breaking through the clouds, his companions and horses startled behind him"
+    },
+    {
+      "slug": "pablo",
+      "reference": "Filipenses 4:11-13",
+      "book": "Filipenses",
+      "chapter": 4,
+      "verse": 11,
+      "text": "Escribí esta carta preso. Aprendí a contentarme con lo que tengo: sé vivir con poco y sé tener abundancia. Todo lo puedo en Cristo que me fortalece. No lo escribí en un día bueno, sino encadenado.",
+      "scene": "Paul, an older bearded man in simple robes, writing on a scroll by the light of a small window in a stone prison room, a chain at his wrist, an oil lamp and a clay cup on the table"
+    },
+    {
+      "slug": "pablo",
+      "reference": "2 Corintios 12:7-10",
+      "book": "2 Corintios",
+      "chapter": 12,
+      "verse": 7,
+      "text": "Tres veces le rogué al Señor que me quitara el aguijón que tenía en la carne. No me lo quitó. Me respondió que su gracia me bastaba, porque su potencia se perfecciona en la flaqueza. Desde entonces me glorío en mis debilidades.",
+      "scene": "Paul seen from behind sitting on a stone bench by the sea at sunset, a walking staff beside him, a worn leather satchel of scrolls, a lone sailing ship on the horizon"
+    },
+    {
+      "slug": "rut",
+      "reference": "Rut 1:14-18",
+      "book": "Rut",
+      "chapter": 1,
+      "verse": 14,
+      "text": "Noemí me pidió que volviera a mi pueblo, como hizo Orfa. No pude. Le dije: «Donde quiera que tú fueres, iré yo». Su pueblo sería mi pueblo, y su Dios mi Dios. No sabía qué nos esperaba en Belén.",
+      "scene": "Two women seen from behind walking together on a long dusty road through hills toward a distant small town, the younger one holding the older woman's arm, bundles on their shoulders, golden late afternoon light"
+    },
+    {
+      "slug": "rut",
+      "reference": "Rut 2:2-12",
+      "book": "Rut",
+      "chapter": 2,
+      "verse": 2,
+      "text": "Para que tuviéramos qué comer, salí a espigar detrás de los segadores, recogiendo lo que se les caía. Sin saberlo llegué al campo de Booz, y él fue bondadoso conmigo, una extranjera. Lo pequeño que haces con fidelidad no pasa desapercibido.",
+      "scene": "Ruth, a young woman with a head covering, gathering leftover barley stalks into her arms in a golden harvest field, reapers working in the distance, a landowner watching kindly from the edge of the field"
+    },
+    {
+      "slug": "rut",
+      "reference": "Rut 4:13-17",
+      "book": "Rut",
+      "chapter": 4,
+      "verse": 13,
+      "text": "Booz me tomó por esposa y tuvimos un hijo, Obed. Las mujeres de Belén le decían a Noemí que yo valía más que siete hijos. Yo, que llegué como extranjera, vi a Noemí con mi hijo en brazos. Ese niño sería el abuelo del rey David.",
+      "scene": "An older woman joyfully holding a newborn baby in a simple stone courtyard of a village house, a young mother smiling beside her, neighbor women gathered around, warm morning light and olive trees"
+    },
+    {
+      "slug": "elias",
+      "reference": "1 Reyes 18:30-39",
+      "book": "1 Reyes",
+      "chapter": 18,
+      "verse": 30,
+      "text": "En el monte Carmelo, los profetas de Baal clamaron todo el día y nadie les respondió. Yo reparé el altar, lo empapé de agua y oré. Cayó fuego de Jehová y consumió el holocausto. El pueblo cayó sobre su rostro y dijo: «¡Jehová es el Dios!».",
+      "scene": "Elijah, a rugged prophet in a rough cloak, seen from behind with arms raised beside a stone altar on a mountain top as fire falls from the sky onto it, a vast crowd on the slopes, dramatic clouds"
+    },
+    {
+      "slug": "elias",
+      "reference": "1 Reyes 19:3-8",
+      "book": "1 Reyes",
+      "chapter": 19,
+      "verse": 3,
+      "text": "Después de la victoria huí al desierto, me senté debajo de un enebro y pedí morirme. Me quedé dormido. Un ángel me tocó y me dijo: «Levántate, come». Había pan y agua junto a mí. Dios empezó por mi cuerpo cansado, no por un sermón.",
+      "scene": "A weary prophet in a rough cloak asleep under a small juniper bush in a vast desert at dawn, a round loaf of bread on hot stones and a jar of water beside his head, soft pink sky"
+    },
+    {
+      "slug": "elias",
+      "reference": "1 Reyes 19:11-13",
+      "book": "1 Reyes",
+      "chapter": 19,
+      "verse": 11,
+      "text": "En el monte Horeb pasó un viento fuerte que rompía los peñascos, después un terremoto y después un fuego. Jehová no estaba en ninguno. Luego vino un silbo apacible y delicado. Ahí, en lo quieto, me cubrí el rostro y salí a escuchar.",
+      "scene": "Elijah seen from behind standing at the mouth of a cave high on a rocky mountain, his cloak drawn over his face, calm air after a storm, shattered rocks below and soft quiet light in the sky"
+    }
+  ]
+}

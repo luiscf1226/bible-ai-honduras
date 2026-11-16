@@ -1,16 +1,19 @@
 import { useAuth } from "@clerk/expo";
+import { useMutation } from "convex/react";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert } from "react-native";
 
+import { api } from "../../../convex/_generated/api";
 import { cancelDailyDevotionalReminder } from "../../lib/dailyReminder";
+import { unregisterPush } from "../../lib/pushNotifications";
 import { logOut as purchasesLogOut } from "../../lib/revenuecat";
 import { useOfflineSync } from "../offline/OfflineSyncProvider";
 
 /**
- * Cerrar sesión de verdad: Clerk, RevenueCat y el recordatorio local. Si el
- * aviso diario sobreviviera, seguirían llegando notificaciones de una cuenta
- * desconectada. Ningún paso puede bloquear a los otros.
+ * Cerrar sesión de verdad: Clerk, RevenueCat, el recordatorio local y los
+ * avisos push. Si el aviso diario o el token push sobrevivieran, seguirían
+ * llegando notificaciones de una cuenta desconectada. Ningún paso puede bloquear a los otros.
  *
  * Un solo dueño para Ajustes y el perfil de Mi espacio: cerrar sesión tiene
  * que estar siempre a mano, y no puede haber dos versiones que limpien cosas
@@ -19,6 +22,7 @@ import { useOfflineSync } from "../offline/OfflineSyncProvider";
 export function useSignOut() {
   const { signOut } = useAuth();
   const { clearUserData } = useOfflineSync();
+  const unregister = useMutation(api.push.unregister);
   const [signingOut, setSigningOut] = useState(false);
 
   async function endSession() {
@@ -34,6 +38,8 @@ export function useSignOut() {
     } catch {
       // Sin permiso de notificaciones no hay nada agendado que cancelar.
     }
+    // Antes de cerrar Clerk. Nunca bloquea: sin red queda pendiente y se reintenta.
+    await unregisterPush(unregister);
     try {
       await purchasesLogOut();
     } catch {

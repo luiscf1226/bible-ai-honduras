@@ -4,7 +4,8 @@ import { api } from "../../../../convex/_generated/api";
 import { localDateKey, occasionsOn } from "../../../../convex/personalDates";
 import { useAppUpdate } from "../../../hooks/useAppUpdate";
 import { useTheme } from "../../../theme/ThemeProvider";
-import { isSundayInHonduras, pickHomeContext } from "../homeCards";
+import { friendsHomeLine, isSundayInHonduras, pickHomeContext } from "../homeCards";
+import { FriendsCard } from "./FriendsCard";
 import { PersonalDateCard } from "./PersonalDateCard";
 import { SavedMemoryCard } from "./SavedMemoryCard";
 import { SeasonStrip } from "./SeasonStrip";
@@ -22,9 +23,11 @@ export function ContextCard() {
   const appUpdate = useAppUpdate();
   const user = useQuery(api.users.current, {});
   const memory = useQuery(api.savedMemory.thisWeek, {});
+  const friendsLine = friendsHomeLine(useQuery(api.friends.summary, {}));
 
   const kind = pickHomeContext({
     update: appUpdate.updateAvailable && appUpdate.storeName !== null && appUpdate.storeName !== undefined,
+    friends: friendsLine !== null,
     sermon: isSundayInHonduras(),
     dates: occasionsOn(user, localDateKey(new Date())).length > 0,
     season: season !== null,
@@ -34,6 +37,8 @@ export function ContextCard() {
   switch (kind) {
     case "update":
       return <UpdateCard onPress={() => void appUpdate.openStore()} storeName={appUpdate.storeName ?? ""} />;
+    case "friends":
+      return <FriendsCard line={friendsLine ?? ""} />;
     case "sermon":
       return <SermonSundayCard />;
     case "dates":

@@ -34,11 +34,12 @@ export const HOME_TILE_IDS = ["read", "ask", "characters", "stories"] as const s
 
 /**
  * Prioridad de la tarjeta de contexto, de mayor a menor (#232): actualización
- * > nota de prédica (domingos) > fecha personal > temporada > recuerdo
- * guardado. La guirnalda de temporada sigue colgando de la foto del versículo
+ * > mensajes o solicitudes de amigos (1.0.3) > nota de prédica (domingos) >
+ * fecha personal > temporada > recuerdo guardado. Lo de amigos va arriba
+ * porque no hay notificaciones: es la única forma de enterarse. La guirnalda de temporada sigue colgando de la foto del versículo
  * aunque la franja no salga: es decoración, no una tarjeta.
  */
-export const HOME_CONTEXT_PRIORITY = ["update", "sermon", "dates", "season", "savedMemory"] as const;
+export const HOME_CONTEXT_PRIORITY = ["update", "friends", "sermon", "dates", "season", "savedMemory"] as const;
 export type HomeContextKind = (typeof HOME_CONTEXT_PRIORITY)[number];
 
 /** La única tarjeta de contexto de hoy, o null si no hay ninguna. */
@@ -64,7 +65,20 @@ export const HOME_ROUTES = {
   characters: { pathname: "/voces" },
   stories: { pathname: "/historias" },
   newSermonNote: { pathname: "/notas/[noteId]", params: { noteId: "nueva" } },
+  friends: { pathname: "/amigos" },
 } as const satisfies Record<string, HomeRoute>;
+
+/** Línea de la tarjeta de Amigos (1.0.3): lo sin leer primero. null = no hay nada pendiente. */
+export function friendsHomeLine(summary: { requests: number; unread: number } | null | undefined): string | null {
+  if (!summary) return null;
+  const { requests, unread } = summary;
+  const messages = unread === 1 ? "1 mensaje sin leer" : `${unread > 99 ? "99+" : unread} mensajes sin leer`;
+  const asks = requests === 1 ? "1 solicitud de amistad" : `${requests} solicitudes de amistad`;
+  if (unread > 0 && requests > 0) return `Tenés ${messages} y ${asks}.`;
+  if (unread > 0) return `Tenés ${messages}.`;
+  if (requests > 0) return `Tenés ${asks}.`;
+  return null;
+}
 
 // ── Leer la Biblia ───────────────────────────────────────────────────────────
 
@@ -171,7 +185,10 @@ export const STORIES_CARD_CAPTION = "Historias bíblicas en texto e imágenes";
 // ── Feed de versículos ───────────────────────────────────────────────────────
 
 export const FEED_CARD_TITLE = "Versículos para vos";
-export const FEED_CARD_CAPTION = "Deslizá uno tras otro y dale ♥ a los que te hablan";
+/** Los modos del feed, en la línea de arriba de la tarjeta héroe. */
+export const FEED_CARD_OVERLINE = "VERSÍCULOS · HISTORIAS · PERSONAJES";
+/** El botón ▶ de la tarjeta: abre la pestaña "Para ti". */
+export const FEED_CARD_PLAY = "Para ti";
 
 // ── Encabezado ───────────────────────────────────────────────────────────────
 

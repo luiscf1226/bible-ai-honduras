@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "570282063659",
+    "project_id": "c-avisos",
+    "storage_bucket": "c-avisos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:570282063659:android:0977bcf1eba7c1f2feb76e",
+        "android_client_info": {
+          "package_name": "com.bibleaihonduras.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAc2jukjDtQ6Nt2Ppo-Az6HJ559Uu_n91Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

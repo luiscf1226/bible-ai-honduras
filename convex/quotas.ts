@@ -3,32 +3,20 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { markActive, markLimitHit } from "./activeDays";
 import { hondurasDateKey } from "./devotional";
 import { entitlementIsActive } from "./entitlements";
+import { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
 
 const moduleValidator = v.union(
   v.literal("qa"),
   v.literal("voices"),
   v.literal("feelings"),
   v.literal("stories"),
+  v.literal("verseImage"),
 );
 
-export type QuotaModule = "qa" | "voices" | "feelings" | "stories";
-
-export const QUOTA_LIMITS: Record<QuotaModule, number> = {
-  qa: 5,
-  voices: 5,
-  feelings: 3,
-  stories: 1,
-};
-
-export const LIMITS = QUOTA_LIMITS;
-
-const STORIES_DAY_KEY = "lifetime";
-
-function dayKey(module: QuotaModule, now = Date.now()): string {
-  return module === "stories" ? STORIES_DAY_KEY : hondurasDateKey(now);
-}
+export { QUOTA_LIMITS, type QuotaModule } from "./quotaLimits";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -52,38 +40,74 @@ async function usageRow(ctx: QueryCtx | MutationCtx, userId: Id<"users">, module
     .unique();
 }
 
-async function isUserPro(ctx: QueryCtx | MutationCtx, userId: Id<"users">): Promise<boolean> {
+async function isUserPro(ctx: QueryCtx | MutationCtx, userId: Id<"users">, now = Date.now()): Promise<boolean> {
   const row = await ctx.db
     .query("entitlements")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
-  return entitlementIsActive(row);
+  return entitlementIsActive(row, now);
 }
 
-async function consume(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
-  if (await isUserPro(ctx, userId)) {
-    return { allowed: true as const };
-  }
+/**
+ * Consume una unidad de cuota dentro de otra mutación (p. ej. reservar un
+ * fondo con IA en `verseImage.ts`), para que reservar y descontar sean
+ * atómicos. Sigue siendo este servicio el que decide.
+ */
+export async function consume(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
+  const result = await charge(ctx, userId, module);
+  return result.allowed ? { allowed: true as const } : result;
+}
 
-  const limit = LIMITS[module];
-  const day = dayKey(module);
+/**
+ * Cobra un uso del día de Honduras: el contador se reinicia solo a medianoche
+ * de Tegucigalpa porque cada día es otra fila. Pro no tiene límite, pero su uso
+ * también se cuenta (métricas por función). Cuando una cuenta gratis gasta su
+ * último uso del día, o intenta pasarse, queda marcada como "llegó al límite"
+ * (la app deja de llamar en cuanto ve 0, así que el rechazo casi nunca llega).
+ * Devuelve el día cobrado para `refund`.
+ */
+export async function charge(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule) {
+  const now = Date.now();
+  const user = await ctx.db.get(userId);
+  if (user) await markActive(ctx, user, now);
+
+  const day = hondurasDateKey(now);
+  const limit = QUOTA_LIMITS[module];
   const row = await usageRow(ctx, userId, module, day);
-  if ((row?.count ?? 0) >= limit) {
+  const used = row?.count ?? 0;
+  const free = !(await isUserPro(ctx, userId, now));
+  if (free && used >= limit) {
+    if (!row) await ctx.db.insert("usage", { userId, module, day, count: 0, limitHit: true });
+    else if (!row.limitHit) await ctx.db.patch(row._id, { limitHit: true });
+    if (user) await markLimitHit(ctx, user, day);
     return { allowed: false as const, reason: "limit_reached" as const, module };
   }
 
-  if (row) {
-    await ctx.db.patch(row._id, { count: row.count + 1 });
-  } else {
-    await ctx.db.insert("usage", { userId, module, day, count: 1 });
-  }
-  return { allowed: true as const };
+  const limitHit = free && used + 1 >= limit ? { limitHit: true } : {};
+  if (row) await ctx.db.patch(row._id, { count: used + 1, ...limitHit });
+  else await ctx.db.insert("usage", { userId, module, day, count: 1, ...limitHit });
+  if (limitHit.limitHit && user) await markLimitHit(ctx, user, day);
+  return { allowed: true as const, day };
+}
+
+/**
+ * Devuelve una unidad cuando lo que se pagó con ella no llegó (el proveedor
+ * de IA falló): un error de OpenAI no le gasta el día a la persona. Devuelve
+ * al día en que se cobró (`consume` lo informa), aunque la falla llegue pasada
+ * la medianoche.
+ */
+export async function refund(ctx: MutationCtx, userId: Id<"users">, module: QuotaModule, day: string) {
+  const row = await usageRow(ctx, userId, module, day);
+  if (!row || row.count === 0) return;
+  const count = row.count - 1;
+  // Si el uso devuelto era el último, la cuenta todavía no llegó al límite.
+  await ctx.db.patch(row._id, count < QUOTA_LIMITS[module] ? { count, limitHit: undefined } : { count });
 }
 
 async function remainingFor(ctx: QueryCtx, userId: Id<"users">, module: QuotaModule) {
   const isPro = await isUserPro(ctx, userId);
   const limit = QUOTA_LIMITS[module];
-  const row = await usageRow(ctx, userId, module, dayKey(module));
+  const row = await usageRow(ctx, userId, module, hondurasDateKey());
   const used = row?.count ?? 0;
   if (isPro) {
     return { used, limit, remaining: limit, isPro: true };

@@ -7,6 +7,8 @@ import type { ShareOrigin, TelemetryEvent } from "../../convex/telemetry";
 import type { QuotaModule } from "../../convex/quotas";
 import { convexClient } from "./convexClient";
 import { describeError, makeInstallId } from "./telemetryCore";
+import { SECURE_STORE_TIMEOUT_MS } from "./secureTokenCache";
+import { timedOut, withTimeout } from "./withTimeout";
 
 /**
  * Diagnóstico: errores y embudo, **sin contenido y sin cuenta** (ver
@@ -25,19 +27,21 @@ const enabled = !__DEV__;
 let installIdPromise: Promise<string> | null = null;
 
 /**
- * Un id por instalación, guardado en SecureStore. Si SecureStore falla (o en
- * web, donde no existe) se usa uno por sesión: peor para el embudo, pero
- * nunca un error.
+ * Un id por instalación, guardado en SecureStore. Si SecureStore falla, no
+ * contesta a tiempo (o en web, donde no existe) se usa uno por sesión: peor
+ * para el embudo, pero nunca un error ni un evento perdido.
  */
 function installId(): Promise<string> {
   if (!installIdPromise) {
     installIdPromise = (async () => {
       if (Platform.OS === "web") return makeInstallId();
       try {
-        const saved = await SecureStore.getItemAsync(INSTALL_ID_KEY);
+        const saved = await withTimeout(SecureStore.getItemAsync(INSTALL_ID_KEY), SECURE_STORE_TIMEOUT_MS);
+        if (saved === timedOut) return makeInstallId();
         if (saved) return saved;
         const fresh = makeInstallId();
-        await SecureStore.setItemAsync(INSTALL_ID_KEY, fresh);
+        // Guardar no se espera: el evento sale aunque el keychain tarde.
+        SecureStore.setItemAsync(INSTALL_ID_KEY, fresh).catch(() => undefined);
         return fresh;
       } catch {
         return makeInstallId();

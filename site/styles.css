@@ -127,6 +127,69 @@ h2 {
 .button:hover { background: var(--clay); color: white; }
 .button.secondary { background: transparent; border: 1px solid var(--rule); color: var(--ink); }
 
+a.eyebrow { text-decoration: none; }
+
+.hero {
+  margin: 0 auto;
+  max-width: 56rem;
+  padding-top: clamp(2.5rem, 6vw, 5rem);
+}
+
+.hero h1 { max-width: 16ch; }
+
+.app-icon {
+  border-radius: 22%;
+  box-shadow: 0 .6rem 1.6rem rgba(43, 40, 36, .16);
+  display: block;
+  height: 5.5rem;
+  margin-bottom: 1.5rem;
+  width: 5.5rem;
+}
+
+.downloads {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  margin-top: 2.5rem;
+}
+
+.download {
+  background: rgba(255, 255, 255, .55);
+  border: 1px solid var(--rule);
+  border-radius: 1.25rem;
+  padding: 1.5rem 1.4rem 1.6rem;
+}
+
+.download h2 { margin: .35rem 0 .75rem; }
+.download p { color: #443f39; margin: 0 0 1.25rem; }
+.download .eyebrow { margin: 0; }
+
+.download .button {
+  font-size: .95rem;
+  padding: .9rem 1.3rem;
+  text-align: center;
+  width: 100%;
+}
+
+.steps {
+  color: #443f39;
+  font-size: .9rem;
+  margin: 1.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.steps li + li { margin-top: .45rem; }
+
+.info {
+  border-top: 1px solid var(--rule);
+  margin: clamp(3.5rem, 8vw, 6rem) auto 0;
+  max-width: 56rem;
+  padding-top: 2.5rem;
+}
+
+.info h2 { margin-top: .5rem; }
+.info p { color: #443f39; }
+
 footer {
   border-top: 1px solid var(--rule);
   color: var(--muted);

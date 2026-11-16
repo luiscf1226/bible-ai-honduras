@@ -12,6 +12,7 @@ import {
   type UsersPage,
 } from "./adminKit/contract";
 import { handleAdminRequest } from "./adminKit/httpHandler";
+import { activeAccounts } from "./activeDays";
 import { addDays, hondurasDateKey, parseDateKey } from "./devotional";
 
 /**
@@ -39,9 +40,15 @@ const APP_METRICS: Record<string, MetricDescriptor> = {
   "users.ai_consent": { label: "Aceptaron usar IA", format: "number", chart: "kpi" },
   "users.by_version": { label: "Versión de la Biblia", format: "number", chart: "bars", dimLabel: "Versión", aggregate: "last" },
   "users.referred_new": { label: "Nuevos por invitación", format: "number", chart: "series", dimLabel: "Vía" },
+  "users.active_1d": { label: "Cuentas activas (día)", format: "number", chart: "series", aggregate: "last" },
+  "users.active_7d": { label: "Cuentas activas (7 días)", format: "number", chart: "kpi" },
+  "users.active_30d": { label: "Cuentas activas (30 días)", format: "number", chart: "kpi" },
   "pro.active": { label: "Pro activos", format: "number", chart: "kpi" },
+  "pro.new": { label: "Pro nuevos", format: "number", chart: "series" },
   "pro.conversion": { label: "Conversión a Pro", format: "percent", chart: "kpi", aggregate: "last" },
+  "pro.conversion_after_limit": { label: "Pro entre quienes llegaron al límite (30 días)", format: "percent", chart: "kpi", aggregate: "last" },
   "quota.usage": { label: "Usos de IA por módulo", format: "number", chart: "series", dimLabel: "Módulo" },
+  "quota.limit_hit": { label: "Cuentas que llegaron al límite", format: "number", chart: "series", dimLabel: "Módulo" },
   "bible.chapters_opened": { label: "Capítulos abiertos", format: "number", chart: "topN", dimLabel: "Libro" },
   "bible.highlights_new": { label: "Subrayados nuevos", format: "number", chart: "series" },
   "bible.bookmarks_new": { label: "Marcadores nuevos", format: "number", chart: "series" },
@@ -49,6 +56,10 @@ const APP_METRICS: Record<string, MetricDescriptor> = {
   "plans.active_7d": { label: "Planes activos (7 días)", format: "number", chart: "bars", dimLabel: "Plan", aggregate: "last" },
   "plans.streaks": { label: "Rachas de lectura", format: "number", chart: "bars", dimLabel: "Días seguidos", aggregate: "last" },
   "groups.total": { label: "Grupos de lectura", format: "number", chart: "kpi" },
+  "friends.total": { label: "Amistades", format: "number", chart: "kpi" },
+  "friends.messages_new": { label: "Mensajes entre amigos", format: "number", chart: "series" },
+  "friends.reports_new": { label: "Reportes nuevos", format: "number", chart: "series", dimLabel: "Motivo" },
+  "friends.blocks_new": { label: "Bloqueos nuevos", format: "number", chart: "series" },
 };
 
 export const MANIFEST: Manifest = {
@@ -58,9 +69,9 @@ export const MANIFEST: Manifest = {
     {
       title: "Usuarios",
       tab: "users",
-      metrics: ["users.total", "users.new", "std.active_1d", "std.active_7d", "std.active_30d", "users.onboarded", "users.ai_consent", "users.referred_new", "users.by_version"],
+      metrics: ["users.total", "users.new", "users.active_1d", "users.active_7d", "users.active_30d", "std.active_1d", "std.active_7d", "std.active_30d", "users.onboarded", "users.ai_consent", "users.referred_new", "users.by_version"],
     },
-    { title: "Pro", tab: "users", metrics: ["pro.active", "pro.conversion"] },
+    { title: "Pro", tab: "users", metrics: ["pro.active", "pro.new", "pro.conversion", "pro.conversion_after_limit", "quota.limit_hit"] },
     {
       title: "Costo y uso",
       tab: "ai",
@@ -75,10 +86,12 @@ export const MANIFEST: Manifest = {
       title: "Biblia",
       metrics: ["bible.chapters_opened", "bible.highlights_new", "bible.bookmarks_new", "bible.memory_new", "plans.active_7d", "plans.streaks", "groups.total"],
     },
+    // Amigos (1.0.3): solo cuántos. Lo reportado se revisa con `friends:recentReports`.
+    { title: "Amigos", metrics: ["friends.total", "friends.messages_new", "friends.reports_new", "friends.blocks_new"] },
     { title: "Embudo", metrics: ["std.funnel"] },
     { title: "Salud", metrics: ["std.errors", "std.errors_fatal"] },
   ],
-  highlights: ["users.total", "users.new", "std.active_7d", "pro.active", "std.ai_cost_usd", "std.ai_calls", "bible.chapters_opened", "std.errors"],
+  highlights: ["users.total", "users.new", "users.active_7d", "pro.active", "pro.new", "std.ai_cost_usd", "std.ai_calls", "bible.chapters_opened", "std.errors"],
   capabilities: ["users"],
   labels: {
     qa: "Preguntar",
@@ -112,6 +125,11 @@ export const MANIFEST: Manifest = {
     link: "Link de invitación",
     play: "Play Store",
     manual: "Código manual",
+    ofensivo: "Insultos, odio o acoso",
+    sexual: "Contenido sexual",
+    estafa: "Ventas, préstamos o estafas",
+    privado: "Datos privados",
+    peligro: "Alguien en peligro",
   },
   metrics: { ...STANDARD_METRICS, ...APP_METRICS },
 };
@@ -139,6 +157,18 @@ function tally(values: Iterable<string>): Map<string, number> {
   return map;
 }
 
+/**
+ * Cuentas que llegaron al límite un día, por módulo. El total cuenta cuentas
+ * distintas: quien llegó en Preguntar y en Voces es una sola.
+ */
+export function limitHits(rows: ReadonlyArray<{ userId: string; module: string; limitHit?: boolean }>): {
+  accounts: number;
+  byModule: Map<string, number>;
+} {
+  const hit = rows.filter((row) => row.limitHit === true);
+  return { accounts: new Set(hit.map((row) => row.userId)).size, byModule: tally(hit.map((row) => row.module)) };
+}
+
 export function streakBucket(streak: number): string {
   if (streak <= 0) return "0";
   if (streak < 7) return "1-6";
@@ -150,6 +180,10 @@ export function streakBucket(streak: number): string {
  * Métricas propias de un día. `users`, `entitlements`, `userPlanProgress` y
  * `readingGroups` se leen completas (son una fila por persona o grupo): alcanza
  * para el volumen de hoy. Lo "nuevo" usa índices por fecha.
+ *
+ * Amigos no carga amistades, mensajes, reportes ni bloqueos: todo sale de
+ * los contadores de `friendDailyStats`, que suman cada mutación y no se
+ * pierden cuando después se borra una conversación o una cuenta.
  */
 async function appRows(ctx: MutationCtx, day: string, window: { startMs: number; endMs: number }): Promise<Row[]> {
   const { startMs, endMs } = window;
@@ -158,9 +192,15 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   const users = (await ctx.db.query("users").collect()).filter((user) => user._creationTime < endMs);
   const newUsers = users.filter((user) => inWindow(user._creationTime));
   const entitlements = await ctx.db.query("entitlements").collect();
-  const proActive = entitlements.filter(
-    (row) => row._creationTime < endMs && row.isPro && (row.expiresAt === undefined || row.expiresAt > endMs),
-  ).length;
+
+  const proUsers = new Set(
+    entitlements
+      .filter((row) => row._creationTime < endMs && row.isPro && (row.expiresAt === undefined || row.expiresAt > endMs))
+      .map((row) => row.userId),
+  );
+  const proActive = proUsers.size;
+  const proNew = entitlements.filter((row) => row.firstProAt !== undefined && inWindow(row.firstProAt)).length;
+  const active = activeAccounts(users, day);
 
   const usage = await ctx.db
     .query("usage")
@@ -168,6 +208,14 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     .collect();
   const usageByModule = new Map<string, number>();
   for (const row of usage) usageByModule.set(row.module, (usageByModule.get(row.module) ?? 0) + row.count);
+  const limited = limitHits(usage);
+  // Conversión del freemium: de quienes llegaron al límite en los últimos 30
+  // días, cuántos son Pro. Solo se guarda el último día de cada cuenta, así
+  // que al recalcular un día pasado también entra quien llegó después: sin
+  // tope superior, para no perder justo a quien volvió a llegar hoy.
+  const monthStart = addDays(day, -29);
+  const limitedMonth = users.filter((user) => user.lastLimitHitDay !== undefined && user.lastLimitHitDay >= monthStart);
+  const limitedMonthPro = limitedMonth.filter((user) => proUsers.has(user._id)).length;
 
   const recents = await ctx.db
     .query("readingRecents")
@@ -194,6 +242,21 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
   });
   const groups = (await ctx.db.query("readingGroups").collect()).filter((row) => row.createdAt < endMs);
 
+  // Amigos: solo los contadores chicos de `friendDailyStats`. Las amistades
+  // a la fecha son las que empezaron menos las que terminaron hasta ese día
+  // (8 filas por día: ~3.000 por año).
+  const friendStats = await ctx.db
+    .query("friendDailyStats")
+    .withIndex("by_day_shard", (q) => q.lte("day", day))
+    .collect();
+  const friendsToday = friendStats.filter((row) => row.day === day);
+  const sum = (rows: typeof friendStats, pick: (row: (typeof friendStats)[number]) => number | undefined) =>
+    rows.reduce((total, row) => total + (pick(row) ?? 0), 0);
+  const reportsByReason = new Map<string, number>();
+  for (const row of friendsToday) {
+    for (const [reason, count] of Object.entries(row.reports ?? {})) reportsByReason.set(reason, (reportsByReason.get(reason) ?? 0) + count);
+  }
+
   return [
     { key: "users.total", value: users.length },
     { key: "users.new", value: newUsers.length },
@@ -201,9 +264,16 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     { key: "users.ai_consent", value: users.filter((user) => user.aiConsentAt !== undefined).length },
     ...withTotal("users.by_version", tally(users.map((user) => user.bibleVersion))),
     ...withTotal("users.referred_new", tally(newUsers.flatMap((user) => (user.referredBy ? [user.referredVia ?? "link"] : [])))),
+    { key: "users.active_1d", value: active.day },
+    { key: "users.active_7d", value: active.week },
+    { key: "users.active_30d", value: active.month },
     { key: "pro.active", value: proActive },
+    { key: "pro.new", value: proNew },
     { key: "pro.conversion", value: users.length === 0 ? 0 : (proActive / users.length) * 100 },
+    { key: "pro.conversion_after_limit", value: limitedMonth.length === 0 ? 0 : (limitedMonthPro / limitedMonth.length) * 100 },
     ...withTotal("quota.usage", usageByModule),
+    { key: "quota.limit_hit", value: limited.accounts },
+    ...[...limited.byModule].map(([dim, value]) => ({ key: "quota.limit_hit", dim, value })),
     ...withTotal("bible.chapters_opened", tally(recents.map((row) => row.book))),
     { key: "bible.highlights_new", value: highlights.length },
     { key: "bible.bookmarks_new", value: bookmarks.length },
@@ -211,6 +281,10 @@ async function appRows(ctx: MutationCtx, day: string, window: { startMs: number;
     ...withTotal("plans.active_7d", tally(activePlans.map((row) => row.planId))),
     ...withTotal("plans.streaks", tally(activePlans.map((row) => streakBucket(row.currentStreak)))),
     { key: "groups.total", value: groups.length },
+    { key: "friends.total", value: sum(friendStats, (row) => row.accepted) - sum(friendStats, (row) => row.ended) },
+    { key: "friends.messages_new", value: sum(friendsToday, (row) => row.messages) },
+    ...withTotal("friends.reports_new", reportsByReason),
+    { key: "friends.blocks_new", value: sum(friendsToday, (row) => row.blocks) },
   ];
 }
 

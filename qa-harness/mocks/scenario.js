@@ -5,12 +5,19 @@ export function scenario() {
   return value || "free";
 }
 
+// Compra simulada del modo de prueba (EXPO_PUBLIC_PAYMENTS_MODE=test): vive
+// en memoria hasta recargar la página.
+let testPro = false;
+export function grantTestPro() {
+  testPro = true;
+}
+
 export function isPro() {
-  return scenario() === "pro";
+  return scenario() === "pro" || testPro;
 }
 
 export function atLimit() {
-  return scenario() === "limit";
+  return scenario() === "limit" && !testPro;
 }
 
 export function isLoading() {
@@ -47,4 +54,11 @@ export function isOffline() {
 export function hasPlan() {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("plan") === "1";
+}
+
+// Crear imagen: `?ia=sin-saldo` (OpenAI sin saldo) o `?ia=lista` (la cita ya
+// tiene fondo con IA). Sin el parámetro, la cita no tiene y se puede pintar.
+export function aiImageScenario() {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("ia");
 }

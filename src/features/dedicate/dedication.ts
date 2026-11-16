@@ -1,7 +1,8 @@
+import { storyPalettes, type StoryPalette, type StorySeason } from "../home/storyPalettes";
 import {
   estimateLines,
+  fittingStoryFormats,
   serifCharsPerLine,
-  verseStoryLayout,
   type DedicationBlock,
   type StoryFormat,
 } from "../home/verseStoryLayout";
@@ -25,13 +26,8 @@ const TO_MAX_LINES = 2;
 
 export type DedicationTemplateId = "clasica" | "noche" | "temporada" | "cumpleanos";
 
-/** Colores de una plantilla: todos salen de la paleta (`tokens`), nunca un hex suelto. */
-export type DedicationPalette = {
-  bg: string;
-  ink: string;
-  muted: string;
-  accent: string;
-};
+/** Colores de una plantilla: los fondos lisos compartidos con "Crear imagen" (`storyPalettes`). */
+export type DedicationPalette = StoryPalette;
 
 export type DedicationTemplate = {
   id: DedicationTemplateId;
@@ -42,50 +38,18 @@ export type DedicationTemplate = {
   palette: DedicationPalette;
 };
 
-type SeasonKey = keyof typeof tokens.season;
-
-function isSeasonKey(key: string | null | undefined): key is SeasonKey {
-  return typeof key === "string" && key in tokens.season;
-}
-
 /**
  * Plantillas disponibles hoy. Clásica y Noche siempre; la de la temporada
  * activa (#199) solo mientras dura, con su nombre y su acento; Cumpleaños
- * siempre (es lo que más se regala).
+ * siempre (es lo que más se regala; es el fondo Arena).
  */
-export function dedicationTemplates(season?: { name: string; paletteKey?: string | null } | null): DedicationTemplate[] {
-  const day = tokens.color;
-  const night = tokens.night.color;
-  const templates: DedicationTemplate[] = [
-    {
-      id: "clasica",
-      label: "Clásica",
-      overline: "Con cariño",
-      palette: { bg: day.paper, ink: day.ink, muted: day.inkMuted, accent: day.accent },
-    },
-    {
-      id: "noche",
-      label: "Noche",
-      overline: "Con cariño",
-      palette: { bg: night.bg, ink: night.ink, muted: night.inkMuted, accent: night.accent },
-    },
-  ];
-  if (season && isSeasonKey(season.paletteKey)) {
-    const layer = tokens.season[season.paletteKey].day;
-    templates.push({
-      id: "temporada",
-      label: season.name,
-      overline: season.name,
-      palette: { bg: layer.bg, ink: day.ink, muted: day.inkMuted, accent: layer.accent },
-    });
-  }
-  templates.push({
-    id: "cumpleanos",
-    label: "Cumpleaños",
-    overline: "Feliz cumpleaños",
-    palette: { bg: day.surfaceSunk, ink: day.ink, muted: day.inkMuted, accent: day.sage },
+export function dedicationTemplates(season?: StorySeason): DedicationTemplate[] {
+  return storyPalettes(season).map(({ id, palette }): DedicationTemplate => {
+    if (id === "noche") return { id, label: "Noche", overline: "Con cariño", palette };
+    if (id === "temporada") return { id, label: season?.name ?? "", overline: season?.name ?? "", palette };
+    if (id === "arena") return { id: "cumpleanos", label: "Cumpleaños", overline: "Feliz cumpleaños", palette };
+    return { id, label: "Clásica", overline: "Con cariño", palette };
   });
-  return templates;
 }
 
 /** Con temporada activa arranca en su plantilla; si no, en la clásica. */
@@ -137,9 +101,7 @@ export const DEDICATION_FORMATS: readonly { id: StoryFormat; label: string }[] =
  * editar", nunca cortado). Los versículos muy largos solo entran en 9:16.
  */
 export function fittingFormats(verseText: string, block: DedicationBlock, image = tokens.storyImage): StoryFormat[] {
-  return DEDICATION_FORMATS.map((format) => format.id).filter(
-    (format) => !verseStoryLayout(`“${verseText}”`, image, { withSeason: true, format, dedication: block }).truncated,
-  );
+  return fittingStoryFormats(`“${verseText}”`, { withSeason: true, dedication: block }, image);
 }
 
 /**

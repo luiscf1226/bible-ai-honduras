@@ -48,6 +48,7 @@ function MiEspacioSections() {
   const me = useQuery(api.users.current, {});
   const memorize = useQuery(api.memorize.list, {});
   const prayers = useQuery(api.prayers.list, {});
+  const friends = useQuery(api.friends.summary, {});
   const sermonNotes = useSermonNotes();
   const loading =
     separator === undefined ||
@@ -73,6 +74,7 @@ function MiEspacioSections() {
     memorize: { total: memorize?.items.length ?? 0, dueCount: memorize?.dueCount ?? 0 },
     prayers: prayers ?? [],
     sermonNotes: (sermonNotes.notes ?? []).map((note) => ({ displayTitle: sermonDisplayTitle(note) })),
+    friends: friends ?? undefined,
   });
 
   return (

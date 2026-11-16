@@ -138,6 +138,27 @@ bible-ai-honduras/
 └── ARCHITECTURE.md
 ```
 
+### 3.1 Qué entra al binario (1.0.3)
+
+Metro mete al bundle todo lo que se alcanza con un import estático, aunque nunca
+se ejecute. Las reglas que mantienen la app chica:
+
+- **La app solo importa de `convex/` módulos puros** (constantes, catálogos,
+  lógica). Un módulo que importa `_generated/server` arrastra el backend entero:
+  `src/lib/convexClientImports.test.ts` lo frena. Si la app necesita una constante
+  de un archivo con funciones Convex, va a un archivo aparte (`quotaLimits.ts`,
+  `aiConsent.ts`, `buildNumber.ts`, `verseFeedLimits.ts`).
+- **Fuentes por subruta** (`@expo-google-fonts/dm-sans/400Regular`): el índice
+  del paquete hace `require` de todos los pesos.
+- **Solo web, fuera de nativo**: `metro.config.js` (`nativeStubs`) cambia
+  `react-dom`, el SDK web de RevenueCat y la fuente de Material Symbols por
+  módulos vacíos en iOS/Android.
+- **Módulos nativos transitivos sin uso**: `package.json` → `expo.autolinking.exclude`
+  saca `react-native-reanimated`, `react-native-gesture-handler` (los trae
+  expo-router, la app no los usa) y el wallet de Solana (lo trae Clerk). Si algún
+  día se usa uno, hay que sacarlo de esa lista y agregarlo como dependencia.
+- **Android release con R8 y `shrinkResources`** (`expo-build-properties` en `app.json`).
+
 ---
 
 ## 4. Esquema de datos (Convex)
