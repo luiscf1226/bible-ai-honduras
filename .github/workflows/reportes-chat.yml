@@ -1,0 +1,44 @@
+name: Reportes del chat
+
+# Cada 6 horas busca reportes nuevos del chat de amigos y, si hay, abre (o
+# comenta) un issue `reportes-chat` asignado al dueño del repo. A Apple le
+# prometimos revisarlos en menos de 24 h. Detalle en scripts/check-chat-reports.mjs.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      horas:
+        description: "Mirar las últimas N horas en vez de desde la última corrida (opcional)"
+        type: string
+        default: ""
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: reportes-chat
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    name: Buscar reportes nuevos
+    runs-on: ubuntu-latest
+    environment: convex-test
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Avisar
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          SINCE_HOURS: ${{ inputs.horas }}
+        run: node scripts/check-chat-reports.mjs
