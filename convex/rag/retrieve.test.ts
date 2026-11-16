@@ -87,4 +87,36 @@ describe("retrieve.topVerses", () => {
 
     expect(results).toEqual([]);
   });
+
+  it("sin embeddings (OpenAI sin saldo), recupera por referencia sugerida y descarta lo que no está en la Biblia", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    const t = convexTest(schema, modules);
+    await seedVerse(t, unitVector(0));
+    const suggestion = {
+      references: [
+        { book: "Salmos", chapter: 23, verse: 1 },
+        { book: "Salmos", chapter: 23, verse: 1 },
+        { book: "Juan", chapter: 99, verse: 1 },
+      ],
+    };
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("openai")
+        ? new Response(JSON.stringify({ error: { code: "insufficient_quota" } }), { status: 429 })
+        : new Response(JSON.stringify({ content: [{ type: "text", text: JSON.stringify(suggestion) }] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const results = await t.action(internal.rag.retrieve.topVerses, { query: "¿quién es mi pastor?" });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ book: "Salmos", chapter: 23, verse: 1, version: "RV1909" });
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      expect.stringContaining("openai"),
+      expect.stringContaining("anthropic"),
+    ]);
+  });
 });
