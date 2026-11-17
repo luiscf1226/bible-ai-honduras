@@ -99,7 +99,7 @@ function VocesChatScreenContent() {
     }
   };
 
-  const atLimit = limitReached || (quota !== undefined && !quota.isPro && quota.remaining === 0);
+  const atLimit = limitReached || (quota != null && !quota.isPro && quota.remaining === 0);
   if (atLimit) {
     return <LimitReached module="voices" testID="voices-limit" />;
   }

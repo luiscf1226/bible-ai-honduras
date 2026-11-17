@@ -131,10 +131,22 @@ export const checkAndConsume = mutation({
   },
 });
 
+/**
+ * Cuota que le queda hoy a la persona, o `null` sin sesión (o antes de
+ * `users.upsert`). Es una query de lectura que las pantallas llaman al cargar:
+ * si tirara error, Sentir caería en "Algo salió mal" para quien todavía no
+ * inició sesión. Cobrar sigue exigiendo sesión (`checkAndConsume`).
+ */
 export const remaining = query({
   args: { module: moduleValidator },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) return null;
     return remainingFor(ctx, user._id, args.module);
   },
 });

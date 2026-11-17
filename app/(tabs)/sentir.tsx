@@ -186,7 +186,7 @@ function SentirScreenContent() {
     setSelectedHistoryId(id);
   };
 
-  const atLimit = limitReached || (quota !== undefined && !quota.isPro && quota.remaining === 0);
+  const atLimit = limitReached || (quota != null && !quota.isPro && quota.remaining === 0);
   const slot = bottomSlotFor(thread, atLimit);
   const isEmpty = thread.turns.length === 0 && !thread.pending && !selectedHistoryId;
 
