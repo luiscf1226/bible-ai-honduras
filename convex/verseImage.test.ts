@@ -141,7 +141,7 @@ describe("verseImage.generateBackground", () => {
     expect(row.ref).toBe("Números 6:24");
     expect(row.storageId).toBeDefined();
     expect(row.inProgressUntil).toBeUndefined();
-    expect((await authed.query(api.quotas.remaining, { module: "verseImage" })).remaining).toBe(QUOTA_LIMITS.verseImage - 1);
+    expect((await authed.query(api.quotas.remaining, { module: "verseImage" }))?.remaining).toBe(QUOTA_LIMITS.verseImage - 1);
     expect((await authed.query(api.verseImage.compose, LOOSE)).aiImageUrl).toEqual(expect.any(String));
   });
 
@@ -153,7 +153,7 @@ describe("verseImage.generateBackground", () => {
     await authed.action(api.verseImage.generateBackground, LOOSE);
     await expect(authed.action(api.verseImage.generateBackground, LOOSE)).resolves.toEqual({ status: "ready" });
     expect(prompts).toHaveLength(1);
-    expect((await authed.query(api.quotas.remaining, { module: "verseImage" })).remaining).toBe(QUOTA_LIMITS.verseImage - 1);
+    expect((await authed.query(api.quotas.remaining, { module: "verseImage" }))?.remaining).toBe(QUOTA_LIMITS.verseImage - 1);
   });
 
   it("con la cuota del día agotada responde limit_reached sin llamar a OpenAI", async () => {
@@ -187,7 +187,7 @@ describe("verseImage.generateBackground", () => {
     expect(row.storageId).toBeUndefined();
     expect(row.inProgressUntil).toBeUndefined();
     expect(row.attempts).toBe(0);
-    expect((await authed.query(api.quotas.remaining, { module: "verseImage" })).remaining).toBe(QUOTA_LIMITS.verseImage);
+    expect((await authed.query(api.quotas.remaining, { module: "verseImage" }))?.remaining).toBe(QUOTA_LIMITS.verseImage);
   });
 
   it("una caída del proveedor es provider; una reserva vigente de otro pedido es busy", async () => {
@@ -206,7 +206,7 @@ describe("verseImage.generateBackground", () => {
       await ctx.db.patch(row._id, { inProgressUntil: Date.now() + 60_000 });
     });
     await expect(authed.action(api.verseImage.generateBackground, LOOSE)).resolves.toEqual({ status: "busy" });
-    expect((await authed.query(api.quotas.remaining, { module: "verseImage" })).remaining).toBe(QUOTA_LIMITS.verseImage);
+    expect((await authed.query(api.quotas.remaining, { module: "verseImage" }))?.remaining).toBe(QUOTA_LIMITS.verseImage);
   });
 
   it("sin sesión o sin texto cargado es unavailable", async () => {

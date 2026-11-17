@@ -193,9 +193,21 @@ describe("quotas.remaining", () => {
     });
   });
 
-  it("requiere sesión", async () => {
+  it("sin sesión devuelve null en vez de romper (Sentir carga sin iniciar sesión)", async () => {
     const t = convexTest(schema, modules);
-    await expect(t.query(api.quotas.remaining, { module: "qa" })).rejects.toThrow("No autenticado");
+    for (const module of ["qa", "voices", "feelings", "stories", "verseImage"] as const) {
+      await expect(t.query(api.quotas.remaining, { module })).resolves.toBeNull();
+    }
+  });
+
+  it("con sesión pero antes de users.upsert devuelve null", async () => {
+    const t = convexTest(schema, modules);
+    await expect(asUser(t, "user_sin_fila").query(api.quotas.remaining, { module: "feelings" })).resolves.toBeNull();
+  });
+
+  it("cobrar sí sigue exigiendo sesión", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.mutation(api.quotas.checkAndConsume, { module: "feelings" })).rejects.toThrow("No autenticado");
   });
 });
 

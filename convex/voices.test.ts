@@ -235,8 +235,8 @@ describe("voices.sendMessage", () => {
     });
 
     const remaining = await authed.query(api.quotas.remaining, { module: "voices" });
-    expect(remaining.used).toBe(0);
-    expect(remaining.remaining).toBe(QUOTA_LIMITS.voices);
+    expect(remaining?.used).toBe(0);
+    expect(remaining?.remaining).toBe(QUOTA_LIMITS.voices);
   });
 
   it("el 6º mensaje free no llama al RAG", async () => {
